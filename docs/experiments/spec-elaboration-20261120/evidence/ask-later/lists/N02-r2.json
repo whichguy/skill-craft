@@ -1,0 +1,133 @@
+{
+ "code": "N02",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "ccf7940e4a07081f43749d6863843ca2efe95aa400bd7f86306dde40421f4b81",
+ "cost_usd": null,
+ "names_outside_its_folder": [
+  "/Users/dadleet",
+  "sol-high-due-p2"
+ ],
+ "decisions": [
+  {
+   "decision": "The work keeps deadlines in an optional field in the version-1 ticket file and relies on operators taking a copy before rollback, then using `--restore-from FILE` on re-upgrade to recover deadlines by ticket ID and creation time while retaining edits made under 1.4.0 and calculating deadlines for tickets created there.",
+   "alternative": "The requester might have expected deadlines to survive a writable rollback automatically, through a durable deadline record that 1.4.0 saves cannot erase and that operators do not have to copy or supply.",
+   "where": "repo/docs/shiploop/spec.md, R-4, lines 32\u201333; record/03-research.md, summary at line 17"
+  },
+  {
+   "decision": "The backfill assigns each legacy ticket a deadline using the hours configured for the migration, and subsequent runs fill only missing deadlines.",
+   "alternative": "The requester might have wanted legacy tickets assigned the original 4/24/72/168-hour schedule regardless of the settings chosen for newly created tickets.",
+   "where": "repo/docs/shiploop/spec.md, R-3, lines 24\u201325; record/04-spec.md, summary at line 23"
+  },
+  {
+   "decision": "The backfill uses each legacy ticket's priority as stored when the migration runs.",
+   "alternative": "The requester might have meant to use the ticket's priority when it was created, recovering it from the audit history for tickets whose priority has since changed.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 24; repo/docs/api.md, A ticket's history, lines 116\u2013133"
+  },
+  {
+   "decision": "Operators run a separate offline backfill using `DATA_FILE=FILE npm run migrate:due`, with the service's writer stopped, and restart the service to load the result.",
+   "alternative": "The requester might have expected the running service to backfill through its existing single writer while the feature was hidden, so production could keep serving requests.",
+   "where": "repo/docs/shiploop/spec.md, R-3, lines 24\u201326; record/01-intake.md, Q10, lines 147\u2013154"
+  },
+  {
+   "decision": "The new release sets and saves deadlines on ticket creation even while the feature is hidden.",
+   "alternative": "The requester might have intended flag-off operation to defer deadline assignment until the pre-activation backfill, so tickets opened during the rollout would use the hours chosen for that backfill.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 9"
+  },
+  {
+   "decision": "With due times enabled, a persistent server refuses to listen if any ticket is missing a deadline, while an empty store can start normally.",
+   "alternative": "The requester might have preferred the service to keep answering in flag-off mode and report that activation is blocked until the file has been backfilled.",
+   "where": "repo/docs/shiploop/spec.md, R-3, line 25"
+  },
+  {
+   "decision": "The work delivers the change and rollout instructions locally and leaves production migration, activation, and rollback to the operators.",
+   "alternative": "The requester might have expected a coordinated production rollout that includes backfilling the real file and enabling the feature.",
+   "where": "repo/docs/shiploop/environment.md, Targets and runtimes and Access and accounts, lines 8 and 29\u201331; repo/docs/shiploop/spec.md, R-4, line 33; record/02-discovery.md, Q9 in the summary at line 18"
+  },
+  {
+   "decision": "Rollback verification is specified against the original 1.4.0 executable on disposable files, including a file that 1.4.0 rewrites before re-upgrade.",
+   "alternative": "The requester might have expected the deployed 1.4.0 artifact to be rehearsed in staging with a copy of production data before approving rollout.",
+   "where": "repo/docs/shiploop/spec.md, R-4, lines 30\u201333; record/03-research.md, summary at line 17"
+  },
+  {
+   "decision": "Operators configure response hours through four process environment variables, `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, and `DUE_HOURS_LOW`.",
+   "alternative": "The requester might have wanted the help desk to update a shared settings file or an administrative setting without changing the service manager's environment or restarting the process.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 10; record/01-intake.md, Q3, lines 84\u201391"
+  },
+  {
+   "decision": "An empty hours setting uses its default, and an invalid setting stops startup or migration with an error naming the variable.",
+   "alternative": "The requester might have wanted invalid settings to trigger a warning while startup or migration continues with the documented defaults.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 10"
+  },
+  {
+   "decision": "The overdue filter is an additional restriction on the existing cursor-paged list, where a ticket can satisfy either the status filter or the priority filter when both are supplied.",
+   "alternative": "The requester might have expected overdue results to satisfy every supplied filter, as the existing API documentation says status and priority do.",
+   "where": "record/04-spec.md, summary at line 23; repo/docs/shiploop/spec.md, R-2, line 18; repo/src/tickets/query.js, matchesFilters, lines 41\u201346; repo/docs/api.md, List tickets, lines 69\u201377"
+  },
+  {
+   "decision": "Hours overrides accept whole numbers greater than or equal to zero.",
+   "alternative": "The requester might have wanted strictly positive durations and fractional hours, such as half an hour for urgent tickets.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 10; record/04-spec.md, summary at line 23"
+  },
+  {
+   "decision": "With the feature enabled, only `overdue=true` activates the filter and other values return the ordinary listing.",
+   "alternative": "The requester might have expected a mistyped value such as `overdue=treu` to produce a 400 error so a client cannot silently treat the ordinary list as its overdue queue.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 18"
+  },
+  {
+   "decision": "Each overdue list request reads the clock once, and each subsequent page request evaluates overdue status against its own time.",
+   "alternative": "The requester might have expected all pages of one listing to use the first page's time so the set of overdue tickets stays consistent as clients paginate.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 18 and Non-functional requirements, line 43"
+  },
+  {
+   "decision": "Enabled ticket responses expose the deadline through create, get, list, patch, and transition, and the human-facing CLI adds it to both its list table and ticket details.",
+   "alternative": "The requester might have meant for the HTTP ticket representation to gain the field while the human CLI keeps its current output.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 17 and Non-functional requirements, line 44; record/01-intake.md, Q1, lines 66\u201373"
+  },
+  {
+   "decision": "The four-column raw CLI output and the weekly report it feeds do not expose deadlines.",
+   "alternative": "The requester might have wanted an opt-in machine-readable output with deadlines for scripts while retaining the existing four-column format for current consumers.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 17 and Non-functional requirements, line 44; repo/README.md, Command line, lines 70\u201376"
+  },
+  {
+   "decision": "Deadline assignment and backfill leave the HTTP audit history as it was.",
+   "alternative": "The requester might have wanted the audit history to record the assigned deadline, including when a legacy ticket acquired one, so operators could trace the original promise.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 17 and R-3, line 24"
+  },
+  {
+   "decision": "Notifications retain their existing contents when due times are enabled.",
+   "alternative": "The requester might have wanted the ticket receipt notification to tell the requester the promised response deadline.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 17; repo/docs/api.md, Create a ticket, lines 58\u201365"
+  },
+  {
+   "decision": "An absent migration input produces a nonzero exit and leaves the target alone.",
+   "alternative": "The requester might have wanted migration of an absent file to succeed as an empty first deployment so the same rollout command works on new and existing installations.",
+   "where": "repo/docs/shiploop/spec.md, R-3, lines 24\u201325"
+  },
+  {
+   "decision": "The API rejects a client-supplied `due` on create or update using the existing invalid-field error.",
+   "alternative": "The requester might have wanted enabled clients to be able to send back a ticket's displayed `due` field as a harmless echo while the service still controls the stored deadline.",
+   "where": "repo/docs/shiploop/spec.md, R-1, line 11; repo/docs/api.md, Conventions, line 13"
+  },
+  {
+   "decision": "The deadline is represented as an ISO 8601 UTC timestamp, and human CLI output also shows it in UTC.",
+   "alternative": "The requester might have wanted API timestamps in UTC and human CLI deadlines displayed in the help desk's local time zone.",
+   "where": "record/01-intake.md, Q3, lines 84\u201391; repo/docs/shiploop/spec.md, R-1, lines 7\u20139 and Non-functional requirements, line 44; repo/docs/api.md, Conventions, line 10"
+  },
+  {
+   "decision": "Only the exact lowercase setting `DUE_TIMES=on` enables the feature.",
+   "alternative": "The requester might have expected the activation value to be matched case-insensitively so `ON` works too.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 17; record/04-spec.md, summary at line 23"
+  },
+  {
+   "decision": "An active ticket becomes overdue strictly after its stored deadline, excluding a ticket whose deadline equals the current time.",
+   "alternative": "The requester might have meant that a ticket becomes overdue as soon as its deadline is reached.",
+   "where": "repo/docs/shiploop/spec.md, R-2, line 18; record/01-intake.md, Q4, lines 93\u2013100"
+  }
+ ]
+}

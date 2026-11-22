@@ -1,0 +1,100 @@
+{
+ "decisions": [
+  {
+   "decision": "Rollback starts 1.4.0 on the latest version-1 data file so it can show every ticket, but any 1.4.0 save, including clean shutdown, strips the deadlines and leaves operators to recover them from a pre-rollback copy or recompute them.",
+   "alternative": "The requester could have intended a rollback and subsequent upgrade to preserve each assigned deadline automatically while also keeping tickets created during rollback."
+  },
+  {
+   "decision": "Operators stop the service writer, take a backup, run an explicit in-place backfill while the writer is stopped, and then restart with the feature enabled.",
+   "alternative": "The requester could have intended a coordinated migration that runs while the service continues accepting tickets and completes before visibility is enabled."
+  },
+  {
+   "decision": "Backfill calculates a missing deadline from the ticket's creation timestamp and the priority stored on the ticket at migration.",
+   "alternative": "The requester could have intended to use the ticket's priority at creation, even if someone changed it before migration."
+  },
+  {
+   "decision": "Backfill uses the response-hour overrides in the migration command's environment, which operators are told to match to the planned service settings.",
+   "alternative": "The requester could have expected legacy tickets to use the stated launch defaults even when the help desk overrides the targets for new tickets."
+  },
+  {
+   "decision": "Response hours are continuous elapsed hours, so nights, weekends and holidays count toward the deadline.",
+   "alternative": "The requester could have meant hours on the help desk's working calendar, with the clock paused outside staffed hours."
+  },
+  {
+   "decision": "The new release assigns and saves deadlines when tickets are created even while DUE_TIMES is off, and those deadlines become visible unchanged when the feature is enabled.",
+   "alternative": "The requester could have meant the off period to defer assignment as well as visibility, so tickets created during that period would get deadlines from the activation backfill."
+  },
+  {
+   "decision": "With due times enabled, the service refuses to listen if any ticket in the existing file lacks a deadline, while an empty store or a first start with no file can proceed.",
+   "alternative": "The requester could have expected the process to keep serving legacy responses on an incomplete file and report that activation is pending until backfill succeeds."
+  },
+  {
+   "decision": "Invalid response-hour settings prevent server startup even with DUE_TIMES off because the hours are always loaded and validated.",
+   "alternative": "The requester could have expected a disabled deployment to keep starting with legacy behavior and defer validation of the new settings until activation."
+  },
+  {
+   "decision": "A stored deadline that fails timestamp validation makes the entire data file unreadable to the new release even when due times are off, and the backfill command also refuses that file.",
+   "alternative": "The requester could have expected flag-off operation to ignore a malformed deadline and the migration command to report or repair the affected record without preventing access to all tickets."
+  },
+  {
+   "decision": "Operators change the four response targets independently through per-priority environment variables read at process startup, with an unset or blank variable using its own default.",
+   "alternative": "The requester could have expected authorized help-desk staff to change response targets through a live administrative setting without restarting the service."
+  },
+  {
+   "decision": "Response-hour overrides accept non-negative whole hours, including zero, within the supported range.",
+   "alternative": "The requester could have intended strictly positive targets with fractional hours available for promises such as a 30-minute response."
+  },
+  {
+   "decision": "The backfill requires an explicit DATA_FILE pointing to an existing file, reports how many deadlines it filled, and leaves a complete file untouched on a repeat run.",
+   "alternative": "The requester could have expected the command to work as an unconditional deployment step that also succeeds when the configured file has yet to be created."
+  },
+  {
+   "decision": "Deadline assignment and backfill leave no deadline entry in ticket history, and backfill leaves each ticket's last-updated timestamp as it was.",
+   "alternative": "The requester could have expected ticket history to record when the help desk committed to a deadline, including when it assigned one to an existing ticket."
+  },
+  {
+   "decision": "The new deadline appears in ticket views, while the requester still receives the existing acknowledgment and resolution messages without the deadline.",
+   "alternative": "The requester could have intended the promised response time to appear in the acknowledgment sent to the person who opened the ticket."
+  },
+  {
+   "decision": "When due times are enabled, overdue=true narrows the existing status-or-priority match set.",
+   "alternative": "The requester could have expected a query combining overdue, status and priority to require each supplied condition to match."
+  },
+  {
+   "decision": "The overdue queue is filtered before pagination and retains the regular ticket-ID ordering and cursor.",
+   "alternative": "The requester could have expected the overdue queue to show the earliest deadlines first so staff can work through the longest breaches."
+  },
+  {
+   "decision": "Overdue status is evaluated afresh on each page request using the current service clock, and the cursor only carries the last ticket ID.",
+   "alternative": "The requester could have expected all pages of one traversal to use the overdue cutoff from the first page so the clock alone cannot change which tickets qualify mid-list."
+  },
+  {
+   "decision": "For the command line, DUE_TIMES=on adds deadlines to the human-readable list and show views, while list --raw keeps its four legacy columns for scripts such as the weekly report.",
+   "alternative": "The requester could have intended an opt-in machine-readable deadline column as well, so scripts could consume due times without giving up the legacy raw format."
+  },
+  {
+   "decision": "Enabled human CLI commands reject the entire file if even one ticket lacks a deadline, while the raw list can still read a file with missing deadlines.",
+   "alternative": "The requester could have expected operators to retain human-readable access during migration, with the CLI showing saved deadlines where available and marking the rest as pending."
+  },
+  {
+   "decision": "The enabled API adds due to every response containing a ticket, including create, patch and transition responses, and treats due as server-assigned output.",
+   "alternative": "The requester could have intended due to appear only in ticket lookups and lists, leaving mutation response schemas as they were."
+  },
+  {
+   "decision": "New deadlines are exposed as UTC ISO timestamps with millisecond precision in the API and human CLI.",
+   "alternative": "The requester could have expected deadlines in the help desk's local time on the CLI, even if the API used UTC."
+  },
+  {
+   "decision": "The overdue parameter activates the filter only for the exact value true while due times are enabled, and false or any unrecognized value leaves the list unfiltered by deadline.",
+   "alternative": "The requester could have intended false to select tickets that are not overdue and malformed values to return a validation error."
+  },
+  {
+   "decision": "The service starts showing due times only for the literal, case-sensitive setting DUE_TIMES=on.",
+   "alternative": "The requester could have expected the service to normalize equivalent spellings such as ON, or report an error on a value that appears intended to enable the feature."
+  },
+  {
+   "decision": "A ticket is overdue only after the service clock passes its deadline, so an active ticket exactly at its deadline is omitted.",
+   "alternative": "The requester could have wanted active tickets to enter the overdue queue as soon as the clock reaches their deadline."
+  }
+ ]
+}

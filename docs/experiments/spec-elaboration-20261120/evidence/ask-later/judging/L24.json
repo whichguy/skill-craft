@@ -1,0 +1,108 @@
+{
+ "decisions": [
+  {
+   "decision": "Operators keep a due-bearing copy before rollback and can supply it with --restore-from when returning to the new release, because a 1.4.0 save can discard recorded deadlines.",
+   "alternative": "They may have expected rollback and re-upgrade to preserve recorded deadlines automatically through 1.4.0 writes, without a snapshot step for operators."
+  },
+  {
+   "decision": "Operators stop the service and run a separate offline backfill as the sole writer before enabling due times.",
+   "alternative": "They may have expected the new release to prepare the data automatically while the API is still serving with due times hidden."
+  },
+  {
+   "decision": "An enabled start on a file with any missing deadline exits with code 2 and a backfill diagnostic before listening, while a fresh or empty store can start.",
+   "alternative": "They may have wanted an incomplete file to keep serving legacy responses and report that enablement is pending."
+  },
+  {
+   "decision": "Backfill validates the file before replacing it, leaves the original bytes intact on invalid input such as a malformed saved due, and commits a successful change in one atomic replacement.",
+   "alternative": "They may have wanted backfill to repair malformed deadlines from creation time and priority so operators could complete the migration without first editing or restoring the file."
+  },
+  {
+   "decision": "The new release stores due as an optional field on tickets in the same version-1 data file that 1.4.0 opens directly.",
+   "alternative": "They may have wanted a separate deadline file so 1.4.0 could continue rewriting its own file without touching the deadline data."
+  },
+  {
+   "decision": "The new release stamps and saves deadlines for newly created tickets even while the visibility flag is off.",
+   "alternative": "They may have wanted the disabled period to use the legacy write behavior too and defer deadline assignment for those tickets to the pre-enable backfill."
+  },
+  {
+   "decision": "Backfill uses the priority stored on each legacy ticket at migration time, including for tickets that have already changed priority.",
+   "alternative": "They may have meant the priority the ticket had when it was created, recovered from the creation audit entry where available."
+  },
+  {
+   "decision": "Backfill applies the schedule configured when it runs to missing deadlines, preserves existing deadlines, and skips the write entirely when every ticket already has one.",
+   "alternative": "They may have wanted the initial legacy backfill to use the four stated default durations regardless of the schedule configured for new tickets."
+  },
+  {
+   "decision": "Recovery matches backup deadlines by ticket ID and creation time, gives the live ticket state and any existing deadline precedence, and calculates deadlines under the current schedule for tickets newly created during rollback.",
+   "alternative": "They may have wanted the schedule that was in force before rollback to apply to tickets created while 1.4.0 was running."
+  },
+  {
+   "decision": "Operators change the schedule using a separate environment override for each priority, and the running server picks up changes on restart.",
+   "alternative": "They may have wanted the help desk to update one shared schedule through a settings file or admin interface without restarting the service."
+  },
+  {
+   "decision": "An invalid response-time setting fails startup with a diagnostic naming the environment variable.",
+   "alternative": "They may have wanted the service to warn and continue with the default hours for that priority so tickets could keep coming in."
+  },
+  {
+   "decision": "When overdue filtering is enabled, the overdue condition is combined with the existing status-or-priority match.",
+   "alternative": "They may have expected a ticket to match every supplied filter on an overdue request, as the existing API documentation describes for status and priority."
+  },
+  {
+   "decision": "When enabled, the service adds deadlines to ticket views without adding them to requester notifications or introducing deadline alerts.",
+   "alternative": "They may have wanted ticket acknowledgement messages to tell requesters the response deadline as part of making the promise."
+  },
+  {
+   "decision": "The work delivers locally verified source and rollout instructions, with production migration and enablement left to deployment operators.",
+   "alternative": "They may have intended the change to include carrying out and verifying the production cutover with the deployment operators."
+  },
+  {
+   "decision": "Only the exact environment value DUE_TIMES=on exposes due and activates the new query behavior, so an unset value or a spelling such as ON leaves legacy responses in effect.",
+   "alternative": "They may have wanted case or surrounding whitespace normalized when interpreting the value on."
+  },
+  {
+   "decision": "The enabled API exposes due as a UTC ISO timestamp.",
+   "alternative": "They may have expected the deadline to be an epoch value or a timestamp expressed in the help desk\u2019s local time."
+  },
+  {
+   "decision": "The enabled API includes due in every response that returns a ticket, including create, update and transition responses.",
+   "alternative": "They may have intended due to appear on list and detail reads while keeping the response shape of existing write endpoints."
+  },
+  {
+   "decision": "Human-readable CLI list and show display due under the same opt-in flag as the API.",
+   "alternative": "They may have meant for the API to expose due while leaving the operator CLI displays as they were."
+  },
+  {
+   "decision": "The raw CLI keeps its four tab-separated columns in the existing order and the weekly report keeps its existing output.",
+   "alternative": "They may have meant every ticket display to include due, including a machine-readable field for downstream CLI consumers."
+  },
+  {
+   "decision": "The API rejects a client-supplied due as invalid on ticket writes.",
+   "alternative": "They may have wanted the API to ignore a supplied due and use the server's stored or calculated value so clients could send back a ticket object that includes the field."
+  },
+  {
+   "decision": "Assigning or backfilling due adds neither a deadline field nor a deadline-setting event to the ticket audit history.",
+   "alternative": "They may have wanted the audit history to record when each deadline was set or backfilled so agents could trace the promised time."
+  },
+  {
+   "decision": "The operator invokes backfill as an npm command with a required DATA_FILE target and an optional --restore-from backup argument.",
+   "alternative": "They may have wanted backfill and recovery as subcommands of the existing operator CLI, with its familiar --data path option."
+  },
+  {
+   "decision": "The schedule accepts fractional hour overrides such as 1.5 hours.",
+   "alternative": "They may have wanted to allow only whole hours, as with the service's existing numeric environment settings."
+  },
+  {
+   "decision": "With the feature on, the exact query value overdue=true opts into overdue filtering.",
+   "alternative": "They may have wanted overdue to behave as a typed boolean filter, with false selecting non-overdue tickets and malformed values returning a validation error."
+  },
+  {
+   "decision": "The overdue predicate runs before cursor pagination, so the pages and next cursor are based on the eligible tickets in ID order.",
+   "alternative": "They may have wanted an overdue work queue ordered by earliest deadline, so agents see the longest-overdue tickets first."
+  },
+  {
+   "decision": "A ticket becomes overdue only after the clock passes its due timestamp, so equality is excluded.",
+   "alternative": "They may have meant that a ticket becomes overdue as soon as the clock reaches its due timestamp."
+  }
+ ]
+}

@@ -1,0 +1,112 @@
+{
+ "decisions": [
+  {
+   "decision": "The rollback procedure starts 1.4.0 on the latest version-1 file, accepts that its next save or graceful shutdown strips deadlines, and leaves operators to recover those values from a pre-rollback copy or recompute them before re-enabling.",
+   "alternative": "The requester might expect previously promised deadlines to survive normal use of 1.4.0 and return automatically when the new release is restored."
+  },
+  {
+   "decision": "Operators must stop the sole writer, make a recovery copy, and run an offline command that atomically replaces the production file in place before restarting.",
+   "alternative": "The requester might expect a migration coordinated with live writes, so the help desk can keep accepting tickets throughout the backfill."
+  },
+  {
+   "decision": "The backfill uses the priority stored on each legacy ticket at migration time, even if the ticket had a different priority when it was opened.",
+   "alternative": "The requester might mean the priority at creation, reconstructed from ticket history for tickets that were later reprioritized."
+  },
+  {
+   "decision": "The backfill uses the response hours configured for the command when it runs, and the runbook tells operators to supply the overrides planned for the service.",
+   "alternative": "The requester might want the four stated default response times applied to all legacy tickets and custom hours applied from rollout onward."
+  },
+  {
+   "decision": "With DUE_TIMES=on, a missing deadline on any ticket in an existing file prevents the service from listening, and the startup error names the backfill command.",
+   "alternative": "The requester might want the service to continue answering with its legacy behavior while warning operators that activation is pending."
+  },
+  {
+   "decision": "The new release assigns and saves deadlines on tickets created while DUE_TIMES is off, using the hours and priority in effect at creation.",
+   "alternative": "The requester might want tickets created before activation to receive their first deadlines during the backfill under the policy chosen for rollout."
+  },
+  {
+   "decision": "Four independent DUE_HOURS_* environment variables configure the response policy at process startup, with blank or unset entries using their defaults.",
+   "alternative": "The requester might want help-desk leads to change a shared policy while the service is running, without a process restart."
+  },
+  {
+   "decision": "The deadline adds continuous elapsed hours to creation time, counting nights, weekends, and holidays.",
+   "alternative": "The requester might intend those hours to count only during the help desk's staffed schedule."
+  },
+  {
+   "decision": "The service validates response-hour overrides and any stored due field even while DUE_TIMES is off, so bad values can prevent legacy-mode startup.",
+   "alternative": "The requester might expect switching the feature off to let the service start and serve legacy responses despite invalid deadline settings or metadata."
+  },
+  {
+   "decision": "Readiness checks an existing file's ticket records, so activation can also start with a missing file as a fresh store or with no DATA_FILE as an in-memory store.",
+   "alternative": "The requester might want activation to require that a persistent file has actually been found and verified, so a mistyped or unset path cannot start an empty enabled service."
+  },
+  {
+   "decision": "When enabled, only the exact query value overdue=true applies a filter, so overdue=false, an empty value, and misspellings all return the ordinary matching list.",
+   "alternative": "The requester might want overdue=false to select tickets that are not overdue and a 400 error for invalid values."
+  },
+  {
+   "decision": "Overdue narrows the results of the existing status-or-priority match, so a ticket can pass a combined query by matching just one of those two filters.",
+   "alternative": "The requester might expect the overdue queue to honor both supplied filters, for example showing only overdue tickets that are both open and urgent."
+  },
+  {
+   "decision": "Response-hour overrides accept zero and other non-negative whole hours within a configured range, so they support an immediate deadline and reject fractional hours.",
+   "alternative": "The requester might want strictly positive response times with minute-level precision, such as a 30-minute urgent promise."
+  },
+  {
+   "decision": "Backfill keeps every already-populated deadline that parses as a time, fills only missing ones, and leaves a complete file byte-for-byte intact on rerun.",
+   "alternative": "The requester might want a verification pass that flags suspect values already in the file, such as a deadline earlier than its ticket's creation time."
+  },
+  {
+   "decision": "Assigning a deadline is silent in ticket history, with no due field in the creation audit entry and no backfill audit entry or change to the ticket's updated timestamp.",
+   "alternative": "The requester might want the audit trail to show when the deadline was first assigned and what value the help desk committed to."
+  },
+  {
+   "decision": "Requester notifications continue to acknowledge receipt and resolution using the ticket ID and title, with the deadline visible through ticket views.",
+   "alternative": "The requester might want the ticket-received notification to include the deadline so the person who reported the problem can see the promised response time."
+  },
+  {
+   "decision": "The overdue queue filters before pagination and reuses the ordinary listing's ticket ID order.",
+   "alternative": "The requester might want the overdue queue ordered by deadline so agents see the longest-overdue work first."
+  },
+  {
+   "decision": "With DUE_TIMES=on, the human CLI list and show commands display deadlines and require a complete file, while raw list and the weekly report can read files still awaiting backfill.",
+   "alternative": "The requester might want the read-only human views to remain available during migration and display each deadline as it becomes available."
+  },
+  {
+   "decision": "The CLI exposes deadlines in human list and show output, with raw list fixed to its original four columns even when the feature is enabled.",
+   "alternative": "The requester might want an optional machine-readable output that includes due for scripts while preserving the four-column contract for existing consumers."
+  },
+  {
+   "decision": "The HTTP API includes due in enabled list and detail reads as well as in the ticket returned by creation, update, and transition.",
+   "alternative": "The requester might have meant to add due to ticket views reached through GET and to preserve the response shape for clients that only write tickets."
+  },
+  {
+   "decision": "Each page request evaluates overdue against the service clock at that request, so tickets can become eligible between pages.",
+   "alternative": "The requester might want all pages of an overdue query to use the first page's cutoff so an export represents one point in time."
+  },
+  {
+   "decision": "The overdue filter uses a strict comparison against the current service time, so an active ticket first qualifies after the instant recorded in due.",
+   "alternative": "The requester might expect the ticket to qualify as soon as the clock reaches its deadline."
+  },
+  {
+   "decision": "Overdue filtering is available through the HTTP listing, and the operator CLI still offers status and priority filters.",
+   "alternative": "The requester might want the CLI to offer the same overdue queue for operators who work directly from the data file."
+  },
+  {
+   "decision": "Newly assigned deadlines display as full ISO UTC timestamps, including milliseconds, in both the API and the human CLI.",
+   "alternative": "The requester might want the full timestamp in the API and a shorter local-time display in the operator CLI."
+  },
+  {
+   "decision": "The backfill command requires an explicit DATA_FILE pointing to an existing file, writes changes immediately on a successful run, and reports the number of tickets it filled.",
+   "alternative": "The requester might want a dry-run mode that previews affected tickets and calculated deadlines before operators commit the production write."
+  },
+  {
+   "decision": "Only the exact lowercase DUE_TIMES=on enables the HTTP and human CLI feature, and other values silently select legacy output.",
+   "alternative": "The requester might want a warning for unrecognized settings such as ON so an intended activation cannot silently leave the feature off."
+  },
+  {
+   "decision": "The work is delivered locally with rollout instructions and leaves production migration and activation to operators.",
+   "alternative": "The requester might have expected the change delivery to include the actual production backfill and feature activation."
+  }
+ ]
+}

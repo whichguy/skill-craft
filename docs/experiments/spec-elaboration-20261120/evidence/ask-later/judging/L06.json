@@ -1,0 +1,120 @@
+{
+ "decisions": [
+  {
+   "decision": "Store deadlines in the version-1 ticket file, where 1.4.0 can still read every ticket, and rely on operators to keep a pre-rollback copy and supply it with `--restore-from FILE` to recover deadlines stripped by a 1.4.0 save.",
+   "alternative": "Keep deadlines in durable storage that 1.4.0 does not rewrite so operators can roll back, keep taking tickets, and re-upgrade without a deadline backup or merge."
+  },
+  {
+   "decision": "Require operators to stop the production writer, take a backup, and run a separate `DATA_FILE=FILE npm run migrate:due` command before starting the service with due times enabled.",
+   "alternative": "Have the running service backfill through its existing single writer while it still serves the old responses, so operators can enable the feature without a separate maintenance outage."
+  },
+  {
+   "decision": "Backfill each missing legacy deadline using the ticket's priority as stored at migration time.",
+   "alternative": "Use the ticket's original priority from its creation history so priority changes made before rollout do not affect its first assigned deadline."
+  },
+  {
+   "decision": "Use the response-hour settings supplied to the migration when assigning missing legacy deadlines.",
+   "alternative": "Backfill legacy tickets using the four launch defaults and reserve configured overrides for tickets created by the new release."
+  },
+  {
+   "decision": "An enabled persistent server refuses to listen if any ticket lacks a stored deadline, while an empty store can start enabled.",
+   "alternative": "Keep the base API available with due times disabled and report that activation is blocked until the missing deadlines are backfilled."
+  },
+  {
+   "decision": "On re-upgrade, copy in a snapshot deadline only when the live ticket has the same ID and creation time and lacks its own deadline, leaving intervening edits intact.",
+   "alternative": "Treat the pre-rollback snapshot as authoritative for deadlines on matching tickets even if the live file already has a value, so an accidental backfill during re-upgrade cannot take precedence."
+  },
+  {
+   "decision": "Tickets created during the 1.4.0 rollback window are backfilled using the migration settings when the new release returns.",
+   "alternative": "Apply the response-hour schedule in force at the time those tickets were opened, even if operators changed the settings before re-upgrade."
+  },
+  {
+   "decision": "The candidate assigns and persists deadlines for new tickets even while due times are hidden, so those tickets retain the settings in effect at creation through activation.",
+   "alternative": "Keep creating tickets with the old disk shape while the feature is off, then include all of those tickets in the backfill immediately before activation."
+  },
+  {
+   "decision": "Run the actual 1.4.0 server against disposable candidate-written data as a release-stage check.",
+   "alternative": "Require the end-to-end rollback and recovery check before accepting the local change."
+  },
+  {
+   "decision": "Deliver the change and rollout instructions in the local checkout, with production deployment, migration, and flag activation owned by operators.",
+   "alternative": "Include an authorized production rollout and verification of the migrated production file in the delivery."
+  },
+  {
+   "decision": "Operators set the response schedule through four process environment variables named `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, and `DUE_HOURS_LOW`, with new settings picked up at startup or migration.",
+   "alternative": "Let help-desk leads change the schedule through a settings file the service can reload or an administrative interface, without restarting the service."
+  },
+  {
+   "decision": "Missing or empty response-hour settings use the defaults, while malformed settings fail startup or migration with a message naming the variable.",
+   "alternative": "Treat an explicitly empty value as a configuration error and allow the service to keep its last valid schedule on a malformed override."
+  },
+  {
+   "decision": "Accept non-negative whole hours, including zero for a deadline at creation, and reject fractional hours.",
+   "alternative": "Require a positive response window while allowing fractional hours for promises such as a 30-minute urgent response."
+  },
+  {
+   "decision": "Measure the configured hours as elapsed time from creation, including evenings, weekends, and holidays.",
+   "alternative": "Count only staffed help-desk hours so a ticket opened out of hours does not consume its response window before staff return."
+  },
+  {
+   "decision": "Migration is all-or-nothing for the target file, exits nonzero on invalid or missing input, and leaves a complete file byte-for-byte unchanged on retry.",
+   "alternative": "Allow a repair run to write deadlines for valid records and report the remaining records for operator follow-up before activation."
+  },
+  {
+   "decision": "When both status and priority are supplied, an overdue query matches overdue tickets that satisfy either filter, carrying forward the existing OR behavior despite the API documentation's AND promise.",
+   "alternative": "Require every supplied filter to match for overdue searches, as the documented status-and-priority contract would lead callers to expect."
+  },
+  {
+   "decision": "Enable the feature only for the exact case-sensitive value `DUE_TIMES=on`, treating values such as `ON` as disabled.",
+   "alternative": "Accept capitalization variants of `on` or report an invalid value so a setting typo cannot silently leave due times hidden."
+  },
+  {
+   "decision": "Honor only the literal `overdue=true` with the feature enabled, treating every other value, including `false` or a typo, as an ordinary list request.",
+   "alternative": "Make `overdue=false` select tickets that are not overdue and return a validation error for malformed values."
+  },
+  {
+   "decision": "Apply the overdue condition before building cursor pages, so the limit counts matching tickets and the cursor advances among those matches.",
+   "alternative": "Preserve the ordinary list's page boundaries and filter each page afterward, so clients can reuse those boundaries even when a page becomes short or empty."
+  },
+  {
+   "decision": "A deadline must be strictly earlier than the comparison time for its ticket to count as overdue.",
+   "alternative": "Count a ticket as overdue as soon as the clock reaches its deadline."
+  },
+  {
+   "decision": "Use one clock reading for all overdue comparisons in a list request, with each subsequent page request evaluated at its own request time.",
+   "alternative": "Carry the first page's comparison time in the cursor so all pages of a sweep use the same cutoff."
+  },
+  {
+   "decision": "Enabled HTTP ticket responses include `due` on create, get, list, update, and transition.",
+   "alternative": "Expose `due` only on the read endpoints so clients handling create, update, and transition responses retain their previous response shapes."
+  },
+  {
+   "decision": "Return `due` as an ISO UTC timestamp with millisecond precision, consistent with the existing ticket timestamps.",
+   "alternative": "Expose the deadline in the help desk's local time with an explicit UTC offset so readers see the local promised time directly."
+  },
+  {
+   "decision": "The human CLI adds the UTC deadline to its list table and show details only under the same enable flag used for HTTP.",
+   "alternative": "Let operators inspect stored deadlines in the human CLI before HTTP activation so they can verify the backfill without enabling the public field."
+  },
+  {
+   "decision": "Keep the four raw CLI columns and the weekly report output in their current forms when due times are enabled.",
+   "alternative": "Offer an opt-in machine-readable deadline field or an overdue breakdown in the weekly report while keeping existing invocations compatible."
+  },
+  {
+   "decision": "Creation and resolution notifications and their outbox records keep their current content with no deadline information.",
+   "alternative": "Include the promised deadline in the enabled ticket-received notification so the person who opened the ticket can see it without querying the API."
+  },
+  {
+   "decision": "Keep audit output and existing audit records unchanged, with no deadline assignment or backfill event added.",
+   "alternative": "Record deadline assignment and migration in the ticket history so support leads can trace the response promise even when operational logs are gone."
+  },
+  {
+   "decision": "Reject a client-supplied `due` on create or update using the existing invalid-field error envelope.",
+   "alternative": "Ignore an echoed `due` value while computing or preserving the server-owned deadline so clients that round-trip ticket fields can still submit the request."
+  },
+  {
+   "decision": "Report startup problems through the existing logger and migration results or errors through command-line output.",
+   "alternative": "Provide a persisted or machine-readable migration status that deployment automation can query before enabling due times."
+  }
+ ]
+}

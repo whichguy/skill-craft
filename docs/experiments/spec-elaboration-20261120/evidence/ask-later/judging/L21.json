@@ -1,0 +1,96 @@
+{
+ "decisions": [
+  {
+   "decision": "Operators keep a deadline-bearing copy before rolling back because 1.4.0 can read all tickets from the upgraded file but strips their deadlines when it saves the file.",
+   "alternative": "The rollback procedure could preserve deadlines through ordinary 1.4.0 writes and reconcile them with tickets created or changed during rollback before re-enablement."
+  },
+  {
+   "decision": "Operators must stop the service and run a separate single-writer backfill before enabling due times.",
+   "alternative": "The new release could prepare the data automatically during a flag-off startup before it begins accepting requests."
+  },
+  {
+   "decision": "The backfill uses each ticket's priority as stored at migration, including any priority changes since creation.",
+   "alternative": "The backfill could use the ticket's original priority from its creation audit entry where that history is available."
+  },
+  {
+   "decision": "The schedule in effect when the backfill runs supplies the hours for every legacy ticket that lacks a deadline.",
+   "alternative": "The backfill could always use the four requested default durations for legacy tickets and reserve operator overrides for new tickets."
+  },
+  {
+   "decision": "The deadline uses elapsed hours from the creation instant.",
+   "alternative": "The response clock could count only staffed hours and pause overnight, on weekends, or on holidays."
+  },
+  {
+   "decision": "With due times enabled, a configured file containing any ticket without a deadline prevents the server from listening.",
+   "alternative": "The service could continue answering with the legacy behavior when the file is incomplete and warn operators that deadline activation is pending."
+  },
+  {
+   "decision": "Deadlines are stored as optional fields on ticket records in the existing version-1 data file.",
+   "alternative": "Deadlines could live in a companion file keyed by ticket ID, giving operators a second file to protect while allowing 1.4.0 to rewrite the ticket file independently."
+  },
+  {
+   "decision": "New tickets receive and keep a deadline from creation even while due times are hidden by the flag.",
+   "alternative": "Flag-off operation could leave new tickets unstamped and let the pre-enablement backfill assign them under the migration schedule."
+  },
+  {
+   "decision": "The help desk changes response times through separate environment overrides for each priority.",
+   "alternative": "The help desk could edit a shared schedule file that both ticket creation and backfill read."
+  },
+  {
+   "decision": "An invalid response-time override stops startup with a diagnostic naming the variable.",
+   "alternative": "The service could warn and continue with that priority's default duration."
+  },
+  {
+   "decision": "The backfill commits the whole data file in a single atomic replacement after successful preparation.",
+   "alternative": "The backfill could commit completed batches and resume after a failure while operators keep due times disabled until every batch has finished."
+  },
+  {
+   "decision": "The planned deliverable is a locally verified source handoff, with production deployment and data preparation assigned to the deployment operators.",
+   "alternative": "The requester could have intended the change to include carrying out the production rollout once operators supplied a target and access."
+  },
+  {
+   "decision": "With the overdue filter active, a ticket must be overdue and pass the existing rule that a match on either supplied status or supplied priority is sufficient.",
+   "alternative": "An overdue query could require every supplied filter to match, as the existing API documentation describes for combined status and priority filters."
+  },
+  {
+   "decision": "An enabled server can start with a new or empty data store.",
+   "alternative": "Operators could be required to provision and validate a data file before enabling due times, even on a fresh installation."
+  },
+  {
+   "decision": "The backfill preserves the existing audit log and outbox without recording deadline assignments as ticket changes.",
+   "alternative": "The backfill could append deadline-assignment audit entries so agents can see when and how legacy tickets acquired their commitments."
+  },
+  {
+   "decision": "With due times enabled, human-readable CLI lists and details show deadlines while raw CLI output retains exactly its four existing columns for the weekly report.",
+   "alternative": "The enabled raw listing could append a fifth deadline column while keeping the report's existing fields in their original positions."
+  },
+  {
+   "decision": "The API applies the overdue restriction before making cursor pages and keeps the usual ticket-ID order.",
+   "alternative": "The overdue queue could page in earliest-deadline order so agents see the longest-overdue tickets first."
+  },
+  {
+   "decision": "The enabled API includes due in every response that returns ticket objects, including create, edit and lifecycle responses.",
+   "alternative": "The API could expose due only on ticket reads and lists while keeping write-response schemas stable."
+  },
+  {
+   "decision": "The existing requester notifications continue without adding the new deadline.",
+   "alternative": "The ticket receipt could tell the requester the promised response deadline."
+  },
+  {
+   "decision": "Response-time overrides accept fractional hours.",
+   "alternative": "The help desk could be limited to whole-hour values, consistent with the service's existing numeric settings."
+  },
+  {
+   "decision": "The API represents due in the same ISO 8601 UTC form as its existing timestamps.",
+   "alternative": "The API could represent due as a numeric Unix timestamp for clients that compare deadlines numerically."
+  },
+  {
+   "decision": "The API keeps due outside the accepted create and edit inputs, so an echoed due field is rejected under the existing unknown-field rule.",
+   "alternative": "The API could accept and ignore an echoed due field while assigning and preserving the server-calculated value."
+  },
+  {
+   "decision": "A ticket becomes overdue only when the current time is strictly later than its deadline.",
+   "alternative": "A ticket could count as overdue from the exact instant its deadline is reached."
+  }
+ ]
+}

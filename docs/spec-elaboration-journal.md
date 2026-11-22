@@ -4752,3 +4752,75 @@ whether a list would hold the point when the work chose rightly is not tested. T
 reading the work's records, not the working session with its own context. A list that holds the point at place
 12 of 20 still leaves the reading to the requester. Whether the requester's answer, once asked, changes the
 product is the Ratchet session's result and is not retested here.
+
+## 60. Asked for the decisions the work took, a session lists the one that mattered every time, at every point; what later asking adds is detail (00:17, 2026-11-22)
+
+**What was run.** Section 59's test, from a clean checkout at its commit. Nine snapshots were cut from three
+finished deliveries, three points each. Twenty-seven sessions on Sol at medium, 23:55 to 00:14, each wrote a list
+on its first attempt. Two judges read the 27 lists blind to point and delivery and agree on the place of the
+target in all 27. No session's own stream names the real folder of a delivery (`evidence/ask-later/leaks.json`).
+
+| Point | Lists that hold the target | In first place | In the first three | Its places | Decisions in a list |
+|---|---|---|---|---|---|
+| S, after the specification | 9 of 9 | 0 | 6 | 2, 2, 2, 2, 3, 3, 4, 4, 5 | 15 to 28, median 23 |
+| P, plan and test cases written, nothing built | 9 of 9 | 0 | 9 | 2 eight times, 3 once | 18 to 29, median 22 |
+| T, after the item's tests ran | 9 of 9 | 0 | 9 | 2 seven times, 3 twice | 22 to 32, median 28 |
+
+**The rule of section 59.** The target is on nine of nine lists at the specification already, so the reading is
+the registered one for that case: **found at the specification already; timing cannot show.**
+
+**The predictions.** 43 held (nine of nine at S). 44 held (nine of nine at P and at T). 45 failed: the target is
+in first place in no list at any point. 46 held: the rule is not met because S is at the top.
+
+**As a description.**
+
+- *The decision that mattered is found from the start.* A fresh session given only the request, the repository
+  and the record up to the accepted specification lists it every time, between second and fifth of 15 to 28. The
+  sessions were not told what to look for. An example, second in its list: "An operator must stop the writer and
+  run a separate backfill command that atomically updates the existing data file before starting the service
+  with due times enabled."
+- *One other decision is first in all 27 lists, and it is the same one.* That due times are kept in an optional
+  field of the old file format, so that the previous release can still read the file, with the accepted cost
+  that the previous release strips them the next time it saves and operators must keep a copy. The sessions rank
+  a loss of data on the way back above a start-up that needs an extra command.
+- *Later asking steadies the place and lengthens the list.* The target is in the first three in six of nine
+  lists at S and in nine of nine at P and at T. The lists grow from a median of 23 decisions at S to 28 at T. In
+  one delivery read item by item, what T adds are behaviours that exist only once there is code: the service
+  starts on a path that names no file and treats it as a new store; an unreadable due value stops the service,
+  the command line and the backfill even with the feature off; a setting of zero hours is accepted. That is the
+  "more that is discoverable" of the owner's question, and it is real.
+- *So the form of the asking matters more than its timing.* The Ratchet session asked sessions on the same driver
+  to choose one question for the requester, and then three: the point was chosen in none of nine either time.
+  Here, asked to list what the work decided for the requester, it is listed 27 times of 27 and is in the first
+  three 24 times of 27. The two tests run on different benches, so the comparison is between studies and not
+  inside one; within this one, the point of asking moved nothing in whether the decision is found.
+- *The list is long.* A requester who reads the first five items meets the decision every time. One who must
+  read all of them reads 15 to 32.
+
+**What this does and does not show.** It shows that the question can be produced: after the specification, and
+without waiting for a build, a session can put in front of the requester the decision that later costs five of
+eight held-out checks. It does not show the rest of the chain. Whether the requester's answer then changes the
+product is the Ratchet session's result (its builds go from 3 of 8 to 8 of 8 when the answer is written into
+the specification), and the two have not been run together. Whether ShipLoop should ask at all is a product
+decision, and the owner's.
+
+**Why this stops here.** Section 59 said the result would be reported as it is.
+
+**What it cost.** Twenty-seven lister sessions and one judge session on subscription; $0.60 for the registered
+judge's session.
+
+**A fault in the harness, found and replaced before scoring.** The field kept with each list to say whether its
+session named anything outside its folder could not tell: a session's own folder lies under the same home, and
+a delivery's name survives inside the replaced paths, so the field was set in every list. After the first
+lists came back and before any judging I added `ask_later.py leaks`, which looks in each session's own stream
+for the real folder of a delivery. A snapshot names that folder only under the replaced prefix, so it can stand
+in a stream only if the session built the path itself. None of the 27 did.
+
+**Limits.** As section 59's, and:
+
+- All three deliveries took the wrong answer. A list made from a delivery that chose rightly was not read, so
+  nothing here says the list would hold the point there too, though the point is as unsaid there.
+- The lister read the work's records from outside. A working session asked the same thing would have its own
+  context and its own blind spots.
+- One case, one driver for the lists, one decision known to matter. The first item on every list is a second
+  consequential decision that no held-out check here judges.

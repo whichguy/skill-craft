@@ -1,0 +1,80 @@
+{
+ "decisions": [
+  {
+   "decision": "The plan stores deadlines as an optional field in the existing version-1 file and treats rollback as successful when stock 1.4.0 boots and lists every ticket, even though a subsequent 1.4.0 save can strip the deadlines.",
+   "alternative": "The requester might have meant that operators can continue taking and editing tickets on 1.4.0 and still recover every previously assigned deadline when they upgrade again."
+  },
+  {
+   "decision": "Operators must stop the service that owns the production file, run the separate backfill command against DATA_FILE to update that file in one atomic save, and then restart with due times enabled.",
+   "alternative": "The requester might have wanted the service to coordinate and complete backfill while continuing to serve the legacy API, then enable due times once the file is ready."
+  },
+  {
+   "decision": "If DUE_TIMES=on and any saved ticket lacks a deadline, the service exits before listening and reports the missing deadlines.",
+   "alternative": "The requester might have wanted the service to keep serving the legacy API, report that activation is blocked and require backfill before exposing deadlines."
+  },
+  {
+   "decision": "Backfill uses the priority currently stored on each legacy ticket, including tickets that were reprioritized after creation.",
+   "alternative": "The requester might have meant to use the priority recorded when the ticket was opened, so a later edit never affects the original response deadline."
+  },
+  {
+   "decision": "The backfill plan assigns missing deadlines using the hours configured when the command first fills them in, and retains those deadlines if the command runs again under different settings.",
+   "alternative": "The requester might have wanted the stated 4, 24, 72 and 168 hour schedule applied to the existing backlog and any overrides applied only to newly opened tickets."
+  },
+  {
+   "decision": "The plan assigns new tickets their immutable deadlines at creation even when DUE_TIMES is off, with the switch controlling output and overdue filtering.",
+   "alternative": "The requester might have intended tickets opened while the switch is off to be treated as legacy tickets and receive deadlines under the policy in effect at backfill."
+  },
+  {
+   "decision": "Deadline arithmetic counts elapsed hours continuously, including nights, weekends and holidays.",
+   "alternative": "The requester might have meant that an SLA clock advances only during the help desk's staffed hours."
+  },
+  {
+   "decision": "Operators change the response window through optional per-priority environment overrides named DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW.",
+   "alternative": "The requester might have wanted help-desk leads to change response windows through live settings without editing the service environment or restarting it."
+  },
+  {
+   "decision": "The plan applies the service's startup configuration validation to explicit per-priority hour overrides, following its convention of rejecting settings it cannot use.",
+   "alternative": "The requester might have wanted an unusable override to generate an operator warning and fall back to the default hours so the service can continue running."
+  },
+  {
+   "decision": "With overdue=true, the active-overdue condition narrows the results of the existing OR rule for status and priority.",
+   "alternative": "The requester might have expected an overdue search with both status and priority to require both to match, as the existing API guide says filters do."
+  },
+  {
+   "decision": "The plan delivers the change locally, rehearses cutover and rollback on local data, and gives production operators instructions to carry out the rollout.",
+   "alternative": "The requester might have expected a deployment workflow that runs the migration, enables the flag and switches releases for the operator."
+  },
+  {
+   "decision": "The overdue condition is evaluated for the current request before cursor pagination, so page boundaries are taken from the filtered ticket set.",
+   "alternative": "The requester might have meant to keep the ordinary list's cursor boundaries and filter overdue tickets within each page."
+  },
+  {
+   "decision": "When DUE_TIMES is exactly on, the plan adds due to the API's ticket responses, including tickets returned by writes.",
+   "alternative": "The requester might have meant to expose due only when clients fetch or list tickets, leaving create, edit and transition response shapes as they were."
+  },
+  {
+   "decision": "The plan extends the same DUE_TIMES switch to the human-facing CLI list and show commands.",
+   "alternative": "The requester might have wanted the switch to govern HTTP responses only and the CLI to show stored deadlines during pre-activation checks."
+  },
+  {
+   "decision": "The plan leaves deadlines out of list --raw and keeps its four tab-separated columns and the weekly report's existing output.",
+   "alternative": "The requester might have wanted a deadline-aware raw export or weekly report that scripts and the dashboard could opt in to."
+  },
+  {
+   "decision": "The plan leaves audit entries and requester notifications as they are when it adds deadlines to ticket responses and displays.",
+   "alternative": "The requester might have wanted the assigned deadline recorded in ticket history and included in the receipt that goes to the requester."
+  },
+  {
+   "decision": "The list filter is activated only by the literal query value overdue=true when due times are enabled.",
+   "alternative": "The requester might have intended overdue to be a Boolean query parameter whose false value selects the non-overdue tickets."
+  },
+  {
+   "decision": "The API represents due as an ISO 8601 UTC string with the same time convention as created and updated.",
+   "alternative": "The requester might have expected due to be a numeric epoch timestamp for SLA clients to compare directly."
+  },
+  {
+   "decision": "An active ticket becomes overdue only after the request clock passes its due instant.",
+   "alternative": "The requester might have wanted the ticket to count as overdue at the exact instant the deadline is reached."
+  }
+ ]
+}

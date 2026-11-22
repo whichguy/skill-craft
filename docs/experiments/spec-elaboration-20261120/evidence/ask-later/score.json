@@ -1,0 +1,94 @@
+{
+ "points": {
+  "S": {
+   "lists": 9,
+   "on_the_list": 9,
+   "first": 0,
+   "first_three": 6,
+   "places": [
+    2,
+    2,
+    2,
+    2,
+    3,
+    3,
+    4,
+    4,
+    5
+   ],
+   "median_length": 23,
+   "lengths": [
+    15,
+    16,
+    17,
+    23,
+    23,
+    23,
+    24,
+    24,
+    28
+   ]
+  },
+  "P": {
+   "lists": 9,
+   "on_the_list": 9,
+   "first": 0,
+   "first_three": 9,
+   "places": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3
+   ],
+   "median_length": 22,
+   "lengths": [
+    18,
+    19,
+    20,
+    21,
+    22,
+    25,
+    26,
+    29,
+    29
+   ]
+  },
+  "T": {
+   "lists": 9,
+   "on_the_list": 9,
+   "first": 0,
+   "first_three": 9,
+   "places": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    3
+   ],
+   "median_length": 28,
+   "lengths": [
+    22,
+    24,
+    27,
+    27,
+    28,
+    28,
+    30,
+    32,
+    32
+   ]
+  }
+ },
+ "reading": "found at the specification already: timing cannot show",
+ "judges_disagree": [],
+ "no_list": []
+}

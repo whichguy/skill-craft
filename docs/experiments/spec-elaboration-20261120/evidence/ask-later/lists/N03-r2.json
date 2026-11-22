@@ -1,0 +1,108 @@
+{
+ "code": "N03",
+ "repeat": 2,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "ccf7940e4a07081f43749d6863843ca2efe95aa400bd7f86306dde40421f4b81",
+ "cost_usd": null,
+ "names_outside_its_folder": [
+  "/Users/dadleet",
+  "sol-medium-due-p2"
+ ],
+ "decisions": [
+  {
+   "decision": "Keep `due` as an optional field in the version 1 data file, accepting that 1.4.0 can read every ticket but can erase saved deadlines the next time it writes the file.",
+   "alternative": "The requester might expect a rollback that accepts new writes and still retains the exact deadlines already assigned when the upgraded release returns.",
+   "where": "repo/docs/shiploop/architecture.md:15\u201316 (AD-1) and record/03-research.md:13 (summary)."
+  },
+  {
+   "decision": "Have operators stop the service that writes the production file, run a separate offline backfill command against that file, and then start the service with deadlines enabled.",
+   "alternative": "The requester might expect the release to backfill automatically while running with deadlines hidden, so operators can enable them after completion without a separate offline migration.",
+   "where": "record/03-research.md:13 (summary), record/06-plan.md:89\u2013102 (switchover and concurrency), and record/08-step-plan-W1.md:149 (S1 proof invokes the command with DATA_FILE)."
+  },
+  {
+   "decision": "On enabled startup, exit before listening and report missing deadlines if any ticket in the persistent file still needs backfill.",
+   "alternative": "The requester might expect an early activation attempt to leave the API serving legacy responses while alerting operators that deadlines are still disabled.",
+   "where": "repo/docs/shiploop/spec.md:11\u201312 (R-4), record/06-plan.md:118\u2013125 (observability), and record/09-test-spec-W1.md:29 (TC-2)."
+  },
+  {
+   "decision": "Assign new tickets a saved deadline at creation even with the switch off, using the switch to gate ticket output and overdue filtering.",
+   "alternative": "The requester might expect tickets created during the disabled period to remain without deadlines until the pre-activation backfill assigns them under the rollout policy.",
+   "where": "repo/docs/shiploop/spec.md:5\u201310 (R-1 through R-3) and record/06-plan.md:60\u201376 (API and state concerns)."
+  },
+  {
+   "decision": "Use each legacy ticket's saved priority at migration time, even if the ticket was created at a different priority.",
+   "alternative": "The requester might expect backfill to use the ticket's priority at creation, recovered from its history.",
+   "where": "record/06-plan.md:35\u201340 (A4) and repo/docs/shiploop/spec.md:11\u201312 (R-4)."
+  },
+  {
+   "decision": "Use the response-time settings in effect when the backfill command runs to assign missing deadlines.",
+   "alternative": "The requester might expect the original four response-time defaults to govern the backlog and configuration overrides to apply only to newly created tickets.",
+   "where": "repo/docs/shiploop/spec.md:5\u201312 (R-1 and R-4) and record/09-test-spec-W1.md:26 (TC-2 changes config on retry)."
+  },
+  {
+   "decision": "Count response-time hours as continuous elapsed time, including nights and weekends.",
+   "alternative": "The requester might mean hours when the help desk is staffed, with the countdown paused outside that schedule.",
+   "where": "repo/docs/shiploop/spec.md:5\u20136 (R-1) and repo/docs/shiploop/architecture.md:6\u20137 (Interfaces)."
+  },
+  {
+   "decision": "Make response times optional, validated per-priority environment settings supplied to the process.",
+   "alternative": "The requester might expect help-desk leads to update a saved policy while the service is running without asking an operator to change the process environment.",
+   "where": "record/01-intake.md (Q3), record/06-plan.md:125\u2013131 (config), and repo/docs/shiploop/architecture.md:6\u20137 (Interfaces)."
+  },
+  {
+   "decision": "Fill missing deadlines in one atomic write, preserve other logical data, and have a retry leave previously assigned deadlines in place even after the settings change.",
+   "alternative": "The requester might expect operators to be able to correct a backfill run with the wrong settings before activation by rerunning it with the intended policy.",
+   "where": "repo/docs/shiploop/spec.md:11\u201312 (R-4) and record/09-test-spec-W1.md:26 (TC-2)."
+  },
+  {
+   "decision": "Intersect the overdue set with the existing status-or-priority match set, even though the current API guide describes status and priority as cumulative filters.",
+   "alternative": "The requester might expect a query specifying overdue, status, and priority to return only tickets satisfying all three conditions, as the API guide's filter rule suggests.",
+   "where": "repo/docs/shiploop/architecture.md:17\u201318 (AD-2), record/06-plan.md:27\u201332 (A3), and repo/docs/api.md (List tickets)."
+  },
+  {
+   "decision": "Leave audit entries and notification payloads as they are, including when deadlines are assigned.",
+   "alternative": "The requester might expect deadline assignment to appear in ticket history or the receipt notification so agents or requesters can see the original promise.",
+   "where": "record/06-plan.md:65\u201369 (messaging concern) and repo/docs/shiploop/spec.md:7\u201312 (R-2 and R-4)."
+  },
+  {
+   "decision": "Show deadlines in human-readable CLI list and show output when enabled.",
+   "alternative": "The requester might intend the new field for API responses and expect existing command-line output to stay the same even after activation.",
+   "where": "repo/docs/shiploop/spec.md:7\u20138 (R-2) and repo/docs/shiploop/architecture.md:9\u201310 (R-2 checks)."
+  },
+  {
+   "decision": "Keep the four raw list columns and the weekly report free of deadline data even when deadlines are enabled.",
+   "alternative": "The requester might expect a machine-readable CLI view with deadlines that scripts can explicitly select while existing consumers keep their four columns.",
+   "where": "repo/docs/shiploop/spec.md:7\u20138 (R-2) and repo/docs/shiploop/architecture.md:17\u201318 (AD-2)."
+  },
+  {
+   "decision": "Expose `due` in enabled API responses that return tickets, including responses to ticket writes.",
+   "alternative": "The requester might expect deadlines on ticket reads and lists while existing create, update, and transition clients keep their original response shape.",
+   "where": "repo/docs/shiploop/spec.md:7\u20138 (R-2) and record/09-test-spec-W1.md:17\u201321 (TC-1 includes an enabled create response)."
+  },
+  {
+   "decision": "Apply the overdue condition before cursor pagination, so pages and next cursors are built from matching tickets.",
+   "alternative": "The requester might expect overdue to narrow each existing page while keeping its position and next cursor in the unfiltered list.",
+   "where": "repo/docs/shiploop/spec.md:9\u201310 (R-3) and repo/docs/shiploop/architecture.md:17\u201318 (AD-2)."
+  },
+  {
+   "decision": "Expose `due` in ticket API responses as an ISO 8601 UTC timestamp.",
+   "alternative": "The requester might expect a timestamp carrying the help desk's local time-zone offset so the deadline can be read directly in local time.",
+   "where": "repo/docs/shiploop/spec.md:7\u20138 (R-2) and record/09-test-spec-W1.md:20 (TC-1 oracle)."
+  },
+  {
+   "decision": "Recognize only the exact query value `overdue=true` as activating the filter when deadlines are enabled.",
+   "alternative": "The requester might expect a validated Boolean parameter that returns a client error for malformed values instead of leaving the overdue filter inactive.",
+   "where": "record/06-plan.md:43\u201348 (A5) and repo/docs/shiploop/spec.md:9\u201310 (R-3)."
+  },
+  {
+   "decision": "Treat a ticket as overdue only after its due timestamp is strictly earlier than the request clock.",
+   "alternative": "The requester might expect a ticket to start appearing in overdue results the instant its deadline is reached.",
+   "where": "record/01-intake.md (Q4) and repo/docs/shiploop/spec.md:9\u201310 (R-3)."
+  }
+ ]
+}

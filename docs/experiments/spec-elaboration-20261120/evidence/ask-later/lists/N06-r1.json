@@ -1,0 +1,163 @@
+{
+ "code": "N06",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "ccf7940e4a07081f43749d6863843ca2efe95aa400bd7f86306dde40421f4b81",
+ "cost_usd": null,
+ "names_outside_its_folder": [
+  "/Users/dadleet",
+  "sol-high-due-p2"
+ ],
+ "decisions": [
+  {
+   "decision": "Keep deadlines in the version-1 ticket file that 1.4.0 can read but strips on save, and rely on operators to retain a pre-rollback copy and pass it to `--restore-from FILE` before re-enabling.",
+   "alternative": "Keep a separate durable deadline record that survives ordinary 1.4.0 writes and can be recovered on re-upgrade without an operator-supplied snapshot.",
+   "where": "repo/docs/shiploop/spec.md:28\u201333 (R-4), repo/docs/shiploop/architecture.md:32\u201334 (AD-1 and AD-3), record/03-research.md:15\u201317"
+  },
+  {
+   "decision": "An enabled server refuses to listen if any ticket in its persistent file lacks a deadline, while an empty store can start normally.",
+   "alternative": "If the file is incomplete, start the service with the legacy responses and report that due times are still disabled until operators finish migrating.",
+   "where": "repo/docs/shiploop/spec.md:25 (R-3), record/08-step-plan-W1.md:94\u201396 (C4)"
+  },
+  {
+   "decision": "Operators stop the live writer, back up its data file, and run `DATA_FILE=FILE npm run migrate:due` before starting with due times enabled.",
+   "alternative": "Allow an online backfill coordinated by the running writer so the help desk can keep taking tickets throughout the migration.",
+   "where": "repo/docs/shiploop/spec.md:20\u201326 (R-3), record/06-plan.md:89\u201394 and 110\u2013115 (migrate-before and concurrency)"
+  },
+  {
+   "decision": "Treat delivery as a local code and instructions handoff, with production backfill, activation, and rollback exercises left to the operators.",
+   "alternative": "Treat the production change as part of delivery, with the work carried through an authorized rollout and verification on the deployment.",
+   "where": "repo/docs/shiploop/environment.md:8 and 48\u201350, repo/docs/shiploop/spec.md:33 (R-4), record/06-plan.md:168\u2013173"
+  },
+  {
+   "decision": "Assign and persist the deadline when a ticket is created even while `DUE_TIMES` is off, so tickets created during the rollout already have fixed deadlines when the feature becomes visible.",
+   "alternative": "Treat flag-off as postponing deadline assignment and backfill tickets created during that period using the settings in force at activation.",
+   "where": "repo/docs/shiploop/spec.md:9 (R-1), record/08-step-plan-W1.md:88\u201391 (C3)"
+  },
+  {
+   "decision": "Deadlines add the configured hours as elapsed time, including nights, weekends, and holidays.",
+   "alternative": "Count only hours when the help desk is scheduled to provide support.",
+   "where": "repo/docs/shiploop/architecture.md:11 (AD-4), repo/docs/shiploop/spec.md:5\u20139 and 25 (R-1 and R-3)"
+  },
+  {
+   "decision": "Backfill each legacy ticket using its currently saved priority, even if that priority changed after the ticket was created.",
+   "alternative": "Use the priority recorded at creation in the ticket\u2019s audit history to apply the original priority to legacy tickets.",
+   "where": "repo/docs/shiploop/spec.md:20\u201325 (R-3), record/09-test-spec-W1.md:67\u201375 (TC-4)"
+  },
+  {
+   "decision": "Use the response hours configured for the initial migration to assign missing legacy deadlines.",
+   "alternative": "Use the original 4, 24, 72, and 168 hour schedule for legacy tickets regardless of overrides chosen for new tickets.",
+   "where": "repo/docs/shiploop/spec.md:9\u201310 and 24\u201325 (R-1 and R-3), record/04-spec.md:23"
+  },
+  {
+   "decision": "A saved deadline can be recovered only when both ticket ID and creation time match the live ticket.",
+   "alternative": "Match by ticket ID alone so a correction to a ticket\u2019s creation timestamp during rollback does not prevent restoring its deadline.",
+   "where": "repo/docs/shiploop/spec.md:33 (R-4), repo/docs/shiploop/architecture.md:34 (AD-3)"
+  },
+  {
+   "decision": "Recovery fills only missing deadlines and lets a deadline already in the live file win, while preserving other intervening ticket edits.",
+   "alternative": "Treat the pre-rollback snapshot as authoritative for a matching ticket\u2019s deadline even when the live file already has one.",
+   "where": "repo/docs/shiploop/architecture.md:34 (AD-3), record/08-step-plan-W1.md:94\u201396 (C4)"
+  },
+  {
+   "decision": "Give tickets created during the rollback and missing from the snapshot a deadline calculated from their stored creation time and priority at re-upgrade.",
+   "alternative": "Capture deadlines for tickets as they are created during the rollback period so later priority edits or configuration changes cannot affect their eventual deadlines.",
+   "where": "repo/docs/shiploop/spec.md:33 (R-4), record/09-test-spec-W1.md:67\u201375 (TC-4)"
+  },
+  {
+   "decision": "Operators configure response hours through `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, and `DUE_HOURS_LOW` in the service startup and migration environments.",
+   "alternative": "Use a shared response-time configuration file that the service and migration both read and that operators can update without restarting the service.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-1), record/01-intake.md:84\u201391 (Q3), record/09-test-spec-W1.md:30\u201339 (TC-1)"
+  },
+  {
+   "decision": "Missing or empty hour settings take their defaults, and invalid values stop startup or migration with an error naming the variable.",
+   "alternative": "Warn on an invalid override and keep running with a fallback so a mistake in an hour setting does not take the service offline.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-1), record/08-step-plan-W1.md:232 (step-plan summary)"
+  },
+  {
+   "decision": "Migration exits nonzero and leaves the target unchanged if its input file is missing or fails validation.",
+   "alternative": "Let migration initialize a missing file and make partial progress on existing files by reporting records that still need repair.",
+   "where": "repo/docs/shiploop/spec.md:24 and 43 (R-3 and non-functional requirements), record/09-test-spec-W1.md:74 (TC-4)"
+  },
+  {
+   "decision": "The hour overrides accept non-negative whole numbers, with zero making the deadline equal to the ticket's creation time.",
+   "alternative": "Require a positive interval and allow fractional hours for commitments such as 30 minutes.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-1), record/04-spec.md:23, record/09-test-spec-W1.md:30\u201338 (TC-1)"
+  },
+  {
+   "decision": "Only the exact lowercase value `DUE_TIMES=on` activates due-time output and overdue filtering.",
+   "alternative": "Accept case-insensitive values so an operator setting `DUE_TIMES=ON` also enables the feature.",
+   "where": "repo/docs/shiploop/spec.md:17\u201318 (R-2), record/09-test-spec-W1.md:55\u201363 (TC-3)"
+  },
+  {
+   "decision": "The overdue condition is mandatory in an overdue search, while a ticket still needs to match only one of the supplied status and priority filters when both are present.",
+   "alternative": "Have an overdue search require every supplied filter, as the existing API documentation tells clients to expect for status and priority.",
+   "where": "repo/docs/shiploop/architecture.md:24 and 33 (TC-2 and AD-2), record/06-plan.md:173 (W1 context), repo/src/tickets/query.js:41\u201345 and repo/docs/api.md:76\u201377 (existing behavior and documentation)"
+  },
+  {
+   "decision": "With due times enabled, only `overdue=true` filters the list, and all other values are silently ignored.",
+   "alternative": "Treat `overdue` as a Boolean filter where `false` selects non-overdue tickets and invalid values produce a 400 error.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-2), record/09-test-spec-W1.md:43\u201351 (TC-2)"
+  },
+  {
+   "decision": "Apply overdue filtering before building each existing cursor page, so page limits and next cursors are based on matching tickets.",
+   "alternative": "Apply overdue filtering within the ordinary cursor pages, so a page can contain fewer matches and still point to a later page.",
+   "where": "repo/docs/shiploop/architecture.md:24 and 33 (TC-2 and AD-2), record/08-step-plan-W1.md:83\u201386 (C2)"
+  },
+  {
+   "decision": "A ticket first becomes overdue after its exact deadline, with equality excluded.",
+   "alternative": "Count a ticket as overdue the instant its deadline is reached.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-2), record/01-intake.md:94\u2013100 (Q4), repo/docs/shiploop/architecture.md:24 (TC-2)"
+  },
+  {
+   "decision": "Overdue eligibility is evaluated at one instant per request, with each cursor page using the time of its own request.",
+   "alternative": "Fix the overdue cutoff at the first page so an entire paginated search reflects the same instant.",
+   "where": "repo/docs/shiploop/spec.md:43 (non-functional requirements), repo/docs/shiploop/architecture.md:33 (AD-2)"
+  },
+  {
+   "decision": "When enabled, GET, list, create, update, and status transition responses all include the ticket's `due` as an ISO 8601 UTC timestamp.",
+   "alternative": "Expose the deadline on the ticket-reading endpoints while keeping the existing create, update, and transition response schemas for write clients.",
+   "where": "repo/docs/shiploop/spec.md:7\u20139 and 15\u201317 (R-1 and R-2), record/01-intake.md:84\u201391 (Q3), record/08-step-plan-W1.md:78\u201381 (C1)"
+  },
+  {
+   "decision": "The API rejects client-supplied `due` on create or update using its existing 400 invalid-field response.",
+   "alternative": "Accept and discard an echoed `due` field so clients can round-trip ticket data while the server still owns the deadline.",
+   "where": "repo/docs/shiploop/spec.md:11 (R-1), record/08-step-plan-W1.md:232 (step-plan summary), repo/docs/api.md:13 and 23\u201325 (existing error contract)"
+  },
+  {
+   "decision": "When enabled, the human CLI shows UTC deadlines in both the list table and the ticket detail view.",
+   "alternative": "Show deadlines only in the HTTP API and leave the existing human CLI displays alone.",
+   "where": "repo/docs/shiploop/spec.md:17 and 44 (R-2 and non-functional requirements), record/06-plan.md:61\u201366 (ui)"
+  },
+  {
+   "decision": "The four raw CLI columns and the weekly report omit deadline information even with the feature enabled.",
+   "alternative": "Provide an opt-in machine-readable deadline field for raw consumers or the weekly report while preserving the existing default columns.",
+   "where": "repo/docs/shiploop/spec.md:17 and 39\u201344 (R-2 and R-5), repo/docs/shiploop/architecture.md:19 and 25, repo/README.md:70\u201372 (existing raw-column consumers)"
+  },
+  {
+   "decision": "Deadline assignment and backfill leave the audit history as it was, and the audit endpoint does not expose deadlines.",
+   "alternative": "Record the original deadline in the audit trail so operators can see when it was assigned and whether it came from migration.",
+   "where": "repo/docs/shiploop/spec.md:17 and 24 (R-2 and R-3), record/06-plan.md:75\u201380 (messaging)"
+  },
+  {
+   "decision": "Existing requester notifications and outbox payloads omit deadlines.",
+   "alternative": "Include the promised deadline in the ticket-received notification so requesters see it without opening the ticket.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-2), record/06-plan.md:75\u201380 (messaging), repo/docs/api.md:64\u201365 and 135\u2013145 (existing notification surfaces)"
+  },
+  {
+   "decision": "Operators get migration output and errors on the command line and activation failures through the existing startup logger.",
+   "alternative": "Provide a durable migration and activation report that operators can consult after the command or service process exits.",
+   "where": "record/06-plan.md:132\u2013137 (observability), record/08-step-plan-W1.md:232 (step-plan summary)"
+  },
+  {
+   "decision": "A migration retry on a fully backfilled file leaves the file byte-for-byte unchanged, even if the configured response hours have since changed.",
+   "alternative": "Preserve existing deadlines on retry but update the file\u2019s save timestamp to record that migration ran successfully again.",
+   "where": "repo/docs/shiploop/spec.md:24\u201325 (R-3), record/08-step-plan-W1.md:94\u201396 (C4)"
+  }
+ ]
+}

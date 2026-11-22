@@ -1,0 +1,100 @@
+{
+ "decisions": [
+  {
+   "decision": "Rollback hands the upgraded file to 1.4.0 and relies on operators keeping a separate pre-rollback copy to recover recorded deadlines after 1.4.0 saves strip them from the live file.",
+   "alternative": "The requester might expect recorded deadlines to survive normal writes during rollback and be available alongside tickets created or changed during that period, without manual recovery."
+  },
+  {
+   "decision": "Backfill uses each ticket's priority as stored when the data file is migrated, even if that priority changed after creation.",
+   "alternative": "The requester might expect the priority at creation, recovered from the ticket's audit history, to determine the deadline."
+  },
+  {
+   "decision": "Backfill uses the hours configured for the migration run to assign each missing deadline and retains the first assigned value on later runs.",
+   "alternative": "The requester might expect historical tickets to use the published default hours even if operators have overridden the schedule for new tickets before migration."
+  },
+  {
+   "decision": "Operators must stop the service, invoke a separate backfill as the sole writer of the production data file, and then enable due times.",
+   "alternative": "The requester might expect the service to prepare the file automatically during a staged deployment and expose due times once preparation succeeds."
+  },
+  {
+   "decision": "An enabled server refuses to listen if any ticket in its configured file is missing a deadline.",
+   "alternative": "The requester might expect the server to keep serving its legacy API, report incomplete preparation to operators, and leave due times disabled."
+  },
+  {
+   "decision": "The production handoff consists of local source, local verification, and operator instructions, with deployment and the live data migration left to the deployment operators.",
+   "alternative": "The requester might expect the work to include preparing the live file and enabling the feature in production once the target and access are supplied."
+  },
+  {
+   "decision": "New tickets acquire a fixed deadline at creation even while the feature flag hides deadlines from API and CLI responses.",
+   "alternative": "The requester might expect tickets created while the flag is off to receive their deadlines during backfill, using the rollout schedule."
+  },
+  {
+   "decision": "Backfill updates the configured data file in one atomic replacement after successful preparation and leaves the original file usable if an input or the backfill fails.",
+   "alternative": "The requester might expect a resumable migration that saves valid batches and reports the records needing repair before activation."
+  },
+  {
+   "decision": "Deadlines are stored inline as an optional due field in the same version-1 JSON file read by 1.4.0.",
+   "alternative": "The requester might expect a separate deadline file that the new release maintains alongside the existing tickets file."
+  },
+  {
+   "decision": "Operators configure the schedule through separate environment overrides for each priority.",
+   "alternative": "The requester might expect the help desk to manage the schedule directly through a shared setting that takes effect for new tickets without restarting the service."
+  },
+  {
+   "decision": "The service fails startup for an invalid response-hour override and names the offending variable.",
+   "alternative": "The requester might expect the service to stay available, log the invalid override, and use that priority's default hours."
+  },
+  {
+   "decision": "For an overdue listing, active and overdue are mandatory conditions, and the existing status and priority filters retain their OR behavior within that subset.",
+   "alternative": "The requester might expect an overdue ticket to match every supplied filter, as the existing API documentation describes for status and priority."
+  },
+  {
+   "decision": "The overdue filter runs before pagination and returns qualifying tickets in the existing ID order.",
+   "alternative": "The requester might expect the overdue endpoint to page qualifying tickets by earliest deadline so the longest-overdue tickets appear first."
+  },
+  {
+   "decision": "With the feature enabled, all API responses that return a ticket include due, including create, update, and lifecycle transition responses.",
+   "alternative": "The requester might expect due in ticket reads and lists while keeping mutation response payloads in their existing shape."
+  },
+  {
+   "decision": "The due value follows the API's existing UTC ISO 8601 timestamp format.",
+   "alternative": "The requester might expect a numeric Unix timestamp for clients that compare deadlines programmatically."
+  },
+  {
+   "decision": "A new or empty store can start with due times enabled without a populated data file or a prior backfill run.",
+   "alternative": "The requester might expect every enabled startup to require a prepared data file, including on an empty deployment."
+  },
+  {
+   "decision": "When enabled, the operator CLI shows due in both its human-readable list and individual ticket details.",
+   "alternative": "The requester might expect CLI deadlines only in individual ticket details, keeping the familiar list table layout."
+  },
+  {
+   "decision": "The CLI's raw list keeps exactly its existing four columns, so scripts reading raw ticket records have no due column.",
+   "alternative": "The requester might expect an opt-in raw output mode that includes due while preserving the four-column format used by the weekly report."
+  },
+  {
+   "decision": "The specification keeps existing notifier behavior, so the receipt sent to a ticket's requester carries no deadline.",
+   "alternative": "The requester might expect the receipt to tell the person who opened the ticket when the help desk has promised to respond."
+  },
+  {
+   "decision": "The specification preserves existing audit behavior, including leaving the audit trail unchanged when historic tickets receive deadlines.",
+   "alternative": "The requester might expect the audit trail to record each deadline assignment so support leads can see when it took effect."
+  },
+  {
+   "decision": "Response-hour overrides accept fractional hours.",
+   "alternative": "The requester might expect operators to enter whole hours only, consistent with the whole-hour values in the request."
+  },
+  {
+   "decision": "Activation uses the literal value on, and every other flag value keeps legacy responses and ignores the overdue query.",
+   "alternative": "The requester might expect configuration parsing to normalize case or whitespace around on before deciding whether to activate the feature."
+  },
+  {
+   "decision": "Due is server-owned, with attempted client input subject to the existing unknown-field rejection.",
+   "alternative": "The requester might expect clients to be able to include due in a write payload while the server ignores that value and uses its own deadline."
+  },
+  {
+   "decision": "A ticket becomes overdue only once the current time is strictly later than its deadline.",
+   "alternative": "The requester might expect the ticket to count as overdue at the instant its deadline is reached."
+  }
+ ]
+}

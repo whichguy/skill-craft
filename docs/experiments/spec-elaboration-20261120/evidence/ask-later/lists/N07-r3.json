@@ -1,0 +1,153 @@
+{
+ "code": "N07",
+ "repeat": 3,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "ccf7940e4a07081f43749d6863843ca2efe95aa400bd7f86306dde40421f4b81",
+ "cost_usd": null,
+ "names_outside_its_folder": [
+  "/Users/dadleet",
+  "sol-medium-due-p2"
+ ],
+ "decisions": [
+  {
+   "decision": "The rollback procedure starts 1.4.0 on the latest version-1 file, accepts that its next save or graceful shutdown strips deadlines, and leaves operators to recover those values from a pre-rollback copy or recompute them before re-enabling.",
+   "alternative": "The requester might expect previously promised deadlines to survive normal use of 1.4.0 and return automatically when the new release is restored.",
+   "where": "repo/docs/operations.md:50\u201359 (Roll back to 1.4.0); repo/docs/decisions/0009-ticket-due-times.md:11\u201321; record/03-research.md:13"
+  },
+  {
+   "decision": "Operators must stop the sole writer, make a recovery copy, and run an offline command that atomically replaces the production file in place before restarting.",
+   "alternative": "The requester might expect a migration coordinated with live writes, so the help desk can keep accepting tickets throughout the backfill.",
+   "where": "repo/docs/operations.md:27\u201348 (Ticket due times); repo/scripts/backfill-due-times.js:8\u201318; record/06-plan.md:90\u2013102"
+  },
+  {
+   "decision": "The backfill uses the priority stored on each legacy ticket at migration time, even if the ticket had a different priority when it was opened.",
+   "alternative": "The requester might mean the priority at creation, reconstructed from ticket history for tickets that were later reprioritized.",
+   "where": "repo/docs/operations.md:46\u201348; repo/src/store.js:132\u2013139; repo/src/tickets/due-times.js:8\u201312; record/06-plan.md:34\u201340"
+  },
+  {
+   "decision": "The backfill uses the response hours configured for the command when it runs, and the runbook tells operators to supply the overrides planned for the service.",
+   "alternative": "The requester might want the four stated default response times applied to all legacy tickets and custom hours applied from rollout onward.",
+   "where": "repo/docs/operations.md:31\u201338; repo/scripts/backfill-due-times.js:9\u201317"
+  },
+  {
+   "decision": "With DUE_TIMES=on, a missing deadline on any ticket in an existing file prevents the service from listening, and the startup error names the backfill command.",
+   "alternative": "The requester might want the service to continue answering with its legacy behavior while warning operators that activation is pending.",
+   "where": "repo/docs/shiploop/spec.md:11\u201313 (R-4); repo/src/persistence.js:39\u201357; repo/src/server.js:62\u201371"
+  },
+  {
+   "decision": "The new release assigns and saves deadlines on tickets created while DUE_TIMES is off, using the hours and priority in effect at creation.",
+   "alternative": "The requester might want tickets created before activation to receive their first deadlines during the backfill under the policy chosen for rollout.",
+   "where": "repo/docs/operations.md:46\u201348; repo/src/store.js:79\u201390 and 144\u2013146; repo/test/due-times.test.js:104\u2013127"
+  },
+  {
+   "decision": "Four independent DUE_HOURS_* environment variables configure the response policy at process startup, with blank or unset entries using their defaults.",
+   "alternative": "The requester might want help-desk leads to change a shared policy while the service is running, without a process restart.",
+   "where": "repo/README.md:22\u201343 (Configuration); repo/src/config.js:23\u201330 and 39\u201359; repo/src/server.js:62\u201367"
+  },
+  {
+   "decision": "The deadline adds continuous elapsed hours to creation time, counting nights, weekends, and holidays.",
+   "alternative": "The requester might intend those hours to count only during the help desk's staffed schedule.",
+   "where": "repo/docs/shiploop/spec.md:5\u20136 (R-1); repo/src/tickets/due-times.js:5\u201312"
+  },
+  {
+   "decision": "The service validates response-hour overrides and any stored due field even while DUE_TIMES is off, so bad values can prevent legacy-mode startup.",
+   "alternative": "The requester might expect switching the feature off to let the service start and serve legacy responses despite invalid deadline settings or metadata.",
+   "where": "repo/src/config.js:39\u201359; repo/src/persistence.js:39\u201357 and 143\u2013153; repo/src/server.js:62\u201371"
+  },
+  {
+   "decision": "Readiness checks an existing file's ticket records, so activation can also start with a missing file as a fresh store or with no DATA_FILE as an in-memory store.",
+   "alternative": "The requester might want activation to require that a persistent file has actually been found and verified, so a mistyped or unset path cannot start an empty enabled service.",
+   "where": "repo/src/persistence.js:38\u201357; repo/src/store.js:31\u201346; repo/src/server.js:17\u201320"
+  },
+  {
+   "decision": "When enabled, only the exact query value overdue=true applies a filter, so overdue=false, an empty value, and misspellings all return the ordinary matching list.",
+   "alternative": "The requester might want overdue=false to select tickets that are not overdue and a 400 error for invalid values.",
+   "where": "repo/src/tickets/query.js:17\u201332; repo/test/due-times.test.js:80\u201385; record/06-plan.md:42\u201348"
+  },
+  {
+   "decision": "Overdue narrows the results of the existing status-or-priority match, so a ticket can pass a combined query by matching just one of those two filters.",
+   "alternative": "The requester might expect the overdue queue to honor both supplied filters, for example showing only overdue tickets that are both open and urgent.",
+   "where": "repo/docs/api.md:70\u201384 (List tickets); repo/src/store.js:55\u201363; repo/src/tickets/query.js:43\u201347; repo/test/due-times.test.js:80\u201382"
+  },
+  {
+   "decision": "Response-hour overrides accept zero and other non-negative whole hours within a configured range, so they support an immediate deadline and reject fractional hours.",
+   "alternative": "The requester might want strictly positive response times with minute-level precision, such as a 30-minute urgent promise.",
+   "where": "repo/README.md:34\u201343; repo/src/config.js:23\u201330 and 39\u201345; repo/test/due-times.test.js:109\u2013126"
+  },
+  {
+   "decision": "Backfill keeps every already-populated deadline that parses as a time, fills only missing ones, and leaves a complete file byte-for-byte intact on rerun.",
+   "alternative": "The requester might want a verification pass that flags suspect values already in the file, such as a deadline earlier than its ticket's creation time.",
+   "where": "repo/docs/operations.md:40\u201348; repo/src/persistence.js:143\u2013153 and 207\u2013209; repo/src/store.js:132\u2013139; repo/test/due-times.test.js:140\u2013161"
+  },
+  {
+   "decision": "Assigning a deadline is silent in ticket history, with no due field in the creation audit entry and no backfill audit entry or change to the ticket's updated timestamp.",
+   "alternative": "The requester might want the audit trail to show when the deadline was first assigned and what value the help desk committed to.",
+   "where": "repo/src/store.js:12\u201313, 79\u201390 and 132\u2013139; repo/test/due-times.test.js:151\u2013161 and 181\u2013185"
+  },
+  {
+   "decision": "Requester notifications continue to acknowledge receipt and resolution using the ticket ID and title, with the deadline visible through ticket views.",
+   "alternative": "The requester might want the ticket-received notification to include the deadline so the person who reported the problem can see the promised response time.",
+   "where": "repo/src/templates.js:8\u201316; repo/src/store.js:174\u2013180; record/06-plan.md:65\u201369"
+  },
+  {
+   "decision": "The overdue queue filters before pagination and reuses the ordinary listing's ticket ID order.",
+   "alternative": "The requester might want the overdue queue ordered by deadline so agents see the longest-overdue work first.",
+   "where": "repo/docs/shiploop/architecture.md:17\u201318 (AD-2); repo/docs/api.md:78\u201391; repo/src/store.js:55\u201363"
+  },
+  {
+   "decision": "With DUE_TIMES=on, the human CLI list and show commands display deadlines and require a complete file, while raw list and the weekly report can read files still awaiting backfill.",
+   "alternative": "The requester might want the read-only human views to remain available during migration and display each deadline as it becomes available.",
+   "where": "repo/bin/tickets.js:45\u201350, 65\u201382 and 87\u2013106; repo/scripts/weekly-report.js:21\u201326; record/11-implement-W1.md:8\u201312"
+  },
+  {
+   "decision": "The CLI exposes deadlines in human list and show output, with raw list fixed to its original four columns even when the feature is enabled.",
+   "alternative": "The requester might want an optional machine-readable output that includes due for scripts while preserving the four-column contract for existing consumers.",
+   "where": "repo/README.md:68\u201385 (Command line); repo/src/format.js:8\u201316 and 21\u201335; repo/bin/tickets.js:27\u201340 and 65\u201374; repo/docs/shiploop/architecture.md:17\u201318 (AD-2)"
+  },
+  {
+   "decision": "The HTTP API includes due in enabled list and detail reads as well as in the ticket returned by creation, update, and transition.",
+   "alternative": "The requester might have meant to add due to ticket views reached through GET and to preserve the response shape for clients that only write tickets.",
+   "where": "repo/docs/api.md:46\u201357; repo/src/app.js:22\u201338; repo/src/store.js:144\u2013146; repo/test/due-times.test.js:41\u201355"
+  },
+  {
+   "decision": "Each page request evaluates overdue against the service clock at that request, so tickets can become eligible between pages.",
+   "alternative": "The requester might want all pages of an overdue query to use the first page's cutoff so an export represents one point in time.",
+   "where": "repo/src/store.js:55\u201363; repo/src/tickets/query.js:30\u201332; repo/docs/api.md:84\u201391"
+  },
+  {
+   "decision": "The overdue filter uses a strict comparison against the current service time, so an active ticket first qualifies after the instant recorded in due.",
+   "alternative": "The requester might expect the ticket to qualify as soon as the clock reaches its deadline.",
+   "where": "repo/src/tickets/due-times.js:15\u201318; repo/test/due-times.test.js:59\u201385; record/01-intake.md:89\u201396"
+  },
+  {
+   "decision": "Overdue filtering is available through the HTTP listing, and the operator CLI still offers status and priority filters.",
+   "alternative": "The requester might want the CLI to offer the same overdue queue for operators who work directly from the data file.",
+   "where": "repo/src/app.js:22; repo/bin/tickets.js:20\u201340 and 65\u201374; repo/docs/shiploop/spec.md:7\u201310 (R-2 and R-3)"
+  },
+  {
+   "decision": "Newly assigned deadlines display as full ISO UTC timestamps, including milliseconds, in both the API and the human CLI.",
+   "alternative": "The requester might want the full timestamp in the API and a shorter local-time display in the operator CLI.",
+   "where": "repo/docs/shiploop/spec.md:7\u20138 (R-2); repo/src/tickets/due-times.js:8\u201312; repo/test/due-times.test.js:41\u201355; repo/src/format.js:19\u201335 and 52\u201358"
+  },
+  {
+   "decision": "The backfill command requires an explicit DATA_FILE pointing to an existing file, writes changes immediately on a successful run, and reports the number of tickets it filled.",
+   "alternative": "The requester might want a dry-run mode that previews affected tickets and calculated deadlines before operators commit the production write.",
+   "where": "repo/scripts/backfill-due-times.js:8\u201325; repo/docs/operations.md:31\u201341; repo/test/due-times.test.js:172\u2013179"
+  },
+  {
+   "decision": "Only the exact lowercase DUE_TIMES=on enables the HTTP and human CLI feature, and other values silently select legacy output.",
+   "alternative": "The requester might want a warning for unrecognized settings such as ON so an intended activation cannot silently leave the feature off.",
+   "where": "repo/src/config.js:48\u201359; repo/bin/tickets.js:87\u201398; repo/test/due-times.test.js:104\u2013120"
+  },
+  {
+   "decision": "The work is delivered locally with rollout instructions and leaves production migration and activation to operators.",
+   "alternative": "The requester might have expected the change delivery to include the actual production backfill and feature activation.",
+   "where": "repo/docs/shiploop/environment.md:2\u201311 (Targets and runtimes, Access and accounts); record/04-spec.md:20; record/06-plan.md:149\u2013154"
+  }
+ ]
+}

@@ -1,0 +1,124 @@
+{
+ "decisions": [
+  {
+   "decision": "Rollback runs 1.4.0 against the same version-1 file, where its next save drops the optional due field, so preserving original deadlines across rollback requires operators to keep a stopped-service copy and pass it to the re-upgrade migration.",
+   "alternative": "The requester might have wanted deadlines to survive ordinary 1.4.0 writes automatically, using storage that 1.4.0 does not rewrite."
+  },
+  {
+   "decision": "The recovery command keeps any deadline already on a live ticket, restores missing deadlines only from a snapshot record with the same ID and exact creation timestamp, and computes the rest from the live record and the re-upgrade settings, including tickets created during rollback.",
+   "alternative": "The requester might have wanted recovery to flag unmatched pre-rollback tickets for reconciliation and calculate deadlines for rollback-era tickets under the hours that applied when they were opened."
+  },
+  {
+   "decision": "Initial rollout requires operators to stop all writers, back up the file, and run the new release's explicit migration command as the service user before restarting with due times enabled, with writer exclusion left to the operators.",
+   "alternative": "The requester might have wanted the service to backfill safely while continuing to serve, with activation deferred until the backfill finished."
+  },
+  {
+   "decision": "An enabled persistent server with any missing deadline exits before listening, while a fresh or empty store can start enabled.",
+   "alternative": "The requester might have wanted startup to succeed in the old response mode with a warning until operators completed the backfill."
+  },
+  {
+   "decision": "The work hands production rollout and rollback to operators and delivers the code and instructions locally.",
+   "alternative": "The requester might have expected the work to include a coordinated production backfill and switchover once access and a maintenance window were arranged."
+  },
+  {
+   "decision": "The work schedules the end-to-end test of the actual 1.4.0 server on candidate-written data for the release stage, with the implementation-stage recovery test simulating the old rewrite.",
+   "alternative": "The requester might have wanted actual 1.4.0 startup, ticket listing, saving, and re-upgrade recovery demonstrated as part of the implementation handoff."
+  },
+  {
+   "decision": "If any present deadline in the persisted file is malformed, the service refuses to load the file even with due times off, and the migration also refuses it.",
+   "alternative": "The requester might have wanted the disabled service to keep serving such a file and the migration to treat malformed deadlines as missing or flag them for repair."
+  },
+  {
+   "decision": "An invalid due-hour setting stops service startup even with due times off, and it also aborts the migration with an error naming the setting.",
+   "alternative": "The requester might have wanted the old-mode service to remain available despite bad due-hour settings, with validation deferred until migration or activation."
+  },
+  {
+   "decision": "Backfill uses each ticket's priority as stored when migration runs, even if that priority changed after creation.",
+   "alternative": "The requester might have meant to reconstruct the priority at creation from the ticket history so that an earlier priority edit would have no effect on its deadline."
+  },
+  {
+   "decision": "Legacy tickets with missing deadlines are backfilled using the configured hours at migration time, and a successful retry with different hours leaves those deadlines in place.",
+   "alternative": "The requester might have wanted the initial backlog always backfilled using the four stated defaults, with overrides reserved for tickets created under the new release."
+  },
+  {
+   "decision": "The new release sets and stores deadlines on ticket creation even while due times are hidden, locking in the hours in force at creation.",
+   "alternative": "The requester might have wanted tickets created during a flag-off rollout to join the legacy backlog and receive deadlines under the settings chosen at activation."
+  },
+  {
+   "decision": "Response hours run continuously from creation as elapsed time, including nights, weekends, and holidays.",
+   "alternative": "The requester might have meant hours on the help desk's working calendar, pausing the clock outside staffed periods."
+  },
+  {
+   "decision": "Operators change response hours through four per-priority environment variables, applying changes to the running service by starting it with the updated environment.",
+   "alternative": "The requester might have wanted help-desk leads to change the schedule through runtime settings without restarting the service."
+  },
+  {
+   "decision": "The due-hour variables accept non-negative whole hours within the supported range, treat blank values as defaults, and allow zero for a deadline at creation.",
+   "alternative": "The requester might have wanted positive durations with fractional hours, such as a 30-minute urgent target."
+  },
+  {
+   "decision": "Migration requires an existing valid data file, computes all missing deadlines before saving, and leaves the target unchanged if any calculation fails, including date overflow.",
+   "alternative": "The requester might have wanted migration to save the deadlines it could calculate and issue a ticket-by-ticket report for the records that needed manual repair."
+  },
+  {
+   "decision": "The visibility switch accepts only the exact lowercase value DUE_TIMES=on, with uppercase or whitespace-padded values leaving the feature off.",
+   "alternative": "The requester might have expected the setting to tolerate capitalization and surrounding whitespace."
+  },
+  {
+   "decision": "The overdue condition intersects with the existing status-or-priority match, so an active overdue ticket can satisfy either of those two filters when both are supplied.",
+   "alternative": "The requester might have expected an overdue search with both filters to require the specified status and the specified priority."
+  },
+  {
+   "decision": "The service filters for overdue tickets before cursor pagination, keeps ticket ID order, and evaluates the current time once per page request.",
+   "alternative": "The requester might have wanted an overdue work queue sorted by earliest deadline, with its cursor following that order."
+  },
+  {
+   "decision": "With due times enabled, the first overdue parameter must be exactly true to restrict results, and all other values leave the listing unrestricted by overdue status.",
+   "alternative": "The requester might have wanted overdue=false to select tickets that are not overdue and invalid or repeated values to return a validation error."
+  },
+  {
+   "decision": "A ticket becomes overdue only after its deadline, so it is excluded at the exact due instant.",
+   "alternative": "The requester might have wanted it to become overdue as soon as its deadline is reached."
+  },
+  {
+   "decision": "The enabled API exposes due in ticket creation, update, transition, detail, and list responses.",
+   "alternative": "The requester might have wanted due on ticket reads only and the existing response shape retained for clients that create, edit, or transition tickets."
+  },
+  {
+   "decision": "Calculated due values use ISO 8601 UTC timestamps with milliseconds, and the human CLI prints the full stored timestamp in the list and detail views.",
+   "alternative": "The requester might have wanted CLI deadlines displayed in the operator's local time at the same minute precision as the existing list's updated column."
+  },
+  {
+   "decision": "Supplying due in a create or update request returns the existing unknown-field error, including when the supplied value merely echoes the server's deadline.",
+   "alternative": "The requester might have wanted the API to accept an echoed read-only due field and disregard it so clients could send back ticket objects without changing deadlines."
+  },
+  {
+   "decision": "Deadlines appear in the human CLI list and show output only when the CLI process itself has DUE_TIMES=on.",
+   "alternative": "The requester might have wanted the CLI to inherit the service's rollout setting so operators automatically see deadlines once the API is enabled."
+  },
+  {
+   "decision": "The raw CLI list keeps the original four columns and the weekly report exposes no deadline data, even with due times enabled.",
+   "alternative": "The requester might have wanted an opt-in machine-readable deadline field while preserving the existing raw output for current scripts."
+  },
+  {
+   "decision": "The CLI can still read an incomplete file with its flag enabled, leaving the list's due cell blank and omitting the due line in details for tickets that lack a deadline.",
+   "alternative": "The requester might have wanted the CLI to use the server's activation guard and direct operators to migrate before showing enabled output."
+  },
+  {
+   "decision": "The audit history omits due at creation, and migration writes deadlines without adding a per-ticket audit entry or changing ticket update timestamps.",
+   "alternative": "The requester might have wanted the audit history to record each initial deadline and whether it came from ticket creation or a backfill."
+  },
+  {
+   "decision": "Existing requester notifications and outbox payloads omit the deadline even with due times enabled.",
+   "alternative": "The requester might have wanted the existing ticket-received confirmation to include the promised response deadline."
+  },
+  {
+   "decision": "The migration reports one total count on standard output and uses standard error with exit status 2 for failures.",
+   "alternative": "The requester might have wanted a preview or per-ticket report to verify the proposed deadlines before committing the file rewrite."
+  },
+  {
+   "decision": "The changed release is numbered 1.5.0.",
+   "alternative": "The requester might have wanted the change assigned to a different release number already reserved in their deployment plan."
+  }
+ ]
+}

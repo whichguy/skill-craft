@@ -1,0 +1,14 @@
+S (after the specification was accepted): on the list in 9 of 9; first in 0; in the first three in 6; places [2, 2, 2, 2, 3, 3, 4, 4, 5]; list lengths [15, 16, 17, 23, 23, 23, 24, 24, 28]
+    sol-high-due-p1: places [2, 4, 2] (0 is not on the list)
+    sol-high-due-p2: places [3, 4, 3] (0 is not on the list)
+    sol-medium-due-p2: places [2, 2, 5] (0 is not on the list)
+P (the plan and the item's test cases written, nothing built): on the list in 9 of 9; first in 0; in the first three in 9; places [2, 2, 2, 2, 2, 2, 2, 2, 3]; list lengths [18, 19, 20, 21, 22, 25, 26, 29, 29]
+    sol-high-due-p1: places [3, 2, 2] (0 is not on the list)
+    sol-high-due-p2: places [2, 2, 2] (0 is not on the list)
+    sol-medium-due-p2: places [2, 2, 2] (0 is not on the list)
+T (after the item's tests ran): on the list in 9 of 9; first in 0; in the first three in 9; places [2, 2, 2, 2, 2, 2, 2, 3, 3]; list lengths [22, 24, 27, 27, 28, 28, 30, 32, 32]
+    sol-high-due-p1: places [3, 2, 2] (0 is not on the list)
+    sol-high-due-p2: places [2, 3, 2] (0 is not on the list)
+    sol-medium-due-p2: places [2, 2, 2] (0 is not on the list)
+READING: found at the specification already: timing cannot show
+lists where one judge finds the target and the other does not: none

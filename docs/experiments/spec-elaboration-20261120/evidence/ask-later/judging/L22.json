@@ -1,0 +1,116 @@
+{
+ "decisions": [
+  {
+   "decision": "The new release stores deadlines as an optional field in the version-1 ticket file, so 1.4.0 can run against that file and its next save strips the deadlines.",
+   "alternative": "The requester may have expected standard 1.4.0 operation to preserve deadlines through writes, which would require keeping an authoritative copy in storage 1.4.0 does not rewrite."
+  },
+  {
+   "decision": "Re-upgrade after a rollback write depends on operators keeping a pre-rollback copy and passing it to the migration with `--restore-from FILE`, which restores deadlines by ticket ID and creation time while retaining edits made during rollback.",
+   "alternative": "The requester may have expected the release to retain and recover deadlines automatically, without relying on an operator to capture and supply a snapshot."
+  },
+  {
+   "decision": "The migration requires operators to stop the service that writes the target file and restart it to pick up the migrated data.",
+   "alternative": "The requester may have expected an online backfill coordinated with the live writer so production could keep accepting changes during migration."
+  },
+  {
+   "decision": "An enabled persistent server refuses to listen if any stored ticket lacks a due time, while an empty store can start normally.",
+   "alternative": "The requester may have preferred the server to keep serving in its original mode and report that activation is pending until all stored tickets have deadlines."
+  },
+  {
+   "decision": "Operators explicitly run `DATA_FILE=FILE npm run migrate:due` as a separate maintenance step before enabling the feature.",
+   "alternative": "The requester may have expected deployment to run the backfill automatically before starting the enabled process."
+  },
+  {
+   "decision": "A successful backfill installs its result directly at the configured data file path by atomic replacement.",
+   "alternative": "The requester may have wanted the command to produce a separate migrated file that operators can verify and promote to production."
+  },
+  {
+   "decision": "The work delivers code and rollout instructions locally, with production migration, activation, and rollback left to the operators.",
+   "alternative": "The requester may have expected the work to include a coordinated production rollout and verification against the real data file."
+  },
+  {
+   "decision": "New tickets acquire and keep deadlines during the flag-off period, using the response hours in effect when each ticket is created.",
+   "alternative": "The requester may have intended tickets created during the flag-off rollout to receive their deadlines in the pre-activation backfill under the policy chosen for launch."
+  },
+  {
+   "decision": "The backfill uses the response-hour settings in effect when the migration runs for each ticket whose deadline is missing.",
+   "alternative": "The requester may have intended existing tickets to get the original 4, 24, 72, and 168-hour schedule even when operators have configured different hours for new tickets."
+  },
+  {
+   "decision": "Backfill uses the priority stored on each legacy ticket when it runs, including tickets whose priority was edited after creation.",
+   "alternative": "The requester may have meant the priority recorded at creation, which can differ from the current priority and is recorded in the ticket's history."
+  },
+  {
+   "decision": "On re-upgrade, migration calculates deadlines for tickets created under 1.4.0 during rollback using the migration-time settings.",
+   "alternative": "The requester may have wanted tickets created during rollback to receive deadlines under the schedule that was in effect before rollback."
+  },
+  {
+   "decision": "A malformed response-hour setting causes startup or migration to fail with the variable named, including startup when deadline display is off.",
+   "alternative": "The requester may have wanted a bad override to fall back to its default with a warning so the help desk can continue to operate."
+  },
+  {
+   "decision": "Rollback verification uses the original 1.4.0 executable identified by the base checkout and disposable files, including a file rewritten by 1.4.0.",
+   "alternative": "The requester may have expected a rehearsal with the deployed 1.4.0 artifact and a production data copy to establish rollback readiness."
+  },
+  {
+   "decision": "Migration exits nonzero on missing or failed input and leaves the target untouched.",
+   "alternative": "The requester may have wanted the rollout command to succeed as a no-op for a missing file on a fresh installation while still reporting invalid existing files as errors."
+  },
+  {
+   "decision": "Operators configure hours through four per-priority environment variables named `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL`, and `DUE_HOURS_LOW`.",
+   "alternative": "The requester may have meant a help-desk-managed policy setting that staff can change without editing the service environment or restarting it."
+  },
+  {
+   "decision": "Response-hour overrides accept whole numbers from zero upward, with empty values selecting the defaults.",
+   "alternative": "The requester may have wanted response promises to be strictly positive and to support fractional hours for commitments shorter than an hour."
+  },
+  {
+   "decision": "Activation recognizes only the literal value `on` for `DUE_TIMES` and otherwise uses the flag-off behavior.",
+   "alternative": "The requester may have intended surrounding whitespace or capitalization in deployment configuration to be normalized before checking for `on`."
+  },
+  {
+   "decision": "For overdue queries, the work intersects the overdue condition with the existing status-or-priority match when both filters are supplied.",
+   "alternative": "The requester may have expected an overdue ticket to match both supplied filters, as the API documentation describes for status and priority."
+  },
+  {
+   "decision": "The overdue listing uses the existing ID order and cursor pagination.",
+   "alternative": "The requester may have wanted the overdue queue sorted by earliest deadline so agents see the longest-overdue tickets first."
+  },
+  {
+   "decision": "The enabled API activates the overdue filter only for `overdue=true` and treats all other overdue values as an ordinary listing.",
+   "alternative": "The requester may have expected malformed overdue values to return a validation error so a typo cannot silently return a broader list."
+  },
+  {
+   "decision": "The enabled service shows `due` in HTTP ticket responses and in the human-readable CLI list and show views.",
+   "alternative": "The requester may have intended the new field only for HTTP API users, leaving the existing operator displays as they were."
+  },
+  {
+   "decision": "The enabled CLI raw listing keeps its four-column contract and surfaces deadlines through the human-readable views.",
+   "alternative": "The requester may have wanted machine consumers to receive deadlines through a new opt-in raw format while the weekly report continued using the old format."
+  },
+  {
+   "decision": "The specification keeps due-time assignment and backfill out of the ticket audit history.",
+   "alternative": "The requester may have wanted the audit history to record when a deadline was first assigned so agents can later verify a response commitment."
+  },
+  {
+   "decision": "The specification keeps the existing requester notification contract when deadlines are enabled.",
+   "alternative": "The requester may have intended the ticket receipt to tell the person who opened the ticket when they should expect a response."
+  },
+  {
+   "decision": "The API rejects `due` in create or update bodies through its existing invalid-field error response.",
+   "alternative": "The requester may have wanted clients to be able to send back a ticket representation containing `due`, with the server ignoring that input and retaining control of the stored deadline."
+  },
+  {
+   "decision": "A ticket becomes overdue strictly after its stored due instant, so equality stays outside the overdue results.",
+   "alternative": "The requester may have meant that an open or in-progress ticket becomes overdue at the due instant itself."
+  },
+  {
+   "decision": "Each filtered page uses the current time from one clock reading for that request.",
+   "alternative": "The requester may have wanted subsequent cursor pages to reuse the first page's cutoff so tickets becoming overdue during browsing do not change the set."
+  },
+  {
+   "decision": "The work represents deadlines as ISO timestamps in UTC and displays UTC in the human-readable CLI.",
+   "alternative": "The requester may have wanted the CLI to display the help desk's local time while the API kept its UTC convention."
+  }
+ ]
+}

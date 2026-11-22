@@ -1,0 +1,132 @@
+{
+ "decisions": [
+  {
+   "decision": "Rollback uses the same live version-1 file with an optional per-ticket due field, so 1.4.0 can read it but drops deadlines on its next save and operators must keep a pre-rollback copy to recover them.",
+   "alternative": "The requester might have expected assigned deadlines to survive writes by 1.4.0 automatically, for example through a separate durable deadline record."
+  },
+  {
+   "decision": "Initial production backfill is an offline maintenance step in which operators stop every writer, back up the live file, and run the new release's migration as the service user before enabling deadlines.",
+   "alternative": "The requester might have expected a coordinated online backfill while the feature is hidden so ticket intake can continue."
+  },
+  {
+   "decision": "An enabled server refuses to listen if even one stored ticket lacks a deadline.",
+   "alternative": "The requester might have expected the server to keep serving the old API with deadlines hidden until the store is ready."
+  },
+  {
+   "decision": "An enabled server can start with an empty store and treats an explicitly configured but missing data file as a fresh store.",
+   "alternative": "The requester might have expected activation with DATA_FILE set to require an existing file so a mistyped production path cannot make the service appear to have no tickets."
+  },
+  {
+   "decision": "The calculation counts continuous elapsed hours from creation, including nights, weekends and holidays.",
+   "alternative": "The requester might have meant hours when the help desk is staffed, with deadlines determined by its operating calendar."
+  },
+  {
+   "decision": "Tickets created by the new server receive and store deadlines even while the feature is hidden, so pre-launch settings and creation-time priorities can fix deadlines before users see them.",
+   "alternative": "The requester might have intended all tickets created before activation to be backfilled along with the legacy tickets at cutover."
+  },
+  {
+   "decision": "The backfill uses the priority currently stored on each legacy ticket, including tickets whose priority changed before migration.",
+   "alternative": "The requester might have intended the original priority at creation to determine the promise, using the creation audit entry where available."
+  },
+  {
+   "decision": "The rollout instructs operators to backfill missing legacy deadlines with the same configured response hours planned for startup, using the built-in defaults for blank or unset overrides.",
+   "alternative": "The requester might have wanted existing tickets to use the original 4/24/72/168-hour schedule and any launch overrides to apply only to new tickets."
+  },
+  {
+   "decision": "The work delivers local code and rollout instructions and assigns the actual production migration and activation to operators.",
+   "alternative": "The requester might have meant for the work to include executing and verifying the production cutover with authorized access."
+  },
+  {
+   "decision": "The work defers the original 1.4.0 server test on candidate-written data to release verification, while the completed recovery test simulates 1.4.0 stripping the deadline fields.",
+   "alternative": "The requester might have expected startup, listing every ticket, and recovery after a real 1.4.0 save to be demonstrated before the change is handed back."
+  },
+  {
+   "decision": "Recovery merges only missing deadlines from an optional operator-supplied snapshot by matching ticket ID and exact stored creation time, keeps existing live deadlines and edits, and recalculates unmatched tickets from their live priority and the recovery settings.",
+   "alternative": "The requester might have wanted recovery to distinguish tickets created during rollback from previously assigned tickets and stop if an original deadline could not be recovered."
+  },
+  {
+   "decision": "Malformed response-hour settings stop server startup and migration even when deadline visibility is off.",
+   "alternative": "The requester might have expected the disabled service to ignore deadline settings and validate them only when backfilling or enabling the feature."
+  },
+  {
+   "decision": "A present but unparseable stored due value makes the whole file unreadable to the new service and CLI even with deadlines hidden, whereas an absent field is valid while disabled.",
+   "alternative": "The requester might have expected a bad due field to be reported as a repairable deadline problem while the disabled service continued serving tickets."
+  },
+  {
+   "decision": "Backfill fills missing values for all stored tickets as one file replacement, leaves an already complete file untouched, and aborts the whole operation if it cannot calculate even one missing deadline.",
+   "alternative": "The requester might have wanted a resumable backfill that records valid deadlines and reports individual tickets for repair before activation."
+  },
+  {
+   "decision": "Operators configure each priority with a separate DUE_HOURS_ environment variable, which the service reads at startup and the migration reads when invoked.",
+   "alternative": "The requester might have meant for help-desk staff to change response hours through a settings interface that takes effect for future tickets without restarting the service."
+  },
+  {
+   "decision": "Response hours accept non-negative whole numbers, including zero, up to the date-range-derived limit, with blank values selecting the defaults.",
+   "alternative": "The requester might have expected positive fractional hours such as 0.5 for a 30-minute promise, with zero rejected."
+  },
+  {
+   "decision": "Deadline visibility requires the exact lowercase environment value on, and values such as ON or values padded with spaces leave it disabled.",
+   "alternative": "The requester might have expected case and whitespace normalization for the value on."
+  },
+  {
+   "decision": "The overdue condition narrows the existing status-or-priority matches, and those filters retain their OR behavior even when both are supplied with overdue=true.",
+   "alternative": "The requester might have expected an overdue search with both filters to return only tickets that meet both the requested status and priority."
+  },
+  {
+   "decision": "The overdue view filters before cursor pagination, keeps ticket ID order, and reevaluates the current time once for each page request.",
+   "alternative": "The requester might have wanted an overdue queue ordered by earliest deadline and held to a single cutoff while paging through it."
+  },
+  {
+   "decision": "A ticket becomes overdue strictly after the stored deadline, so equality is excluded.",
+   "alternative": "The requester might have expected the ticket to count as overdue the moment its deadline arrives."
+  },
+  {
+   "decision": "With the feature enabled, only an exact true in the first overdue parameter triggers filtering, and other values including false are silently ignored.",
+   "alternative": "The requester might have intended false to select tickets that are not overdue and malformed values to return a validation error."
+  },
+  {
+   "decision": "Enabled HTTP responses include due in every returned ticket object, including create, update and transition responses as well as get and list.",
+   "alternative": "The requester might have meant to add the field to read views only so existing consumers of write responses retain their original response shape."
+  },
+  {
+   "decision": "Newly calculated deadlines are shown as UTC ISO timestamps with milliseconds in HTTP and human CLI output.",
+   "alternative": "The requester might have expected staff-facing times in the help desk's local time zone while retaining UTC timestamps in the API."
+  },
+  {
+   "decision": "The HTTP API treats due as server-managed and returns the existing invalid-field error when clients send it on create or update.",
+   "alternative": "The requester might have expected the service to ignore a submitted due field and keep its own calculation so clients can round-trip returned ticket objects."
+  },
+  {
+   "decision": "Deadline assignment is kept out of the exposed ticket history, and backfill changes neither the ticket's updated time nor its audit trail.",
+   "alternative": "The requester might have wanted the original deadline and any backfill or recovery recorded in the audit trail so staff can explain when a promise was assigned."
+  },
+  {
+   "decision": "Notifications keep their existing contents and triggers, so a deadline is neither included in the receipt nor sent as an overdue alert.",
+   "alternative": "The requester might have wanted the ticket receipt to communicate the new response promise to the person who opened the ticket."
+  },
+  {
+   "decision": "The human CLI list and show display deadlines when the CLI process has DUE_TIMES=on.",
+   "alternative": "The requester might have meant the HTTP API alone to show due, leaving the existing operator displays as they were."
+  },
+  {
+   "decision": "The enabled CLI still reads a file with missing deadlines and leaves the list cell blank or omits the detail field.",
+   "alternative": "The requester might have expected enabled CLI views to enforce the same complete-data guard as the enabled HTTP service."
+  },
+  {
+   "decision": "The raw CLI list keeps its four existing columns, so deadlines are visible to human CLI users but are absent from the weekly report input even when the feature is on.",
+   "alternative": "The requester might have wanted an opt-in machine-readable deadline field for reporting and automation while retaining the existing default columns."
+  },
+  {
+   "decision": "The CLI keeps its existing list options and provides the overdue filter through HTTP only.",
+   "alternative": "The requester might have expected a corresponding CLI filter for operators who inspect the data file directly."
+  },
+  {
+   "decision": "The migration requires DATA_FILE to name an existing file explicitly and signals completion with a text count on stdout or an error on stderr and exit status 2.",
+   "alternative": "The requester might have wanted a structured migration result for deployment automation that reports both completed work and any errors."
+  },
+  {
+   "decision": "The work assigns this change the minor release number 1.5.0.",
+   "alternative": "The requester might have intended a different version increment under the service's release schedule."
+  }
+ ]
+}

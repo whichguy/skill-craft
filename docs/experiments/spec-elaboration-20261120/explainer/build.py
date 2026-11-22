@@ -1130,7 +1130,14 @@ def page():
     first draft, and on the merge request its first draft was behind Sol's and its review brought it level. The
     review raised two or three checklist items in three Sonnet runs of six and none in the other three (not shown by
     the rule), and Sol's review never changed its text. The same text read twice gets the same mark on 96% of items
-    from each judge. Which driver to use is a question about whole deliveries, which the SDLC session reads.</div></li>
+    from each judge. <b>One more test turned to the question itself.</b> At three points of three finished deliveries
+    that had guessed a start-up decision wrongly, a fresh session was asked to list the decisions the work had taken
+    for you, the costliest first. The decisive one was on the list 27 times of 27: already right after the
+    specification, between second and fifth of about two dozen, and second or third once the plan existed. Asking
+    after the tests ran only lengthened the list. So the question can be produced early, with no build; where the
+    Ratchet session's sessions were asked to choose one question, they never chose that point. Whether ShipLoop
+    should put such a list in front of you is yours to decide. Which driver to use is a question about whole
+    deliveries, which the SDLC session reads.</div></li>
     <li><div><b>Try "open in the spec, answered in the plan" in ShipLoop?</b> Nothing is proposed yet. It would need your
     word, a candidate build and real end-to-end deliveries, and it is untested where one session writes the plan, the
     tests and the product in turn.</div></li>

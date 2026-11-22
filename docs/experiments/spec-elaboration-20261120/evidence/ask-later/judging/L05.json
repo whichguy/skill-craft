@@ -1,0 +1,100 @@
+{
+ "decisions": [
+  {
+   "decision": "The spec allows 1.4.0 to strip deadlines when it saves and relies on operators retaining a pre-rollback copy and supplying it through `--restore-from FILE` on re-upgrade, restoring by ticket ID and creation time while keeping intervening edits and calculating deadlines for tickets created during rollback.",
+   "alternative": "The requester might expect the original deadlines to survive writes by 1.4.0 and return automatically on re-upgrade without an operator having to capture and supply a copy."
+  },
+  {
+   "decision": "The backfill takes each legacy ticket's priority from its record at migration time, so an earlier priority edit can determine its first deadline.",
+   "alternative": "The requester might expect the priority the ticket had when it was opened, recovered from its creation audit entry when it has since been edited."
+  },
+  {
+   "decision": "Operators must stop the service's writer, run `DATA_FILE=FILE npm run migrate:due` against the file, and start the service again to pick up the backfill.",
+   "alternative": "The requester might expect the flag-off release to backfill through the running service's single writer so operators can prepare the file without a separate maintenance stop."
+  },
+  {
+   "decision": "An enabled persistent service refuses to listen if any existing ticket lacks a deadline, while an empty store can start normally.",
+   "alternative": "The requester might expect an incomplete file to keep serving the old API with deadlines hidden and a clear warning until operators finish backfilling it."
+  },
+  {
+   "decision": "Missing legacy deadlines use the priority-hour settings supplied to migration, and a later migration fills gaps while retaining deadlines already written.",
+   "alternative": "The requester might expect legacy tickets to use the published default hours and reserve configurable overrides for tickets opened under the new policy."
+  },
+  {
+   "decision": "The new release fixes deadlines when tickets are created even while due times are hidden, so policy changes before activation leave those deadlines as first calculated.",
+   "alternative": "The requester might expect tickets opened during the flag-off rollout to receive their deadlines during the pre-activation backfill, using the hours approved for launch."
+  },
+  {
+   "decision": "Deadline calculation uses elapsed hours from the creation timestamp and presents the deadline in UTC.",
+   "alternative": "The requester might mean hours during the help desk's staffed schedule, with holidays and other closures excluded from the countdown."
+  },
+  {
+   "decision": "The work plans local delivery with rollout instructions and verification against the actual 1.4.0 executable on disposable data, leaving production rollout and rehearsal to operators.",
+   "alternative": "The requester might expect the delivery to include a coordinated rollout and rollback rehearsal in the deployment environment on a copy of the production file."
+  },
+  {
+   "decision": "Invalid hour settings make startup or migration fail with the offending variable named.",
+   "alternative": "The requester might expect a bad override to be logged while the service and migration continue with the default for that priority."
+  },
+  {
+   "decision": "An overdue query keeps the implementation's OR between status and priority and applies overdue as an additional required condition.",
+   "alternative": "The requester might expect an overdue ticket to match every supplied filter, as the existing API guide says for status and priority."
+  },
+  {
+   "decision": "Operators configure the hours through four process environment variables, `DUE_HOURS_URGENT`, `DUE_HOURS_HIGH`, `DUE_HOURS_NORMAL` and `DUE_HOURS_LOW`, for service startup and migration.",
+   "alternative": "The requester might expect help-desk leads to manage the policy through a settings file or admin control that takes effect for new tickets without restarting the service."
+  },
+  {
+   "decision": "Migration treats missing input or a failed backfill as a nonzero exit and leaves the target unchanged.",
+   "alternative": "The requester might expect a missing file on a fresh install to be a successful no-op and a partially repairable file to be backfilled where possible with a report of tickets still needing attention."
+  },
+  {
+   "decision": "Once enabled, all HTTP responses carrying ticket records expose `due`, including create, update and transition responses as well as GET and list.",
+   "alternative": "The requester might have meant to add the field only to read responses and keep write responses in their existing shape for clients with fixed schemas."
+  },
+  {
+   "decision": "Requester notifications keep their existing content when due times are enabled.",
+   "alternative": "The requester might expect the existing ticket receipt to tell the requester the promised response deadline."
+  },
+  {
+   "decision": "Priority overrides accept non-negative whole hours, including zero, and empty values use the defaults.",
+   "alternative": "The requester might expect positive fractional hours so the help desk can promise 30 minutes while still requiring every ticket to have some response time."
+  },
+  {
+   "decision": "The HTTP audit continues to use its existing entries, and the migration preserves audit history without recording deadline assignments there.",
+   "alternative": "The requester might expect the ticket history to show when its deadline was first assigned, including an entry for legacy tickets that get one during backfill."
+  },
+  {
+   "decision": "The two human-readable CLI views, `list` and `show`, display a UTC deadline under the same feature flag.",
+   "alternative": "The requester might have intended the due-time display as an API-only change, leaving even the human-readable command output as it was."
+  },
+  {
+   "decision": "The CLI's raw list stays at its four existing columns even when deadlines are enabled.",
+   "alternative": "The requester might expect an opt-in raw output that exposes deadlines to scripts while retaining the established four-column mode used by the weekly report."
+  },
+  {
+   "decision": "With due times enabled, only the literal query value `overdue=true` activates the filter and other values leave the listing unchanged.",
+   "alternative": "The requester might expect `overdue` to be a validated boolean parameter so a typo returns the same kind of error as an invalid status."
+  },
+  {
+   "decision": "The API rejects a supplied `due` field on create or update through the existing invalid-field response.",
+   "alternative": "The requester might expect clients that echo server-returned ticket fields in a write request to be able to send `due` as a read-only value that the server ignores."
+  },
+  {
+   "decision": "The overdue view keeps the existing ticket-ID order and cursor pagination.",
+   "alternative": "The requester might expect an overdue work queue ordered by earliest deadline so the oldest missed promises appear first."
+  },
+  {
+   "decision": "A paged overdue listing takes a fresh cutoff for each request, so a ticket can become eligible between pages.",
+   "alternative": "The requester might expect every page of one listing to evaluate deadlines against the cutoff from its first page."
+  },
+  {
+   "decision": "A ticket becomes overdue strictly after its deadline, so it is excluded at the exact due instant.",
+   "alternative": "The requester might expect an active ticket to count as overdue the moment its deadline is reached."
+  },
+  {
+   "decision": "Feature activation requires the exact value `DUE_TIMES=on`.",
+   "alternative": "The requester might expect the service to normalize the setting so values such as `ON` or `on` with surrounding whitespace also enable it."
+  }
+ ]
+}

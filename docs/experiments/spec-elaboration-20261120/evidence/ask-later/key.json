@@ -1,0 +1,230 @@
+{
+ "N04": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2",
+  "point": "S",
+  "commit": "7909b10fb692d684d8cf54ee21c3f2bcb59d5493",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N03": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2",
+  "point": "P",
+  "commit": "8e4465dbfe593af11a1cebc9f5356675720490fe",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md",
+   "05-test-strategy.md",
+   "06-plan.md",
+   "07-prepare.md",
+   "08-step-plan-W1.md",
+   "09-test-spec-W1.md",
+   "10-validate-existing-W1.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N07": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2",
+  "point": "T",
+  "commit": "70d759eb5e53b6056fab16334f558db168b286f2",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md",
+   "05-test-strategy.md",
+   "06-plan.md",
+   "07-prepare.md",
+   "08-step-plan-W1.md",
+   "09-test-spec-W1.md",
+   "10-validate-existing-W1.md",
+   "11-implement-W1.md",
+   "12-test-W1.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N08": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p1",
+  "point": "S",
+  "commit": "6af3b69844c4fa31b2023ff3d9c45976db288e9c",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N05": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p1",
+  "point": "P",
+  "commit": "91b079f5ace5fa57286b8212bfb3f521749dedc8",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md",
+   "05-test-strategy.md",
+   "06-plan.md",
+   "07-prepare.md",
+   "08-step-plan-W1.md",
+   "09-test-spec-W1.md",
+   "10-validate-existing-W1.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N09": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p1",
+  "point": "T",
+  "commit": "5740ce105dd1f748a2218035ee6dc20a3199c0d8",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md",
+   "05-test-strategy.md",
+   "06-plan.md",
+   "07-prepare.md",
+   "08-step-plan-W1.md",
+   "09-test-spec-W1.md",
+   "10-validate-existing-W1.md",
+   "11-implement-W1.md",
+   "12-test-W1.md",
+   "13-document-W1.md",
+   "14-implement-W1.md",
+   "15-test-W1.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N02": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2",
+  "point": "S",
+  "commit": "cb4aa22d17589d38e646282d6af8a78b17948ecb",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N06": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2",
+  "point": "P",
+  "commit": "82a1158a01407bc15f2a32524934d0b84061e3ae",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md",
+   "05-test-strategy.md",
+   "06-plan.md",
+   "07-prepare.md",
+   "08-step-plan-W1.md",
+   "09-test-spec-W1.md",
+   "10-validate-existing-W1.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ },
+ "N01": {
+  "delivery": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2",
+  "point": "T",
+  "commit": "d74bc317fdf1db1b89a575bfa14348500e4e5329",
+  "record": [
+   "01-intake.md",
+   "02-discovery.md",
+   "03-research.md",
+   "04-spec.md",
+   "05-test-strategy.md",
+   "06-plan.md",
+   "07-prepare.md",
+   "08-step-plan-W1.md",
+   "09-test-spec-W1.md",
+   "10-validate-existing-W1.md",
+   "11-implement-W1.md",
+   "12-test-W1.md",
+   "13-document-W1.md",
+   "14-implement-W1.md",
+   "15-test-W1.md"
+  ],
+  "model": "gpt-6.2-sol",
+  "effort": "high",
+  "probes_failed": [
+   "migrate",
+   "restart",
+   "switch",
+   "rollback",
+   "cli"
+  ]
+ }
+}

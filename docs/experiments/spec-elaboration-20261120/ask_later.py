@@ -8,6 +8,7 @@ fresh session list the decision that mattered among the decisions the work took 
   pack ROOT                          no model: the lists under shuffled codes with the target's description, for the judges
   judge ROOT JUDGE                   one judge session (opus | astra): the first item of each list that is about the target
   score ROOT                         no model: for each point, the lists that hold the target, its place, and the reading
+  leaks ROOT                         no model: lister sessions whose own stream names the real folder of a delivery
   selftest SCRATCH DELIVERY [...]    no model: the whole path on real delivery folders with made-up listers and judges
 
 A delivery folder is only read. Everything is written under ROOT, which must be outside every delivery.
@@ -400,6 +401,48 @@ def cmd_judge(root: Path, judge_name: str, timeout: int) -> int:
     return 0
 
 
+def cmd_leaks(root: Path) -> int:
+    """Did a lister reach back to the delivery its snapshot was cut from? A snapshot names that folder only under the
+    replaced prefix, so the real path can stand in a session's stream only if the session built it itself. (The field
+    `names_outside_its_folder` kept with each list cannot tell: a session's own folder lies under the same home, and a
+    delivery's name survives inside the replaced paths. Added after the first lists came back, section 60.)"""
+    key = json.loads((root / "key.json").read_text())
+    real = sorted(
+        {info["delivery"] for info in key.values()}
+        | {str(Path(info["delivery"]).parent) for info in key.values()}
+    )
+    sessions = sorted(
+        path
+        for path in (root / "sessions").iterdir()
+        if path.is_dir() and not path.name.startswith(".")
+    )
+    named = {}
+    for session in sessions:
+        stream = session / ".stream.jsonl"
+        hits = [
+            path
+            for path in real
+            if stream.is_file() and path in stream.read_text(errors="replace")
+        ]
+        if hits:
+            named[session.name] = hits
+    print(
+        f"{len(sessions)} lister session folders; sessions whose stream names a delivery's real folder: {named or 'none'}"
+    )
+    (root / "leaks.json").write_text(
+        json.dumps(
+            {
+                "real_folders": real,
+                "sessions": len(sessions),
+                "sessions_naming_one": named,
+            },
+            indent=1,
+        )
+        + "\n"
+    )
+    return 1 if named else 0
+
+
 def reading(found: dict[str, int], lists: int) -> str:
     """Section 59's reading, from how many of each point's lists hold the target."""
     if found["S"] >= lists - 1:
@@ -669,7 +712,8 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
-        "command", choices=("snap", "ask", "pack", "judge", "score", "selftest")
+        "command",
+        choices=("snap", "ask", "pack", "judge", "score", "leaks", "selftest"),
     )
     parser.add_argument("rest", nargs="*")
     parser.add_argument("--repeats", type=int, default=3)
@@ -687,6 +731,8 @@ def main() -> int:
         return cmd_judge(root, args.rest[1], args.timeout)
     if args.command == "score":
         return cmd_score(root)
+    if args.command == "leaks":
+        return cmd_leaks(root)
     return cmd_selftest(root, [Path(p).resolve() for p in args.rest[1:]])
 
 

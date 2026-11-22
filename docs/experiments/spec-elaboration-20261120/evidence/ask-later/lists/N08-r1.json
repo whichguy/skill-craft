@@ -1,0 +1,133 @@
+{
+ "code": "N08",
+ "repeat": 1,
+ "attempt": 1,
+ "lister": {
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ "prompt_sha256": "ccf7940e4a07081f43749d6863843ca2efe95aa400bd7f86306dde40421f4b81",
+ "cost_usd": null,
+ "names_outside_its_folder": [
+  "/Users/dadleet",
+  "sol-high-due-p1"
+ ],
+ "decisions": [
+  {
+   "decision": "Operators keep a deadline-bearing copy before rolling back because 1.4.0 can read all tickets from the upgraded file but strips their deadlines when it saves the file.",
+   "alternative": "The rollback procedure could preserve deadlines through ordinary 1.4.0 writes and reconcile them with tickets created or changed during rollback before re-enablement.",
+   "where": "repo/docs/shiploop/spec.md:32 (R-4), record/03-research.md:22, and repo/src/persistence.js:98\u2013108 and :138\u2013147 (1.4.0 ticket projection)"
+  },
+  {
+   "decision": "Operators must stop the service and run a separate single-writer backfill before enabling due times.",
+   "alternative": "The new release could prepare the data automatically during a flag-off startup before it begins accepting requests.",
+   "where": "record/03-research.md:20\u201322 and repo/docs/shiploop/spec.md:25 (R-3)"
+  },
+  {
+   "decision": "The backfill uses each ticket's priority as stored at migration, including any priority changes since creation.",
+   "alternative": "The backfill could use the ticket's original priority from its creation audit entry where that history is available.",
+   "where": "repo/docs/shiploop/spec.md:25 (R-3), record/04-spec.md:24, and repo/docs/api.md:116\u2013133 (creation audit example)"
+  },
+  {
+   "decision": "The schedule in effect when the backfill runs supplies the hours for every legacy ticket that lacks a deadline.",
+   "alternative": "The backfill could always use the four requested default durations for legacy tickets and reserve operator overrides for new tickets.",
+   "where": "repo/docs/shiploop/spec.md:9\u201310 and :25 (R-1 and R-3)"
+  },
+  {
+   "decision": "The deadline uses elapsed hours from the creation instant.",
+   "alternative": "The response clock could count only staffed hours and pause overnight, on weekends, or on holidays.",
+   "where": "repo/docs/shiploop/spec.md:7\u201310 and :25 (R-1 and R-3)"
+  },
+  {
+   "decision": "With due times enabled, a configured file containing any ticket without a deadline prevents the server from listening.",
+   "alternative": "The service could continue answering with the legacy behavior when the file is incomplete and warn operators that deadline activation is pending.",
+   "where": "repo/docs/shiploop/spec.md:26 (R-3)"
+  },
+  {
+   "decision": "Deadlines are stored as optional fields on ticket records in the existing version-1 data file.",
+   "alternative": "Deadlines could live in a companion file keyed by ticket ID, giving operators a second file to protect while allowing 1.4.0 to rewrite the ticket file independently.",
+   "where": "record/03-research.md:20\u201322 (selected version-1 format) and repo/docs/shiploop/spec.md:25\u201332 (R-3 and R-4)"
+  },
+  {
+   "decision": "New tickets receive and keep a deadline from creation even while due times are hidden by the flag.",
+   "alternative": "Flag-off operation could leave new tickets unstamped and let the pre-enablement backfill assign them under the migration schedule.",
+   "where": "repo/docs/shiploop/spec.md:9\u201311 and :17\u201319 (unconditional assignment in R-1 and gated exposure in R-2)"
+  },
+  {
+   "decision": "The help desk changes response times through separate environment overrides for each priority.",
+   "alternative": "The help desk could edit a shared schedule file that both ticket creation and backfill read.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-1), record/01-intake.md:83\u201389 (Q3), and record/04-spec.md:24"
+  },
+  {
+   "decision": "An invalid response-time override stops startup with a diagnostic naming the variable.",
+   "alternative": "The service could warn and continue with that priority's default duration.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-1) and repo/README.md:22\u201336 (startup handling of invalid settings)"
+  },
+  {
+   "decision": "The backfill commits the whole data file in a single atomic replacement after successful preparation.",
+   "alternative": "The backfill could commit completed batches and resume after a failure while operators keep due times disabled until every batch has finished.",
+   "where": "repo/docs/shiploop/spec.md:25\u201326 (R-3) and record/01-intake.md:145\u2013151 (Q10)"
+  },
+  {
+   "decision": "The planned deliverable is a locally verified source handoff, with production deployment and data preparation assigned to the deployment operators.",
+   "alternative": "The requester could have intended the change to include carrying out the production rollout once operators supplied a target and access.",
+   "where": "record/01-intake.md:173, record/02-discovery.md:27, record/03-research.md:22, and repo/docs/shiploop/environment.md:7 and :29"
+  },
+  {
+   "decision": "With the overdue filter active, a ticket must be overdue and pass the existing rule that a match on either supplied status or supplied priority is sufficient.",
+   "alternative": "An overdue query could require every supplied filter to match, as the existing API documentation describes for combined status and priority filters.",
+   "where": "record/02-discovery.md:27, repo/docs/shiploop/spec.md:18 (R-2), repo/src/tickets/query.js:41\u201346, and repo/docs/api.md:76\u201377"
+  },
+  {
+   "decision": "An enabled server can start with a new or empty data store.",
+   "alternative": "Operators could be required to provision and validate a data file before enabling due times, even on a fresh installation.",
+   "where": "repo/docs/shiploop/spec.md:26 (R-3)"
+  },
+  {
+   "decision": "The backfill preserves the existing audit log and outbox without recording deadline assignments as ticket changes.",
+   "alternative": "The backfill could append deadline-assignment audit entries so agents can see when and how legacy tickets acquired their commitments.",
+   "where": "repo/docs/shiploop/spec.md:25 (R-3) and repo/docs/api.md:116\u2013133 (ticket history)"
+  },
+  {
+   "decision": "With due times enabled, human-readable CLI lists and details show deadlines while raw CLI output retains exactly its four existing columns for the weekly report.",
+   "alternative": "The enabled raw listing could append a fifth deadline column while keeping the report's existing fields in their original positions.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-2), record/03-research.md:22, and repo/README.md:70\u201376"
+  },
+  {
+   "decision": "The API applies the overdue restriction before making cursor pages and keeps the usual ticket-ID order.",
+   "alternative": "The overdue queue could page in earliest-deadline order so agents see the longest-overdue tickets first.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-2)"
+  },
+  {
+   "decision": "The enabled API includes due in every response that returns ticket objects, including create, edit and lifecycle responses.",
+   "alternative": "The API could expose due only on ticket reads and lists while keeping write-response schemas stable.",
+   "where": "repo/docs/shiploop/spec.md:17 (R-2) and repo/src/app.js:22\u201339 (ticket-returning routes)"
+  },
+  {
+   "decision": "The existing requester notifications continue without adding the new deadline.",
+   "alternative": "The ticket receipt could tell the requester the promised response deadline.",
+   "where": "repo/docs/shiploop/spec.md:17 and :33 (R-2 and R-4) and repo/docs/api.md:58\u201365 (receipt notification)"
+  },
+  {
+   "decision": "Response-time overrides accept fractional hours.",
+   "alternative": "The help desk could be limited to whole-hour values, consistent with the service's existing numeric settings.",
+   "where": "repo/docs/shiploop/spec.md:10 (R-1), record/04-spec.md:24, and repo/src/config.js:21\u201328"
+  },
+  {
+   "decision": "The API represents due in the same ISO 8601 UTC form as its existing timestamps.",
+   "alternative": "The API could represent due as a numeric Unix timestamp for clients that compare deadlines numerically.",
+   "where": "repo/docs/shiploop/spec.md:7\u20139 (R-1), record/01-intake.md:83\u201389 (Q3), and repo/docs/api.md:10"
+  },
+  {
+   "decision": "The API keeps due outside the accepted create and edit inputs, so an echoed due field is rejected under the existing unknown-field rule.",
+   "alternative": "The API could accept and ignore an echoed due field while assigning and preserving the server-calculated value.",
+   "where": "repo/docs/shiploop/spec.md:11 and :33 (R-1 and R-4), repo/docs/api.md:13, and repo/src/tickets/validate.js:38\u201354"
+  },
+  {
+   "decision": "A ticket becomes overdue only when the current time is strictly later than its deadline.",
+   "alternative": "A ticket could count as overdue from the exact instant its deadline is reached.",
+   "where": "repo/docs/shiploop/spec.md:18 (R-2) and record/01-intake.md:92\u201398 (Q4)"
+  }
+ ]
+}
