@@ -1,0 +1,122 @@
+the Ratchet session's evidence read at shiploop-defaults-2c3d50 = aa795d7318c7218b666a6129048a7c7178dfbfa1
+patterns: way back = roll(?:ed|ing|s)?[ -]?back|\b1\.4\.0\b
+          loss or keeping = drop|discard|strip|preserv|restore|re-sav|separate copy|due-bearing copy
+
+== wave-1/d1 (Sol): 4 rows; rows naming the way back: 0
+   row   1. R-1 How do operators override the response hours? Decided: Set positive whole hours in DUE_HOURS_<PRIORITY> at startup. Otherwise: A single JSON en
+   row   2. R-2 When is a ticket past due? Decided: A ticket is overdue strictly after its timestamp. Otherwise: An inclusive boundary would surface the ticket
+   row   3. R-2 What changes for CLI users? Decided: The human list and show can display due with the flag on. Raw output stays at four fields. Otherwise: Addi
+   row   4. R-3 When does existing data get filled? Decided: The first new startup fills missing values before listening, even with the flag off. Otherwise: A 
+   specification lines naming the way back: 2; of them with a word of loss or keeping: 1
+   spec      ## R-3 Compatible startup migration and rollback
+   spec LOSS - Run the actual 1.4.0 HTTP service and CLI against the new release's file and show that every ticket is readable. Document single writer, dark rollout and preserving deadline values through rollback writes.
+   blind reader's lines naming the way back: 2
+   reader - Rollback handling (R-3): "Document single writer, dark rollout and preserving deadline values through rollback writes".
+   reader Missed, counting the clearest: invalid-hours rejection, the exact `on` match, overdue with filters and pagination, rollback and single-writer handling, rewrite only if changed. That is 5.
+
+== wave-1/d2 (Sol): 3 rows; rows naming the way back: 0
+   row   1. R-1 How do operators enter the hours? Decided: One positive whole-hour variable per priority. Otherwise: A JSON setting updates all priorities as o
+   row   2. R-2 Does the exact deadline count as overdue? Decided: It counts once the clock is later than the deadline. Otherwise: Count the deadline instant i
+   row   3. R-3 How do existing files get prepared before enabling? Decided: Run one offline migration command, then enable the switch. Otherwise: Start a prep
+   specification lines naming the way back: 3; of them with a word of loss or keeping: 1
+   spec      Basis for R-1 through R-5 is the response-time request of 2026-11-21. Baseline is 1.4.0 at 8c526a1, documented in README.md, docs/api.md and docs/operations.md.
+   spec      ### R-4 Rollback
+   spec LOSS The 1.4.0 program starts on the migrated file and lists the same tickets. Verify by booting the original source. An operator may preserve the pre-rollback version-1 file and reuse its deadlines during re-upgrade while retaining ticket updates made under 1.4.0.
+   blind reader's lines naming the way back: 1
+   reader - The operator may keep the pre-rollback version-1 file and reuse its deadlines during a re-upgrade while keeping ticket updates made under 1.4.0 (R-4).
+
+== wave-1/d3 (Sol): 3 rows; rows naming the way back: 0
+   row   1. R-1 How do operators override the hours? Decided: Use one DUE_HOURS_<PRIORITY> environment setting per priority, with positive whole hours. Otherwi
+   row   2. R-2 Does a ticket count as overdue at the exact due instant? Decided: It counts from the first instant after due. Otherwise: Include tickets at the
+   row   3. R-3 How do operators populate deadlines before activation? Decided: Stop the writer, run an explicit backfill, then start with the flag on. Otherwi
+   specification lines naming the way back: 3; of them with a word of loss or keeping: 2
+   spec LOSS With DUE_TIMES unset or any value other than on, HTTP shapes and query behavior match 1.4.0, including ignoring overdue. Preserve stored due through new-version writes while disabled. Human CLI output exposes due when on and the file holds it. Raw CLI columns retain their positions. Confirm disabled HTTP, CLI and report against 
+   spec      ### R-5 Roll back to 1.4.0
+   spec LOSS The exact 1.4.0 service must start on the new data file and serve every ticket. Preserve the current file before a writable rollback. A later reactivation can use that copy to restore missing assigned deadlines by ticket ID, preserving tickets and other changes written by the rollback release. Check an actual old server read and
+   blind reader's lines naming the way back: 1
+   reader - R-5: "Preserve the current file before a writable rollback", and a later reactivation "can use that copy to restore missing assigned deadlines by ticket ID".
+
+== wave-2/d4 (Sol): 4 rows; rows naming the way back: 0
+   row   1. R-1 How do I change the hours? Decided: Set SLA_HOURS_URGENT, SLA_HOURS_HIGH, SLA_HOURS_NORMAL or SLA_HOURS_LOW to positive whole hours. Otherwise:
+   row   2. R-2 Is a ticket overdue exactly at its due time? Decided: It is overdue only after that instant. Otherwise: Count it at the exact instant as overdu
+   row   3. R-3 How do I prepare the data file? Decided: Run the one-shot backfill with the service stopped, then enable the feature. Enabled startup also fill
+   row   4. R-2 What happens with other overdue query values? Decided: Only the literal true activates the extra filter. Otherwise: Reject other values with 40
+   specification lines naming the way back: 2; of them with a word of loss or keeping: 1
+   spec      ### R-4 Readability in rollback
+   spec LOSS Basis: 2026-11-21 response-time request. Actual 1.4.0 must start using the new file and list its existing and newly created tickets. Its writer discards the optional due field, so operator instructions preserve the due-bearing copy and protect later ticket changes during re-upgrade. Verify against a copy using the unchanged 1.4.
+   blind reader's lines naming the way back: 1
+   reader - R-4: "operator instructions preserve the due-bearing copy and protect later ticket changes during re-upgrade". 1.4.0 "discards the optional due field", so this procedure is a decision about what happens after a rollback, and no row covers it.
+
+== wave-2/d5 (Sol): 4 rows; rows naming the way back: 0
+   row   1. R-1 How are response hours configured? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours. Ot
+   row   2. R-2 What happens with other overdue values and existing filters? Decided: Only exact true activates it. The filter intersects the existing status/p
+   row   3. R-3 How does rollout populate the file? Decided: Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadl
+   row   4. R-2 What changes in the CLI? Decided: Human list and show display due with the flag on; raw output keeps its four-column contract. Otherwise: Show 
+   specification lines naming the way back: 2; of them with a word of loss or keeping: 1
+   spec      ### R-4 Service and rollback compatibility
+   spec LOSS Basis: S1 and S8–S10, 2026-11-21. Preserve npm start on PORT, CLI/report operation and existing tests. Confirm 1.4.0 starts and lists all tickets using the upgraded file. Rollback writes can drop due metadata, consistent with the old codec, so operations documents retaining a separate copy. Verify through the actual 1.4.0 codec 
+   blind reader's lines naming the way back: 2
+   reader - R-4: "Rollback writes can drop due metadata, consistent with the old codec, so operations documents retaining a separate copy." Going back to 1.4.0 can lose the due times, and the operator must keep a separate copy. This is the largest unmentioned consequence for the requester.
+   reader Counted as missed (five): invalid hours stop at startup; strict-after (equality is not overdue); rollback may drop due and a separate copy is needed; corrupt data file gives an error; exact `on` is the only on value.
+
+== wave-2/d6 (Sol): 3 rows; rows naming the way back: 0
+   row   1. R-1 How do operators set response hours? Decided: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours
+   row   2. R-3 Is a ticket overdue at the exact deadline? Decided: It enters the overdue list once the deadline has passed. Existing filters still apply. Othe
+   row   3. R-4 What command prepares the data? Decided: Startup prepares missing deadlines before opening the port, including startup with the flag off. Other
+   specification lines naming the way back: 2; of them with a word of loss or keeping: 0
+   spec      ### R-5 — Read with release 1.4.0
+   spec      - The unchanged 1.4.0 service starts on a real copy of the candidate-written file and returns all tickets with the old response shape. Verify using the baseline checkout and real HTTP before local delivery.
+   blind reader's lines naming the way back: 0
+
+== sonnet-1/s1 (Sonnet): 6 rows; rows naming the way back: 1
+   row   1. R-2 How does the help desk change the hours? Decided: Operators set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW in the servic
+   row   2. R-5 Is a ticket due exactly now overdue, and what does overdue=false do? Decided: Overdue means due strictly before now; overdue=true narrows the l
+   row   3. R-7 What happens with DUE_TIMES unset, off or misspelt? Decided: Only the exact value on switches it on; anything else acts as off: no due in answe
+   row   4. R-6 When do existing tickets receive due times and what hours are used? Decided: At the first start of the new release, whatever DUE_TIMES says, us
+   row   5. R-8 What do operators lose by rolling back? Decided: 1.4.0 starts and shows every ticket, but its next save drops the due times; the next upgrade r
+   row   6. R-2 What is the largest number of hours accepted? Decided: 100000 hours (about 11 years); a larger value stops the service at start with a message 
+   specification lines naming the way back: 9; of them with a word of loss or keeping: 1
+   spec      - Positive: a v1 file written by 1.4.0 with tickets of each priority starts, the file afterwards holds `due` for each, computed from its created time (not from the start time). Confirmed by persistence/service test.
+   spec      - Positive: with DUE_TIMES unset, all endpoints' responses equal the 1.4.0 responses, byte for byte for the same data (create, get, list, patch, transition, audit, admin/outbox). Confirmed by HTTP tests comparing against the old shape and, in the test stage, by running base commit 23f8879 against the same requests.
+   spec      ### R-8 Roll back to 1.4.0
+   spec      Basis: request ("operators must be able to go back to the current release, 1.4.0 ... start on the data file the new release wrote and show every ticket").
+   spec      The data file format stays `version: 1`, `due` an additive optional ticket field that 1.4.0 ignores.
+   spec      - Positive: 1.4.0's loader (base commit) starts on a file written by the new release and returns every ticket with its original fields. Confirmed by running the base commit code against the new release's output (test-stage experiment, saved) and a permanent test that the saved file has `version` 1 and that its top-level keys, ti
+   spec LOSS - Failure/known limit: 1.4.0 re-saves without `due`; upgrading again backfills from the then-current hours (documented in docs/operations.md).
+   spec      New node:test files under test/ cover R-1 to R-8 and run in `npm test`. Version 1.5.0, a CHANGELOG section, a decision record docs/decisions/0009, README config table, docs/api.md and docs/operations.md (rollout: deploy with DUE_TIMES off, check the file holds `due`, switch on; rollback to 1.4.0).
+   spec      - Compatibility: file format and 1.4.0 loading, covered by R-8. Verified by experiment.
+   blind reader's lines naming the way back: 2
+   reader - The row never says what a start with DUE_TIMES on does when some ticket has no due time. That case arises, for example, after a rollback to 1.4.0 and a second upgrade. The only hint is "whatever DUE_TIMES says". Row 5 mentions the second upgrade ("the next upgrade recomputes them") but not an enabled start.
+   reader 5. R-8 what rollback loses: open. The request does not say whether due times must survive a rollback. R-8 states "1.4.0 re-saves without `due`; upgrading again backfills from the then-current hours". It also states "`due` an additive optional ticket field that 1.4.0 ignores", which excludes the side file the row offers as the al
+
+Sol: 6 deliveries, 21 rows; a row names the way back in 0; the specification has a line on it with a word of loss or keeping in 5
+Sonnet: 1 deliveries, 6 rows; a row names the way back in 1; the specification has a line on it with a word of loss or keeping in 1
+
+asking-later lists: 27; the first decision names the way back in 27
+   S sol-high-due-p1 r1 WAY-BACK Operators keep a deadline-bearing copy before rolling back because 1.4.0 can read all tickets from the upgraded file but strips their deadlines when it saves the file.
+   S sol-high-due-p1 r2 WAY-BACK Rollback hands the upgraded file to 1.4.0 and relies on operators keeping a separate pre-rollback copy to recover recorded deadlines after 1.4.0 saves strip them from the live file.
+   S sol-high-due-p1 r3 WAY-BACK Operators keep a separate copy of the deadline-bearing data file before rolling back because subsequent 1.4.0 saves can strip deadlines from the live file.
+   S sol-high-due-p2 r1 WAY-BACK The spec allows 1.4.0 to strip deadlines when it saves and relies on operators retaining a pre-rollback copy and supplying it through `--restore-from FILE` on re-upgrade, restoring by ticket ID and creation tim
+   S sol-high-due-p2 r2 WAY-BACK The work keeps deadlines in an optional field in the version-1 ticket file and relies on operators taking a copy before rollback, then using `--restore-from FILE` on re-upgrade to recover deadlines by ticket ID
+   S sol-high-due-p2 r3 WAY-BACK The new release stores deadlines as an optional field in the version-1 ticket file, so 1.4.0 can run against that file and its next save strips the deadlines.
+   S sol-medium-due-p2 r1 WAY-BACK The work stores deadlines as an optional field in the version 1 data file and scopes rollback compatibility to 1.4.0 starting and showing all tickets, even though a later save by 1.4.0 can erase the deadlines.
+   S sol-medium-due-p2 r2 WAY-BACK Rollback lets 1.4.0 start and show all tickets from the upgraded version 1 file, with the accepted risk that a subsequent 1.4.0 save can strip their stored deadlines.
+   S sol-medium-due-p2 r3 WAY-BACK The rollback design keeps deadlines as optional fields in the version 1 data file and accepts that a save by 1.4.0 can strip deadlines while retaining the tickets.
+   P sol-high-due-p1 r1 WAY-BACK The rollback plan lets 1.4.0 resume writes and relies on operators retaining a due-bearing copy before rollback and supplying it via `--restore-from` before re-enabling deadlines.
+   P sol-high-due-p1 r2 WAY-BACK Operators keep a due-bearing copy before rollback and can supply it with --restore-from when returning to the new release, because a 1.4.0 save can discard recorded deadlines.
+   P sol-high-due-p1 r3 WAY-BACK The plan stores due as an optional field on version-1 tickets, so 1.4.0 can read and serve the upgraded file but its saves can strip deadlines, and operators must keep a due-bearing copy before rollback to reco
+   P sol-high-due-p2 r1 WAY-BACK Keep deadlines in the version-1 ticket file that 1.4.0 can read but strips on save, and rely on operators to retain a pre-rollback copy and pass it to `--restore-from FILE` before re-enabling.
+   P sol-high-due-p2 r2 WAY-BACK Store deadlines in the version-1 ticket file, where 1.4.0 can still read every ticket, and rely on operators to keep a pre-rollback copy and supply it with `--restore-from FILE` to recover deadlines stripped by
+   P sol-high-due-p2 r3 WAY-BACK Store deadlines as an optional field in the existing version-1 ticket file and require operators to retain a pre-rollback copy to recover them after 1.4.0 next saves the file.
+   P sol-medium-due-p2 r1 WAY-BACK The plan stores deadlines as optional fields in the version 1 data file so unmodified 1.4.0 can start and list every ticket, accepting that a subsequent 1.4.0 save can erase those deadlines.
+   P sol-medium-due-p2 r2 WAY-BACK Keep `due` as an optional field in the version 1 data file, accepting that 1.4.0 can read every ticket but can erase saved deadlines the next time it writes the file.
+   P sol-medium-due-p2 r3 WAY-BACK The plan stores deadlines as an optional field in the existing version-1 file and treats rollback as successful when stock 1.4.0 boots and lists every ticket, even though a subsequent 1.4.0 save can strip the d
+   T sol-high-due-p1 r1 WAY-BACK Deadlines live in an optional field in the version-1 data file, so 1.4.0 can open the same file but discards the deadlines on save, and operators must keep a separate pre-rollback copy to recover them later.
+   T sol-high-due-p1 r2 WAY-BACK Deadlines are stored as optional fields in the version-1 ticket file, so 1.4.0 can use the live file but drops the deadlines on its next save and operators must take a separate copy before rolling back.
+   T sol-high-due-p1 r3 WAY-BACK Deadlines live in an optional field in the version-1 data file, so 1.4.0 can serve tickets from that file but its saves strip their deadlines, requiring operators to keep a pre-rollback copy and run recovery be
+   T sol-high-due-p2 r1 WAY-BACK Rollback runs 1.4.0 against the same version-1 live file, whose next save drops deadlines, so preserving them for re-upgrade depends on operators taking a pre-rollback copy and supplying it with `--restore-from
+   T sol-high-due-p2 r2 WAY-BACK Rollback runs 1.4.0 against the same version-1 file, where its next save drops the optional due field, so preserving original deadlines across rollback requires operators to keep a stopped-service copy and pass
+   T sol-high-due-p2 r3 WAY-BACK Rollback uses the same live version-1 file with an optional per-ticket due field, so 1.4.0 can read it but drops deadlines on its next save and operators must keep a pre-rollback copy to recover them.
+   T sol-medium-due-p2 r1 WAY-BACK Rollback runs 1.4.0 on the latest version 1 file so every ticket stays available, and its first save, including a graceful shutdown, strips assigned deadlines and leaves operators to recover them from a pre-rol
+   T sol-medium-due-p2 r2 WAY-BACK Rollback starts 1.4.0 on the latest version-1 data file so it can show every ticket, but any 1.4.0 save, including clean shutdown, strips the deadlines and leaves operators to recover them from a pre-rollback c
+   T sol-medium-due-p2 r3 WAY-BACK The rollback procedure starts 1.4.0 on the latest version-1 file, accepts that its next save or graceful shutdown strips deadlines, and leaves operators to recover those values from a pre-rollback copy or recom
