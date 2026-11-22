@@ -4013,3 +4013,35 @@ proof-of-failure runs, see below), which only a counterexample for that check's 
 
 **Limits.** Three cases with existing tests, one fixture family; the sabotage breaks one test file and says nothing
 of a check that runs some of the product's tests.
+
+### Part T, a fourth arm, registered 19:28 before its runs: every refusal the change touches, with its nearest allowed case (three test passes)
+
+**What is known at this moment.** Of the twelve test passes of parts C and T, the planted-defect grading exists
+for these: ta1 ta2 tb1 td2 . Each catches 26 of 27 and misses `update-rejects-resolved`: two plain runs, one with
+the proof of failure and one with the grounded question. The reports of the question arms show why: each
+lists "closed tickets refuse edits", and none lists or tests that a resolved ticket can still be edited. The defect
+tightens that guard by one state, so only a test of the case next to the refusal can see it. The first review said
+so before any of these runs: "Ask for the allowed neighbor as well as the refusal when a state guard changes"
+(`review/sol-ideas-answer.md`). My grounded question left that sentence out.
+
+**Stated plainly.** This arm is written knowing which defect the suites miss. The rule is the review's and names no
+state, route or file; whether it finds this defect is still open, and a hit would show the rule can reach it, not
+how often such a rule pays.
+
+**Cells.** `te1` to `te3`: as the other arms (`--plan-from c0 --build-from <the reference> --stop-after tests`), with
+`--tests-question neighbour` (new in `ratchet.py`; the other two question texts are unchanged): find each condition
+the change touches that refuses something, name the nearest case that must still be accepted, taken from the old
+code, and name or write one test for each side.
+
+**Readings.**
+
+- **RT2.1.** `update-rejects-resolved` caught in how many of three. *The question catches it* if all three do (the
+  bar of RC.2).
+- **RT2.2.** Planted defects caught of 27; checks failing on the reference and on the second correct delivery,
+  beside the plain runs (RC.3's bar for over-tight).
+- **RT2.3.** The entries under `## Refusals and their allowed neighbours`: how many, and whether the edit of a
+  resolved ticket is among the allowed cases.
+- Not measured for this arm: the seeded faults on existing lines (F56 says what that instrument measures).
+
+**Predictions.** It catches `update-rejects-resolved` in two of three; 26 or 27 of 27; one or two more checks fail
+on the second correct delivery than in the plain runs.

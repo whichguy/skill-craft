@@ -669,6 +669,21 @@ TESTS_QUESTION = {
                  "name of the acceptance\n   test that fails if the caller now gets something else. Where no test does, "
                  "write one under the clause it\n   belongs to (the clause that says existing behaviour stays, where no "
                  "narrower one fits). Where the change\n   touched no file that existed before, write `none` there.\n"),
+    # The first outside review's addition to the grounded question (review/sol-ideas-answer.md: "Ask for the allowed
+    # neighbor as well as the refusal when a state guard changes"), made the whole question after parts C and T found
+    # that every inventory of preserved behaviour lists the refusal and none tests the case next to it.
+    "neighbour": ("   **One question the tests answer, about every refusal the change touches.** Run\n"
+                  "   `git diff {base} -- . ':!acceptance' ':!ratchet'` and find each condition that refuses, rejects or "
+                  "skips\n   something (a state, a role, a limit, a kind of input), whether the change added it or it was "
+                  "there and the\n   change edited the code around it. For each, name the nearest case on the allowed side: "
+                  "the state, value or\n   input closest to the refused one that must still be accepted. Take what was "
+                  "allowed before the change from\n   the old code (`git show {base}:<file>`), its tests or its documents, "
+                  "not from the build. Answer in\n   `ratchet/tests-{cycle}.md` under a heading `## Refusals and their "
+                  "allowed neighbours`: one line for each,\n   with the refusal, its allowed neighbour, and the names of "
+                  "two acceptance tests, one that fails if the\n   refusal stops refusing and one that fails if the "
+                  "neighbour starts being refused. Where a test is missing,\n   write it under the clause it belongs to "
+                  "(the clause that says existing behaviour stays, where no narrower\n   one fits). Where the change "
+                  "touches no refusal, write `none` there.\n"),
 }
 
 # The spec stage's text given through a command and not in the prompt (--deliver command; part V): the session is told
@@ -1417,9 +1432,10 @@ def main(argv=None):
                      help="with --stop-after tests on a given build: after the test session the script tries to make each "
                           "acceptance check fail (prove_fail.py) and refuses, once, the checks it could not and the faults "
                           "no check noticed")
-    run.add_argument("--tests-question", choices=("none", "general", "grounded"), default="none",
+    run.add_argument("--tests-question", choices=("none", "general", "grounded", "neighbour"), default="none",
                      help="a question the test owner answers in its report: ShipLoop's key question on preserved "
-                          "behaviour, or the same asked of the files the change touched")
+                          "behaviour, the same asked of the files the change touched, or every refusal the change "
+                          "touches with its nearest allowed case")
     run.add_argument("--deliver", choices=("prompt", "command"), default="prompt",
                      help="how the spec stage's text reaches the session: in its prompt, or as the output of a command "
                           "the prompt names")
