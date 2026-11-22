@@ -21,6 +21,9 @@ commit that held it at acceptance, with a witness that the commit's text is the 
   score ROOT SETID                  no model: item-by-item differences between the arms, and the registered outcome
   replay DEST OUT [OUT ...]         no model: read existing run folders as collect would, writing only under DEST
   sets [--rule IDS] ROOT SETID ...  no model: scored sets side by side, and the several-sets rule over the ids named
+  audit-pack-sets ROOT DEST SETID.. no model: one reader's folder for several sets, every copy under a new code
+  audit-check-sets ROOT DEST        no model: split that reader's file over its sets and verify each part's quotes
+  drivers ROOT SET ...              no model: the released stage under drivers p and k, set by set (section 54)
 
 SETID is SET-DRIVER, for example s1-sol.
 """
@@ -145,7 +148,9 @@ BUILD_FILES = (
     "shiploop_prompts.py",
     "shiploop_stage_spec.py",
 )  # the two files an arm's overlay may change
-# Only the Sol set is registered (section 41). A Claude set needs its own registration, with its cap and its build check.
+# `sol` is the set registered in section 41. Section 54 adds two drivers for a comparison of authors on the released
+# stage. Their names and their one cell are neutral on purpose: a set's id and a blind copy's folder reach the judge's
+# working folder, and must not say which model wrote the specification. `p` is Claude Sonnet and `k` is GPT Sol.
 DRIVERS = {
     "sol": {
         "host": "codex",
@@ -153,8 +158,23 @@ DRIVERS = {
         "effort": "medium",
         "extra": [],
         "cell": "sol-medium",
-    }
+    },
+    "p": {
+        "host": "claude",
+        "model": "claude-sonnet-5-5",
+        "effort": "medium",
+        "extra": ["--max-budget-usd", "5"],  # the host's own cap for one run
+        "cell": "medium",
+    },
+    "k": {
+        "host": "codex",
+        "model": "gpt-6.2-sol",
+        "effort": "medium",
+        "extra": [],
+        "cell": "medium",
+    },
 }
+PAIR = ("p", "k")  # the two drivers section 54 compares, the first against the second
 JUDGE_TAGS = (("opus", None), ("astra", "gpt"))
 GUIDES = REPO / "skills" / "shiploop" / "references"
 SECTIONS = (
@@ -932,11 +952,11 @@ def model_outputs(out: Path) -> list[tuple[float, str]] | None:
 
     The harness's events hold what each command printed. On this host the model runs commands from a script and
     chooses what of their output to show itself, so the two differ: only the session record says what the model saw.
-    None for a run with no such record (another host).
+    A Claude run keeps no such record and is read from its event stream (`claude_outputs`). None for any other run.
     """
     files = sorted(out.glob("home/.codex/sessions/**/rollout-*.jsonl"))
     if not files:
-        return None
+        return claude_outputs(out)
     shown = []
     for path in files:
         for row in qualcheck.rows(path):
@@ -958,6 +978,45 @@ def model_outputs(out: Path) -> list[tuple[float, str]] | None:
             # a script may print a command's output in its JSON form: read that form as plain text too
             plain = text.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
             shown.append((at, text if plain == text else text + "\n" + plain))
+    return sorted(shown)
+
+
+def claude_outputs(out: Path) -> list[tuple[float, str]] | None:
+    """Every tool result a Claude session's model was given, with its time, from the harness's copy of the event stream.
+
+    On this host a tool's result goes to the model as the stream records it, a subagent's included; a long result the
+    host cut short is recorded cut. None when the run is not a Claude run or kept no stream.
+    """
+    path = out / "events.jsonl"
+    if load(out / "invocation.json").get("host") != "claude" or not path.is_file():
+        return None
+    shown = []
+    for row in qualcheck.rows(path):
+        message = row.get("message") if isinstance(row.get("message"), dict) else {}
+        stamp = re.fullmatch(
+            r"(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(\.\d+)?Z",
+            str(row.get("timestamp") or ""),
+        )
+        if row.get("type") != "user" or not stamp:
+            continue
+        at = calendar.timegm(tuple(int(value) for value in stamp.groups()[:6])) + float(
+            stamp.group(7) or 0
+        )
+        content = message.get("content")
+        for part in content if isinstance(content, list) else []:
+            if isinstance(part, dict) and part.get("type") == "tool_result":
+                inner = part.get("content")
+                pieces = inner if isinstance(inner, list) else [{"text": inner}]
+                shown.append(
+                    (
+                        at,
+                        "".join(
+                            str(piece.get("text") or "")
+                            for piece in pieces
+                            if isinstance(piece, dict)
+                        ),
+                    )
+                )
     return sorted(shown)
 
 
@@ -1096,8 +1155,14 @@ def read_sample(
     process, termination, plugin = (
         result.get("process") or {},
         result.get("termination") or {},
-        invocation.get("plugin") or {},
+        invocation.get("plugin") or result.get("plugin") or {},
     )
+    # A Claude host loads the build from its own folder, which the harness names in `loaded`; Codex copies it to a cache.
+    loaded = [
+        Path(folder) / "skills" / "shiploop" / "scripts"
+        for folder in (plugin.get("loaded") or [])
+        if invocation.get("host") == "claude"
+    ]
     ends = [
         row
         for row in (
@@ -1135,7 +1200,14 @@ def read_sample(
         "plugin_wanted": plugin.get("wanted") or invocation.get("plugin_dir"),
         "plugin_check_passed": plugin.get("pass"),
         "loaded_sha256": {
-            name: sorted({sha256(path) for path in out.glob(cache + name)})
+            name: sorted(
+                {sha256(path) for path in out.glob(cache + name)}
+                | {
+                    sha256(folder / name)
+                    for folder in loaded
+                    if (folder / name).is_file()
+                }
+            )
             for name in BUILD_FILES
         },
         "exposure": exposure(out, dest, snap),
@@ -1642,6 +1714,63 @@ def cmd_audit_check(root: Path, set_id: str, verdict: Path) -> int:
     return 0
 
 
+def cmd_audit_pack_sets(root: Path, dest: Path, set_ids: list[str]) -> int:
+    """One reader's folder for several sets: every blind copy under a new code, in an order that tells nothing. The
+    key from the new codes to each set's own is kept in ROOT, outside the folder."""
+    if dest.exists():
+        raise SystemExit(f"{dest} exists: the reader gets a fresh folder")
+    manifests = {set_id: manifest_of(root, set_id) for set_id in set_ids}
+    entries = [
+        (set_id, code) for set_id in set_ids for code in manifests[set_id]["slots"]
+    ]
+    random.SystemRandom().shuffle(entries)
+    dest.mkdir(parents=True)
+    (dest / "request.txt").write_text(REQUEST + "\n")
+    shutil.copytree(FIXTURE, dest / "base")
+    key = {}
+    for n, (set_id, code) in enumerate(entries, 1):
+        shutil.copyfile(
+            slot_dir(manifests[set_id], code) / "spec.md", dest / f"S{n}.md"
+        )
+        key[f"S{n}"] = {"set": set_id, "code": code}
+    (dest / "PROMPT.md").write_text(AUDIT_PROMPT)
+    (root / f"audit-key-{dest.name}.json").write_text(json.dumps(key, indent=1) + "\n")
+    print(
+        f"reader's folder: {dest} ({len(key)} specifications of {len(set_ids)} sets, sets and arms hidden); its instructions are PROMPT.md there"
+    )
+    return 0
+
+
+def cmd_audit_check_sets(root: Path, dest: Path) -> int:
+    """Split one reader's file over the sets its folder held, and check each set's part against its blind copies."""
+    key = json.loads((root / f"audit-key-{dest.name}.json").read_text())
+    listed = json.loads((dest / "verdict.json").read_text()).get("capabilities")
+    if not isinstance(listed, list):
+        raise SystemExit("the reader's file has no `capabilities` list")
+    parts = {info["set"]: [] for info in key.values()}
+    for entry in listed:
+        found = {}
+        for row in entry.get("found") or []:
+            if row.get("spec") not in key:
+                raise SystemExit(
+                    f"the reader names a specification that is not in its folder: {row.get('spec')!r}"
+                )
+            info = key[row["spec"]]
+            found.setdefault(info["set"], []).append({**row, "spec": info["code"]})
+        for set_id, rows in found.items():
+            parts[set_id].append({"capability": entry.get("capability"), "found": rows})
+    for set_id, capabilities in parts.items():
+        part = root / f"reader-{set_id}.json"
+        part.write_text(
+            json.dumps(
+                {"from_folder": dest.name, "capabilities": capabilities}, indent=1
+            )
+            + "\n"
+        )
+        cmd_audit_check(root, set_id, part)
+    return 0
+
+
 def compare(states: dict, items: list, high: str, low: str) -> dict:
     up = [
         i for i in items if all(states[high][j][i] > states[low][j][i] for j in (0, 1))
@@ -1808,6 +1937,76 @@ def several(nets: dict[str, list[int | None]]) -> dict[str, str]:
     return said
 
 
+def separation(first: list[int], second: list[int]) -> str:
+    """Section 54's reading for one sentence, from each specification's count of items covered under both judges:
+    shown when there are three counts a side and every count of the first driver is above every count of the second,
+    the opposite when every one is below, and not shown otherwise."""
+    if len(first) < 3 or len(second) < 3:
+        return "not shown: fewer than three specifications a side"
+    if min(first) > max(second):
+        return "shown"
+    return "the opposite" if max(first) < min(second) else "not shown"
+
+
+def cmd_drivers(root: Path, names: list[str]) -> int:
+    """The released stage under two drivers, set by set: what each wrote and was given, each specification's count of
+    items covered under both judges, every pairing's net, and section 54's reading."""
+    counts, kept = {driver: [] for driver in PAIR}, {driver: {} for driver in PAIR}
+    for name in names:
+        for driver in PAIR:
+            set_id = f"{name}-{driver}"
+            score = load(root / f"score-{set_id}.json")
+            file = root / f"collect-{set_id}.json"
+            row = next(
+                (
+                    r
+                    for r in (json.loads(file.read_text()) if file.is_file() else [])
+                    if r["arm"] == "A"
+                ),
+                {},
+            )
+            shown, accepted = row.get("exposure") or {}, row.get("accepted") or {}
+            line = f"  {set_id}: {row.get('host_ending')}; usable {row.get('usable')}; delivered {row.get('delivered')}; {accepted.get('words')} words; {accepted.get('requirement_ids')} requirement ids; instructions given {shown.get('instructions_lines_shown')}; references {shown.get('references_lines_shown')}; spec stage {row.get('spec_seconds')} s, of them review {row.get('spec_review_seconds')}; cost {row.get('cost_usd')}"
+            # How much of its packet a model gives itself is the driver's own conduct here, so `delivered` is shown, not required.
+            if score and row.get("usable") is True:
+                applies, states = score["items"]["applies"], score["states"]["A"]
+                covered = sum(
+                    1 for i in applies if all(states[j][i] == 2 for j in states)
+                )
+                partly = sum(
+                    1 for i in applies if all(states[j][i] >= 1 for j in states)
+                )
+                counts[driver].append(covered)
+                kept[driver][name] = (states, applies)
+                alone = (score.get("capability_in_one_arm_alone") or {}).get("A") or []
+                line += f"; covered under both judges {covered} of {len(applies)}; at least partly {partly}; capability the reader verified: {alone or 'none'}"
+            else:
+                line += "; not counted"
+            print(line)
+    first, second = PAIR
+    print(
+        f"counts of items covered under both judges: {first} {counts[first]}; {second} {counts[second]}"
+    )
+    for a, (states_a, applies) in kept[first].items():
+        for b, (states_b, _) in kept[second].items():
+            pair = compare(
+                {
+                    first: [states_a[judge] for judge, _ in JUDGE_TAGS],
+                    second: [states_b[judge] for judge, _ in JUDGE_TAGS],
+                },
+                applies,
+                first,
+                second,
+            )
+            print(
+                f"  {a}-{first} over {b}-{second}: net {pair['net']} (higher {pair['higher']}, lower {pair['lower']})"
+            )
+    print(
+        f"READING ({first} over {second}): {separation(counts[first], counts[second])}"
+    )
+    return 0
+
+
 def both_mixed() -> list[str]:
     """The items both sorters labelled mixed: part of each applies to this program."""
     rows = [
@@ -1928,6 +2127,9 @@ def main() -> int:
         "score",
         "replay",
         "sets",
+        "drivers",
+        "audit-pack-sets",
+        "audit-check-sets",
     )
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -1979,6 +2181,12 @@ def main() -> int:
     if command == "sort":
         return cmd_sort(rest[0], args.timeout)
     root = Path(rest[0]).resolve()
+    if command == "drivers":
+        return cmd_drivers(root, rest[1:])
+    if command == "audit-pack-sets":
+        return cmd_audit_pack_sets(root, Path(rest[1]).resolve(), rest[2:])
+    if command == "audit-check-sets":
+        return cmd_audit_check_sets(root, Path(rest[1]).resolve())
     if command == "prepare":
         return cmd_prepare(root, args.allow_dirty)
     if command == "run":

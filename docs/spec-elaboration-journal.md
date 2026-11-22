@@ -4176,3 +4176,93 @@ tokens each. Wall clock 16:03 to 16:38.
   line showing the new link, a new `merged` status) and listed neither.
 - The blind items are long and compound. `partly` is the commonest state short of covered, and the count
   rewards a specification that states every part of an item's sentence.
+
+## 54. A fifth experiment registered before any run: the released stage under two authors, Claude Sonnet beside GPT Sol (17:38, 2026-11-21)
+
+**The owner's word.** Section 53 ended with a choice put to the owner: run the released stage on Sonnet, or stop.
+He answered "1", the first (17:29).
+
+**Why.** Four levers on the wording of the spec stage's packet have been tried and none is shown (section 53).
+What is left of the question "what would make the specification fuller" is who writes it. This journal already
+holds one sign of that, from reading 31 archived deliveries (sections 26 to 29): where nobody stated a limit, Sol
+chose one silently or did not build it, and Sonnet specified and tested it. That was on full cases at Sonnet's
+high effort. It has never been tested from one sentence, on the same request, at the efforts now in use.
+
+**What is compared.** The released spec stage, unchanged (arm A, no overlay), under two drivers at medium: Claude
+Sonnet 5.5 (`claude-sonnet-5-5`, the harness's Claude host) and GPT 6.2 Sol (Codex). These are the two drivers
+the owner set for harness tests today. The sentences, the blind checklists and the item lists are section 52's:
+merge with 21 items, remind with 19.
+
+**What is run.** Three sets a sentence (e1 to e3 for merge, f1 to f3 for remind). A set is one Sonnet run and
+one Sol run from the same prepared folder, each stopped when ShipLoop's trace shows its specification accepted.
+Twelve runs. The first Sonnet run goes alone, to price it and to see the driver's checks on a Claude run; if a
+check fails for a reason in the tooling and not in the run, the tooling is fixed, the failure recorded, and the
+set relaunched under a new name.
+
+**Kept blind.** A judge reads one specification in its own session, and that session's working folder is named
+after the set and the blind copy. So the two drivers carry neutral names in the driver's table (`p` is Sonnet,
+`k` is Sol) and share one cell name (`medium`): nothing a judge can see names the model that wrote its
+specification. The reader who looks for added capability gets one folder a sentence with all six
+specifications under new codes. A judge may still tell the two authors apart by their style. Opus, the
+registered judge, is of Sonnet's family; a count below needs both judges, and the second is of Sol's.
+
+**How it is read, fixed now.**
+
+- A specification's count is the number of items, of those that apply for both sorters, that both judges call
+  covered. It is the measure sections 47 to 53 report beside their rules.
+- A run counts when it is usable (section 41's six checks). How much of its packet a model gives itself is the
+  driver's own conduct here, so it is recorded and is not a condition.
+- For a sentence, Sonnet over Sol is **shown** when there are three counted specifications a side and every
+  Sonnet count is above every Sol count; **the opposite** when every one is below; **not shown** otherwise.
+  Three against three separate completely by chance one time in twenty in a given direction.
+- For the comparison, shown when it is shown on both sentences.
+- A run that blocks or fails a check is reported and is not replaced; with fewer than three a side the sentence
+  reads not shown.
+- Fuller must not mean more product. The reader's verified capabilities are reported for every specification,
+  and a driver with a verified added capability in two or more of its three specifications of a sentence has its
+  result reported as "with added scope".
+
+Described beside the rule: words and requirement ids; the author's time and the review's time in the spec
+stage; minutes to the acceptance and Sonnet's dollars; the instruction and reference lines each author was
+given; the net of every pairing, by the items higher under both judges; the items that separate the drivers,
+by name; and the five Sol specifications of section 53 as a second reference, never in the rule.
+
+**Predictions, before any run.**
+
+33. All six Sonnet runs reach the acceptance. (I hold this at four in five: the reminders sentence made one Sol
+    run stop and ask.)
+34. Every Sonnet specification is longer than every Sol specification of its sentence.
+35. Sonnet's author is given at least nine tenths of the stage's instruction lines in every run.
+36. Sonnet over Sol is shown on at least one sentence. About even odds; on both, about three in ten.
+37. Sonnet's mean count is the higher on both sentences, by two items or more on at least one.
+38. The reader verifies an added capability in at least one Sonnet specification. Even odds.
+
+**What it costs.** Each Sonnet run carries the host's own cap of five dollars, thirty for the six; expected
+under ten. In the SDLC study's two whole deliveries on Sonnet at medium today the specification was accepted
+2.1 and 2.6 minutes in, of 17 and 24 minutes and $5.77 and $6.24 (read from its run folders, which are only
+read). The six Sol runs are on subscription. Twenty-four judge readings, about three dollars for the registered
+judge's twelve; two readers. About 40 minutes.
+
+**What this is not.** It changes no default and proposes none. It does not judge a whole delivery: the SDLC
+study has those. It reads the accepted specification and nothing after it.
+
+**Where it stops.** After the twelve runs the result is reported as it is.
+
+**Checked, no model called.**
+
+- The driver reads a Claude run. What the model was given comes from the harness's copy of the event stream,
+  where each tool result stands as the model received it, since that host keeps no session record of its own.
+  On two existing Sonnet runs the author was given 96 of 102 and 102 of 102 of the spec stage's instruction
+  lines before it submitted. The build check reads the folder the harness says the host loaded.
+- The rehearsal holds at 103 checks, none failed (it was 94). The nine new ones: the event stream is read in
+  time order and only tool results are taken; another host's stream is not read; the reading for three counts a
+  side, both ways and with too few; two drivers side by side from scored sets, with a run that gave itself
+  little still counted; one reader's folder for several sets, its file split back over the sets with each
+  part's quotes verified, and a file naming an unknown copy refused (`evidence/guides-test/rehearsal.txt`).
+- A dry `prepare --arms A` on each sentence found no problem.
+
+**Limits, known before the runs.** Three specifications a side on each sentence. One program. A judge can tell
+authors apart by style. The two hosts differ in more than the model: the Claude host runs with the harness's
+own settings in the owner's home and gives the model each tool result nearly whole, where Codex runs in a
+throwaway home and its model chooses what to show itself (section 43). That difference comes with the drivers
+and is part of what is compared.

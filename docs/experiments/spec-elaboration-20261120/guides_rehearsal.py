@@ -14,6 +14,8 @@ write made-up answers, and the reader's file is made up: what is rehearsed is th
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -779,6 +781,195 @@ def main() -> int:
         },
         endings,
     )
+
+    print(
+        "== section 54: a Claude run's event stream, one reader for several sets, two drivers side by side"
+    )
+    claude = scratch / "claude-run"
+    claude.mkdir()
+    (claude / "invocation.json").write_text(json.dumps({"host": "claude"}))
+    stream = (
+        {"type": "system", "subtype": "init"},
+        {
+            "type": "user",
+            "timestamp": "2026-11-21T19:10:37.583Z",
+            "message": {
+                "content": [{"type": "tool_result", "content": "first result"}]
+            },
+        },
+        {
+            "type": "assistant",
+            "timestamp": "2026-11-21T19:10:38.000Z",
+            "message": {"content": [{"type": "text", "text": "not a result"}]},
+        },
+        {
+            "type": "user",
+            "timestamp": "2026-11-21T19:10:36.000Z",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "content": [
+                            {"type": "text", "text": "an "},
+                            {"type": "text", "text": "earlier one"},
+                        ],
+                    }
+                ]
+            },
+        },
+        {
+            "type": "user",
+            "timestamp": "2026-11-21T19:10:39.000Z",
+            "message": {"content": "typed, not a tool result"},
+        },
+    )
+    (claude / "events.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in stream) + "\n"
+    )
+    given = g.model_outputs(claude)
+    expect(
+        "a Claude run's tool results are read from its event stream in time order, and nothing else is",
+        given == [(1795288236.0, "an earlier one"), (1795288237.583, "first result")],
+        given,
+    )
+    (claude / "invocation.json").write_text(json.dumps({"host": "codex"}))
+    expect(
+        "the same stream under another host is not read",
+        g.model_outputs(claude) is None,
+    )
+    expect(
+        "the two drivers' reading: three counts a side and complete separation, either way, or not shown",
+        [
+            g.separation(first, second)
+            for first, second in (
+                ([15, 16, 18], [12, 10, 14]),
+                ([15, 14, 18], [12, 10, 14]),
+                ([9, 8, 7], [12, 10, 14]),
+                ([15, 16], [12, 10, 14]),
+            )
+        ]
+        == [
+            "shown",
+            "not shown",
+            "the opposite",
+            "not shown: fewer than three specifications a side",
+        ],
+    )
+    duo, items = scratch / "root-duo", ["N-1", "N-2", "N-3", "N-4"]
+    duo.mkdir()
+
+    def made(set_id: str, covered: int) -> None:
+        states = {
+            judge: {item: (2 if n < covered else 1) for n, item in enumerate(items)}
+            for judge, _ in g.JUDGE_TAGS
+        }
+        (duo / f"score-{set_id}.json").write_text(
+            json.dumps(
+                {
+                    "items": {"applies": items},
+                    "states": {"A": states},
+                    "capability_in_one_arm_alone": {"A": []},
+                }
+            )
+        )
+        (duo / f"collect-{set_id}.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "arm": "A",
+                        "usable": True,
+                        "delivered": False,
+                        "accepted": {"words": 100 * covered},
+                    }
+                ]
+            )
+        )
+
+    def said(names: list[str]) -> str:
+        with contextlib.redirect_stdout(io.StringIO()) as printed:
+            g.cmd_drivers(duo, names)
+        return printed.getvalue()
+
+    for n, (first, second) in enumerate(((4, 2), (3, 1), (3, 2)), 1):
+        made(f"z{n}-p", first)
+        made(f"z{n}-k", second)
+    told = said(["z1", "z2", "z3"])
+    expect(
+        "three sets where every count of the first driver is above every count of the second read as shown, a run that gave itself little still counted",
+        "READING (p over k): shown" in told
+        and "p [4, 3, 3]; k [2, 1, 2]" in told
+        and "z1-p over z2-k: net 3" in told,
+        told,
+    )
+    made("z3-p", 2)
+    expect(
+        "one count level with the other side's reads as not shown",
+        "READING (p over k): not shown" in said(["z1", "z2", "z3"]),
+    )
+    expect("two sets a side are too few", "fewer than three" in said(["z1", "z2"]))
+    pack = scratch / "reader-many"
+    expect(
+        "one reader's folder holds every copy of two sets under new codes",
+        g.cmd_audit_pack_sets(root, pack, ["r1-sol", "r3-sol"]) == 0
+        and sorted(p.name for p in pack.glob("S*.md"))
+        == sorted(f"S{n}.md" for n in range(1, 9)),
+    )
+    key = json.loads((root / f"audit-key-{pack.name}.json").read_text())
+    name, info = next(iter(key.items()))
+    words = " ".join((pack / f"{name}.md").read_text().split()[:12])
+    kept_audits = {
+        set_id: (root / f"audit-{set_id}.json").read_text()
+        if (root / f"audit-{set_id}.json").is_file()
+        else None
+        for set_id in ("r1-sol", "r3-sol")
+    }
+    (pack / "verdict.json").write_text(
+        json.dumps(
+            {
+                "capabilities": [
+                    {"capability": "made up", "found": [{"spec": name, "quote": words}]}
+                ]
+            }
+        )
+    )
+    other = "r3-sol" if info["set"] == "r1-sol" else "r1-sol"
+    expect(
+        "the reader's file is split over the sets, each part under the set's own codes, and its quotes are verified",
+        g.cmd_audit_check_sets(root, pack) == 0
+        and json.loads((root / f"reader-{info['set']}.json").read_text())[
+            "capabilities"
+        ][0]["found"][0]["spec"]
+        == info["code"]
+        and json.loads((root / f"audit-{info['set']}.json").read_text())[
+            "capabilities"
+        ][0]["found"][0]["quote_is_in_the_file"]
+        is True
+        and json.loads((root / f"reader-{other}.json").read_text())["capabilities"]
+        == [],
+    )
+    (pack / "verdict.json").write_text(
+        json.dumps(
+            {
+                "capabilities": [
+                    {
+                        "capability": "made up",
+                        "found": [{"spec": "S99", "quote": words}],
+                    }
+                ]
+            }
+        )
+    )
+    refuses(
+        "a reader's file naming a copy that is not in its folder",
+        g.cmd_audit_check_sets,
+        root,
+        pack,
+    )
+    for set_id, kept_text in kept_audits.items():
+        if kept_text is None:
+            (root / f"audit-{set_id}.json").unlink(missing_ok=True)
+        else:
+            (root / f"audit-{set_id}.json").write_text(kept_text)
 
     print(f"\n{len(FAILED)} failed" if FAILED else "\nall held")
     return 1 if FAILED else 0
