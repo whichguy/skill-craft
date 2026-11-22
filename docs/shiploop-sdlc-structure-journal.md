@@ -2875,6 +2875,104 @@ them on purpose (the stop-early tests of round 9, the runs stopped in round 10).
 - The Grok row has one whole delivery. Small cases only (three services, one small app).
 - Evidence: `evidence/refusal-census.txt`.
 
+## Round 12 (2026-11-21): where a medium delivery's time and money go now, and what is left to try
+
+### Owner decision, 2026-11-21
+
+To round 11's result and my offer of a Grok effort test: "No, skip grok. Think deeply if there are any other
+optimizations or experiments that would make this more complete or efficient". The Grok effort test is dropped.
+
+### Question and method (readings of existing records; no run was launched)
+
+On the drivers now in use (Sonnet 5.5 medium, Sol 6.2 medium), where do a whole delivery's minutes and tokens go,
+and which part is still large enough to be worth an experiment? Three scripts read the run folders of rounds 7 to 10:
+
+- `where_it_goes.py`: per driver, over whole deliveries (ShipLoop status done): stage time by phase, model calls,
+  context size, token counts, what the tool results put in the context. From `metrics.json` and `result.json`.
+- `context_origin.py` (Claude only): the context size at each model call, from `events.jsonl`, and what each step
+  of growth came from. Its re-read total agrees with the bill's own count to 1% (36.48 against 36.11 million
+  tokens on one run, 24.69 against 24.39 on another).
+- `reset_ceiling.py` (Claude only): the same context series with the context set back to its starting size at
+  chosen boundaries. It leaves out what a fresh session would have to read again, so it is an upper bound.
+
+Prices are the ones the recorded bills imply: a least-squares fit over the 14 Sonnet 5.5 sessions with a bill gives
+$0.10 per million tokens re-read from cache, $4.00 per million newly written, $10.00 per million output, with a
+misfit under one cent on bills from $0.67 to $20.48.
+
+### Results
+
+- **R101 (time).** Sonnet medium, 5 whole deliveries on ShipLoop 2.4.1: median 16.7 minutes in stages, 141 model
+  calls, 26 stage records, one build step. Planning (intake to test spec) 41%, the build 34%, after the build 21%.
+  `implement` is 7.0% (70 s); `test` 15.4%; `step-plan` 11.3%; `document` 8.2%; each other stage is less. Reviews are 18%
+  (153 s) and edited 18 of 44 reviewed results. Sol medium, 14 whole deliveries on 2.4.0: 13.0 minutes, 66 model
+  calls, 23 stage records; planning 34%, build 40%, after 25%; `implement` 12.5%, `test` 13.1%; reviews 11% and
+  edited 3 of 82.
+- **R102 (context).** A session is one context from start to end. Of the Claude runs with a metrics file, 11 have
+  one context window and no compaction; the 3 with two windows are round 7's runs that were continued after an
+  interruption. Sonnet medium starts at a median 58,735 tokens and ends at 358,216; Sol medium 40,971 and 158,206.
+  Each model call reads the whole context again: a median 32.2 million tokens re-read per Sonnet medium delivery
+  (228,516 a call), 6.7 million on Sol medium (99,009 a call).
+- **R103 (the bill, Sonnet medium, n=5, median $5.77).** Re-reading the session so far is 56% of it, text entering
+  the session 24%, output 20%.
+- **R104 (what is re-read, Sonnet medium, medians).** By share of re-read tokens: the model's own commands, which
+  hold the files and results it writes, 25%; the start of the session (system text, tools, skill list, first
+  prompt) 21%; stage instructions printed by ShipLoop 16%; shell reads 14%; skill cards loaded for reviews 7%;
+  files read with the Read tool 6%; other ShipLoop output 3%; test output 1%. The skill descriptions of the whole
+  plugin are 10,185 characters, about 2,600 tokens of the 58,735 at the start: not a lever.
+- **R105 (ceiling of a fresh session).** With the context set back at two boundaries (before the build, after the
+  build): at most 51% fewer re-read tokens and at most 29% off the bill (27 to 34% over the five runs). At every
+  stage change: at most 75% and 42% (39 to 50%).
+- **R106 (context only).** Round 7's three Sonnet high runs that were continued in a new session: two passed every
+  check; `sonnet-high-due-L-2` is the run whose verdict was lost and run again (round 7's note). They show that
+  a delivery can go on in a new session; they are not a test of it.
+- **R107 (correction to what I told the owner on 2026-11-21).** I said a run's effort and review option are not in
+  its result file. `result.json` has `effort`; the review option is in `invocation.json` as `planning_review`.
+  The gap I named is one file's distance and needs no harness change.
+
+### Findings
+
+- **F72 (firm for these runs).** On a small change, writing the product code is 7% of a Sonnet medium delivery and
+  12.5% of a Sol medium one. The rest is spread over 23 to 26 stage records, the largest 15%. No single stage is a
+  large prize, which is F1 again on today's drivers.
+- **F73 (firm as arithmetic, Sonnet).** More than half the bill is the session reading its own history again. The
+  stage instructions are written to stand without that history (the main tenet: context clears between stages),
+  but in these runs nothing ever clears it, so a run pays for the restated instructions and for the history too.
+- **F74 (estimate; an upper bound, not a measurement).** A fresh session at two phase boundaries could take at most
+  about 29% off a Sonnet medium bill, and one at every stage at most about 42%. What the fresh session must read
+  again comes off that. The effect on time and on the checks is unknown: no run has tried it.
+- **F75 (the gaps in this study's evidence, listed).** (a) Medium effort is supported on three small cases with
+  one build step, by checks alone; nobody has read the code of a medium delivery beside a high one. (b) Every
+  yardstick is one delivery: no run of this study changed a product that an earlier run delivered, though the
+  harness has chains of such cases (`ticket-assignment` to `ticket-sla`, `user-listing` to `user-page-size`).
+  (c) Nothing larger than one work item (F2, F7). (d) The main tenet is unexercised (F73).
+
+### Candidates (the owner's decisions; nothing was run)
+
+1. A blind reading of the code of the four medium and high pairs already on disk, by a judge that does not know
+   which is which. It answers the owner's own condition for medium ("as long as the quality comes out the same")
+   beyond the checks. A few dollars.
+2. Medium on harder work: the four-change ticket chain on both drivers, and one larger request (`roundtable`).
+   About $25 to $40 on Sonnet. It tests (a) and (b).
+3. A fresh session at the two phase boundaries, Sonnet medium, paired with an untouched run, two pairs: about $20.
+   The harness can end a run on purpose and continue it (`stop` file, `--resume-run`), so no ShipLoop change is
+   needed to test it. It prices F74 and tests the tenet.
+4. Planning reviews off on Sonnet medium, two pairs, about $20. F44's estimate at high was 10 to 12% of the time;
+   at medium all reviews together are 18%.
+5. Low effort, the rung below medium, two pairs a driver. Effort is the only lever that produced a large saving
+   in this study; the risk to quality is larger than it was for medium.
+
+Left alone, with the reason: the seeded-fault check (the ratchet pilot found it is what ShipLoop's extra time
+buys); the stages after the build (21 to 25% of the time, an audit trail whose removal is a product trade-off, and
+F23 says they changed no held-out verdict); the stage structure and the packet wording (rounds 1 to 11).
+
+### Limits
+
+- Small cases only; five Sonnet medium deliveries; the Sol rows are ShipLoop 2.4.0 and have no bill.
+- The growth classes rest on text marks in commands and results; the split between a command and its result is by
+  text length.
+- The bill is the figure the host reports; whether it is what the owner pays depends on the owner's plan.
+- Evidence: `evidence/where-it-goes.txt`, `evidence/context-origin.txt`, `evidence/reset-ceiling.txt`.
+
 ## Evidence (all rounds)
 
 | File | Holds |
@@ -2988,6 +3086,12 @@ judges label them with `evidence/removed-review-judge-brief.txt`, and `removed_r
 rescores from the repository alone. `late_work_census.py <work>/census.json runs-reviews/census.json` reads the
 runs' traces and reproduces `evidence/late-work-census.txt`; `next_round_cuts.py runs-reviews/census.json
 <work>/census.json` does the same for `evidence/next-round-cuts.txt`.
+
+Round 12: `python3 -I where_it_goes.py <run roots>` reproduces `evidence/where-it-goes.txt`;
+`python3 -I context_origin.py <the five Sonnet medium run folders>` reproduces `evidence/context-origin.txt` and
+`python3 -I reset_ceiling.py <the same folders>` reproduces `evidence/reset-ceiling.txt`. The five folders are
+`sonnet-medium-due` and `sonnet-medium-expenses` of `e2e-runs-sdlc12/20261121`, and `assign-medium-1`,
+`due-medium-2` and `expenses-medium-2` of `e2e-runs-sdlc13/20261121`.
 
 Round 11: `python3 -I refusal_census.py <run roots>` reads the runs' traces and reproduces
 `evidence/refusal-census.txt`.

@@ -1,0 +1,4 @@
+5 runs; bill median $5.77
+the bill, median shares: re-reading the session so far 56%, text entering the session 24%, output 20%
+two resets (before the build, after the build): at most 51% fewer re-read tokens, at most 29% off the bill (range 27% to 34%)
+a reset at every stage: at most 75% fewer re-read tokens, at most 42% off the bill (range 39% to 50%)

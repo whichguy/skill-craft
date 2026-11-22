@@ -1,0 +1,95 @@
+
+== claude@high: 9 whole deliveries; ShipLoop {'2.4.0': 5, '2.4.1': 4}
+  minutes in stages, median 48.1; stage records 30; build steps 2; model calls 240
+  planning    37% of stage time (median)
+  build       41% of stage time (median)
+  after       20% of stage time (median)
+    implement            7.2%   median   194 s
+    test                14.8%   median   396 s
+    document             7.0%   median   258 s
+    step-plan           10.8%   median   390 s
+    system-test-author   3.8%   median   103 s
+    spec                 6.4%   median   178 s
+    test-strategy        6.1%   median   169 s
+    plan                 4.1%   median   115 s
+  reviews: median 551 s, 21% of stage time; edited 46 of 77 reviewed results
+  context tokens: at the first stage 78,034, at the end 654,087
+  tokens, medians: re-read from cache 90,110,461; newly written 631,261; output 302,885; cost $15.03
+  re-read tokens per model call, median 388,603
+  what the tool results put in the context (median share of bytes): shiploop_packets 45%, shell_output 36%, run_record_reads 8%, shiploop_reads 3%, knowledge_reads 3%
+
+== claude@medium: 5 whole deliveries; ShipLoop {'2.4.1': 5}
+  minutes in stages, median 16.7; stage records 26; build steps 1; model calls 141
+  planning    41% of stage time (median)
+  build       34% of stage time (median)
+  after       21% of stage time (median)
+    implement            7.0%   median    70 s
+    test                15.4%   median   155 s
+    document             8.2%   median    71 s
+    step-plan           11.3%   median   113 s
+    system-test-author   4.0%   median    43 s
+    spec                 5.8%   median    81 s
+    test-strategy        5.9%   median    54 s
+    plan                 4.3%   median    41 s
+  reviews: median 153 s, 18% of stage time; edited 18 of 44 reviewed results
+  context tokens: at the first stage 58,735, at the end 358,216
+  tokens, medians: re-read from cache 32,220,686; newly written 334,879; output 115,464; cost $5.77
+  re-read tokens per model call, median 228,516
+  what the tool results put in the context (median share of bytes): shell_output 45%, shiploop_packets 40%, run_record_reads 6%, shiploop_reads 4%, model_text 1%
+
+== gpt@high: 11 whole deliveries; ShipLoop {'2.4.0': 11}
+  minutes in stages, median 19.5; stage records 23; build steps 1; model calls 96
+  planning    34% of stage time (median)
+  build       41% of stage time (median)
+  after       23% of stage time (median)
+    implement           11.4%   median   150 s
+    test                15.9%   median   178 s
+    document             9.0%   median   120 s
+    step-plan            7.4%   median    83 s
+    system-test-author   6.0%   median    61 s
+    spec                 4.4%   median    57 s
+    test-strategy        4.2%   median    47 s
+    plan                 3.6%   median    48 s
+  reviews: median 132 s, 12% of stage time; edited 3 of 85 reviewed results
+  context tokens: at the first stage 41,217, at the end 198,869
+  tokens, medians: re-read from cache 13,393,536; newly written nan; output 39,079; cost $nan
+  re-read tokens per model call, median 136,517
+  what the tool results put in the context (median share of bytes): shiploop_packets 49%, shell_output 24%, run_record_reads 13%, shiploop_reads 10%, model_text 0%
+
+== gpt@medium: 14 whole deliveries; ShipLoop {'2.4.0': 14}
+  minutes in stages, median 13.0; stage records 23; build steps 1; model calls 66
+  planning    34% of stage time (median)
+  build       40% of stage time (median)
+  after       25% of stage time (median)
+    implement           12.5%   median   106 s
+    test                13.1%   median   116 s
+    document            10.0%   median    72 s
+    step-plan            6.8%   median    46 s
+    system-test-author   4.3%   median    26 s
+    spec                 4.4%   median    38 s
+    test-strategy        3.3%   median    27 s
+    plan                 3.7%   median    26 s
+  reviews: median 78 s, 11% of stage time; edited 3 of 82 reviewed results
+  context tokens: at the first stage 40,971, at the end 158,206
+  tokens, medians: re-read from cache 6,749,440; newly written nan; output 23,183; cost $nan
+  re-read tokens per model call, median 99,009
+  what the tool results put in the context (median share of bytes): shiploop_packets 50%, shell_output 23%, run_record_reads 13%, shiploop_reads 9%, model_text 0%
+
+== grok@xhigh: 1 whole deliveries; ShipLoop {'2.4.0': 1}
+  minutes in stages, median 240.2; stage records 23; build steps 1; model calls 729
+  planning    45% of stage time (median)
+  build       28% of stage time (median)
+  after       28% of stage time (median)
+    implement            3.2%   median   468 s
+    test                 6.1%   median   875 s
+    document             7.8%   median  1130 s
+    step-plan           15.4%   median  2219 s
+    system-test-author   7.6%   median  1098 s
+    spec                 5.6%   median   801 s
+    test-strategy        8.8%   median  1262 s
+    plan                 6.8%   median   987 s
+  reviews: median 6061 s, 42% of stage time; edited 7 of 8 reviewed results
+  context tokens: at the first stage 90,762, at the end 205,376
+  tokens, medians: re-read from cache 73,295,360; newly written 0; output 747,611; cost $67.90
+  re-read tokens per model call, median 100,542
+  what the tool results put in the context (median share of bytes): shiploop_reads 37%, run_record_reads 14%, shiploop_packets 13%, product_reads 12%, knowledge_reads 9%

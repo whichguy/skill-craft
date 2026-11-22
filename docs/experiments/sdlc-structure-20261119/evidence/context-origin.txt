@@ -1,0 +1,17 @@
+sonnet-medium-due: 143 model calls, context at the end 393,203, re-read total by this count 36,478,649
+sonnet-medium-expenses: 142 model calls, context at the end 359,575, re-read total by this count 32,555,849
+assign-medium-1: 119 model calls, context at the end 321,269, re-read total by this count 24,687,524
+due-medium-2: 194 model calls, context at the end 475,534, re-read total by this count 57,179,883
+expenses-medium-2: 111 model calls, context at the end 312,215, re-read total by this count 22,657,331
+
+5 runs; model calls median 142; context at the end median 359,575
+ share of final context  share of re-read tokens   origin (medians over the runs)
+                    28%                      25%   the model's own commands (files and results it writes are inside them)
+                    13%                      21%   start of session (system text, tools, skill list, first prompt)
+                    14%                      16%   stage instructions printed by ShipLoop
+                    18%                      14%   shell reads (cat, grep, git diff ...)
+                     9%                       7%   skill card loaded
+                     4%                       6%   file read with the Read tool
+                     5%                       3%   other ShipLoop command output
+                     2%                       1%   test or server output
+                     1%                       1%   other shell output
