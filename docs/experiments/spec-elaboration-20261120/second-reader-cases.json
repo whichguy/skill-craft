@@ -1,0 +1,15 @@
+[
+ {"name": "d1", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d1", "case": "due", "wording": "first"},
+ {"name": "d2", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d2", "case": "due", "wording": "first"},
+ {"name": "d3", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d3", "case": "due", "wording": "first"},
+ {"name": "h1", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/h1", "case": "hello", "wording": "first"},
+ {"name": "d4", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d4", "case": "due", "wording": "final"},
+ {"name": "d5", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d5", "case": "due", "wording": "final"},
+ {"name": "d6", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d6", "case": "due", "wording": "final"},
+ {"name": "h2", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/h2", "case": "hello", "wording": "final"},
+ {"name": "s1", "path": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w3/s1", "case": "due", "wording": "final"},
+ {"name": "k1", "path": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k1", "case": "hello", "wording": "latest"},
+ {"name": "k2", "path": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k2", "case": "due", "wording": "latest"},
+ {"name": "k3", "path": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k3", "case": "due", "wording": "latest"},
+ {"name": "k4", "path": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k4", "case": "due", "wording": "latest", "run": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k4/.shiploop-runs/work-20261122-142444-b50915/run"}
+]

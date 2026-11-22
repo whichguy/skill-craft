@@ -4890,6 +4890,13 @@ take, something refused)", and keeping a copy before going back is a step an ope
 counts come from different deliveries under different instructions; no held-out check judges that loss; the owner
 has not ruled on it; one case.
 
+*Qualified 2026-11-22, 07:08, by two more deliveries.* The Ratchet session's confirmation round added two Sol
+deliveries built from the latest ShipLoop. One of them, k2, tells it (row 5 of 5: "How can a rollback preserve
+original due values if 1.4.0 writes?"); the other, k3, does not (3 rows). Its second Sonnet delivery, k4, tells it
+(row 5 of 6). So on Sol a row tells what going back loses in 1 delivery of 8 (1 row of 29), and on Sonnet in 2 of
+2. "Six of six" above is the count of the first six only; the finding stands as "usually left out on Sol". Read by
+me from the three deliveries' spec results, with the same word pattern as `cross_reading.py`.
+
 **How long a separate lister takes,** read from the 27 kept session folders (from the first write of a session's
 error stream to its verdict file): 60 to 116 seconds after the specification (median 102), 71 to 140 with the
 plan and test cases written (114), 122 to 162 after the tests ran (146). Tokens were not read.
@@ -4926,3 +4933,146 @@ plan and test cases written (114), 122 to 162 after the tests ran (146). Tokens 
 **Not known.** Whether the loss on going back matters to the owner. Whether the three deliveries of the Ratchet
 session's running round tell it. Whether a second reader, shown the rows, adds real open points or noise. The
 chain from the list to an answer to a corrected build, end to end in ShipLoop.
+
+## 62. A further step registered before any model call: shown the rows the requester already gets, does a second, separate reader add decisions worth telling? (07:20, 2026-11-22)
+
+**On whose word.** The owner did not answer section 61's question. At about 06:55 he asked "What should we do?". My
+answer was that he need not rule on it. The question asked him to play the requester of a test fixture, and the test
+does not need that: its judges can apply the rule of the list's own instruction (a choice the request does not
+settle, that a person who uses or runs the product would notice). The test runs under the owner's standing approval
+of 2026-11-21 ("Yes, approved to continually do experiments / tests as you se for"): small, bounded and registered
+here before its first model call. The proposal's "a yes starts one small test", and "only on his yes" in what I
+told the Ratchet session, are overtaken by this. That session was told shortly after 07:03.
+
+**The owner's instruction on who does what,** 06:47: "If you have moderate  code fixes, use opus agent, if you have
+tactical activities like got operations use sonnet agent". Applied from this step on. The harness below was written
+by an Opus agent at extra-high effort from the design fixed here, and I read its work. Commits and pushes are made
+by a Sonnet agent from messages and scripts written here. The design, the texts, the rules and the reading of
+results stay in this session.
+
+**The question.** ShipLoop's accepted list tells the requester what the specification's author recorded as decided
+for them. Section 61 found that on Sol the author leaves out a decision a separate reader ranks first. Shown the
+rows the requester already gets, does a second reader add decisions worth telling, without repeating the rows and
+without burying a small request in trifles?
+
+**The material, which exists: thirteen finished deliveries with the list, read only.** All are the Ratchet
+session's, read with its yes.
+
+- Nine kept from its candidate's waves. Of the bench case `ticket-due-times`: six on Sol at medium (d1 to d6) and
+  one on Sonnet at medium (s1). Of `hello`, a request that leaves little open: two on Sol (h1, h2). d1, d2, d3 and h1
+  were written under the instruction's first wording; d4, d5, d6, h2 and s1 under its final wording.
+- Four from its confirmation round of this morning, built from the tree that joins the list with ShipLoop 2.5.0,
+  which is the latest ShipLoop: k1 (`hello`, Sol), k2 and k3 (due times, Sol) and k4 (due times, Sonnet), all at
+  medium. k4 has two run folders (its session started twice within ten seconds); the one with the work is named in
+  the list of deliveries.
+
+The list of deliveries is `second-reader-cases.json`. What the Ratchet session told me of its round, as received
+and not checked by me: k2 and k3 both chose a separate command and a refusal to start, and tell it in a row with the
+other answer beside it; k4 fills at the first start; the lists have 1, 5, 3 and 6 rows; a row tells what going back
+loses in k2 and in k4 and not in k3. Its release is not on main: it waits on the owner's answer to that session's
+question, because three of the four deliveries miss the rule it had registered.
+
+**What a reader is given.** For each delivery, a snapshot of what existed right after its specification was
+accepted: the request; the repository at that commit; what each stage through the spec recorded; and `told.md`,
+the rows of `defaults` as the requester was shown them (the question, what was decided, the other answer). The rows
+are taken from the accepted spec result, which is what the done packet and the report print whole; the next
+stage's packet prints them within 2,400 characters and names a file for the rest (in k4 it printed five of six,
+by the Ratchet session's account). The
+commit is the one whose subject ends "knowledge after spec". A delivery without such a commit (s1, whose
+specification was committed by its review passes) takes the last commit made before the trace says the spec was
+accepted. Every path under the owner's home is replaced, so that a reader cannot walk to the delivery, where the
+later work lies.
+
+**The ask.** One new session on Sol at medium for each snapshot, three times. The text is section 59's with one
+thing added, the rows: list every *other* decision the work has taken on the requester's behalf, that is every one
+`told.md` does not already tell; do not repeat a row, even in other words; the costliest wrong guess first; the
+list may be empty. (`SECOND_PROMPT` in `second_reader.py`, sha256 90ed9ac8846621fd177033bf847f1ab94bf8c926527aa915bbd85cb36a200260.)
+
+**The judging.** Two judges, Opus at high and Astra at high, each in one session over all lists. A judge sees the
+first five items of each list, the rows, the specification, the request and the starting product, under shuffled
+names, and is not told the delivery, its author or the repeat. For each list a judge gives:
+
+- each item one class, the first that applies: `unfounded` (the specification does not say it), `told` (a row
+  already tells it), `settled` (the request states it, or the product already behaved so), `unseen` (nobody who uses
+  or runs the product would notice), `new` (a choice of the work that the request does not settle, that such a
+  person would notice, and that no row tells: the rule of the list's own instruction);
+- three facts about the delivery: whether the rows tell what going back loses; whether the specification makes the
+  service refuse to start when it is switched on while a ticket has no due time; whether the rows tell that refusal;
+- the place, among the five, of the first item about each of two described decisions: what going back to 1.4.0
+  loses (section 61's gap), and that refusal (the consequence the owner's earlier ruling is about, which the rows
+  of d2 and d3 leave out, by the Ratchet session's own reader).
+
+(`JUDGE_PROMPT` sha256 ecbdba42da8d92d47d8ac19c9a2d74204330ab5a4af0ae174b7108244bfed98a; `RULE` sha256 c2f55f00639683e4698cc50f3200d190d249c21ace2f9f9c5485345546e60ffb.) "Both judges" below means that the two agree.
+
+**The readings, fixed now.** They are read on the nine deliveries written under the final wording: d4, d5, d6, h2 and
+s1, and the round's k1 to k4. The same counts over all thirteen are reported beside them as context.
+
+| Reading | What is counted | The rule |
+|---|---|---|
+| A, the gap is filled | due-times lists where both judges say the rows do not tell what going back loses; of those, the lists where both judges place it among the first three | "filled" at 5 of every 6 or more; "not filled" under half; "partly" between; fewer than 6 lists cannot be read |
+| B1, a decision already told is not told again | due-times lists where both judges say the rows do tell it; of those, the lists where either judge finds it among the five | "not repeated" at 1 list in 3 or fewer |
+| B2, rows are not repeated | all items shown in due-times lists; of those, the items both judges class `told` | "does not repeat rows" at 1 item in 5 or fewer |
+| C, what is added is worth telling | for each due-times list, how many of its five both judges class `new` | "adds real open points" when the median list has 3 or more; "adds noise" at 1 or fewer; "in between" otherwise |
+| D, a small request | `hello` lists: their full lengths, and how many items both judges class `new` | "quiet" when the median list has 2 items or fewer; "floods" when it has 5 or more and at most 1 is `new`; "in between" otherwise |
+| E, the decisive consequence | due-times lists where both judges say the specification refuses and the rows do not tell it; of those, the lists where both judges place the refusal among the first three | "completes it" at 5 of every 6 or more; "does not" under half; "partly" between; fewer than 6 lists cannot be read |
+
+Overall: **"earns a trial in ShipLoop"** when A is filled, B1 is not "repeated", B2 holds and C adds real open
+points. **"Does not earn one"** when A is not filled or C adds noise. Anything else is described and leads to no
+proposal. D and E are reported beside it: D is the cost on a small request, and E can only come from d2 and d3,
+which are of the first wording.
+
+**Predictions, written before any session.**
+
+- 47. A is filled: what going back loses is among the first three added in at least nine lists of ten.
+- 48. B1: the Sonnet delivery's lists do not tell it again (none or one of three).
+- 49. B2: fewer than one item in ten repeats a row.
+- 50. C: the median due-times list has three `new` of five, and the judges give different classes to at least three
+  items in ten.
+- 51. D: `hello` floods: a median list of five or more items, at most one of them `new`.
+- 52. E: the refusal is among the first three added in at least five of the six lists of d2 and d3.
+
+**What it can and cannot show.** It can show whether a second reader, at the point where the list is made, adds
+what the author left out, and what that costs in repeats and trifles. It cannot show that a requester reads the
+added rows, that an added row would have changed a build, or anything about another case. A reader here is a
+separate session started by a script. Whether ShipLoop's own review of the specification could carry the same
+question is a design matter for the list's owner and is not tested.
+
+**Failures, fixed now.** A session that leaves no usable list is launched once more and no more; a list still
+missing is reported and left out. A judge whose verdict the script refuses (a missing list, a class outside the
+five, a place outside the items) is run again as a new session; no verdict is edited. Nothing is rescored.
+
+**Checked, no model called.** `second_reader.py selftest` on the thirteen delivery folders, with made-up lists and
+verdicts: 35 checks hold, none failed (`evidence/second-reader/selftest.txt`). Among them:
+
+- every delivery gets a snapshot. Eleven commits are found by their subject, and for all eleven the time rule gives
+  the same commit. s1 and k4 are found by time: the last commit of their spec review, 12.8 and 19.4 seconds before
+  the trace says the spec was accepted;
+- the rows written for the reader equal the Ratchet session's own record of what the packet printed, for all seven
+  deliveries that have one. The first run found d2 differing by closing periods: ShipLoop adds a period where the
+  author left none, and the harness now does the same;
+- no snapshot holds a path under the owner's home. The judges' copy of the request carries no invocation token (the
+  Codex host records the request behind `$skill-craft:shiploop`, the Claude host without it) and is the same text
+  for every delivery of a case;
+- a list with no decision passes through. A verdict with a missing list, a class outside the five or a place outside
+  the items is refused, and nothing is written;
+- made-up lists and verdicts built for each outcome give "earns a trial in ShipLoop", "does not earn one" and "mixed",
+  and each rule answers as written at the edges of its thresholds.
+
+I read the harness's snapshot, packing, verdict-checking and scoring code against this section: the rules are the
+ones above, as plain functions. One thing the offline check did that it should not have: it ran `git status` once
+inside h1's work repository, and git may have refreshed that repository's index file. No content changed. The
+Ratchet session is told.
+
+**Cost, expected.** 39 lister sessions on subscription at about two minutes each, three at a time; one Opus judge
+session, a dollar or two; one Astra judge session on subscription.
+
+**When.** The Ratchet session wrote at 07:06 that its round and its test tier are finished and the machine is free,
+so the sessions start once this section is committed and that session has its hash. My pushes stay held, at its
+request, until it writes "on main" or "held": its guarded push needs the remote's main where it is. So this
+registration is a local commit until then, and the hash sent to the Ratchet session before the first session is
+the outside record of the order.
+
+**The base this is cut from.** At 07:19 another session pushed a change of the ticket fixture to main, at the
+owner's word (its tests now listen on 127.0.0.1). This registration is cut from that commit. All thirteen deliveries
+were built on the earlier fixture, and the test reads each delivery's own starting product from its first commit,
+so the change alters nothing the test reads. A later repeat on fresh deliveries would be on the new fixture.

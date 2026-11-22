@@ -4,6 +4,14 @@ Status: a proposal, written 2026-11-22 for the owner to decide. It changes nothi
 wrote it (Spec elaboration) does not change ShipLoop; a change would be made by the session that owns the list.
 The account behind it is the journal's section 61 (`docs/spec-elaboration-journal.md`).
 
+**Since this was written (2026-11-22, 07:20).** Two things changed, and the text below is left as it was.
+
+- The owner asked "What should we do?" instead of answering the question below. The small test does not need his
+  ruling, because its judges can apply the list's own rule, so it is registered and run under his standing approval
+  for experiments: the journal's section 62. "A yes starts one small test" is overtaken.
+- The Ratchet session's confirmation round added two Sol deliveries. One of them tells what going back loses and
+  one does not. So on Sol a row tells it in 1 delivery of 8 (1 row of 29), not in none of 6; on Sonnet in 2 of 2.
+
 ## In short
 
 - **ShipLoop should tell the requester what it decided for them, right after the specification. That is already
