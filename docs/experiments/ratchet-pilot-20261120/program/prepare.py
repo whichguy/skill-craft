@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Make the folder and the prompt of one session of the program of journal section 26. No model is called.
 
-    python3 prepare.py question RUN OUT
+    python3 prepare.py question RUN OUT [--text NAME]
         the one question to the requester; RUN is a ratchet.py run that wrote a specification, and the folder is its
-        work tree as the spec stage left it
+        work tree as the spec stage left it; --text names another text of this folder (question-three.md)
     python3 prepare.py revise QUESTION_RUN ANSWER OUT
         the specification after the answer; QUESTION_RUN is the output of the question session; ANSWER is `point`
         (the case's reply in replies.json) or `otherwise` (the requester has no preference)
@@ -79,14 +79,14 @@ def finish(out, prompt, made):
     print(f"{out.name}: folder of {sum(1 for path in (out / 'folder').rglob('*') if path.is_file())} files, prompt of {len(prompt)} characters")
 
 
-def question(run, out):
+def question(run, out, text="question.md"):
     run, out = Path(run).resolve(), fresh(out)
     record = json.loads((run / "run.json").read_text())
     commit = next(snap["commit"] for snap in record["snapshots"] if snap["label"] == "spec")
     archive = subprocess.run(["git", "-C", str(run / "work"), "archive", commit], capture_output=True, check=True).stdout
     subprocess.run(["tar", "-x", "-C", str(out / "folder")], input=archive, check=True)
-    finish(out, text_of("question.md", REQUEST=case_of(record["case"])["request"]),
-           {"verb": "question", "run": str(run), "case": record["case"], "enrich": record.get("enrich"), "spec_commit": commit})
+    finish(out, text_of(text, REQUEST=case_of(record["case"])["request"]),
+           {"verb": "question", "text": text, "run": str(run), "case": record["case"], "enrich": record.get("enrich"), "spec_commit": commit})
 
 
 def revise(question_run, answer, out):
@@ -138,8 +138,12 @@ def main(argv=None):
     if "--record" in argv:
         record_from = argv[argv.index("--record") + 1]
         del argv[argv.index("--record"):argv.index("--record") + 2]
+    text = "question.md"
+    if "--text" in argv:
+        text = argv[argv.index("--text") + 1]
+        del argv[argv.index("--text"):argv.index("--text") + 2]
     if argv[:1] == ["question"] and len(argv) == 3:
-        question(argv[1], argv[2])
+        question(argv[1], argv[2], text)
     elif argv[:1] == ["revise"] and len(argv) == 4:
         revise(argv[1], argv[2], argv[3])
     elif argv[:1] == ["review"] and len(argv) == 5:

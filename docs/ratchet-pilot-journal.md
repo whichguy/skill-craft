@@ -3777,3 +3777,26 @@ decision, and it is being made by whoever touches the file.
 builders are one model family, and the checkers and second readers another; "no break" for `kd` means none was
 found by six reviews and two readers, not that none exists. Whether the reference's change to the command line is
 a defect of the E2E harness's reference or a welcome fix is its owner's to say.
+
+### Part D2b, registered 18:40, before any of its runs: three questions of three kinds (exploratory, nine sessions)
+
+**What it asks.** F50: one question chosen by cost asks the request's point in none of nine runs. Does a session
+that may ask three, one by cost, one about ordinary use and one about a place where what exists disagrees with
+itself, ask it? **Exploratory:** the three kinds were written after part D2's result and with the due-times point
+known to me. A hit would show that the point can be reached by a rule of choice; it would not show that this rule
+is the right one.
+
+**Cells.** `k1` to `k9`: as `g1` to `g9` (the same nine specifications of part D1, the same folders), with
+`program/question-three.md` in place of `program/question.md`.
+
+**Readings.**
+
+- **RD2b.1.** For each request, in how many of three runs one of the three questions asks the request's point, and
+  under which kind (two readers, the second without my sorting).
+- **RD2b.2.** How many of the 27 questions ask what the product's files settle.
+- Reported: what the third kind turns up. This product holds one such place (F55: its documents say a listing
+  matches every filter given, its code matches either).
+
+**Predictions.** Due times: the ordinary-use question asks the start-up point in two of three. The states: the
+ordinary-use question asks which states allow assignment in one of three. The limit: none of three. The
+disagreement question names the filters in at least six of nine.
