@@ -23,6 +23,7 @@ import deep_judge  # the cases, and this machine's Playwright paths
 
 HOST, MODEL, EFFORT = "codex", "gpt-6.2-sol", "medium"
 ALLOW = "docs/shiploop/look.md"
+RENDERED = ("grokbot", "roundtable")  # cases with a page: the look and its probe are told how to drive it in a browser
 LOOK = """# One look at a delivered product
 
 This folder ({{work}}) holds a product that was built and delivered for the request below. Every check passes. Its
@@ -161,7 +162,7 @@ def unmatched(root: Path, case: str) -> None:
     codes = ", ".join(f"`{code}`" for code in key)
     reviewed = next(code for code, entry in key.items() if entry["point"] == "S")
     browser = ""
-    if case == "grokbot":
+    if case in RENDERED:
         browser = (f" Where a step needs the page, drive it with Playwright from a Node script: `const {{ chromium }} = "
                    f"require('{deep_judge.PLAYWRIGHT}')` and `chromium.launch({{ executablePath: '{deep_judge.BROWSER}' }})`.")
     (out / "probe.md").write_text(PROBE.format(unmatched=out / "unmatched.json", request=case_dir / "request.md",
@@ -210,13 +211,20 @@ def tally(root: Path) -> None:
         print(line)
 
 
+def request(root: Path, cases: dict, case: str) -> str:
+    """CASE's request: the pilot's, as before, for the four cases it has; for one it lacks (roundtable), the one the deep
+    judge reads (deep_judge.request_of: the harness's prompt in the checkout ROOT/source.json names)."""
+    full_name = deep_judge.CASES[case]
+    return cases[full_name]["request"] if full_name in cases else deep_judge.request_of(root, case)[0]
+
+
 def prepare_clean(fresh: Path) -> None:
     """The same look for a fresh run's deliveries (journal section 14): the delivered commit of FRESH/CASE-1/work is
     exported without its history to FRESH/delivered/CASE, and the look runs there."""
     prompts = fresh / "look" / "prompts"
     prompts.mkdir(parents=True, exist_ok=True)
     cases = json.loads((PILOT / "cases.json").read_text())
-    for case, full_name in deep_judge.CASES.items():
+    for case in deep_judge.CASES:
         measures, delivered = fresh / "measure" / f"{case}-1" / "measures.json", fresh / "delivered" / case
         if not measures.is_file():
             print(f"# {case}: not measured yet ({measures})")
@@ -227,8 +235,8 @@ def prepare_clean(fresh: Path) -> None:
                                      capture_output=True, check=True).stdout
             delivered.mkdir(parents=True)
             subprocess.run(["tar", "-x", "-C", str(delivered)], input=archive, check=True)
-        browser = BROWSER.format(playwright=deep_judge.PLAYWRIGHT, browser=deep_judge.BROWSER) if case == "grokbot" else ""
-        text = LOOK.format(request=cases[full_name]["request"].strip().replace("{", "{{").replace("}", "}}"), browser=browser)
+        browser = BROWSER.format(playwright=deep_judge.PLAYWRIGHT, browser=deep_judge.BROWSER) if case in RENDERED else ""
+        text = LOOK.format(request=request(fresh, cases, case).strip().replace("{", "{{").replace("}", "}}"), browser=browser)
         (prompts / f"{case}.md").write_text(text.replace("{{", "{").replace("}}", "}"))
         print(f"python3 {PILOT / 'one_session.py'} --folder {delivered} --prompt {prompts / f'{case}.md'} --allow {ALLOW} "
               f"--output {fresh / 'look' / case} --host {HOST} --model {MODEL} --effort {EFFORT} --role look")
@@ -251,11 +259,14 @@ def main(argv=None) -> int:
     prompts = root / "look" / "prompts"
     prompts.mkdir(parents=True, exist_ok=True)
     cases = json.loads((PILOT / "cases.json").read_text())
-    for case, full_name in deep_judge.CASES.items():
+    for case in deep_judge.CASES:
+        if not (root / "deep" / case / "key.json").is_file():  # roundtable's products are laid out under a derived name
+            print(f"# {case}: no products under {root / 'deep' / case}")
+            continue
         key = json.loads((root / "deep" / case / "key.json").read_text())
         code = next(code for code, entry in key.items() if entry["point"] == "S")
-        browser = BROWSER.format(playwright=deep_judge.PLAYWRIGHT, browser=deep_judge.BROWSER) if case == "grokbot" else ""
-        text = LOOK.format(request=cases[full_name]["request"].strip().replace("{", "{{").replace("}", "}}"), browser=browser)
+        browser = BROWSER.format(playwright=deep_judge.PLAYWRIGHT, browser=deep_judge.BROWSER) if case in RENDERED else ""
+        text = LOOK.format(request=request(root, cases, case).strip().replace("{", "{{").replace("}", "}}"), browser=browser)
         (prompts / f"{case}.md").write_text(text.replace("{{", "{").replace("}}", "}"))
         print(f"python3 {PILOT / 'one_session.py'} --folder {root / 'deep' / case / 'products' / code} "
               f"--prompt {prompts / f'{case}.md'} --allow {ALLOW} --output {root / 'look' / case} "

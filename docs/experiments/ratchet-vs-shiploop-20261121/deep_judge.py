@@ -6,6 +6,9 @@ calls no model. It lays out the folders and the instruction files the model sess
 joins their JSON answers, and computes the readings. Everything lives under ROOT/deep/.
 
     deep_judge.py prepare ROOT CASE            products under code names, the request, the starting files, prompts
+    deep_judge.py prepare-inventory ROOT CASE  before any run of a case that starts empty: the request, an empty base,
+                                               no arm points, the first prompts (roundtable; its products come with the
+                                               derived layouts, fresh or cand)
     deep_judge.py rate-packet ROOT CASE        after merged.json: the rating instructions, sources left out
     deep_judge.py inventory ROOT CASE          after both ratings: inventory.json, inventory.md, the audit prompts
     deep_judge.py calibrate ROOT [ROUND]       after the ticket inventory: the instrument check as a case of its own
@@ -21,7 +24,7 @@ joins their JSON answers, and computes the readings. Everything lives under ROOT
     deep_judge.py grab IN.json OUT.json        the first JSON object in an `ask` answer's text
     deep_judge.py score ROOT OUT_DIR           D1 to D6, the gate, the pairs, deep.json and deep.md
 
-CASE is the short name: expenses, chess, tickets, grokbot (and calibration for the last four steps).
+CASE is the short name: expenses, chess, tickets, grokbot, roundtable (and calibration for the last four steps).
 """
 import json
 import random
@@ -33,8 +36,13 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PILOT = HERE.parent / "ratchet-pilot-20261120"
+PILOT_REL, E2E_REL = "docs/experiments/ratchet-pilot-20261120", "test/shiploop_e2e"
 CASES = {"expenses": "shared-expenses", "chess": "node-chess-engine", "tickets": "ticket-assignment",
-         "grokbot": "grokbot-local"}
+         "grokbot": "grokbot-local", "roundtable": "roundtable"}
+DERIVED = ("-fixed", "-clean", "-fresh", "-cand")
+# Cases with a page whose single-share audit and cross-probe prompts carry the browser note (PAGE). Grokbot's audits
+# carry it in their shares (SHARE); its probe prompts were written without it and are left as they were.
+BROWSER_NOTE_CASES = ("roundtable",)
 POINTS = (("S", "1", "final", "docs/shiploop/spec.md"), ("F", "2", "first-build", "ratchet/spec.md"),
           ("L", "2", "final", "ratchet/spec.md"))
 NAMES = {"S": "ShipLoop's delivery", "F": "Ratchet's first build", "L": "Ratchet's final"}
@@ -230,6 +238,23 @@ Write your audit to `{out}` as one JSON object and nothing else in the file:
 
 Every inventory item must appear once. When the file is written and every process you started is stopped, reply
 with three lines only: the tests' result, the count of stated items not `yes`, the count of defects.
+"""
+
+PAGE = """
+
+## The page
+
+Where a step needs the product's page in a browser, drive it for real with Playwright from a Node script:
+`const {{ chromium }} = require('{playwright}')` and `chromium.launch({{ executablePath: '{browser}' }})` (headless).
+Close every browser you open.
+"""
+
+# arm-points.md of a case whose inventory is written before any run (prepare-inventory): the merge finds nothing there.
+NO_ARM_POINTS = """# Points raised by people who built the product
+
+None. This case's inventory was written before any run of it existed, so no arm's own notes were used for it (no
+Ratchet `Open:` lines or clauses added after a build, no code reader's remarks): every item comes from the two
+readers of the request.
 """
 
 SHARE = """
@@ -436,7 +461,11 @@ def prepare(root: Path, case: str) -> None:
         write_first_prompts(case_dir)  # a case's products are laid out once; its first prompts may be rewritten
         print(f"{case}: already laid out; lister.md and merge.md rewritten")
         return
-    request = load(PILOT / "cases.json")[CASES[case]]["request"]
+    pilot = load(PILOT / "cases.json")
+    if CASES[case] not in pilot:
+        raise SystemExit(f"{case}: {CASES[case]!r} is not a case of {PILOT / 'cases.json'}; its inventory is written before "
+                         f"any run with `prepare-inventory ROOT {case}`, and its products are laid out by `fresh` or `cand`")
+    request = pilot[CASES[case]]["request"]
     (case_dir / "prompts").mkdir(parents=True)
     (case_dir / "request.md").write_text(request.rstrip() + "\n")
     shutil.copytree(root / "measure" / f"{case}-1" / "fixture", case_dir / "base", ignore=SKIP)
@@ -451,6 +480,60 @@ def prepare(root: Path, case: str) -> None:
     dump(case_dir / "key.json", key)
     write_first_prompts(case_dir)
     print(f"{case}: {len(key)} products under {case_dir / 'products'}; prompts lister.md and merge.md")
+
+
+def base_case(name: str) -> str:
+    """The case a case folder's name is derived from: roundtable for roundtable-fresh, calibration2 for itself."""
+    return next((name.removesuffix(suffix) for suffix in DERIVED if name.endswith(suffix)), name)
+
+
+def request_of(root: Path, case: str) -> tuple:
+    """CASE's request, its starting point and where both were read, as (request, starts from, where). With
+    ROOT/source.json the files are those of the checkout it names, the one both arms run from (launch.py checkout);
+    without it, this repository's own. The harness's prompt is the request; where the pilot's cases.json has the case
+    too (launch.py adds it in the checkout), its request must be the same word for word, since each arm reads its own."""
+    name, record = CASES[case], root / "source.json"
+    if record.exists():
+        top = Path(load(record)["checkout"])
+        if not top.is_dir():
+            raise SystemExit(f"{record} names the checkout {top}, which is not there any more")
+        told = f"the checkout named by {record} ({top})"
+    else:
+        top, told = HERE.parents[2], f"this repository ({HERE.parents[2]}), as {root} has no source.json"
+    harness = load(top / E2E_REL / "cases.json").get(name)
+    pilot = load(top / PILOT_REL / "cases.json").get(name)
+    if harness is None and pilot is None:
+        raise SystemExit(f"{case}: {name!r} is a case of neither {E2E_REL}/cases.json nor {PILOT_REL}/cases.json in {told}")
+    if harness is not None and "prompt" not in harness:
+        raise SystemExit(f"{case}: the harness's case {name!r} has no inline prompt (a prompt file is not read here)")
+    request = harness["prompt"] if harness is not None else pilot["request"]
+    if harness is not None and pilot is not None and pilot["request"] != request:
+        raise SystemExit(f"{case}: the pilot's request for {name!r} is not the harness's prompt word for word, in {told}")
+    starts = ((harness or {}).get("base") or {}).get("fixture") or (pilot or {}).get("fixture") or (pilot or {}).get("fixture_path")
+    read = " and ".join(f"{path}/cases.json {name}" for path, entry in ((E2E_REL, harness), (PILOT_REL, pilot)) if entry)
+    return request, starts, f"{read}, in {told}"
+
+
+def prepare_inventory(root: Path, case: str) -> None:
+    """Lay out ROOT/deep/CASE before any run of it exists, so its inventory is written without a product or a builder's
+    notes: the request, `base/` (an empty folder: the case starts empty, so base_line tells every prompt "The builder
+    started from an empty folder"), `arm-points.md` with no points, and the first prompts. The products are laid out
+    later by `fresh` or `cand` from this folder's request, inventory and base, under ROOT/deep/CASE-fresh or -cand."""
+    case_dir = root / "deep" / case
+    if (case_dir / "request.md").exists():
+        write_first_prompts(case_dir)
+        print(f"{case}: already laid out; lister.md and merge.md rewritten")
+        return
+    request, starts, where = request_of(root, case)
+    if starts:
+        raise SystemExit(f"{case}: the case starts from {starts}; prepare-inventory lays out a case that starts empty")
+    (case_dir / "prompts").mkdir(parents=True)
+    (case_dir / "base").mkdir()
+    (case_dir / "request.md").write_text(request.rstrip() + "\n")
+    (case_dir / "arm-points.md").write_text(NO_ARM_POINTS)
+    write_first_prompts(case_dir)
+    print(f"{case}: request ({len(request)} characters) from {where}; base/ empty (the case starts empty); arm-points.md "
+          f"with no points; prompts lister.md and merge.md under {case_dir / 'prompts'}")
 
 
 def rate_packet(root: Path, case: str) -> None:
@@ -472,6 +555,11 @@ def shares_of(inv: dict) -> list:
     return [stated[start:start + size] for start in range(0, len(stated), size)] + [unstated]
 
 
+def page_note(case_dir: Path) -> str:
+    """The browser note for a prompt about the products of a case with a page (BROWSER_NOTE_CASES), else nothing."""
+    return PAGE.format(playwright=PLAYWRIGHT, browser=BROWSER) if base_case(case_dir.name) in BROWSER_NOTE_CASES else ""
+
+
 def write_audit_prompts(case_dir: Path) -> None:
     inv = load(case_dir / "inventory.json")
     shares = shares_of(inv)
@@ -488,7 +576,7 @@ def write_audit_prompts(case_dir: Path) -> None:
         if len(shares) == 1:
             (case_dir / "prompts" / f"audit-{code}.md").write_text(AUDIT.format(
                 case_dir=case_dir, base_line=base, product=product, spec_line=spec_line, work=case_dir / "work" / code,
-                out=case_dir / "audits" / f"{code}.json", code=code, proved=proved, explore=EXPLORE))
+                out=case_dir / "audits" / f"{code}.json", code=code, proved=proved, explore=EXPLORE) + page_note(case_dir))
             continue
         for number, items in enumerate(shares, 1):
             last = number == len(shares)
@@ -512,6 +600,12 @@ def inventory(root: Path, case: str) -> None:
     merged = load(case_dir / "merged.json")
     ratings = {name: {row["id"]: row["rating"] for row in load(case_dir / f"rate-{name}.json")["ratings"]}
                for name in JUDGES}
+    arm_points = case_dir / "arm-points.md"
+    if arm_points.exists() and arm_points.read_text() == NO_ARM_POINTS:  # prepare-inventory: no arm source exists
+        sourced = [item["id"] for item in merged["unstated"] if set(item["sources"]) - {"a", "b"}]
+        if sourced:
+            raise SystemExit(f"{case}: merged.json gives {', '.join(sourced)} a source other than the two readers, and "
+                             "this case has no arm points")
     kept, rows = [], []
     for item in merged["unstated"]:
         pair = [ratings[name].get(item["id"]) for name in JUDGES]
@@ -534,7 +628,10 @@ def inventory(root: Path, case: str) -> None:
         text += [f"- **{item['id']}**: {item['text']}", f"  - Probe: {item['probe']}",
                  f"  - Outcomes that would be acceptable: {item.get('fine_answers') or 'not given'}"]
     (case_dir / "inventory.md").write_text("\n".join(text) + "\n")
-    write_audit_prompts(case_dir)
+    if (case_dir / "key.json").exists():
+        write_audit_prompts(case_dir)
+    else:  # an inventory written before any run (prepare-inventory): a layout writes the audit prompts with its products
+        print(f"{case}: no products yet; `fresh` or `cand` lays them out, with their audit prompts, from this inventory")
     arm_only = [row for row in rows if not row["independent"]]
     primary = [row for row in rows if row["independent"]]
     print(f"{case}: stated {len(stated_ids)} (tests proved on {', '.join(proved)}); unstated rated {len(rows)}: "
@@ -785,7 +882,8 @@ def defects(root: Path, case: str) -> None:
                 recheck.append({"id": item["id"], "kind": kind, "text": item["text"], "audits_said": grades})
     dump(case_dir / "defects-reported.json", {"recheck": recheck, "defects": reported})
     codes = ", ".join(f"`{code}`" for code in key)
-    (case_dir / "prompts" / "probe.md").write_text(PROBE.format(case_dir=case_dir, codes=codes, work=case_dir / "work" / "probe"))
+    (case_dir / "prompts" / "probe.md").write_text(PROBE.format(case_dir=case_dir, codes=codes, work=case_dir / "work" / "probe")
+                                                   + page_note(case_dir))
     print(f"{case}: {len(reported)} defects reported, {len(recheck)} items to recheck ({', '.join(row['id'] for row in recheck)}); prompt probe.md")
 
 
@@ -1104,7 +1202,8 @@ def main(argv=None) -> int:
     if command == "calibrate" and len(rest) in (1, 2):
         calibrate(Path(rest[0]).expanduser().resolve(), int(rest[1]) if len(rest) == 2 else 1)
         return 0
-    steps = {"prepare": prepare, "rate-packet": rate_packet, "inventory": inventory, "defects": defects,
+    steps = {"prepare": prepare, "prepare-inventory": prepare_inventory, "rate-packet": rate_packet, "inventory": inventory,
+             "defects": defects,
              "join-shares": join_shares, "told-packet": told_packet, "verdict-packet": verdict_packet}
     late = ("defects", "join-shares", "told-packet", "verdict-packet")
     if command == "fixed" and len(rest) == 2 and rest[1] in CASES:

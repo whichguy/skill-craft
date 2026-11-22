@@ -15,8 +15,13 @@ Nothing here writes into either repository; it only starts the tool and records 
 `checkout` adds a case to the harness's cases.json only where the harness has none of that name, built from the
 Ratchet pilot's cases.json: the request word for word as the prompt, the same starting files (a fixture's
 docs/shiploop knowledge home removed, as ratchet.py removes it), and the case's own check commands as the harness's
-verdict checks, in the harness's pass-count form. The added cases are committed in the detached checkout only. That
-checkout's ShipLoop source is the commit given, unchanged: the one added commit touches test/shiploop_e2e alone.
+verdict checks, in the harness's pass-count form. The other way round, a compared case the harness has and the pilot
+lacks (roundtable) is added to the pilot's cases.json, built from the harness's case: its prompt word for word as the
+request, its base (if it has one) as the fixture, and as checks the bare command of each check in the harness's
+pass-count form and each other check that needs none of the harness's own scripts; a check that runs one
+($E2E_CHECKS) is held out from the Ratchet arm, as the pilot's battleship entry holds out its three. The added cases
+are committed in the detached checkout only. That checkout's ShipLoop source is the commit given, unchanged: the one
+added commit touches test/shiploop_e2e and the pilot's cases.json alone.
 
 ROOT/LABEL.launch.json records the command, the attempts, start and end times and the exit status. A ShipLoop launch
 that the harness refuses because another session's run holds a machine-wide port lease (no output folder is written)
@@ -26,6 +31,7 @@ is tried again every RETRY_SECONDS, for up to RETRY_HOURS.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import subprocess
@@ -71,6 +77,45 @@ def starting_files(case: dict, checkout: Path) -> Path | None:
     return None
 
 
+def bare_command(check: str) -> str | None:
+    """The command inside a check in the harness's pass-count form (PASS_CHECK), or None for a check of another form."""
+    head, tail = PASS_CHECK.split("{command}")
+    return check[len(head):-len(tail)] if check.startswith(head) and check.endswith(tail) else None
+
+
+def pilot_entry(name: str, case: dict, prompt: str) -> tuple[dict, dict]:
+    """A Ratchet pilot case built from the harness's case NAME, and the record of it for source.json. The request is the
+    prompt the harness gives (boundary.load_case_prompt), word for word. The checks are what the pilot's gate runs as the
+    case's named checks: a pass-count check becomes its bare command (as `npm test` is the pilot's form of the harness's
+    pass-count `npm test`), another check that needs none of the harness's own scripts stays as it is, and a check that
+    runs one ($E2E_CHECKS) is left out: those scripts are the harness's, never a Ratchet session's (ratchet.py's
+    HELD_OUT_MARKS), as the pilot's battleship entry keeps `node --test` alone of its harness case's four checks."""
+    if case.get("follows"):
+        raise SystemExit(f"{name}: a follow-on case of the harness has no pilot form (its earlier passes' checks come with it)")
+    checks, left_out = [], []
+    for check in case["checks"]:
+        command = bare_command(check)
+        if command is None and "E2E_CHECKS" in check:
+            left_out.append(check)
+        else:
+            checks.append(command or check)
+    if not checks:
+        raise SystemExit(f"{name}: none of the harness's checks runs without the harness's own scripts")
+    fixture = (case.get("base") or {}).get("fixture")
+    entry = {"fixture": fixture, "request": prompt, "checks": checks, "hidden": None,
+             "source": (f"{E2E}/cases.json {name}, added by docs/experiments/ratchet-vs-shiploop-20261121/launch.py in a "
+                        f"throwaway checkout on {time.strftime('%Y-%m-%d')}: the harness's prompt word for word; "
+                        + (f"its base {fixture} as the starting files" if fixture else
+                           "the harness case has no base, so the work folder starts empty")
+                        + f"; checks: {', '.join(checks)}, the bare commands of the harness's checks that need none of its "
+                        f"own scripts ({len(checks)} of its {len(case['checks'])}); the other checks and the case's held-out "
+                        "acceptance are run apart, by the comparison's measure.py (grade.py has no grader of this case, so "
+                        "`hidden` is null)")}
+    record = {"request_from": f"{E2E}/cases.json {name}", "request_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+              "request_characters": len(prompt), "fixture": fixture, "checks": checks, "left_out_checks": left_out}
+    return entry, record
+
+
 def checkout(root: Path, ref: str) -> None:
     root.mkdir(parents=True, exist_ok=True)
     git("-C", str(REPO), "fetch", "-q", "origin")
@@ -80,6 +125,7 @@ def checkout(root: Path, ref: str) -> None:
         raise SystemExit(f"{target} exists already")
     git("-C", str(REPO), "worktree", "add", "-q", "--detach", str(target), commit)
     sys.path.insert(0, str(target / E2E))
+    import boundary  # the harness's own reading of a case's prompt (inline, or a pinned prompt file)
     import brownfield  # the harness's own pin of a base: boundary.files_digest over the fixture's files
 
     cases_path = target / E2E / "cases.json"
@@ -106,7 +152,16 @@ def checkout(root: Path, ref: str) -> None:
         harness_cases[name] = entry
         added[name] = {"base": entry.get("base"), "checks": entry["checks"]}
     cases_path.write_text(json.dumps(harness_cases, indent=2, ensure_ascii=False) + "\n")
+    added_pilot = {}
+    for name in COMPARED:
+        if name in pilot_cases or name not in harness_cases:
+            continue
+        prompt = boundary.load_case_prompt(target / E2E, harness_cases[name])
+        pilot_cases[name], added_pilot[name] = pilot_entry(name, harness_cases[name], prompt)
     git("-C", str(target), "add", "-A", E2E)
+    if added_pilot:  # the pilot's file as it is written (indent 1, characters as they are), so the diff is the added entry
+        (target / PILOT / "cases.json").write_text(json.dumps(pilot_cases, indent=1, ensure_ascii=False) + "\n")
+        git("-C", str(target), "add", "--", f"{PILOT}/cases.json")
     git("-C", str(target), *IDENTITY, "commit", "-q", "--allow-empty", "-m",
         "comparison cases for docs/experiments/ratchet-vs-shiploop-20261121 (a throwaway checkout; never pushed)")
     version = next((line.split(":", 1)[1].strip() for line in (target / "skills/shiploop/SKILL.md").read_text().splitlines()
@@ -114,13 +169,14 @@ def checkout(root: Path, ref: str) -> None:
     record = {"commit": commit, "checkout": str(target), "checkout_head": git("-C", str(target), "rev-parse", "HEAD"),
               "shiploop_version": version, "shiploop_last_commit": git("-C", str(target), "log", "-1", "--format=%H", commit, "--",
                                                                          "skills/shiploop"),
-              "added_cases": added, "host": HOST, "model": MODEL, "effort": EFFORT, "ratchet_enrich": ENRICH,
+              "added_cases": added, "added_pilot_cases": added_pilot, "host": HOST, "model": MODEL, "effort": EFFORT,
+              "ratchet_enrich": ENRICH,
               "made": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
     (root / "source.json").write_text(json.dumps(record, indent=1) + "\n")
     print(json.dumps(record, indent=1))
 
 
-COMPARED = ("shared-expenses", "node-chess-engine", "ticket-assignment", "grokbot-local")
+COMPARED = ("shared-expenses", "node-chess-engine", "ticket-assignment", "grokbot-local", "roundtable")
 
 
 def command_for(arm: str, case: str, out: Path, source: dict, root: Path) -> list[str]:

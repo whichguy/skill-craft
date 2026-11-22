@@ -5,6 +5,12 @@ same host, model and effort, and measures what each delivered. Design, registere
 `docs/ratchet-vs-shiploop-journal.md`. This is an experiment apparatus, not a released skill; nothing under `skills/`
 changes.
 
+Roundtable was added on 2026-11-22, at the owner's word, as a fifth, middle-sized case: a from-scratch web application
+with a rendered page (the harness's `roundtable`, a request of about 2,000 characters), which `checkout` adds to the
+Ratchet pilot's cases in the throwaway checkout; its deep-judge inventory is written before any run of it, with
+`deep_judge.py prepare-inventory ROOT roundtable` (the request, an empty base, no arm points), and its products are
+laid out later by `fresh` or `cand`.
+
 | File | What it is |
 |---|---|
 | `launch.py` | One detached checkout for both arms (`checkout`, adding to the E2E harness's cases.json the cases it lacks, with the Ratchet pilot's exact requests and starting files), and one run of an arm on a case (`run`; ShipLoop through `test/shiploop_e2e/run.py --source checkout`, Ratchet through the pilot's `ratchet.py --enrich reworded`); `resume` for a stopped ShipLoop run. |
