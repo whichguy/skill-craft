@@ -4193,3 +4193,142 @@ answers moves with the model.
 
 **Not delivered.** My note on F55, on the plain builds failing five held-out checks and on part G was sent to the
 session "Shiploop SDLC"; that session held it and it expired unread. The content is in this section.
+
+## 27. A candidate for ShipLoop: the specification records the choices it made, and the run shows them (2026-11-21, from 21:25)
+
+The owner, asked "Do you want me to draft the first of the six suggested ShipLoop changes here (showing the plan's
+decisions to the requester), as a candidate branch that stays out of main until you accept it?", said "Yes". This
+section is the account of that candidate. It is on branch `shiploop-defaults-2c3d50` and nowhere else. Whether it is
+accepted is the owner's decision; a release is the SDLC session's.
+
+Everything is in one folder, `docs/experiments/ratchet-pilot-20261120/shiploop-defaults/`: `DESIGN.md` (the design, the
+test plan fixed before any run, and what the review changed), `review/` (the review, word for word), `evidence/`,
+the scripts that read and run (`baseline_read.py`, `requester.py`, `read_wave.py`, `launch_wave.sh`) and the two
+briefs a reader is given (`reader-brief.md`, `product-reader-brief.md`).
+
+### What was read before anything was designed
+
+- The commits that added the two lists this one copies: the spec's `primary`
+  (f9d1f4cf732e9d63b46349c69e7cec3b6207995e: "a required result field per decision, a placeholder that states the bar, a
+  CLI gate on the field, and downstream packets quoting it by value") and the handoff's `follow_on`
+  (826c951ccfdecb8f48e406f8fbdacb6a69daabbc: only mechanical faults are refused, the stored shape is loose so every
+  saved run loads, a new gate adds its dodge rows, the fixtures that hand-build a result must carry the key).
+- The spec-elaboration study's conclusion and its reading of 31 real deliveries
+  (0d46d085479bf43e02cf964ee86917cc5b44dcb0 and its journal's sections 26 and 28): a final report shows what a stage
+  wrote down and only that; a wording that tells the stage to take a default for "a limit the request leaves to
+  choice" invents limits; the stage's own text pulls two ways on an open choice.
+- A fact about ShipLoop this pilot's suggestion had got wrong. The suggestion said "the plan already lists each answer
+  it takes for an open point". That is true of this pilot's bench. In ShipLoop the plan's list holds facts the plan
+  relies on (`assumptions`), the implement step's `decisions` go into a commit message, intake's ledger holds
+  questions asked before the repository is read, and the handoff's `decision` class is for a choice only a person
+  can make and the run left open (a replay before that list was built found such a leftover in 2 of 166 finished
+  runs). There is no list of choices made for the requester anywhere.
+
+### The baseline, from deliveries that already ran
+
+Eleven full deliveries of `ticket-due-times` on Codex with `gpt-6.2-sol` at medium are archived (ShipLoop 2.4.0 and
+2.4.1; the SDLC structure study's, read and not touched). No model was called for this.
+
+| | of 11 |
+| --- | --- |
+| the specification decides who gives the old tickets their due times and what an enabled start does without them | 11 |
+| it chose "an operator's command, and the service refuses to start" (the answer the owner ruled wrong) | 4 |
+| the held-out check `migrate` fails | the same 4 |
+| the choice is written as a plain line of a requirement | 11 |
+| the spec result, the specification or the report says it was a choice, or names the other answer | 0 |
+
+Evidence: `evidence/baseline-11.txt` (each run's spec summary, the lines of its specification on the point, intake's
+questions on it, the report's open items) and `evidence/archive-sol-medium-checks.txt` (every archived Sol-medium run's
+held-out checks). This pilot's own bench had the plan take the wrong answer six times of six (F48); real ShipLoop on
+the same model takes it four times of eleven. The rate differs; the silence does not.
+
+### The design, and the review that changed it
+
+The design as first written (22:20) is `review/DESIGN-as-reviewed.md`. The latest Sol at maximum effort reviewed it
+with the scripts and both journals (22:34, about 13 minutes; `review/sol-design-answer.md`). Its verdict: build it as
+a disclosure pilot, with changes. The one that matters most: my first design printed the `note` command in the next
+stage's packet and told the requester on every surface that "one sentence changes it". The review traced what a note
+does, and nothing in the script replaces an accepted specification and what was planned from it: a note is quoted by
+the next packet and marked delivered when that step is accepted; the one route that reopens the specification needs a
+stopped review of the plan and exists only before the build. I checked three of its steps in the code and they hold.
+So the promise is gone. What the candidate does is disclose; the only route it names for changing a default is the
+one that holds, a new run. `DESIGN.md` section 4 lists all seven changes, including the three I did not take and why.
+
+What this means for the suggestion as the program made it: F52's "8 of 8 against 3 of 8" was measured on a bench where
+the requester's answer is applied by a step that rewrites the specification. ShipLoop has no such step for an answer
+that arrives during a run. Showing the choices is the half that can be built without a product decision. The other
+half, a route by which the answer takes effect before the build, is a product change of its own, with a cutoff and a
+script-owned path, and it is the owner's to decide.
+
+### What was built
+
+- `skills/shiploop/scripts/shiploop_defaults.py` (new): the list's fields and template row, the gate, the three
+  displays.
+- `skills/shiploop/scripts/shiploop_navigator.py`: the result key, the shape check, the gate at `check` and
+  `complete`, on the stage review's import and before an earlier check's yes is reused; the template row; the
+  Checked-by phrase; one required block in the `test-strategy` packet, with the print budget and run file every other
+  model-written block uses; the done packet's lines; one section in the report; one line in the packet of the
+  spec's own stage review (a review that changes such a choice returns the list changed to match). No state key was
+  added.
+- `skills/shiploop/scripts/shiploop_prompts.py`: six sentences in spec duty 4; duty 9's clause points at the list; the
+  spec template's summary hint no longer asks for defaults.
+- `references/navigator.md`, `references/glossary.md` (the term "default", and what it is not), `README.md` (one
+  sentence), `changes/shiploop/decided-for-you.md` (minor).
+- Tests: `test/shiploop-defaults.test.py` (new, registered); three rows in the callback suite's table of named faults
+  and two in the loophole table; the import route in the stage-review suite; the gate's refusals in the E2E harness's
+  table of named gates (`test/shiploop_e2e/metrics.py`), so a run's gate count names it.
+
+### What the tests say (no model called)
+
+- **Fail first.** The new suite against the unchanged scripts: 3 failures and 14 errors (the module is missing; "result
+  has unsupported fields: defaults"). With the change: 15 of 15.
+- **The new suite** (`test/shiploop-defaults.test.py`) drives the real command line: the spec template prints the row
+  and the duty stands once, before the template; eleven faults are each refused and the corrected list accepted,
+  including two choices under one requirement and a text that happens to sit in angle brackets; the refusal of a
+  missing list is a whole instruction; the next stage prints the rows and no other stage does; a list past the print
+  budget prints its leading rows whole and names a file that holds all thirty; the done packet and the report carry
+  the rows, escaped, with "none" and "not recorded" told apart; a result of an earlier shape loads while the gate
+  refuses it; a run saved before the list loads.
+- **Other suites**: three named-fault rows in the callback suite, two dodge rows in the loophole table (a template row
+  with one text filled in; a requirement the specification does not hold), the stage review's import route, the
+  inventory of numeric limits (the print budget is a "print budget"), and the harness's gate table.
+- **The wide selection**: the quick tier, every ShipLoop suite but the E2E apparatus, and the harness suites the
+  change touches, 131 suites in 1,078 seconds. 128 passed. Of the three that did not, two were right: the inventory of
+  numeric limits did not know the new print budget (added), and `shiploop-knowledge` pins the words of spec duty 5 on
+  a clause's basis, which I had edited at the review's suggestion (put back; duty 4's own sentence already has the
+  clause say it is a default of this date). The third, an E2E calibration suite, passes when run alone; the machine's
+  load was 30 at the time. After those fixes and the last small edits the 33 suites they touch were run again: 32 passed,
+  and one test of `shiploop-navigator-contract` failed on a version string in a progress file that changed between
+  two listings of a run folder; that test passes alone three times of three on the candidate and three of three on
+  the unchanged code, and the whole suite passes alone (127 tests).
+- **Packet sizes** (characters printed, at the head-order suite's reference install): the spec packet 18,507 before
+  and 19,840 after (the duty 749, the template row 401, the Checked-by phrase 152, the summary hint 20). That is 160
+  under the 20,000 a Grok host prints whole, so nothing more fits there; at the long-path install the same packet
+  goes from 19,467 to 20,800 and Grok would drop about 800 characters from its middle, as it already does for the
+  plan and `test-strategy` packets (27,968 and 22,931). The new sentences stand early in the duties and are not in
+  that middle. The `test-strategy` packet is unchanged (22,051) when the spec recorded no default; five rows of a
+  realistic size add 1,941 characters; a longer list prints the rows that fit 2,400 characters and names the run
+  file that holds them all.
+- **Lint**: no new finding in any changed file against its copy at the base, except six of the kind every test of
+  `test/shiploop-e2e-analysis.test.py` already carries (names that file takes from its header); the new files pass.
+
+One suite caught a real omission on the way: every numeric limit in the scripts is registered with its kind, and the
+new print budget was not (`test_every_numeric_limit_in_the_scripts_has_a_kind`). It is now.
+
+### What is registered, before any run
+
+`DESIGN.md` section 3, in the commit that holds this entry. Wave 1 is a smoke test: three real deliveries of
+`ticket-due-times` and one of `hello` on Codex with `gpt-6.2-sol` at medium, built from that commit. The readings:
+the start-up choice on record, scored by a reader who sees the specification and the printed rows and nothing else
+(`reader-brief.md`; at least 2 of 3, against 0 of 11); nothing invented and nothing lost; the empty case; the three
+surfaces and what the host actually said to the user; the gate's refusals and the spec stage's cost against the
+archive (`evidence/archive-cost.txt`: 820 to 1,248 seconds a delivery, the spec stage 17 to 61 seconds, 27,158 to
+34,865 output tokens, 7 to 12 messages to the user); what the list misses. In two of the three due-times runs a
+stand-in requester replies with the owner's ruling as an owner note when a printed row raises the point. That is an
+observation of the existing note route and not a reading of the candidate.
+
+Before any run I widened the stand-in's keyword rule once: as first written it did not fire on a row I wrote by hand
+that plainly raises the point ("Who gives the tickets already on file their due times?"), because that row has none
+of "backfill", "migrate", "existing". The rule now also takes "already" and "older", and a row that names starting the
+service together with a due time that is absent. After the review the rule is only a trigger during the run; the
+score is the reader's.

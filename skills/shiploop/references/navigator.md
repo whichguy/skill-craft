@@ -492,7 +492,8 @@ which also lists the retired terms.
 Stage results add their own fields where the stage needs them: `intake` may record its key-question ledger,
 `question_categories` (each of K1-K12, applies or not with a reason) and `questions` (id, category, question, what it
 changes, route, default, what it blocks); `spec` records
-`primary`, the R-<n> that carry the request's primary outcomes, and each
+`primary`, the R-<n> that carry the request's primary outcomes, and `defaults`, each choice it made that the request
+does not settle; each
 `product-acceptance` `unverified` row names its `requirement` and `lower_layer_check`
 ([test loop](test-loop.md)); `test-strategy` records
 `test_layers` (or `test_layers_na`) and `targets`, and `prepare` its `harness_runs`
@@ -805,6 +806,18 @@ target, rollback, and checks; `release` may honestly be non-applicable;
 `release-verify` examines the actual consumer/runtime boundary. `handoff`
 reports source, test, integration, release, consumer status, and remaining
 limits as facts.
+
+`spec` also lists in `defaults` each choice it made that the request does not settle and that changes what a person
+who uses or runs the product sees or must do: the `requirement` (R-<n>) whose clause states it, the `question` the
+request leaves open, the `default` chosen, one workable `alternative` with what it would change for that person, and
+`why` this one; `[]` when none qualifies. The script refuses only a mechanical fault: a missing list, an entry without
+its five texts, a template text left in, a requirement with no current entry in the living spec. It cannot judge
+whether the list is complete or an entry true. ShipLoop shows the list to the requester three times: the packet of the
+next stage, `test-strategy`, prints the rows and tells the host to name them in its progress line; the done packet lists
+them; and the report has them under "Decided for you", directly after the request. ShipLoop asks nothing, waits for
+nothing and never blocks a stage for what an entry says. The rows are what the spec stage recorded: no script route
+changes an accepted specification for a sentence the requester sends during the run, so the way to change a default is
+a new run on the delivered project.
 
 `handoff` also lists in `follow_on` what the run leaves for a later run: one entry for each leftover, classified once
 (`gap`, `decision`, `person`, `capability`, `extension`, `debt`, `note`), each citing a record the run holds in `source`.

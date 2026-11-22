@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""The defaults list: the answers a specification chose where the request does not say, recorded once and shown.
+
+Design: docs/experiments/ratchet-pilot-20261120/shiploop-defaults/DESIGN.md.  The spec's done result carries
+``defaults``, a list of entries {requirement, question, default, alternative, why}.  ShipLoop refuses only mechanical
+faults (a missing list, an entry without its five texts, a template text left in, a requirement with no current entry
+in the living spec) and records and prints the rest: the packet of the stage after the spec prints the rows and tells
+the host to name them in its progress line, the done packet lists them, and the report shows them directly after the
+request.  It asks nothing, waits for nothing, never blocks a stage for what an entry says, and promises no change
+inside the run.
+
+Every route test drives the real CLI through the helpers of the callback-contract suite: it submits what the packet or
+the refusal printed, follows the exit the refusal names, and requires the same gate to accept it.
+"""
+from __future__ import annotations
+
+import html
+import importlib
+import importlib.util
+import sys
+import unittest
+from pathlib import Path
+
+import state_home
+
+state_home.isolate()
+
+ROOT = Path(__file__).resolve().parents[1]
+_SPEC = importlib.util.spec_from_file_location("shiploop_callback_contract",
+                                               ROOT / "test" / "shiploop-callback-contract.test.py")
+contract = importlib.util.module_from_spec(_SPEC)
+sys.modules[_SPEC.name] = contract
+_SPEC.loader.exec_module(contract)
+nav, store = contract.nav, contract.store
+
+FIELDS = ("requirement", "question", "default", "alternative", "why")
+BACKFILL = {"requirement": "R-1",
+            "question": "Who gives the tickets already on file their due times",
+            "default": "An operator runs a command before switching due times on; the service refuses to start until every ticket has one",
+            "alternative": "The service fills them in itself when it starts, so nobody prepares the file and a start takes longer on a large file.",
+            "why": "The request says due times are switched on only once the data file holds them"}
+HOURS = {"requirement": "R-1", "question": "How does the help desk change the response hours?",
+         "default": "Four environment variables, read at start.",
+         "alternative": "A settings file an administrator edits, which needs no restart.",
+         "why": "The service already takes its port from the environment."}
+
+
+def defaults_module():
+    """The module under test, imported on use so a missing module fails the test that needs it and not the file."""
+    return importlib.import_module("shiploop_defaults")
+
+
+def template_of(head: str) -> dict:
+    return store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+
+
+class DefaultsCase(contract.RealCliCase):
+    """A run positioned at the spec, or past it with a spec result that carries a list."""
+
+    def block(self, head: str, defaults: object) -> dict:
+        """The printed done template filled minimally, with this ``defaults`` in place of the fixture's."""
+        filled = self.fill_done(head)
+        filled["defaults"] = defaults
+        return filled
+
+    def past_spec(self, stage: str, defaults: object = None) -> tuple[Path, str]:
+        """A run at ``stage`` whose accepted spec result carries ``defaults`` (none of its own when None)."""
+        return self.new_run(stage, results={} if defaults is None else {"spec": {"defaults": defaults}})
+
+
+class ShapeTests(unittest.TestCase):
+    def test_the_fields_and_the_stage_that_shows_the_list(self) -> None:
+        module = defaults_module()
+        self.assertEqual(tuple(module.FIELDS), FIELDS)
+        self.assertEqual(set(module.TEMPLATE_ROW), set(FIELDS))
+        self.assertEqual(set(module.STAGES), {"spec"})
+        # The list is shown by the stage right after the spec, in the declared graph and in the stage table.
+        stages = contract.EXPECTED_STAGES
+        self.assertEqual(module.SHOWN_AT, stages[stages.index("spec") + 1])
+        table = list(nav.stage_spec.STAGES)
+        self.assertEqual(module.SHOWN_AT, table[table.index("spec") + 1])
+
+    def test_the_stored_shape_is_loose_and_a_non_list_is_refused(self) -> None:
+        module = defaults_module()
+        self.assertEqual(module.canonical([{"requirement": " R-1 ", "anything": "x"}]),
+                         [{"requirement": "R-1", "anything": "x"}])
+        self.assertEqual(module.canonical([]), [])
+        for bad in ("R-1", {"requirement": "R-1"}, [["R-1"]], [{"requirement": 3}]):
+            with self.subTest(bad=bad), self.assertRaisesRegex(module.DefaultsError, r"defaults(\[0\])? must be"):
+                module.canonical(bad)
+
+    def test_a_row_is_printed_whole_as_one_line_and_keeps_its_own_closing_mark(self) -> None:
+        module = defaults_module()
+        long = dict(BACKFILL, alternative="x " * 900 + "end")
+        lines = module.row_lines([long, HOURS])
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(lines[0].startswith("1. R-1 Who gives the tickets already on file their due times. Decided: An operator"))
+        self.assertTrue(lines[0].endswith("x end."), lines[0][-20:])           # never cut, and one period added
+        self.assertIn("2. R-1 How does the help desk change the response hours? Decided: Four environment variables, "
+                      "read at start. Otherwise: A settings file", lines[1])   # a mark the model wrote is not doubled
+        self.assertEqual(module.row_lines([dict(HOURS, question="a\n  b")])[0].split(" Decided:")[0], "1. R-1 a b.")
+
+    def test_a_placeholder_is_a_template_text_and_not_any_text_in_angle_brackets(self) -> None:
+        module = defaults_module()
+        for text in module.TEMPLATE_ROW.values():
+            self.assertTrue(module._is_placeholder(text))
+            self.assertTrue(module._is_placeholder("  " + text.replace(" ", "  ") + "\n"))   # spacing does not hide it
+        for text in ("<details> opens on a click on its <summary>", "<dialog>", "R-1", "the service starts"):
+            self.assertFalse(module._is_placeholder(text), text)
+
+
+class RouteTests(DefaultsCase):
+    def test_the_spec_template_prints_the_row_and_the_duty_names_the_list_once(self) -> None:
+        _run, head = self.new_run("spec")
+        self.assertEqual(template_of(head)["defaults"], [dict(defaults_module().TEMPLATE_ROW)])
+        packet = " ".join(contract.full_packet_text(head).split())
+        for name in FIELDS:
+            self.assertIn("`" + name + "`", packet)
+        # The duty is stated once, in the instructions, and says both exits: list what was chosen, or the empty list.
+        self.assertEqual(packet.count("and record it once in `defaults`"), 1)
+        self.assertIn("Add no behaviour to fill it; `[]` if none qualifies.", packet)
+        self.assertLess(packet.index("and record it once in `defaults`"), packet.index("Result template:"))
+        # One home for a default at the spec: the summary hint and the other duties point at the list.
+        self.assertIn("a default goes in `defaults`", template_of(head)["summary"])
+        self.assertIn("record a default for an open choice in `defaults` (duty 4)", packet)
+        self.assertNotIn("as an assumption in `summary`", packet)
+        self.assertIn("a missing defaults list", packet)                       # the Checked-by line names the gate
+
+    def test_each_fault_is_refused_naming_its_exit_and_the_corrected_list_is_accepted(self) -> None:
+        run, head = self.new_run("spec")
+        command, path, action = contract.printed_callback(head)
+        good = self.block(head, [])
+        without = {key: value for key, value in good.items() if key != "defaults"}
+        template_row = dict(defaults_module().TEMPLATE_ROW)
+        spec = self.repo_of(run) / "docs" / "shiploop" / "spec.md"
+        spec.write_text(spec.read_text(encoding="utf-8") + "\n## Retired\n\n- R-2: an old rule, dropped.\n",
+                        encoding="utf-8")
+        faults = (
+            ("left out", without, "a done spec result lists defaults: each choice this specification made"),
+            ("not a list", dict(good, defaults=BACKFILL), "defaults must be a list ([] when it chose none)"),
+            ("the template row copied", dict(good, defaults=[template_row]), "still holds the template placeholder"),
+            ("one placeholder left", dict(good, defaults=[dict(BACKFILL, why=template_row["why"])]),
+             "defaults[0].why still holds the template placeholder"),
+            ("an extra key", dict(good, defaults=[dict(BACKFILL, id="D1")]), "defaults[0] has the unknown id"),
+            ("a field left out", dict(good, defaults=[{k: v for k, v in BACKFILL.items() if k != "alternative"}]),
+             "defaults[0] lacks alternative"),
+            ("an empty text", dict(good, defaults=[dict(BACKFILL, alternative="  ")]), "defaults[0].alternative is empty"),
+            ("a text that is not text", dict(good, defaults=[dict(BACKFILL, why=["a", "b"])]),
+             "defaults[0].why must be text"),
+            ("two requirements in one entry", dict(good, defaults=[dict(BACKFILL, requirement="R-1, R-2")]),
+             "is not one requirement ID"),
+            ("a requirement the spec lacks", dict(good, defaults=[HOURS, dict(BACKFILL, requirement="R-9")]),
+             "defaults[1].requirement R-9 has no current entry in"),
+            ("a retired requirement", dict(good, defaults=[dict(BACKFILL, requirement="R-2")]),
+             "defaults[0].requirement R-2 has no current entry in"),
+        )
+        for label, block, fragment in faults:
+            with self.subTest(label):
+                contract.write_block(path, block)
+                self.assertIn(fragment, self.refused(command, run))
+        # The refusal of a missing list is a whole instruction: what the list is, its shape, and the empty exit.
+        contract.write_block(path, without)
+        missing = " ".join(self.refused(command, run).split())
+        for part in ("changes what a person who uses or runs the product sees or must do", "[] when it chose none",
+                     "{requirement, question, default, alternative, why}", "Add no behaviour to fill it",
+                     "shows the list to the requester"):
+            self.assertIn(part, missing)
+        # A requirement refusal names the IDs the spec holds now, so the exit needs no second read.
+        contract.write_block(path, dict(good, defaults=[dict(BACKFILL, requirement="R-9")]))
+        self.assertIn("(current: R-1)", self.refused(command, run))
+        # Two choices under one requirement, and a text that happens to sit in angle brackets, are accepted.
+        markup = dict(HOURS, default="<details> opens on a click on its <summary>")
+        contract.write_block(path, dict(good, defaults=[BACKFILL, markup]))
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["defaults"], [BACKFILL, markup])
+
+    def test_the_empty_list_is_accepted_and_shows_nothing_at_the_next_stage(self) -> None:
+        run, head = self.new_run("spec")
+        command, path, action = contract.printed_callback(head)
+        contract.write_block(path, self.block(head, []))
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["defaults"], [])
+        for defaults in ([], None):
+            with self.subTest(defaults=defaults):
+                _run, after = self.past_spec("test-strategy", defaults)
+                self.assertNotIn("Defaults the spec recorded", contract.full_packet_text(after))
+
+    def test_the_stage_after_the_spec_prints_the_rows_and_no_other_stage_does(self) -> None:
+        run, head = self.past_spec("test-strategy", [BACKFILL, HOURS])
+        packet = contract.full_packet_text(head)
+        flat = " ".join(packet.split())
+        state = self.state(run)
+        action = next(row["action"] for row in state["history"] if row["stage"] == "spec")
+        self.assertIn("Defaults the spec recorded: 2 answers it chose where the request does not say ("
+                      + str(run / "results" / (action + ".md")) + ", `defaults`). In this stage's progress line tell the "
+                      "user there are 2 and name each in a few words; ask nothing and wait for no answer:", flat)
+        self.assertTrue((run / "results" / (action + ".md")).is_file())      # the file the line names exists
+        for line in defaults_module().row_lines([BACKFILL, HOURS]):
+            self.assertIn(line, packet)
+        # Required text: the printed head carries it, not only the packet file.
+        self.assertIn("Defaults the spec recorded", head)
+        # Nothing here tells the model to stop, to ask, or that a sentence changes the run.
+        for absent in (" note --run-dir ", "changes any", "owner note"):
+            self.assertNotIn(absent, "\n".join(nav.defaults.packet_lines(state, run, "test-strategy", [])))
+        _one, single = self.past_spec("test-strategy", [BACKFILL])
+        self.assertIn("1 answer it chose", " ".join(contract.full_packet_text(single).split()))
+        self.assertIn("tell the user there is 1 and name each", " ".join(contract.full_packet_text(single).split()))
+        for stage in ("plan", "prepare"):
+            with self.subTest(stage=stage):
+                _other, later = self.past_spec(stage, [BACKFILL])
+                self.assertNotIn("Defaults the spec recorded", contract.full_packet_text(later))
+
+    def test_a_list_past_the_print_budget_prints_the_rows_that_fit_and_names_the_file_that_holds_them_all(self) -> None:
+        module = defaults_module()
+        many = [dict(BACKFILL, question=f"Question {number} about the tickets already on file?") for number in range(1, 31)]
+        whole = module.row_lines(many)
+        self.assertGreater(len("\n".join(whole)), module.ROWS_PRINT)
+        run, head = self.past_spec("test-strategy", many)
+        packet = contract.full_packet_text(head)
+        self.assertIn("Defaults the spec recorded: 30 answers it chose where the request does not say", " ".join(packet.split()))
+        printed = [line for line in whole if line in packet]
+        self.assertTrue(0 < len(printed) < len(whole), len(printed))
+        self.assertEqual(printed, whole[:len(printed)])                 # the leading rows, in order, each whole
+        self.assertLessEqual(len("\n".join(printed)), module.ROWS_PRINT)
+        state = self.state(run)
+        action = next(row["action"] for row in state["history"] if row["stage"] == "spec")
+        named = f"RUN/fields/{action}-defaults.md"
+        self.assertIn(f"({len(whole) - len(printed)} more lines not printed here: {named} holds all 30 whole)", packet)
+        # The file the packet names exists when the packet does, and holds every row, uncut.
+        self.assertEqual((run / "fields" / f"{action}-defaults.md").read_text(encoding="utf-8"), "\n".join(whole) + "\n")
+        # A list within the budget names no file.
+        small_run, small = self.past_spec("test-strategy", [BACKFILL, HOURS])
+        self.assertNotIn("-defaults.md", contract.full_packet_text(small))
+        self.assertFalse(list((small_run / "fields").glob("*-defaults.md")) if (small_run / "fields").is_dir() else [])
+
+    def test_the_done_packet_lists_the_rows_and_an_empty_or_absent_list_prints_nothing(self) -> None:
+        for label, defaults, expected in (("entries", [BACKFILL, HOURS], True), ("empty", [], False),
+                                          ("not recorded", None, False)):
+            with self.subTest(label):
+                run, head = self.past_spec("handoff", defaults)
+                command, path, _action = contract.printed_callback(head)
+                contract.write_block(path, self.fill_done(head))
+                out = self.accepted(command)
+                self.assertEqual(self.state(run)["status"], "done")
+                self.assertIn("It's all complete.", out)
+                flat = " ".join(out.split())
+                if expected:
+                    self.assertIn("Decided for you: 2 answers the spec chose where the request does not say; the "
+                                  "report lists them first, each with its reason.", flat)
+                    for line in defaults_module().row_lines(defaults):
+                        self.assertIn(line, out)
+                    self.assertIn("To change one, start a new run on this project with a sentence that says what you "
+                                  "want instead.", flat)
+                    self.assertLess(out.index("Report: "), out.index("Decided for you:"))
+                else:
+                    self.assertNotIn("Decided for you", out)
+
+    def test_the_report_shows_the_rows_after_the_request_escaped_and_tells_none_from_not_recorded(self) -> None:
+        marked = dict(HOURS, default="Four <b>environment</b> variables & a restart.")
+        for label, defaults, expected in (
+                ("entries", [BACKFILL, marked],
+                 [html.escape(BACKFILL[name]) for name in FIELDS] + [html.escape(marked["default"]),
+                                                                     "2 answers", "Nobody was asked.",
+                                                                     "as the spec stage recorded them (",
+                                                                     "a later stage's change to a requirement is not shown here"]),
+                ("none", [], ["none: the specification recorded no answer of its own"]),
+                ("not recorded", None, ["not recorded: this run's spec result has no defaults list"])):
+            with self.subTest(label):
+                run, _head = self.past_spec("handoff", defaults)
+                state = self.state(run)
+                nav.save(run, nav.apply(state, nav.current_action(state)["id"], {**contract.DONE, "follow_on": []}))
+                report = self.cli("report", "--run-dir", str(run)).stdout
+                self.assertEqual(report.count("<h2>Decided for you</h2>"), 1)
+                for text in expected:
+                    self.assertIn(text, report)
+                self.assertNotIn("<b>environment</b>", report)   # model-written text is escaped
+                # The section stands directly after the request and before everything the run did.
+                self.assertLess(report.index("<h2>Original request</h2>"), report.index("<h2>Decided for you</h2>"))
+                self.assertLess(report.index("<h2>Decided for you</h2>"), report.index("<h2>Accepted transitions</h2>"))
+
+    def test_a_report_before_any_spec_has_no_section(self) -> None:
+        run, _head = self.new_run("discovery")
+        state = self.state(run)
+        halted = dict(state, status="halted", status_reason="stopped by its owner")
+        self.assertNotIn("Decided for you", nav._render_report(halted, run))
+
+    def test_a_saved_result_whose_entries_are_any_text_loads_while_the_gate_refuses_it(self) -> None:
+        # validate() re-canonicalises every accepted result on load, so a later edit of the field set must never
+        # refuse a saved run; the CLI gate holds the exact shape.
+        run, head = self.new_run("spec")
+        state = self.state(run)
+        earlier_shape = [{"requirement": "R-1", "answer": "a"}]
+        accepted = nav.apply(state, nav.current_action(state)["id"], {**contract.DONE, "defaults": earlier_shape})
+        nav.validate(accepted)
+        command, path, _action = contract.printed_callback(head)
+        contract.write_block(path, self.block(head, earlier_shape))
+        self.assertIn("defaults[0] lacks question, default, alternative, why and has the unknown answer",
+                      self.refused(command, run))
+
+    def test_the_list_belongs_to_a_done_spec_result_only(self) -> None:
+        run, head = self.new_run("discovery")
+        command, path, _action = contract.printed_callback(head)
+        contract.write_block(path, dict(self.fill_done(head), defaults=[]))
+        self.assertIn("defaults is allowed only on a done spec result", self.refused(command, run))
+        run, head = self.new_run("spec")
+        command, path, _action = contract.printed_callback(head)
+        blocked = {"outcome": "blocked", "headline": "Stopped.", "summary": "Blocked on a missing file.",
+                   "evidence_refs": [], "defaults": [BACKFILL]}
+        contract.write_block(path, blocked)
+        refusal = self.refused(command, run)
+        self.assertIn("defaults", refusal)
+        self.assertIn("done", refusal)
+
+    def test_a_run_saved_before_the_list_loads_and_positions_past_the_spec(self) -> None:
+        run, head = self.past_spec("plan")
+        state = self.state(run)
+        spec_action = next(row["action"] for row in state["history"] if row["stage"] == "spec")
+        self.assertNotIn("defaults", state["accepted"][spec_action])
+        nav.validate(state)
+        self.assertIsNone(defaults_module().recorded(state))
+        self.assertIn("ShipLoop navigator | plan |", head)
+
+
+if __name__ == "__main__":
+    unittest.main()

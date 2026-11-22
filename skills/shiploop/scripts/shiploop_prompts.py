@@ -786,6 +786,8 @@ _CARRY_FORWARD_ONE_STEP = """\
 # stage keeps the navigator's TEST_SUMMARY_PLACEHOLDER.  The gate refuses a summary still equal to one of these.
 SUMMARY_PLACEHOLDER = "<decisions, defaults, open questions and owners only this result records; no restatement>"
 SUMMARY_PLACEHOLDERS = {
+    # The spec's own defaults have their list (shiploop_defaults), so its summary does not ask for them a second time.
+    "spec": "<decisions, open questions and owners only this result records; a default goes in `defaults`; no restatement>",
     "intake": ("<one clause per request sentence or range (S<n>, S<a>-S<b>, as the sentence index numbers them): the "
                "outcome, boundary, default or open question it maps to>"),
     "plan": ("<this pass's key reference statements, decisions, constraints and acceptance context; not a replacement "
@@ -1024,6 +1026,13 @@ DUTIES = {
    decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. List in `primary` the R-<n> that carry the request's
    primary outcomes, what the user asked for directly: product-acceptance accepts one left unverified only with a
    passed lower-layer test.
+   Before you submit, compare the acceptance lines you wrote with the request and with what the product already does.
+   For each choice this spec made that the request does not settle and that changes what a person who uses or runs
+   the product sees or must do, say in that clause that it is a default of this date, and record it once in
+   `defaults`: its `requirement` (R-<n>), the `question` the request leaves open, the `default` chosen, one workable
+   `alternative` with what it would change for that person, and `why` this one. Say what happens for that person, not
+   the mechanism. This list is the spec's record of the defaults it took (RULES). Add no behaviour to fill it; `[]` if
+   none qualifies. ShipLoop shows the list to the requester.
    Where another system is the reference, map intended parity and deliberate differences to source-backed
    acceptance lines. Check the relevant workflows and consequential alternative states against the inspected
    evidence, keeping observations, inferences and unknowns distinct. An unknown that could change required
@@ -1059,7 +1068,7 @@ DUTIES = {
    user could only misuse against themselves may stay); how simultaneous changes resolve; what ends and removes it;
    the runtime quotas it meets. Personal or secret data: where shown, stored, logged, how long kept, how removed.
    Map each to what the runtime offers. Add no identity, sharing or persistence the request does not need; record a
-   default for an open choice as an assumption in `summary`. Affected UI: component, interaction and skin premises
+   default for an open choice in `defaults` (duty 4). Affected UI: component, interaction and skin premises
    and truthful async feedback as consumer-visible behaviour.
 """ + _duty_focus(10, "KNOWLEDGE/spec.md", "spec") + """\
 11. """ + _BACKCHAIN_ITEM + """

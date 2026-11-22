@@ -96,10 +96,11 @@ def fixture_follows(state: Mapping[str, Any], result: Mapping[str, Any]) -> dict
 
 
 def fixture_primary(state: Mapping[str, Any]) -> dict[str, Any]:
-    """A done spec's primary requirements (run-5 batch F6) for a synthetic run: R-1, whose entry this writes into the
-    living spec when it is missing, as a spec stage writes its requirements before its done."""
+    """A done spec's required lists for a synthetic run: its primary requirements (run-5 batch F6), R-1, whose entry
+    this writes into the living spec when it is missing, as a spec stage writes its requirements before its done; and
+    its ``defaults``, empty, as a spec that chose nothing of its own says (shiploop_defaults)."""
     knowledge_support.write_spec(state)
-    return {"primary": ["R-1"]}
+    return {"primary": ["R-1"], "defaults": []}
 
 
 def executed_criteria(criteria: Any) -> Any:

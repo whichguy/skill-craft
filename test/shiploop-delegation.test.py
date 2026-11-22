@@ -1321,7 +1321,8 @@ class DelegationCliTests(unittest.TestCase):
         (self.repo / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
         (self.repo / "docs" / "shiploop" / "spec.md").write_text("## Requirements\n\n- R-1: The request.\n",
                                                                  encoding="utf-8")
-        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec.", "primary": ["R-1"]})
+        store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec.", "primary": ["R-1"],
+                                         "defaults": []})
         self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                   "--result", result_path).returncode, 0)
         # ShipLoop bound the run's Improve card and started the review at the transition (owner, 2026-10-11): no

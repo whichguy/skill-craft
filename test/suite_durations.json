@@ -155,6 +155,7 @@
     "test/shiploop-e2e-user-directory.test.py": 198.838,
     "test/shiploop-efficiency-journal.test.py": 0.463,
     "test/shiploop-follow-on.test.py": 50.901,
+    "test/shiploop-defaults.test.py": 26.0,
     "test/shiploop-full-runtime.test.py": 103.032,
     "test/shiploop-generalized-discovery.test.py": 22.979,
     "test/shiploop-guidance.test.py": 13.348,

@@ -118,6 +118,10 @@ UNVERIFIED_ENTRY = {"outcome": "the exported file opens in the customer's reader
                     "owner": "the user", "due_stage": "handoff"}
 UNVERIFIED_EARLY = dict(UNVERIFIED_ENTRY, outcome="the deployed page loads for a signed-in user",
                         reason="no sign-in is available to this run", due_stage="release-check")
+# A choice the spec made that the request does not settle (shiploop_defaults), stated by the fixture's R-1.
+DEFAULT_ENTRY = {"requirement": "R-1", "question": "Which file does the build write?", "default": "built.txt.",
+                 "alternative": "A name the caller passes, which every caller would then have to give.",
+                 "why": "The repository's check reads built.txt."}
 OPEN_ASSUMPTION = {"id": "A1", "assumption": "the export is checked by file tests only", "disposition": "open",
                    "settle": "open the export in the reader", "reason": "no reader here", "due_item": "W1"}
 
@@ -278,6 +282,7 @@ class RealCliCase(unittest.TestCase):
             "settled": [],
             "follow_on": [],
             "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
+            "defaults": [],       # the answers the spec chose for the requester: none in this fixture
             # Intake's key-question ledger (duty 9): every catalog category once, and one routed question.
             "question_categories": [{"id": f"K{n}", "applies": "no", "reason": "Synthetic fixture."} for n in range(1, 13)],
             "questions": [{"id": "Q1", "category": "K3", "question": "Which file name does the build write?",
@@ -515,6 +520,15 @@ class RefusalRouteTests(RealCliCase):
             ("a consumer_entry source that is not in the repository", "release-plan",
              lambda block: {**block, "consumer_entry": {"how": "open it", "sources": ["nowhere/missing.py"]}},
              "consumer_entry sources do not exist in the repository"),
+            ("no defaults list", "spec",
+             lambda block: {k: v for k, v in block.items() if k != "defaults"},
+             "a done spec result lists defaults"),
+            ("a default that keeps one template text", "spec",
+             lambda block: {**block, "defaults": [dict(DEFAULT_ENTRY, why=nav.defaults.TEMPLATE_ROW["why"])]},
+             "defaults[0].why still holds the template placeholder"),
+            ("a default whose requirement has no entry in the living spec", "spec",
+             lambda block: {**block, "defaults": [dict(DEFAULT_ENTRY, requirement="R-9")]},
+             "defaults[0].requirement R-9 has no current entry in"),
             ("no unverified list", "product-acceptance",
              lambda block: {k: v for k, v in block.items() if k != "unverified"},
              "a done product-acceptance result must list unverified"),
@@ -933,7 +947,7 @@ class RefusalRouteTests(RealCliCase):
     def test_shiploop_writes_the_opening_with_the_four_exact_headings_and_a_renamed_one_is_told_the_heading(self) -> None:
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
-        write_block(path, dict(self.done_fields(), primary=self.fill_done(head)["primary"]))  # F6: and R-1's entry
+        write_block(path, dict(self.done_fields(), primary=self.fill_done(head)["primary"], defaults=[]))  # F6: and R-1's entry
         out = self.accepted(command)
         opening, _receipt = self.started_child(run)
         text = opening.read_text(encoding="utf-8")
@@ -2585,7 +2599,7 @@ class OutcomeShapeTests(RealCliCase):
     def test_the_opening_shiploop_writes_names_the_four_opening_headings(self) -> None:
         run, head = self.new_run("spec")
         command, path, _ = printed_callback(head)
-        write_block(path, dict(self.done_fields(), primary=self.fill_done(head)["primary"]))  # F6: and R-1's entry
+        write_block(path, dict(self.done_fields(), primary=self.fill_done(head)["primary"], defaults=[]))  # F6: and R-1's entry
         handoff = self.handoff_of(self.accepted(command))
         opening, _receipt = self.started_child(run)
         for name in nav.OPENING_SECTIONS:
