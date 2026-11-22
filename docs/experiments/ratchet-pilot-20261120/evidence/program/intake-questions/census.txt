@@ -1,0 +1,2331 @@
+Intake key-question ledger census (read-only over archives)
+Match rules: id = literal token Qn (no adjacent alphanumerics) in the same run's later-stage result files (stage != intake, accepted after intake when timeline.json says)
+and in its knowledge files (work/docs/shiploop/*.md, or the worktree copy; current-spec.md; spec-accepted.md).
+id+words = same, and at least 2 distinct content words (>=5 letters) of the question text (1 if it has <3 such words) occur within 300 chars either side of the token.
+notes columns: the same test over run/notes/*.md and run/fields/*.md (extra, not asked).
+
+--- IN SCOPE (dated folders 2026-10-31..2026-11-15, 20261101, 20261110, and e2e-runs-sdlc12): 127 runs with a ledger ---
+categories applying (sum): 1011; questions (sum): 447; runs with zero questions: 24; runs with a spec file found: 126
+route           asked  id_in_later   id+words_later    id_in_notes     id+words_notes
+inspect           270          121               54             11                  1
+research            1            0                0              0                  0
+experiment         15            8                3              0                  0
+default           158          111               27             17                 13
+person              3            2                0              1                  0
+ALL               447          242               84             29                 14
+runs with any "open gap"/"open question"/"awaiting" line in later results or knowledge: 12
+runs with an "Open:" marker line: 0
+runs with a structured `awaiting` result field (a question to the requester): 2
+runs whose knowledge files have an "Open gaps/questions" heading: 1; of which with at least one non-"None" entry: 0
+runs with a real open entry (structured awaiting, or non-None bullet under an Open gaps/questions heading): 2
+runs whose discovery result cites at least one intake Q-id: 90
+where the Q-id mentions were found (question-mentions, by file kind): {'result:discovery': 239, 'knowledge:work': 2, 'result:research': 4, 'result:handoff': 1, 'result:product-acceptance': 1, 'result:release-verify': 1}
+runs with structured `assumptions` entries in later results: 119
+runs with any assumption entry (structured, or a knowledge line mentioning "assum"): 119
+
+--- OTHER undated folders under e2e-runs (not named in the brief): 58 runs with a ledger ---
+categories applying (sum): 687; questions (sum): 682; runs with zero questions: 0; runs with a spec file found: 56
+route           asked  id_in_later   id+words_later    id_in_notes     id+words_notes
+inspect           550          410               93             88                 21
+research            0            0                0              0                  0
+experiment         31           22                8              5                  2
+default            94           70                6             11                  2
+person              7            7                2              2                  2
+ALL               682          509              109            106                 27
+runs with any "open gap"/"open question"/"awaiting" line in later results or knowledge: 2
+runs with an "Open:" marker line: 0
+runs with a structured `awaiting` result field (a question to the requester): 1
+runs whose knowledge files have an "Open gaps/questions" heading: 0; of which with at least one non-"None" entry: 0
+runs with a real open entry (structured awaiting, or non-None bullet under an Open gaps/questions heading): 1
+runs whose discovery result cites at least one intake Q-id: 52
+where the Q-id mentions were found (question-mentions, by file kind): {'result:discovery': 502, 'knowledge:.shiploop-runs': 25, 'knowledge:spec-accepted.md': 25, 'result:research': 2}
+runs with structured `assumptions` entries in later results: 1
+runs with any assumption entry (structured, or a knowledge line mentioning "assum"): 5
+
+--- ALL: 185 runs with a ledger ---
+categories applying (sum): 1698; questions (sum): 1129; runs with zero questions: 24; runs with a spec file found: 182
+route           asked  id_in_later   id+words_later    id_in_notes     id+words_notes
+inspect           820          531              147             99                 22
+research            1            0                0              0                  0
+experiment         46           30               11              5                  2
+default           252          181               33             28                 15
+person             10            9                2              3                  2
+ALL              1129          751              193            135                 41
+runs with any "open gap"/"open question"/"awaiting" line in later results or knowledge: 14
+runs with an "Open:" marker line: 0
+runs with a structured `awaiting` result field (a question to the requester): 3
+runs whose knowledge files have an "Open gaps/questions" heading: 1; of which with at least one non-"None" entry: 0
+runs with a real open entry (structured awaiting, or non-None bullet under an Open gaps/questions heading): 3
+runs whose discovery result cites at least one intake Q-id: 142
+where the Q-id mentions were found (question-mentions, by file kind): {'result:discovery': 741, 'knowledge:work': 2, 'result:research': 6, 'result:handoff': 1, 'result:product-acceptance': 1, 'result:release-verify': 1, 'knowledge:.shiploop-runs': 25, 'knowledge:spec-accepted.md': 25}
+runs with structured `assumptions` entries in later results: 120
+runs with any assumption entry (structured, or a knowledge line mentioning "assum"): 124
+
+=== Runs with a ledger by top-level folder ===
+   4  e2e-runs-sdlc12/20261121
+   8  e2e-runs/2026-10-31
+  86  e2e-runs/2026-11-01
+  12  e2e-runs/2026-11-02
+   4  e2e-runs/2026-11-03
+   7  e2e-runs/2026-11-04
+   2  e2e-runs/2026-11-05
+   2  e2e-runs/2026-11-15
+   1  e2e-runs/20261101
+   1  e2e-runs/20261110
+   1  e2e-runs/closed-loop-smoke-hello-20261118-cdd52e
+  57  e2e-runs/spec-elaboration-20261120
+
+=== By case / host / model / effort (in scope) ===
+   1  battleship | codex | gpt-6.1-terra | high
+   1  checkers | codex | gpt-6.1-terra | high
+   1  chess-salesforce | codex | gpt-6.1-terra | high
+   2  chess-salesforce | codex | gpt-6.1-terra | xhigh
+   6  csv-intent-direct | codex | gpt-6.1-terra | high
+  14  csv-report | codex | gpt-6.1-terra | high
+   8  csv-report | codex | gpt-6.1-terra | xhigh
+   2  custom | codex | gpt-6.1-terra | high
+  11  custom | codex | gpt-6.1-terra | xhigh
+   2  hello | claude | claude-sonnet-5-5 | None
+   6  hello | codex | gpt-6.1-terra | high
+   3  hello | codex | gpt-6.1-terra | xhigh
+   1  hello | grok | grok-4.6 | xhigh
+  18  hello-hook-continuation | codex | gpt-6.1-terra | high
+  13  hello-hook-continuation | codex | gpt-6.1-terra | xhigh
+   2  hello-startup-contract | codex | gpt-6.1-terra | high
+   9  seat-reservations | codex | gpt-6.1-terra | high
+   1  seat-reservations | codex | gpt-6.1-terra | xhigh
+   1  shared-expenses | claude | claude-sonnet-5-5 | high
+   1  shared-expenses | claude | claude-sonnet-5-5 | medium
+   1  shared-expenses | codex | gpt-6.1-terra | high
+   1  ticket-assignment | codex | gpt-6.1-terra | high
+   2  ticket-assignment-tests | codex | gpt-6.1-terra | high
+   1  ticket-due-times | claude | claude-sonnet-5-5 | high
+   1  ticket-due-times | claude | claude-sonnet-5-5 | medium
+   6  user-intent-continuity | codex | gpt-6.1-terra | high
+   2  user-listing | codex | gpt-6.1-terra | high
+   1  user-listing | codex | gpt-6.1-terra | xhigh
+   2  user-summary | codex | gpt-6.1-terra | high
+   6  user-summary-status | codex | gpt-6.1-terra | high
+   1  user-teams | codex | gpt-6.1-terra | high
+
+=== By case / host / model / effort (other) ===
+   1  custom | claude | claude-sonnet-5-5 | medium
+  56  custom | codex | gpt-6.2-sol | medium
+   1  hello | codex | gpt-6.1-terra | high
+
+=== Per run ===
+
+~/e2e-runs-sdlc12/20261121/sonnet-high-due  [in_scope]
+  case=ticket-due-times host=claude model=claude-sonnet-5-5 effort=high date=2026-11-21 shiploop=2.4.1
+  categories apply 11/12; questions 13; by route {'default': 8, 'inspect': 5}; later results 29; spec found True
+  referenced later (id / id+words): 6 / 1 of 13
+    Q1 K1 default    id=- id+w=-  Who consumes `due` and `?overdue=true`, and through which entry points (HTTP API, bin/tickets.js, weekly repor
+    Q2 K2 inspect    id=Y id+w=Y  What must stay byte-for-byte unchanged while DUE_TIMES is not `on`: ticket JSON, listings, audit entries, CLI 
+    Q3 K3 default    id=Y id+w=-  Format of `due` and behaviour of `?overdue=` values other than true.
+    Q4 K3 default    id=Y id+w=-  How does the help desk set the hours per priority without a code change?
+    Q5 K4 default    id=- id+w=-  Due-time arithmetic: created time + whole hours, any rounding or business-hours logic?
+    Q6 K5 inspect    id=- id+w=-  Where is due stored, and when is it set for existing tickets?
+    Q7 K5 inspect    id=Y id+w=-  Does the data file version change, and does 1.4.0 still load a file the new release wrote?
+    Q8 K6 default    id=- id+w=-  Exact meaning of DUE_TIMES: values and unset behaviour; what 'on' means.
+    Q9 K7 default    id=Y id+w=-  Which seams hold the new behaviour?
+    Q10 K8 inspect    id=- id+w=-  How are the existing tests kept passing 'as they are' and how are new behaviours observed at their real bounda
+    Q11 K9 default    id=- id+w=-  Where does the result have to run or be delivered, and is deploying in scope?
+    Q12 K11 default    id=- id+w=-  What would most likely make this work fail?
+    Q13 K12 inspect    id=Y id+w=-  Terms: 'open and in-progress', 'current release, 1.4.0', 'production data file'.
+  open: struct_assumptions=11 struct_unverified=6 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs-sdlc12/20261121/sonnet-high-expenses  [in_scope]
+  case=shared-expenses host=claude model=claude-sonnet-5-5 effort=high date=2026-11-21 shiploop=2.4.1
+  categories apply 10/12; questions 15; by route {'default': 13, 'inspect': 2}; later results 25; spec found True
+  referenced later (id / id+words): 4 / 2 of 15
+    Q1 K1 default    id=Y id+w=-  Who consumes the service and how is it observed?
+    Q2 K3 default    id=- id+w=-  What do error bodies, content type and unknown routes/methods look like (the request fixes only status codes)?
+    Q3 K3 default    id=- id+w=-  What is the body of the 201 for POST /groups, and the status for a 200 GET?
+    Q4 K4 default    id=- id+w=-  Exact-split validation details: must shares keys all be known members, must values be non-negative integers, m
+    Q5 K4 default    id=- id+w=-  What counts as a valid group id, member name, and a valid positive integer cents (e.g. 1.0, strings, huge valu
+    Q6 K4 default    id=- id+w=-  Equal-split remainder rule precisely: with cents = q*n + r, members listed first (group member order) get q+1 
+    Q7 K4 default    id=- id+w=-  Settlements tie-breaking: which member wins ties for largest debtor/creditor, and what happens when all balanc
+    Q8 K4 default    id=- id+w=-  Does the balances object key order follow the members order, and are members with no activity present with 0?
+    Q9 K5 default    id=- id+w=-  How is the data file read and written, and how do restarts and a missing or empty DATA_FILE behave?
+    Q10 K5 default    id=- id+w=-  How are concurrent requests kept from losing an expense and numbering consistently?
+    Q11 K6 inspect    id=Y id+w=-  Runtime version, dependency rules and config defaults?
+    Q12 K7 default    id=Y id+w=Y  What modules should the code split into?
+    Q13 K8 inspect    id=- id+w=-  Test framework, command and boundary?
+    Q14 K11 default    id=- id+w=-  What are the likeliest rejection risks?
+    Q15 K12 default    id=Y id+w=Y  Which order of checks applies when a request is both for an unknown group and has a bad body?
+  open: struct_assumptions=6 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=8 regex={'result_open_question': 1, 'result_open_gap': 1} negated~={'result': 2, 'knowledge': 0}
+
+~/e2e-runs-sdlc12/20261121/sonnet-medium-due  [in_scope]
+  case=ticket-due-times host=claude model=claude-sonnet-5-5 effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 9/12; questions 8; by route {'inspect': 2, 'default': 5, 'experiment': 1}; later results 25; spec found True
+  referenced later (id / id+words): 8 / 6 of 8
+    Q1 K5 inspect    id=Y id+w=Y  How does the 1.4.0 release treat unknown fields (due) or a changed schema version in the data file, and how do
+    Q2 K5 default    id=Y id+w=Y  How are existing production tickets backfilled: at load, or by an explicit migration step (command) that write
+    Q3 K3 default    id=Y id+w=Y  With DUE_TIMES not on, what must stay byte-identical: ticket JSON (no due), overdue param ignored, CLI output,
+    Q4 K6 default    id=Y id+w=-  How does the help desk configure the hours per priority without a code change?
+    Q5 K4 inspect    id=Y id+w=-  Format of due and boundary of overdue (due <= now vs <)? Which statuses are open/in-progress?
+    Q6 K4 default    id=Y id+w=Y  Does a ticket created while DUE_TIMES is off get due stored?
+    Q7 K2 default    id=Y id+w=Y  Should CLI/weekly report show due? Their column positions must not change.
+    Q8 K8 experiment id=Y id+w=Y  Which existing tests and fixtures pin response shapes; do they pass under the baseline?
+  open: struct_assumptions=3 struct_unverified=2 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs-sdlc12/20261121/sonnet-medium-expenses  [in_scope]
+  case=shared-expenses host=claude model=claude-sonnet-5-5 effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 9/12; questions 7; by route {'default': 6, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 5 / 0 of 7
+    Q1 K1 default    id=Y id+w=-  Who consumes the service and how is it observed?
+    Q2 K3 default    id=- id+w=-  Response bodies and codes for POST /groups success, GET balances, unknown routes, malformed JSON?
+    Q3 K4 default    id=Y id+w=-  Validation edges: split 'exact' shares naming unknown members, negative/non-integer shares, payer not in membe
+    Q4 K4 default    id=Y id+w=-  Settlement tie-breaking and remainder order?
+    Q5 K5 default    id=- id+w=-  Persistence and concurrency model?
+    Q6 K6 inspect    id=Y id+w=-  Node version and dependencies?
+    Q7 K8 default    id=Y id+w=-  What tests prove concurrency and restart?
+  open: struct_assumptions=4 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/1 know_assum_lines=0 regex={'result_open_gap': 1, 'knowledge_open_gap': 1} negated~={'result': 1, 'knowledge': 0}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/csv-published-discovery-01  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-10-31 shiploop=1.25.1
+  categories apply 0/11; questions 0; by route {}; later results 28; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/ticket-assignment-published-discovery-01  [in_scope]
+  case=ticket-assignment host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.1
+  categories apply 11/11; questions 3; by route {'inspect': 3}; later results 36; spec found True
+  referenced later (id / id+words): 3 / 1 of 3
+    Q1 K3 inspect    id=Y id+w=Y  What response, error and notification conventions already exist?
+    Q2 K5 inspect    id=Y id+w=-  How is ticket state stored and exposed?
+    Q3 K9 inspect    id=Y id+w=-  Is there a configured consumer deployment?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/ticket-tests-published-01  [in_scope]
+  case=ticket-assignment-tests host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.1
+  categories apply 11/11; questions 3; by route {'inspect': 1, 'experiment': 2}; later results 0; spec found False
+  referenced later (id / id+words): 0 / 0 of 3
+    Q1 K3 inspect    id=- id+w=-  What exact API, persistence, CLI and notification conventions apply?
+    Q2 K8 experiment id=- id+w=-  How are existing tests run and isolated?
+    Q3 K11 experiment id=- id+w=-  Does the baseline pass and support the requested contract?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/ticket-tests-published-02  [in_scope]
+  case=ticket-assignment-tests host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.1
+  categories apply 11/11; questions 11; by route {'inspect': 10, 'experiment': 1}; later results 2; spec found True
+  referenced later (id / id+words): 3 / 1 of 11
+    Q1 K1 inspect    id=Y id+w=-  How will maintainers run and observe the tests?
+    Q2 K2 inspect    id=- id+w=-  What existing obligations must tests preserve?
+    Q3 K3 inspect    id=- id+w=-  What are documented endpoint and output shapes?
+    Q4 K4 inspect    id=- id+w=-  Which assignment boundaries and invalid cases apply?
+    Q5 K5 inspect    id=- id+w=-  How do state and legacy persistence behave?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and configuration support tests?
+    Q7 K7 inspect    id=- id+w=-  Which public seams enable observable tests?
+    Q8 K8 experiment id=- id+w=-  How is the full suite run and verified?
+    Q9 K9 inspect    id=- id+w=-  Where should deliverables land?
+    Q10 K10 inspect    id=Y id+w=-  How are waits bounded?
+    Q11 K11 inspect    id=Y id+w=Y  Will workspace return respect test-only scope and prior copied files?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/candidate-csv-report-1  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.1
+  categories apply 11/11; questions 1; by route {'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  Which rounding and unspecified malformed-header behavior should apply?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/candidate-hello-startup-contract-1  [in_scope]
+  case=hello-startup-contract host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.1
+  categories apply 7/11; questions 2; by route {'inspect': 1, 'experiment': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+    Q2 K8 experiment id=Y id+w=-  Can the unittest observe exact stdout at the process boundary?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/control-csv-report-1  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.1
+  categories apply 3/11; questions 3; by route {'default': 2, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 3 / 0 of 3
+    Q1 K3 default    id=Y id+w=-  How should malformed or missing headers be handled?
+    Q2 K4 default    id=Y id+w=-  Which rounding tie rule applies?
+    Q3 K7 inspect    id=Y id+w=-  What structure exists?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/control-hello-startup-contract-1  [in_scope]
+  case=hello-startup-contract host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.1
+  categories apply 2/11; questions 2; by route {'inspect': 2}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 2 of 2
+    Q1 K6 inspect    id=Y id+w=Y  Which Python runtime is available in the checkout?
+    Q2 K2 inspect    id=Y id+w=Y  Are there existing project files or conventions to preserve?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-csv-report-1  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 26; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K4 default    id=Y id+w=-  What rounding and unspecified malformed input behavior applies?
+    Q2 K7 inspect    id=Y id+w=Y  Are there existing conventions or implementation?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-csv-report-2  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K4 default    id=Y id+w=-  How should decimal ties be rounded?
+    Q2 K2 inspect    id=Y id+w=Y  What existing conventions or implementation apply?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-csv-report-3  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 0/12; questions 0; by route {}; later results 24; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-csv-report-4  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 24; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  How should halfway amounts round?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-seat-reservations-1  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 2}; later results 28; spec found True
+  referenced later (id / id+words): 2 / 0 of 2
+    Q1 K4 default    id=Y id+w=-  What event identifiers and integer range are accepted?
+    Q2 K9 default    id=Y id+w=-  Where is the service delivered?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-seat-reservations-2  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 2}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K4 default    id=Y id+w=-  How should unspecified malformed inputs and identifiers be handled?
+    Q2 K9 default    id=Y id+w=Y  Where is delivery required?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-seat-reservations-3  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 24; spec found True
+  referenced later (id / id+words): 3 / 1 of 3
+    Q1 K4 default    id=Y id+w=-  What input boundaries apply beyond the explicitly positive integers?
+    Q2 K2 inspect    id=Y id+w=-  Is there existing behavior or repository guidance?
+    Q3 K9 default    id=Y id+w=Y  Where is delivery required?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/candidate-seat-reservations-4  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 28; spec found True
+  referenced later (id / id+words): 3 / 1 of 3
+    Q1 K3 default    id=Y id+w=-  How should unspecified identifiers and malformed requests be handled?
+    Q2 K7 inspect    id=Y id+w=Y  What structure exists?
+    Q3 K9 default    id=Y id+w=-  Where is the result used?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-csv-report-1  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-csv-report-2  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 2}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 2
+    Q1 K4 default    id=Y id+w=-  How are halfway amounts rounded?
+    Q2 K3 default    id=Y id+w=-  How should malformed or absent headers be handled?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-csv-report-3  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 3/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 24; spec found True
+  referenced later (id / id+words): 3 / 1 of 3
+    Q1 K4 default    id=Y id+w=-  Which rounding convention applies at half cents?
+    Q2 K3 default    id=Y id+w=-  How should malformed headers be handled?
+    Q3 K8 inspect    id=Y id+w=Y  What existing tests or conventions exist?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-csv-report-4  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 9/12; questions 1; by route {'default': 1}; later results 24; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  How should rounding ties and malformed headers be handled?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-seat-reservations-1  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 2 of 2
+    Q1 K4 default    id=Y id+w=Y  What IDs and integer bounds are valid?
+    Q2 K7 inspect    id=Y id+w=Y  What existing conventions or implementation exist?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-seat-reservations-2  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 12; by route {'default': 10, 'inspect': 2}; later results 24; spec found True
+  referenced later (id / id+words): 2 / 1 of 12
+    Q1 K1 default    id=Y id+w=-  Where is it used?
+    Q2 K2 inspect    id=- id+w=-  What existing behavior needs preservation?
+    Q3 K3 default    id=- id+w=-  How are malformed IDs handled?
+    Q4 K4 default    id=- id+w=-  What constitutes an integer?
+    Q5 K5 default    id=- id+w=-  How is capacity protected?
+    Q6 K6 default    id=- id+w=-  What configuration is required?
+    Q7 K7 default    id=- id+w=-  What structure fits?
+    Q8 K8 default    id=- id+w=-  How are outcomes observed?
+    Q9 K9 default    id=- id+w=-  Where is delivery?
+    Q10 K10 default    id=- id+w=-  What quality bounds apply?
+    Q11 K11 default    id=- id+w=-  What is the principal risk?
+    Q12 K12 inspect    id=Y id+w=Y  What does ShipLoop mean?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-seat-reservations-3  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 24; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K4 default    id=Y id+w=-  What validation bounds apply to identifiers and integers?
+    Q2 K7 inspect    id=Y id+w=Y  What existing conventions and test seams apply?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/calibration-01/epoch/runs/control-seat-reservations-4  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 29; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  How are unspecified malformed values and event IDs handled?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/run  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.4
+  categories apply 4/12; questions 4; by route {'default': 2, 'inspect': 1, 'experiment': 1}; later results 26; spec found True
+  referenced later (id / id+words): 4 / 1 of 4
+    Q1 K4 default    id=Y id+w=-  Which rounding and malformed CSV conventions apply?
+    Q2 K7 inspect    id=Y id+w=Y  What existing structure and instructions apply?
+    Q3 K3 default    id=Y id+w=-  How should invalid header be handled?
+    Q4 K11 experiment id=Y id+w=-  Can unreadable later files suppress all output?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-cycle-03/loop/explore-1/run  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 27; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  How should unspecified invalid IDs and integer bounds be handled?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-cycle-04/loop/explore-1/run  [in_scope]
+  case=shared-expenses host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 12/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 25; spec found True
+  referenced later (id / id+words): 3 / 2 of 3
+    Q1 K4 default    id=Y id+w=-  How should ambiguous invalid IDs and names be handled?
+    Q2 K5 default    id=Y id+w=Y  What is the concurrency boundary?
+    Q3 K6 inspect    id=Y id+w=Y  Which Node version is available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-cycle-05/loop/explore-1/run  [in_scope]
+  case=user-listing host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 12/12; questions 2; by route {'inspect': 1, 'default': 1}; later results 4; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K7 inspect    id=Y id+w=Y  How do server and store expose existing ordering and tests?
+    Q2 K4 default    id=Y id+w=-  How should repeated parameters be handled?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/run  [in_scope]
+  case=user-listing host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 12/12; questions 2; by route {'inspect': 1, 'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K7 inspect    id=Y id+w=Y  What existing seams and conventions support this change?
+    Q2 K4 default    id=Y id+w=-  How should numeric input be interpreted where representation is ambiguous?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/candidate-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 9/11; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/candidate-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 0/11; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/candidate-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 7/11; questions 1; by route {'inspect': 1}; later results 32; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+  open: struct_assumptions=2 struct_unverified=2 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/control-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 6/11; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K8 inspect    id=Y id+w=Y  Which Python runtime is available?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/control-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 0/11; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/control-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 0/11; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/candidate-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 0/11; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/candidate-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 8/11; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K6 inspect    id=Y id+w=Y  Is Python 3 available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/candidate-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 7/11; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/control-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 0/11; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/control-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 10/11; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 0 / 0 of 1
+    Q1 K6 inspect    id=- id+w=-  What runtime is available?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/control-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.26.2
+  categories apply 4/11; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K8 inspect    id=Y id+w=-  Which Python runtime is available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/candidate-csv-report-1  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 0/12; questions 0; by route {}; later results 24; spec found True
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/candidate-csv-report-2  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 12/12; questions 4; by route {'default': 3, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 4 / 1 of 4
+    Q1 K4 default    id=Y id+w=-  Which rounding and numeric syntax apply where unspecified?
+    Q2 K3 default    id=Y id+w=-  How should malformed headers and multiline CSV line numbers be handled?
+    Q3 K2 inspect    id=Y id+w=Y  Are there existing conventions or behavior to preserve?
+    Q4 K9 default    id=Y id+w=-  Where is the consumer target?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/candidate-csv-report-3  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  How should ties in rounding and malformed CSV headers be handled?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/candidate-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.2
+  categories apply 9/12; questions 2; by route {'inspect': 1, 'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 2 of 2
+    Q1 K6 inspect    id=Y id+w=Y  What runtime and baseline exist?
+    Q2 K5 default    id=Y id+w=Y  Where should the checkpoint live?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/candidate-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_open_gap': 1} negated~={'result': 1, 'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/candidate-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/control-csv-report-1  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 12/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 2
+    Q1 K4 default    id=Y id+w=-  How should ties be rounded and malformed headers handled?
+    Q2 K2 inspect    id=Y id+w=-  What existing conventions and checks apply?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/control-csv-report-2  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 10/12; questions 3; by route {'default': 1, 'inspect': 2}; later results 27; spec found True
+  referenced later (id / id+words): 3 / 2 of 3
+    Q1 K4 default    id=Y id+w=-  How should ties be rounded and unusual numeric forms handled?
+    Q2 K3 inspect    id=Y id+w=Y  What are the existing project conventions and input assumptions?
+    Q3 K8 inspect    id=Y id+w=Y  What baseline and executable test harness exist?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/control-csv-report-3  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-02 shiploop=1.30.2
+  categories apply 4/12; questions 4; by route {'default': 2, 'inspect': 1, 'experiment': 1}; later results 22; spec found True
+  referenced later (id / id+words): 4 / 0 of 4
+    Q1 K3 default    id=Y id+w=-  How should missing or invalid headers be handled?
+    Q2 K4 default    id=Y id+w=-  Which rounding rule applies to exact half-cent totals?
+    Q3 K8 inspect    id=Y id+w=-  What existing checks or conventions exist?
+    Q4 K11 experiment id=Y id+w=-  Can failures after earlier valid files avoid partial stdout?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/control-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.2
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/control-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.2
+  categories apply 9/12; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K6 inspect    id=Y id+w=Y  What Python runtime is available?
+  open: struct_assumptions=2 struct_unverified=1 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/cycle-1/epoch/runs/control-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.2
+  categories apply 9/12; questions 2; by route {'inspect': 1, 'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 2 of 2
+    Q1 K6 inspect    id=Y id+w=Y  What Python runtime is available?
+    Q2 K5 default    id=Y id+w=Y  Where should the checkpoint persist?
+  open: struct_assumptions=4 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-planted-01/loop/explore-1/run  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.2
+  categories apply 9/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 3 / 2 of 3
+    Q1 K3 default    id=Y id+w=Y  Does printed output include the normal trailing newline?
+    Q2 K5 default    id=Y id+w=-  Where should checkpoint.log be recorded?
+    Q3 K6 inspect    id=Y id+w=Y  What runtime is available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-01/cycle/epoch/runs/candidate-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 9/12; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K6 inspect    id=Y id+w=Y  What runtime and existing conventions are available?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-01/cycle/epoch/runs/candidate-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 0/12; questions 0; by route {}; later results 4; spec found True
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-01/cycle/epoch/runs/candidate-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 0/12; questions 0; by route {}; later results 3; spec found True
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-01/cycle/epoch/runs/control-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-01/cycle/epoch/runs/control-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 4/12; questions 4; by route {'default': 3, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 4 / 1 of 4
+    Q1 K3 default    id=Y id+w=-  What stdout bytes are expected?
+    Q2 K6 inspect    id=Y id+w=Y  Is Python available?
+    Q3 K8 default    id=Y id+w=-  Which test command runs the requested unittest?
+    Q4 K9 default    id=Y id+w=-  Where are files delivered?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-01/cycle/epoch/runs/control-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.29.0
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 9/12; questions 2; by route {'inspect': 2}; later results 24; spec found True
+  referenced later (id / id+words): 0 / 0 of 2
+    Q1 K6 inspect    id=- id+w=-  What Python runtime is available?
+    Q2 K5 inspect    id=- id+w=-  How is checkpoint progress preserved across the hook?
+  open: struct_assumptions=4 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 9/12; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K6 inspect    id=Y id+w=-  Which Python runtime is available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 10/12; questions 2; by route {'inspect': 1, 'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K6 inspect    id=Y id+w=Y  What Python runtime and baseline are available?
+    Q2 K5 default    id=Y id+w=-  Where is checkpoint state retained across continuation?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-1  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-2  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 0/12; questions 0; by route {}; later results 27; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3  [in_scope]
+  case=hello-hook-continuation host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 9/12; questions 2; by route {'inspect': 1, 'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 0 / 0 of 2
+    Q1 K6 inspect    id=- id+w=-  Which Python runtime and existing project conventions are available?
+    Q2 K5 default    id=- id+w=-  Where should the checkpoint persist through the hook and return?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-a  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.0
+  categories apply 5/12; questions 5; by route {'default': 2, 'inspect': 2, 'experiment': 1}; later results 22; spec found True
+  referenced later (id / id+words): 5 / 0 of 5
+    Q1 K4 default    id=Y id+w=-  How should Unicode and non-punctuation symbols be treated?
+    Q2 K3 default    id=Y id+w=-  How are invalid options handled?
+    Q3 K6 inspect    id=Y id+w=-  What Python runtime is available?
+    Q4 K8 inspect    id=Y id+w=-  What test setup exists?
+    Q5 K11 experiment id=Y id+w=-  Can output and errors be observed at the process boundary?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.0
+  categories apply 4/12; questions 4; by route {'default': 4}; later results 22; spec found True
+  referenced later (id / id+words): 4 / 0 of 4
+    Q1 K2 default    id=Y id+w=-  What is in this run?
+    Q2 K3 default    id=Y id+w=-  How are unknown options handled?
+    Q3 K4 default    id=Y id+w=-  How should Unicode and symbols be handled?
+    Q4 K8 default    id=Y id+w=-  How to verify CLI?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link2-b  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.30.1
+  categories apply 10/12; questions 10; by route {'inspect': 9, 'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 8 / 1 of 10
+    Q1 K1 inspect    id=Y id+w=-  How is the CLI consumed and observed?
+    Q2 K2 inspect    id=Y id+w=Y  Which prior behaviors and decisions apply?
+    Q3 K3 inspect    id=Y id+w=-  What are the option and error contracts?
+    Q4 K4 default    id=Y id+w=-  What limits and invalid values should apply?
+    Q5 K6 inspect    id=- id+w=-  What runtime and dependencies are used?
+    Q6 K7 inspect    id=Y id+w=-  What code seam exists?
+    Q7 K8 inspect    id=Y id+w=-  Which existing test command exercises the CLI?
+    Q8 K9 inspect    id=Y id+w=-  Where should the result be delivered?
+    Q9 K11 inspect    id=Y id+w=-  What failure risks and tests exist?
+    Q10 K12 inspect    id=- id+w=-  What did S3 and lessons mean?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_awaiting': 1} negated~={'result': 0, 'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live-436258/csv-report-1  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 28; spec found True
+  referenced later (id / id+words): 2 / 0 of 2
+    Q1 K4 default    id=Y id+w=-  What rounding and malformed header behavior should be used where unspecified?
+    Q2 K7 inspect    id=Y id+w=-  What existing project conventions or implementation constrain structure?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live-436258/csv-report-2  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 3 / 0 of 3
+    Q1 K4 default    id=Y id+w=-  Which rounding and numeric conventions apply at ties and extreme values?
+    Q2 K3 default    id=Y id+w=-  How are malformed or absent headers and CSV syntax errors treated?
+    Q3 K9 inspect    id=Y id+w=-  Where is the consumer entry point?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=2 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live-436258/hello-1  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.27.0
+  categories apply 8/12; questions 8; by route {'default': 6, 'inspect': 2}; later results 22; spec found True
+  referenced later (id / id+words): 8 / 4 of 8
+    Q1 K3 default    id=Y id+w=Y  Does output include the conventional terminal newline?
+    Q2 K6 inspect    id=Y id+w=Y  What Python runtime is available?
+    Q3 K8 default    id=Y id+w=-  How should the real script boundary be verified?
+    Q4 K9 default    id=Y id+w=-  Where should files be delivered?
+    Q5 K11 default    id=Y id+w=-  Could test pass without running the script?
+    Q6 K12 default    id=Y id+w=Y  What does unittest mean here?
+    Q7 K1 default    id=Y id+w=Y  How does the user observe success?
+    Q8 K2 inspect    id=Y id+w=-  Is there existing behavior to preserve?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live-436258/published-hello  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 8/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K3 default    id=Y id+w=-  Does exact output include a conventional trailing newline?
+    Q2 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live-436258/seat-reservations-1  [in_scope]
+  case=seat-reservations host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.27.0
+  categories apply 12/12; questions 3; by route {'default': 3}; later results 22; spec found True
+  referenced later (id / id+words): 0 / 0 of 3
+    Q1 K3 default    id=- id+w=-  What are the unspecified ID and JSON input boundaries?
+    Q2 K9 default    id=- id+w=-  Where is the service delivered?
+    Q3 K10 default    id=- id+w=-  Are additional operational bounds required?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 10/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 3 / 0 of 3
+    Q1 K4 default    id=Y id+w=-  How should characters other than ASCII letters be handled?
+    Q2 K3 default    id=Y id+w=-  How are missing or extra arguments handled?
+    Q3 K6 inspect    id=Y id+w=-  What runtime and dependencies are available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-b  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 10/12; questions 3; by route {'person': 1, 'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 0 / 0 of 3
+    Q1 K4 person     id=- id+w=-  How should non-ASCII letters be handled?
+    Q2 K4 default    id=- id+w=-  How should digits and non-letter symbols be handled?
+    Q3 K6 inspect    id=- id+w=-  What runtime and existing conventions are available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-a  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 12/12; questions 3; by route {'person': 1, 'inspect': 2}; later results 3; spec found True
+  referenced later (id / id+words): 3 / 0 of 3
+    Q1 K4 person     id=Y id+w=-  What is the user’s final SEO treatment of non-ASCII letters?
+    Q2 K2 inspect    id=Y id+w=-  What behavior and decisions exist today?
+    Q3 K8 inspect    id=Y id+w=-  Which suite validates the current CLI?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=1 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_awaiting': 2} negated~={'result': 0, 'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-b  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 10/12; questions 3; by route {'person': 1, 'inspect': 2}; later results 3; spec found True
+  referenced later (id / id+words): 3 / 1 of 3
+    Q1 K4 person     id=Y id+w=-  What is the SEO policy for non-ASCII letters?
+    Q2 K8 inspect    id=Y id+w=-  What baseline and CLI contracts exist?
+    Q3 K12 inspect    id=Y id+w=Y  What did the earlier request and lessons record?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=1 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_awaiting': 2} negated~={'result': 0, 'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-a  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 10/12; questions 10; by route {'inspect': 10}; later results 22; spec found True
+  referenced later (id / id+words): 6 / 2 of 10
+    Q1 K1 inspect    id=Y id+w=Y  What entry point and outcome exist?
+    Q2 K2 inspect    id=- id+w=-  Which behaviors and decisions are retained?
+    Q3 K3 inspect    id=Y id+w=-  What are the CLI contracts?
+    Q4 K4 inspect    id=Y id+w=Y  How are accents and other characters handled?
+    Q5 K6 inspect    id=Y id+w=-  What runtime and dependencies are used?
+    Q6 K7 inspect    id=Y id+w=-  What structure exists?
+    Q7 K8 inspect    id=- id+w=-  How are existing tests run?
+    Q8 K9 inspect    id=- id+w=-  Where is delivery needed?
+    Q9 K11 inspect    id=- id+w=-  What can regress?
+    Q10 K12 inspect    id=Y id+w=-  What do earlier run and lessons mean?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-b  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.29.0
+  categories apply 10/12; questions 3; by route {'inspect': 3}; later results 22; spec found True
+  referenced later (id / id+words): 3 / 2 of 3
+    Q1 K2 inspect    id=Y id+w=Y  Which behavior and decisions must be preserved or superseded by the new policy?
+    Q2 K4 inspect    id=Y id+w=Y  How does the existing code treat symbols, digits, Unicode and accents?
+    Q3 K8 inspect    id=Y id+w=-  What test command and CLI contract exist?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/incremental-implementation-6vr1vrbo/csv-live/pilot-a/base  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.30.2
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/incremental-implementation-6vr1vrbo/user-chain-live/user-listing  [in_scope]
+  case=user-listing host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.30.2
+  categories apply 11/12; questions 11; by route {'inspect': 11}; later results 32; spec found True
+  referenced later (id / id+words): 2 / 1 of 11
+    Q1 K1 inspect    id=Y id+w=-  How does the HTTP consumer reach the server?
+    Q2 K2 inspect    id=- id+w=-  Which behaviors exist?
+    Q3 K3 inspect    id=- id+w=-  How are requests parsed?
+    Q4 K4 inspect    id=- id+w=-  How are IDs ordered?
+    Q5 K5 inspect    id=- id+w=-  How is state maintained?
+    Q6 K6 inspect    id=- id+w=-  What runtime is available?
+    Q7 K7 inspect    id=- id+w=-  Where is the listing handled?
+    Q8 K8 inspect    id=- id+w=-  How are tests run?
+    Q9 K9 inspect    id=- id+w=-  Where is delivery required?
+    Q10 K11 inspect    id=- id+w=-  What existing checks fail?
+    Q11 K12 inspect    id=Y id+w=Y  What conventions does README establish?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/incremental-implementation-6vr1vrbo/user-chain-live/user-summary  [in_scope]
+  case=user-summary host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.30.2
+  categories apply 12/12; questions 2; by route {'inspect': 2}; later results 22; spec found True
+  referenced later (id / id+words): 0 / 0 of 2
+    Q1 K3 inspect    id=- id+w=-  What are the existing filter and routing semantics?
+    Q2 K8 inspect    id=- id+w=-  How are tests and the server run?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/incremental-implementation-6vr1vrbo/user-chain-live/user-teams  [in_scope]
+  case=user-teams host=codex model=gpt-6.1-terra effort=high date=2026-11-01 shiploop=1.30.2
+  categories apply 12/12; questions 2; by route {'inspect': 1, 'experiment': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 2 of 2
+    Q1 K3 inspect    id=Y id+w=Y  What are the existing HTTP and pagination contracts?
+    Q2 K8 experiment id=Y id+w=Y  What is the existing test command and baseline?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/epoch-compact/runs/control-status  [in_scope]
+  case=user-summary-status host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 32; spec found True
+  referenced later (id / id+words): 2 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Where is the API consumed and how is it verified?
+    Q2 K2 inspect    id=- id+w=-  What existing behavior and documentation conventions must be preserved?
+    Q3 K3 inspect    id=- id+w=-  How are filters and routes currently implemented?
+    Q4 K4 inspect    id=- id+w=-  What filter edge cases exist?
+    Q5 K5 inspect    id=- id+w=-  Where do users and teams reside?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies are used?
+    Q7 K7 inspect    id=- id+w=-  Which modules provide routing and filtering?
+    Q8 K8 inspect    id=- id+w=-  What commands run the existing and new node tests?
+    Q9 K9 inspect    id=- id+w=-  Is local source return the intended delivery?
+    Q10 K10 inspect    id=- id+w=-  Are there documented performance or security constraints?
+    Q11 K11 inspect    id=- id+w=-  What edge cases could break compatibility?
+    Q12 K12 inspect    id=Y id+w=Y  What do existing filters and deferred work mean in this repository?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/epoch-deferral/runs/control-status  [in_scope]
+  case=user-summary-status host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 11; spec found True
+  referenced later (id / id+words): 0 / 0 of 12
+    Q1 K1 inspect    id=- id+w=-  How is the API consumed?
+    Q2 K2 inspect    id=- id+w=-  What existing behavior and deferred work exist?
+    Q3 K3 inspect    id=- id+w=-  How does the list route parse filters?
+    Q4 K4 inspect    id=- id+w=-  What filter edge cases exist?
+    Q5 K5 inspect    id=- id+w=-  How are users stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime and commands apply?
+    Q7 K7 inspect    id=- id+w=-  What seams exist?
+    Q8 K8 inspect    id=- id+w=-  What is the existing test command?
+    Q9 K9 inspect    id=- id+w=-  Where is delivery required?
+    Q10 K10 inspect    id=- id+w=-  What project quality constraints apply?
+    Q11 K11 inspect    id=- id+w=-  What regression risks exist?
+    Q12 K12 inspect    id=- id+w=-  What documentation conventions and terms apply?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/epoch-recovery/runs/candidate-status  [in_scope]
+  case=user-summary-status host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 28; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who consumes the endpoint and how is it observed?
+    Q2 K2 inspect    id=- id+w=-  What behavior and documents exist?
+    Q3 K3 inspect    id=- id+w=-  What are current route and filter contracts?
+    Q4 K4 inspect    id=- id+w=-  What edge cases exist?
+    Q5 K5 inspect    id=- id+w=-  How is user data stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies exist?
+    Q7 K7 inspect    id=- id+w=-  Where are route and filters implemented?
+    Q8 K8 inspect    id=- id+w=-  How are tests run?
+    Q9 K9 inspect    id=- id+w=-  Where is delivery required?
+    Q10 K10 inspect    id=- id+w=-  What quality constraints apply?
+    Q11 K11 inspect    id=- id+w=-  What risks exist?
+    Q12 K12 inspect    id=Y id+w=-  What do repository terms mean?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/epoch-recovery/runs/control-status  [in_scope]
+  case=user-summary-status host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 12; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who uses the endpoint and how is it observed?
+    Q2 K2 inspect    id=- id+w=-  What existing behavior is preserved?
+    Q3 K3 inspect    id=- id+w=-  What is the existing filter contract?
+    Q4 K4 inspect    id=- id+w=-  What edge cases apply?
+    Q5 K5 inspect    id=- id+w=-  Where is user data stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies exist?
+    Q7 K7 inspect    id=- id+w=-  Where should the route be implemented?
+    Q8 K8 inspect    id=- id+w=-  How are tests run?
+    Q9 K9 inspect    id=- id+w=-  Where is delivery needed?
+    Q10 K10 inspect    id=- id+w=-  What quality bounds already exist?
+    Q11 K11 inspect    id=- id+w=-  What are the main regression risks?
+    Q12 K12 inspect    id=Y id+w=-  What do project documents mean by current and deferred?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_open_question': 1} negated~={'result': 1, 'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/epoch-v2/runs/candidate-status  [in_scope]
+  case=user-summary-status host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 3; by route {'inspect': 3}; later results 11; spec found True
+  referenced later (id / id+words): 3 / 1 of 3
+    Q1 K1 inspect    id=Y id+w=-  Where is the endpoint implemented and consumed?
+    Q2 K3 inspect    id=Y id+w=Y  What are the existing filter and routing semantics?
+    Q3 K8 inspect    id=Y id+w=-  What commands and document conventions exist?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/epoch-v2/runs/control-status  [in_scope]
+  case=user-summary-status host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  How is the endpoint served and observed?
+    Q2 K2 inspect    id=- id+w=-  What behavior and deferred scope already exist?
+    Q3 K3 inspect    id=- id+w=-  How are GET /users filters parsed and applied?
+    Q4 K4 inspect    id=- id+w=-  How are missing, repeated and empty filters handled?
+    Q5 K5 inspect    id=- id+w=-  What is the store and its team representation?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies are needed?
+    Q7 K7 inspect    id=- id+w=-  Where is shared filtering implemented?
+    Q8 K8 inspect    id=- id+w=-  How are existing tests run?
+    Q9 K9 inspect    id=- id+w=-  Where is delivery required?
+    Q10 K10 inspect    id=- id+w=-  Are there existing performance or security constraints?
+    Q11 K11 inspect    id=- id+w=-  What risks threaten existing behavior?
+    Q12 K12 inspect    id=Y id+w=-  What documentation conventions and historical deferrals apply?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/held-reruns/api-published/user-summary  [in_scope]
+  case=user-summary host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 3; by route {'inspect': 3}; later results 22; spec found True
+  referenced later (id / id+words): 3 / 0 of 3
+    Q1 K3 inspect    id=Y id+w=-  How do existing filters and routing behave?
+    Q2 K8 inspect    id=Y id+w=-  What baseline and HTTP test commands apply?
+    Q3 K9 inspect    id=Y id+w=-  Where is the service delivered?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/living-spec-status-_1jkfwx5/held-reruns/csv-published/published-a/base  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 0/12; questions 0; by route {}; later results 26; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/shiploop-hello-codex-floor-2c31ea  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-01 shiploop=1.26.2
+  categories apply 7/11; questions 2; by route {'inspect': 1, 'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K6 inspect    id=Y id+w=Y  What Python runtime is available?
+    Q2 K8 default    id=Y id+w=-  How should exact command output be checked?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8  [in_scope]
+  case=hello host=claude model=claude-sonnet-5-5 effort=None date=2026-11-01 shiploop=1.26.3
+  categories apply 5/11; questions 2; by route {'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K3 default    id=Y id+w=Y  Does 'exactly' allow the trailing newline that print() adds?
+    Q2 K6 inspect    id=Y id+w=-  Which Python version and test invocation?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_open_gap': 2} negated~={'result': 2, 'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-evaluation-ywa3fy0y/epoch-intent-ec1fbc1aacc1/runs/candidate-csv-intent-direct  [in_scope]
+  case=csv-intent-direct host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 3/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 0 / 0 of 3
+    Q1 K4 default    id=- id+w=-  Which rounding rule and accepted numeric syntax apply?
+    Q2 K3 default    id=- id+w=-  How should malformed headers be handled?
+    Q3 K8 inspect    id=- id+w=-  What baseline and existing conventions exist?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-evaluation-ywa3fy0y/epoch-intent-ec1fbc1aacc1/runs/candidate-user-intent-continuity  [in_scope]
+  case=user-intent-continuity host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 11/12; questions 11; by route {'inspect': 11}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 11
+    Q1 K1 inspect    id=Y id+w=-  How is the API consumed?
+    Q2 K2 inspect    id=- id+w=-  What existing behavior and tests must be preserved?
+    Q3 K3 inspect    id=- id+w=-  How are routes and query inputs handled?
+    Q4 K4 inspect    id=- id+w=-  How are filters applied?
+    Q5 K5 inspect    id=- id+w=-  Where are users stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies are present?
+    Q7 K7 inspect    id=- id+w=-  What seams support shared filtering?
+    Q8 K8 inspect    id=- id+w=-  What is the existing test command?
+    Q9 K9 inspect    id=- id+w=-  Does source return trigger delivery?
+    Q10 K11 inspect    id=- id+w=-  What regressions are likely?
+    Q11 K12 inspect    id=Y id+w=-  What do existing requirement and decision say?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-evaluation-ywa3fy0y/epoch-intent-ec1fbc1aacc1/runs/control-csv-intent-direct  [in_scope]
+  case=csv-intent-direct host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K4 default    id=Y id+w=Y  What rounding and malformed header conventions apply when unspecified?
+  open: struct_assumptions=2 struct_unverified=2 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-evaluation-ywa3fy0y/epoch-intent-ec1fbc1aacc1/runs/control-user-intent-continuity  [in_scope]
+  case=user-intent-continuity host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  How is the API consumed?
+    Q2 K2 inspect    id=- id+w=-  Which behavior and tests encode the old rule?
+    Q3 K3 inspect    id=- id+w=-  How are filters and routes implemented?
+    Q4 K4 inspect    id=- id+w=-  What are filter edge cases?
+    Q5 K5 inspect    id=- id+w=-  How are users stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies are used?
+    Q7 K7 inspect    id=- id+w=-  What seams exist?
+    Q8 K8 inspect    id=- id+w=-  What commands exercise the HTTP boundary?
+    Q9 K9 inspect    id=- id+w=-  Does local return deliver the requested outcome?
+    Q10 K10 inspect    id=- id+w=-  What constraints already apply?
+    Q11 K11 inspect    id=- id+w=-  What regression risks exist?
+    Q12 K12 inspect    id=Y id+w=-  Where are existing requirements and decisions?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-final-qualification-42fb570ce27f/epoch-42fb570ce27f/runs/r3-candidate-api  [in_scope]
+  case=user-intent-continuity host=codex model=gpt-6.1-terra effort=high date=2026-11-03 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 25; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Where and how is the API consumed?
+    Q2 K2 inspect    id=- id+w=-  Which existing behaviors and tests encode the old rule?
+    Q3 K3 inspect    id=- id+w=-  What are the existing filter and response contracts?
+    Q4 K4 inspect    id=- id+w=-  What edge cases exist in filtering?
+    Q5 K5 inspect    id=- id+w=-  How are users stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies exist?
+    Q7 K7 inspect    id=- id+w=-  Where are routes and filters implemented?
+    Q8 K8 inspect    id=- id+w=-  What test commands and fixtures exist?
+    Q9 K9 inspect    id=- id+w=-  How is the result delivered?
+    Q10 K10 inspect    id=- id+w=-  Are there existing quality bounds?
+    Q11 K11 inspect    id=- id+w=-  What risks exist in route ordering and filtering?
+    Q12 K12 inspect    id=Y id+w=-  Where are prior requirements and decisions?
+  open: struct_assumptions=3 struct_unverified=1 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-final-qualification-42fb570ce27f/epoch-42fb570ce27f/runs/r3-candidate-csv  [in_scope]
+  case=csv-intent-direct host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 4/12; questions 4; by route {'default': 2, 'inspect': 1, 'experiment': 1}; later results 26; spec found True
+  referenced later (id / id+words): 4 / 2 of 4
+    Q1 K4 default    id=Y id+w=-  How should rounding ties and malformed headers be handled?
+    Q2 K11 inspect    id=Y id+w=Y  Does an existing implementation or suite need preservation?
+    Q3 K3 default    id=Y id+w=-  How are multiline CSV record lines reported?
+    Q4 K8 experiment id=Y id+w=Y  Is unittest available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=2 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-final-qualification-42fb570ce27f/epoch-42fb570ce27f/runs/r3-control-api  [in_scope]
+  case=user-intent-continuity host=codex model=gpt-6.1-terra effort=high date=2026-11-03 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  How is the API consumed?
+    Q2 K2 inspect    id=- id+w=-  Which behavior must be preserved?
+    Q3 K3 inspect    id=- id+w=-  How are filters parsed and errors returned?
+    Q4 K4 inspect    id=- id+w=-  What are edge conditions?
+    Q5 K5 inspect    id=- id+w=-  Where are users stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime is used?
+    Q7 K7 inspect    id=- id+w=-  Where is the filtering seam?
+    Q8 K8 inspect    id=- id+w=-  What tests exercise HTTP?
+    Q9 K9 inspect    id=- id+w=-  Does repository return trigger deployment?
+    Q10 K10 inspect    id=- id+w=-  What constraints already exist?
+    Q11 K11 inspect    id=- id+w=-  What can break compatibility?
+    Q12 K12 inspect    id=Y id+w=Y  What do existing filter terms mean?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-final-qualification-42fb570ce27f/epoch-42fb570ce27f/runs/r3-control-csv  [in_scope]
+  case=csv-intent-direct host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 26; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K4 default    id=Y id+w=Y  What rounding and numeric syntax should be used where unspecified?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-requalification-p9fo4_gq/epoch-1137ec4fb6a9/runs/r2-candidate-api  [in_scope]
+  case=user-intent-continuity host=codex model=gpt-6.1-terra effort=high date=2026-11-03 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Where are the API and consumers?
+    Q2 K2 inspect    id=- id+w=-  Which existing behaviors and old rule must be retained or replaced?
+    Q3 K3 inspect    id=- id+w=-  How are filters and errors implemented?
+    Q4 K4 inspect    id=- id+w=-  How are edge cases handled?
+    Q5 K5 inspect    id=- id+w=-  Where do users and teams live?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies are used?
+    Q7 K7 inspect    id=- id+w=-  Which code seams implement filtering?
+    Q8 K8 inspect    id=- id+w=-  What suite and command verify the HTTP boundary?
+    Q9 K9 inspect    id=- id+w=-  Does local return trigger any delivery?
+    Q10 K10 inspect    id=- id+w=-  What resource bounds apply?
+    Q11 K11 inspect    id=- id+w=-  What risks and regressions exist?
+    Q12 K12 inspect    id=Y id+w=-  Where are the referenced requirements and decisions?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-requalification-p9fo4_gq/epoch-1137ec4fb6a9/runs/r2-candidate-csv  [in_scope]
+  case=csv-intent-direct host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  What rounding and malformed header policy applies where unspecified?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-requalification-p9fo4_gq/epoch-1137ec4fb6a9/runs/r2-control-api  [in_scope]
+  case=user-intent-continuity host=codex model=gpt-6.1-terra effort=high date=2026-11-03 shiploop=1.30.3
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  How do consumers call the service?
+    Q2 K2 inspect    id=- id+w=-  Which existing contracts apply?
+    Q3 K3 inspect    id=- id+w=-  How are filters parsed?
+    Q4 K4 inspect    id=- id+w=-  What are existing edge rules?
+    Q5 K5 inspect    id=- id+w=-  Where is user data stored?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies exist?
+    Q7 K7 inspect    id=- id+w=-  Where is filtering implemented?
+    Q8 K8 inspect    id=- id+w=-  What tests and commands exist?
+    Q9 K9 inspect    id=- id+w=-  What delivery target is specified?
+    Q10 K10 inspect    id=- id+w=-  What practical performance constraints exist?
+    Q11 K11 inspect    id=- id+w=-  Where can regression occur?
+    Q12 K12 inspect    id=Y id+w=-  What do existing filter terms mean?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-02/intent-requalification-p9fo4_gq/epoch-1137ec4fb6a9/runs/r2-control-csv  [in_scope]
+  case=csv-intent-direct host=codex model=gpt-6.1-terra effort=high date=2026-11-02 shiploop=1.30.3
+  categories apply 0/12; questions 0; by route {}; later results 26; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-03/narrative-battleship  [in_scope]
+  case=battleship host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.7
+  categories apply 12/12; questions 12; by route {'default': 11, 'inspect': 1}; later results 33; spec found True
+  referenced later (id / id+words): 0 / 0 of 12
+    Q1 K1 default    id=- id+w=-  Who uses it and where?
+    Q2 K2 inspect    id=- id+w=-  What existing behavior exists?
+    Q3 K3 default    id=- id+w=-  How are errors returned?
+    Q4 K4 default    id=- id+w=-  What fleet and repeat-shot rules?
+    Q5 K5 default    id=- id+w=-  How long does state last?
+    Q6 K6 default    id=- id+w=-  Which runtime?
+    Q7 K7 default    id=- id+w=-  What structure?
+    Q8 K8 default    id=- id+w=-  How to verify?
+    Q9 K9 default    id=- id+w=-  Where deliver?
+    Q10 K10 default    id=- id+w=-  What quality bounds?
+    Q11 K11 default    id=- id+w=-  What risks?
+    Q12 K12 default    id=- id+w=-  Meaning of Battleship?
+  open: struct_assumptions=14 struct_unverified=1 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-03/narrative-relay-hello  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.4
+  categories apply 9/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 26; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K3 default    id=Y id+w=-  Does output include a standard trailing newline?
+    Q2 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-03/narrative-round2  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.7
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_open_gap': 1} negated~={'result': 1, 'knowledge': 0}
+
+~/e2e-runs/2026-11-03/narrative-round3  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.7
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-04/archive-live2  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.8
+  categories apply 5/12; questions 5; by route {'default': 2, 'inspect': 2, 'experiment': 1}; later results 22; spec found True
+  referenced later (id / id+words): 5 / 2 of 5
+    Q1 K4 default    id=Y id+w=-  How are ties rounded?
+    Q2 K3 default    id=Y id+w=-  What should malformed headers do?
+    Q3 K7 inspect    id=Y id+w=Y  What existing structure applies?
+    Q4 K8 inspect    id=Y id+w=Y  What tests exist?
+    Q5 K11 experiment id=Y id+w=-  Can decimal precision or unreadable later files compromise output?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-04/chess-sf-clean  [in_scope]
+  case=chess-salesforce host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.31.0
+  categories apply 12/12; questions 3; by route {'inspect': 1, 'default': 1, 'experiment': 1}; later results 45; spec found True
+  referenced later (id / id+words): 0 / 0 of 3
+    Q1 K6 inspect    id=- id+w=-  Which Salesforce API version and org capabilities are available?
+    Q2 K5 default    id=- id+w=-  How long does a game persist?
+    Q3 K8 experiment id=- id+w=-  What CPU budget does the org permit for the requested enumerations and games?
+  open: struct_assumptions=15 struct_unverified=3 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-04/i5-none  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.8
+  categories apply 9/12; questions 1; by route {'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 1 of 1
+    Q1 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-04/i5-stage  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.8
+  categories apply 0/12; questions 0; by route {}; later results 22; spec found True
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_open_question': 2} negated~={'result': 2, 'knowledge': 0}
+
+~/e2e-runs/2026-11-04/m2-checkers  [in_scope]
+  case=checkers host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.8
+  categories apply 12/12; questions 3; by route {'default': 2, 'inspect': 1}; later results 30; spec found True
+  referenced later (id / id+words): 3 / 1 of 3
+    Q1 K4 default    id=Y id+w=-  How do unspecified chained captures and victory work?
+    Q2 K5 default    id=Y id+w=-  How long does game state persist?
+    Q3 K6 inspect    id=Y id+w=Y  What runtime and existing project are available?
+  open: struct_assumptions=11 struct_unverified=3 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-04/m2-csv  [in_scope]
+  case=csv-report host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.8
+  categories apply 12/12; questions 1; by route {'default': 1}; later results 22; spec found True
+  referenced later (id / id+words): 1 / 0 of 1
+    Q1 K4 default    id=Y id+w=-  What rounding and numeric syntax should be used where unspecified?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-04/marketplace-hello  [in_scope]
+  case=hello host=codex model=gpt-6.1-terra effort=high date=2026-11-04 shiploop=1.30.8
+  categories apply 6/12; questions 6; by route {'default': 4, 'inspect': 2}; later results 22; spec found True
+  referenced later (id / id+words): 6 / 3 of 6
+    Q1 K1 default    id=Y id+w=Y  Where is the output observed?
+    Q2 K2 inspect    id=Y id+w=-  What existing behavior needs preservation?
+    Q3 K3 default    id=Y id+w=-  Does output include a line ending?
+    Q4 K6 inspect    id=Y id+w=Y  Which Python runtime is available?
+    Q5 K8 default    id=Y id+w=Y  How should the test observe output?
+    Q6 K9 default    id=Y id+w=-  Where should files be delivered?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-05/chess-improvement/baseline-01  [in_scope]
+  case=chess-salesforce host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-05 shiploop=1.31.0
+  categories apply 12/12; questions 3; by route {'experiment': 2, 'default': 1}; later results 49; spec found True
+  referenced later (id / id+words): 0 / 0 of 3
+    Q1 K6 experiment id=- id+w=-  Which CLI and org capabilities are available?
+    Q2 K10 experiment id=- id+w=-  Does the rules implementation meet transaction CPU bounds?
+    Q3 K5 default    id=- id+w=-  How long does the game persist?
+  open: struct_assumptions=20 struct_unverified=4 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-05/chess-improvement/rerun-02  [in_scope]
+  case=chess-salesforce host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-05 shiploop=1.31.0
+  categories apply 12/12; questions 4; by route {'inspect': 1, 'default': 1, 'experiment': 1, 'research': 1}; later results 55; spec found True
+  referenced later (id / id+words): 0 / 0 of 4
+    Q1 K6 inspect    id=- id+w=-  Which Salesforce CLI and org capabilities are available?
+    Q2 K5 default    id=- id+w=-  How long is shared game state retained?
+    Q3 K10 experiment id=- id+w=-  Does the implementation stay within transaction CPU limits?
+    Q4 K4 research   id=- id+w=-  Which rule edge cases and standard counts provide trustworthy coverage?
+  open: struct_assumptions=12 struct_unverified=4 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-15/backchain-child-csv-729a1e  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-15 shiploop=1.36.2
+  categories apply 12/12; questions 4; by route {'default': 2, 'inspect': 2}; later results 22; spec found True
+  referenced later (id / id+words): 4 / 0 of 4
+    Q1 K3 default    id=Y id+w=-  What rounding and JSON numeric representation should be used?
+    Q2 K4 default    id=Y id+w=-  How should malformed headers and unusual CSV be handled?
+    Q3 K7 inspect    id=Y id+w=-  What existing structure should be preserved?
+    Q4 K12 inspect    id=Y id+w=-  Which Backchain and loop resources are available?
+  open: struct_assumptions=3 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/2026-11-15/backchain-default-none-csv-8df4c5  [in_scope]
+  case=custom host=codex model=gpt-6.1-terra effort=xhigh date=2026-11-16 shiploop=1.36.3
+  categories apply 12/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 0 of 2
+    Q1 K4 default    id=Y id+w=-  How are unspecified rounding and malformed headers treated?
+    Q2 K2 inspect    id=Y id+w=-  Is there existing code or repository guidance?
+  open: struct_assumptions=2 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/20261101/smoke-2.30.0-0f125e/claude-hello  [in_scope]
+  case=hello host=claude model=claude-sonnet-5-5 effort=None date=2026-11-01 shiploop=1.29.0
+  categories apply 8/12; questions 4; by route {'default': 3, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 4 / 1 of 4
+    Q1 K3 default    id=Y id+w=Y  Does 'exactly' allow the trailing newline that print emits?
+    Q2 K6 inspect    id=Y id+w=-  Which Python version and dependencies are allowed?
+    Q3 K8 default    id=Y id+w=-  How should the test observe the output at the real boundary?
+    Q4 K9 default    id=Y id+w=-  Where must the result be delivered?
+  open: struct_assumptions=4 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_open_gap': 2} negated~={'result': 2, 'knowledge': 0}
+
+~/e2e-runs/20261110/grok46-hello-1  [in_scope]
+  case=hello host=grok model=grok-4.6 effort=xhigh date=2026-11-11 shiploop=1.33.6
+  categories apply 10/12; questions 10; by route {'default': 8, 'inspect': 2}; later results 3; spec found True
+  referenced later (id / id+words): 10 / 5 of 10
+    Q1 K1 default    id=Y id+w=-  Who uses the result, through which entry point, and what observation shows it works?
+    Q2 K2 inspect    id=Y id+w=-  What is in scope, what is out, and what existing behaviour must not change?
+    Q3 K3 default    id=Y id+w=Y  What is the exact stdout when hello.py is run?
+    Q4 K4 default    id=Y id+w=-  Does the program print when imported, and what happens with extra argv or stdin?
+    Q5 K6 inspect    id=Y id+w=-  Which Python interpreter and dependencies are allowed?
+    Q6 K7 default    id=Y id+w=Y  How are the two files laid out so the test can observe a real run?
+    Q7 K8 default    id=Y id+w=Y  What command runs the unittest, and what extra check observes the program at its real boundary?
+    Q8 K9 default    id=Y id+w=Y  Where must the files become usable, and is any remote delivery in scope?
+    Q9 K11 default    id=Y id+w=-  What would most likely make this work fail or be rejected, and what shows it early?
+    Q10 K12 default    id=Y id+w=Y  What do unittest, when run, hello.py, and test_hello.py mean here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={'knowledge_open_gap': 1} negated~={'knowledge': 1}
+
+~/e2e-runs/closed-loop-smoke-hello-20261118-cdd52e/x.facade/probes/runs-hello/20261118T012211-4do4cmpt/run  [other_undated_folder]
+  case=hello host=codex model=gpt-6.1-terra effort=high date=2026-11-18 shiploop=2.0.0
+  categories apply 6/12; questions 2; by route {'default': 1, 'inspect': 1}; later results 22; spec found True
+  referenced later (id / id+words): 2 / 1 of 2
+    Q1 K3 default    id=Y id+w=-  Does the output include a newline?
+    Q2 K6 inspect    id=Y id+w=Y  What runtime and dependencies are available?
+  open: struct_assumptions=1 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=1 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s3-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 3, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which admin surface and credential exist?
+    Q2 K2 inspect    id=Y id+w=-  What do existing user creation and authorization require?
+    Q3 K3 default    id=Y id+w=-  How should clients submit rows and receive results?
+    Q4 K4 default    id=Y id+w=-  What happens on invalid or duplicate rows?
+    Q5 K5 inspect    id=Y id+w=-  Where do imported users live, and how are overlapping requests handled?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and tooling support upload handling?
+    Q7 K7 inspect    id=Y id+w=Y  Where does the import fit in the existing code?
+    Q8 K8 experiment id=Y id+w=-  What proves an admin can upload and a non-admin cannot?
+    Q9 K9 default    id=Y id+w=-  Where must the feature be delivered?
+    Q10 K10 inspect    id=Y id+w=-  Which authorization and upload resource bounds are needed?
+    Q11 K11 inspect    id=Y id+w=-  Which baseline constraints could prevent authorized upload?
+    Q12 K12 inspect    id=Y id+w=Y  What do ShipLoop, admins and CSV mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s3-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 4}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who qualifies as an admin and how can they upload?
+    Q2 K2 inspect    id=Y id+w=-  Which user fields and behaviors must carry over?
+    Q3 K3 default    id=Y id+w=-  What is the CSV and HTTP contract?
+    Q4 K4 default    id=Y id+w=-  How should malformed rows, duplicates and over-limit inputs behave?
+    Q5 K5 inspect    id=Y id+w=-  What owns user state, and what happens on retry and restart?
+    Q6 K6 inspect    id=Y id+w=-  What dependencies and Node runtime does the repo use?
+    Q7 K7 inspect    id=Y id+w=-  Which seams should own parsing, validation and writes?
+    Q8 K8 inspect    id=Y id+w=-  What runner and check can observe the real import?
+    Q9 K9 inspect    id=Y id+w=-  Where is the feature expected to be delivered?
+    Q10 K10 default    id=Y id+w=-  What bounds and auth failure behavior are needed?
+    Q11 K11 default    id=Y id+w=-  Which failure could leave the user store inconsistent?
+    Q12 K12 inspect    id=Y id+w=-  What do admins and bulk-create mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s3-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 2, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 9 / 4 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which existing admin surface owns user creation?
+    Q2 K2 inspect    id=- id+w=-  Which existing single-user behavior must be preserved?
+    Q3 K3 inspect    id=Y id+w=-  Which fields and upload encoding fit the existing interface?
+    Q4 K4 default    id=Y id+w=-  How should malformed rows and duplicates affect the batch?
+    Q5 K5 inspect    id=Y id+w=Y  What storage and identity boundaries govern a batch?
+    Q6 K6 inspect    id=- id+w=-  What runtime supports this upload?
+    Q7 K7 inspect    id=- id+w=-  Where should parsing and creation live?
+    Q8 K8 inspect    id=Y id+w=Y  What check observes an admin import and persisted users?
+    Q9 K9 default    id=Y id+w=Y  Where is the change delivered?
+    Q10 K10 inspect    id=Y id+w=-  Which limits and authorization checks protect the upload?
+    Q11 K11 experiment id=Y id+w=-  Can a rejected or interrupted batch leave partial users?
+    Q12 K12 inspect    id=Y id+w=-  What do admins and users mean in this product?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s3-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 2 of 12
+    Q1 K1 inspect    id=Y id+w=-  What entry point and identity distinguish admins?
+    Q2 K2 inspect    id=Y id+w=Y  Which existing account behavior must bulk creation preserve?
+    Q3 K3 inspect    id=Y id+w=-  What CSV columns and response fit this service?
+    Q4 K4 default    id=Y id+w=-  How should invalid and duplicate rows be handled?
+    Q5 K5 inspect    id=Y id+w=-  Where do users live and how do concurrent writes interact?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies does the service use?
+    Q7 K7 inspect    id=Y id+w=-  Where should parsing, authorization and creation live?
+    Q8 K8 inspect    id=Y id+w=-  How can verification observe results at the consumer boundary?
+    Q9 K9 inspect    id=Y id+w=-  Where should this be delivered?
+    Q10 K10 inspect    id=Y id+w=-  How can an upload be bounded and restricted?
+    Q11 K11 inspect    id=Y id+w=-  What could leave a partial import or allow an unauthorized write?
+    Q12 K12 inspect    id=Y id+w=Y  What does admin mean in this service?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s4-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=Y  What admin identity and entry point already exist?
+    Q2 K2 inspect    id=Y id+w=-  What user-creation behavior needs preserving?
+    Q3 K3 inspect    id=Y id+w=-  What header, response and transport fit the service?
+    Q4 K4 default    id=Y id+w=-  How should malformed rows and duplicates affect the batch?
+    Q5 K5 inspect    id=Y id+w=-  Where do users persist and who can see imports?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies are in use?
+    Q7 K7 inspect    id=Y id+w=Y  Which server and storage seams already exist?
+    Q8 K8 inspect    id=Y id+w=-  Which executable check reaches the consumer boundary?
+    Q9 K9 inspect    id=Y id+w=-  What delivery target exists?
+    Q10 K10 inspect    id=Y id+w=-  How can intake be bounded and authorization checked?
+    Q11 K11 inspect    id=Y id+w=-  Which missing capabilities are likely to block the feature?
+    Q12 K12 inspect    id=Y id+w=Y  How does this repository use the terms admin and user?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s4-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who is an admin and which surface can accept a file?
+    Q2 K2 inspect    id=- id+w=-  Which user behavior must be preserved?
+    Q3 K3 inspect    id=Y id+w=-  What are the CSV columns, upload shape and response?
+    Q4 K4 default    id=Y id+w=-  How do invalid rows, duplicates and repeated uploads behave?
+    Q5 K5 inspect    id=Y id+w=-  Where are users stored and who can see them?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies exist?
+    Q7 K7 inspect    id=- id+w=-  Which layer owns authorization, parsing and creation?
+    Q8 K8 inspect    id=- id+w=-  What test observes a successful import?
+    Q9 K9 inspect    id=Y id+w=-  Where must delivery be visible?
+    Q10 K10 default    id=Y id+w=-  What limits and feedback should uploads have?
+    Q11 K11 inspect    id=Y id+w=-  What can cause partial writes or role bypass?
+    Q12 K12 inspect    id=Y id+w=Y  What do admin and user mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s4-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 3}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who consumes the import and through what existing entry point?
+    Q2 K2 inspect    id=- id+w=-  What creation and listing behaviour exists today?
+    Q3 K3 inspect    id=Y id+w=-  What CSV schema and response fit the existing user model?
+    Q4 K4 default    id=Y id+w=-  How should malformed rows and duplicates affect the batch?
+    Q5 K5 inspect    id=Y id+w=Y  What is the store and its lifetime?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependencies does the project use?
+    Q7 K7 inspect    id=- id+w=-  What boundaries should contain parsing, HTTP and storage?
+    Q8 K8 inspect    id=- id+w=-  Which checks demonstrate admin gating, creation and fail-closed writes?
+    Q9 K9 default    id=Y id+w=-  Where does the feature need to be available?
+    Q10 K10 inspect    id=Y id+w=-  What access control and resource limits must an upload enforce?
+    Q11 K11 default    id=Y id+w=-  What failures could corrupt or expose user data?
+    Q12 K12 inspect    id=Y id+w=-  What do ShipLoop, admins and CSV mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s4-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  How do admins access the user management surface?
+    Q2 K2 inspect    id=- id+w=-  Which existing user lifecycle and side effects must be reused?
+    Q3 K3 inspect    id=Y id+w=-  What upload and response shapes fit the repository?
+    Q4 K4 default    id=Y id+w=-  Should mixed-validity imports commit any rows?
+    Q5 K5 inspect    id=Y id+w=-  Where are created users stored and how is uniqueness enforced?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies are already present?
+    Q7 K7 inspect    id=- id+w=-  Where are route, business rules and persistence separated?
+    Q8 K8 inspect    id=Y id+w=-  What verification covers the real consumer boundary?
+    Q9 K9 default    id=Y id+w=-  Where should the feature be delivered?
+    Q10 K10 inspect    id=Y id+w=-  How is admin authorization and bounded upload enforced?
+    Q11 K11 inspect    id=- id+w=-  What happens when an import or retry hits an existing user?
+    Q12 K12 inspect    id=Y id+w=Y  What do ShipLoop, admin, CSV and users refer to here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s5-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 2, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 0 / 0 of 12
+    Q1 K1 inspect    id=- id+w=-  Where do admins encounter the upload and how is their role established?
+    Q2 K2 inspect    id=- id+w=-  Which existing user creation behavior must the import preserve?
+    Q3 K3 inspect    id=- id+w=-  What upload media type, columns and response fit the existing service?
+    Q4 K4 default    id=- id+w=-  How should duplicate, malformed or invalid rows affect the import?
+    Q5 K5 inspect    id=- id+w=-  Where do users persist and how are simultaneous writes handled?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependencies are available?
+    Q7 K7 inspect    id=- id+w=-  Where can parsing be isolated and existing validation be reused?
+    Q8 K8 inspect    id=- id+w=-  Which checks can observe authorization and resulting user state?
+    Q9 K9 inspect    id=- id+w=-  What target is available for local verification?
+    Q10 K10 default    id=- id+w=-  What bounds will keep the endpoint predictable?
+    Q11 K11 experiment id=- id+w=-  Can a duplicate or invalid row leave a partial import?
+    Q12 K12 inspect    id=- id+w=-  What does CSV upload mean in this product?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s5-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 9 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which existing admin entry point can accept a CSV?
+    Q2 K2 inspect    id=- id+w=-  What single-user creation behavior must remain compatible?
+    Q3 K3 inspect    id=Y id+w=-  What schema and response should the CSV use?
+    Q4 K4 default    id=Y id+w=-  How should malformed, duplicate, and mixed-validity rows behave?
+    Q5 K5 inspect    id=Y id+w=-  How are admin identity and user records represented and persisted?
+    Q6 K6 inspect    id=- id+w=-  Which runtime, dependencies and configuration are available?
+    Q7 K7 inspect    id=- id+w=-  Where should parsing, authorization, and creation live?
+    Q8 K8 experiment id=Y id+w=-  Which check can observe authorized import and persisted users?
+    Q9 K9 inspect    id=Y id+w=-  Which checkout and release procedure apply?
+    Q10 K10 inspect    id=Y id+w=Y  How can the upload be bounded and admin access enforced?
+    Q11 K11 inspect    id=Y id+w=-  Could a rejected upload leave partial data or permit role escalation?
+    Q12 K12 inspect    id=Y id+w=-  What do admins, CSV and ShipLoop mean here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s5-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 9 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Outcome entry point and successful observation?
+    Q2 K2 inspect    id=Y id+w=-  Existing creation behavior and scope?
+    Q3 K3 inspect    id=Y id+w=-  Upload encoding, columns and response?
+    Q4 K4 default    id=Y id+w=-  Invalid or duplicate rows, size and batch outcome?
+    Q5 K5 inspect    id=Y id+w=-  User storage and authorization ownership?
+    Q6 K6 inspect    id=- id+w=-  Runtime, dependencies and configuration?
+    Q7 K7 inspect    id=- id+w=-  Where can parsing and creation be tested?
+    Q8 K8 inspect    id=- id+w=-  What observes feature and regression behavior?
+    Q9 K9 inspect    id=Y id+w=-  Where does the work become usable?
+    Q10 K10 inspect    id=Y id+w=-  How is admin-only access enforced?
+    Q11 K11 inspect    id=Y id+w=-  What can cause accidental partial writes or privilege leakage?
+    Q12 K12 inspect    id=Y id+w=Y  What does upload or admin mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-ac4b66/samples/s5-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who counts as an admin and where does that actor upload?
+    Q2 K2 inspect    id=Y id+w=-  Which existing user behavior must the import preserve?
+    Q3 K3 inspect    id=Y id+w=-  What headers, body and response does the server accept?
+    Q4 K4 default    id=Y id+w=-  How should invalid rows and duplicate users be handled?
+    Q5 K5 inspect    id=Y id+w=-  Where do imported users live and how are overlapping uploads handled?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependency conventions apply?
+    Q7 K7 inspect    id=Y id+w=-  Where should CSV parsing, authorization and user validation live?
+    Q8 K8 inspect    id=Y id+w=Y  How can the existing suite observe an authenticated upload and subsequent read?
+    Q9 K9 inspect    id=Y id+w=-  Where can the completed feature be used?
+    Q10 K10 default    id=Y id+w=-  What upload bounds and access controls are needed?
+    Q11 K11 inspect    id=Y id+w=-  What failure would make a retry unsafe?
+    Q12 K12 inspect    id=Y id+w=-  What do admins, CSV and bulk-create mean in this project?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-authors-merge-4166f9/samples/e1-p-A  [other_undated_folder]
+  case=custom host=claude model=claude-sonnet-5-5 effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 9/12; questions 8; by route {'inspect': 4, 'default': 3, 'experiment': 1}; later results 0; spec found False
+  referenced later (id / id+words): 0 / 0 of 8
+    Q1 K12 inspect    id=- id+w=-  What does 'agents' mean: help desk agents (staff who work tickets, per README) rather than AI agents? How does
+    Q2 K1 default    id=- id+w=-  Entry points: HTTP API only, or also the bin/tickets.js CLI?
+    Q3 K3 inspect    id=- id+w=-  Exact contract: route shape, body (e.g. {into: id}), response, error codes?
+    Q4 K4 default    id=- id+w=-  What does merging do to the duplicate: its status, history, and what is allowed (self-merge, closed tickets, a
+    Q5 K5 inspect    id=- id+w=-  Atomicity and audit: how are merge, audit entries, requester notification and data-file save recorded?
+    Q6 K2 default    id=- id+w=-  Are the two tickets' content (title, priority) combined, or only linked?
+    Q7 K8 inspect    id=- id+w=-  Test framework, command and persistence compatibility with existing data files?
+    Q8 K11 experiment id=- id+w=-  Does the existing suite pass at baseline?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s1-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 2, 'experiment': 2}; later results 3; spec found True
+  referenced later (id / id+words): 0 / 0 of 12
+    Q1 K1 inspect    id=- id+w=-  Who can upload and where?
+    Q2 K2 inspect    id=- id+w=-  Which existing behavior must be preserved?
+    Q3 K3 inspect    id=- id+w=-  What CSV columns and HTTP errors are required?
+    Q4 K4 default    id=- id+w=-  How are invalid rows and duplicates handled?
+    Q5 K5 inspect    id=- id+w=-  How is the requester identified and how long do users persist?
+    Q6 K6 inspect    id=- id+w=-  What runtime or dependency constraints apply?
+    Q7 K7 inspect    id=- id+w=-  Where should parsing and persistence live?
+    Q8 K8 experiment id=- id+w=-  Which checks prove the feature?
+    Q9 K9 inspect    id=- id+w=-  What delivery surface is in scope?
+    Q10 K10 default    id=- id+w=-  What resource and access bounds matter?
+    Q11 K11 experiment id=- id+w=-  Can a malformed or conflicting batch leave partial state?
+    Q12 K12 inspect    id=- id+w=-  What do admin and user mean in this codebase?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s1-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'experiment': 2}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 2 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who counts as an admin and where is user creation exposed?
+    Q2 K2 inspect    id=- id+w=-  What single-create behavior must bulk creation preserve?
+    Q3 K3 inspect    id=- id+w=-  How should the upload and feedback be represented?
+    Q4 K4 inspect    id=Y id+w=Y  How should invalid rows and duplicate users affect the batch?
+    Q5 K5 inspect    id=- id+w=-  How are users persisted and coordinated?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies are available?
+    Q7 K7 inspect    id=- id+w=-  Where should parsing, authorization and write logic live?
+    Q8 K8 experiment id=Y id+w=Y  What check observes success at the admin boundary?
+    Q9 K9 inspect    id=Y id+w=-  Where does the completed feature become usable?
+    Q10 K10 inspect    id=Y id+w=-  What limits protect the upload path?
+    Q11 K11 experiment id=Y id+w=-  Which likely failure should be tested early?
+    Q12 K12 inspect    id=Y id+w=-  What does CSV and bulk-create mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s1-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 7 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which admin entry point exists?
+    Q2 K2 inspect    id=- id+w=-  How does single-user creation work today?
+    Q3 K3 inspect    id=Y id+w=-  What fields and upload conventions fit this application?
+    Q4 K4 default    id=Y id+w=-  How should malformed rows and duplicates affect a batch?
+    Q5 K5 inspect    id=Y id+w=-  Where are users stored and what concurrency guarantees exist?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependency policy already apply?
+    Q7 K7 inspect    id=- id+w=-  Where should parsing and authorization sit?
+    Q8 K8 inspect    id=- id+w=-  What verifies visible user creation and admin-only access?
+    Q9 K9 inspect    id=Y id+w=-  Does the repository name an authorized delivery target?
+    Q10 K10 inspect    id=Y id+w=-  What authorization and upload limits should the endpoint enforce?
+    Q11 K11 experiment id=- id+w=-  Do failed or repeated uploads risk changing stored users?
+    Q12 K12 inspect    id=Y id+w=Y  What does admin mean in this application?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s1-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 4}; later results 3; spec found True
+  referenced later (id / id+words): 4 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=Y  What admin entry point can accept the upload?
+    Q2 K2 inspect    id=- id+w=-  Which user behaviors must be preserved?
+    Q3 K3 default    id=Y id+w=-  What CSV schema and response should the import use?
+    Q4 K4 default    id=- id+w=-  How should invalid and duplicate rows behave?
+    Q5 K5 inspect    id=- id+w=-  Where is user state stored and who can change it?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependency constraints apply?
+    Q7 K7 inspect    id=- id+w=-  What existing creation logic and boundaries should be reused?
+    Q8 K8 inspect    id=- id+w=-  What suite can observe uploads and stored users?
+    Q9 K9 default    id=Y id+w=-  Where is the result delivered?
+    Q10 K10 inspect    id=- id+w=-  What resource and authorization limits suit uploads?
+    Q11 K11 default    id=- id+w=-  What evidence reveals accidental partial writes?
+    Q12 K12 inspect    id=- id+w=-  What do admins and users denote in this app?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Where do admins submit the CSV, and how do we observe user creation?
+    Q2 K2 inspect    id=- id+w=-  Which existing user operations and contracts must remain compatible?
+    Q3 K3 inspect    id=Y id+w=-  What upload format, fields and result fit the app?
+    Q4 K4 default    id=Y id+w=-  What happens on malformed rows, existing or in-file duplicate identities, and size limits?
+    Q5 K5 inspect    id=Y id+w=-  How are admins identified and how are created users stored?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependency policy apply?
+    Q7 K7 inspect    id=- id+w=-  Where should parsing, validation, authorization and persistence live?
+    Q8 K8 inspect    id=- id+w=-  What command and boundary prove admin upload, rejection and existing behavior?
+    Q9 K9 inspect    id=Y id+w=-  Where does the feature need to be delivered?
+    Q10 K10 default    id=Y id+w=-  How should upload processing bound resource use and avoid exposing submitted data?
+    Q11 K11 inspect    id=Y id+w=-  Can retries or partial failures yield duplicate or partial data?
+    Q12 K12 inspect    id=Y id+w=-  How do the skill invocation and the repo define upload, admin and user?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 2, 'experiment': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who can import and what entry point exists?
+    Q2 K2 inspect    id=Y id+w=-  Which existing user workflows and fields apply?
+    Q3 K3 inspect    id=Y id+w=-  How does the caller submit CSV and see results?
+    Q4 K4 default    id=Y id+w=-  What happens for malformed rows or duplicates?
+    Q5 K5 inspect    id=Y id+w=-  Where do imported accounts live and how are conflicts handled?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and tooling are available?
+    Q7 K7 inspect    id=Y id+w=-  Which existing modules should enforce validation?
+    Q8 K8 experiment id=Y id+w=-  How do we observe authorized creation and failure cases?
+    Q9 K9 default    id=Y id+w=-  Where does the completed change belong?
+    Q10 K10 inspect    id=Y id+w=-  How is admin authority verified and the upload bounded?
+    Q11 K11 experiment id=Y id+w=-  Which baseline issue could affect the run?
+    Q12 K12 inspect    id=Y id+w=-  What do admin and bulk-create mean locally?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which existing admin entry point can accept uploads?
+    Q2 K2 inspect    id=- id+w=-  How is single-user creation exposed and validated?
+    Q3 K3 inspect    id=Y id+w=-  Which columns and upload format fit the existing API?
+    Q4 K4 default    id=Y id+w=-  How should invalid rows and duplicates affect the batch?
+    Q5 K5 inspect    id=Y id+w=-  How is user state stored and scoped?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependencies are available?
+    Q7 K7 inspect    id=- id+w=-  Where do HTTP parsing and user invariants live?
+    Q8 K8 inspect    id=- id+w=-  What proves upload, admin enforcement and creation at the normal entry point?
+    Q9 K9 inspect    id=Y id+w=-  Where will the feature be delivered?
+    Q10 K10 inspect    id=Y id+w=-  How are admin status and request limits enforced?
+    Q11 K11 experiment id=Y id+w=-  Can a mid-batch or competing request leave partial or duplicate state?
+    Q12 K12 inspect    id=Y id+w=-  What does admins mean in the current repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-c7147b/samples/s2-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 2, 'experiment': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 2 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which admin identity and user management surface already exist?
+    Q2 K2 inspect    id=Y id+w=-  Which single-user creation semantics must the importer preserve?
+    Q3 K3 inspect    id=Y id+w=Y  Which input and result conventions fit the app?
+    Q4 K4 default    id=Y id+w=-  What should occur for invalid or duplicate records?
+    Q5 K5 inspect    id=Y id+w=-  How are user writes stored and serialized?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and packages are already available?
+    Q7 K7 inspect    id=Y id+w=-  Where are user validation and HTTP routing implemented?
+    Q8 K8 experiment id=Y id+w=-  Which check exercises authorization and end-to-end writes?
+    Q9 K9 inspect    id=Y id+w=-  Which delivery target is configured or requested?
+    Q10 K10 default    id=Y id+w=-  What upload resource and data exposure limits should apply?
+    Q11 K11 experiment id=Y id+w=-  Could unauthorized callers or partial batch writes create users?
+    Q12 K12 inspect    id=Y id+w=-  What do admins and users refer to here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-merge-9f5969/samples/m1-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'person': 3, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 4 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which existing agent entry points should accept a manual merge?
+    Q2 K2 person     id=Y id+w=-  What happens to the duplicate's comments, attachments if present, fields, and canonical visibility?
+    Q3 K3 inspect    id=Y id+w=-  What source/target inputs and response match adjacent operations?
+    Q4 K4 person     id=Y id+w=Y  Which states may merge, and what should self-merges, repeated merges, or chain attempts do?
+    Q5 K5 inspect    id=Y id+w=-  How do persisted records and simultaneous mutations remain coherent?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependency limits apply?
+    Q7 K7 inspect    id=Y id+w=Y  Where do ticket writes, audit, and outbox operations meet?
+    Q8 K8 experiment id=Y id+w=Y  Which real local surface checks confirm merge and persistence?
+    Q9 K9 inspect    id=Y id+w=-  Is there a production target within the request?
+    Q10 K10 inspect    id=Y id+w=-  What actor or authorization convention applies to merge?
+    Q11 K11 person     id=Y id+w=Y  Should merge tell requesters, and whose notification settings apply?
+    Q12 K12 inspect    id=Y id+w=-  What do agent and ticket mean in this project?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-merge-9f5969/samples/m1-sol-Q  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 6 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=-  Does the service identify agents and how do they initiate changes?
+    Q2 K2 default    id=Y id+w=Y  How should history and existing readers treat the duplicate after merge?
+    Q3 K3 inspect    id=Y id+w=-  How are ticket mutations addressed and invalid or conflicting actions reported?
+    Q4 K4 default    id=Y id+w=Y  Should a previously merged ticket or a canonical ticket with dependents be eligible for another merge?
+    Q5 K5 inspect    id=Y id+w=-  How do changes and side effects persist or recover?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependency limits apply?
+    Q7 K7 inspect    id=- id+w=-  Which existing seams should own merge behavior?
+    Q8 K8 inspect    id=- id+w=-  Which tests exercise HTTP, disk and notifications?
+    Q9 K9 inspect    id=- id+w=-  Where does the repository define a delivery target or promotion route?
+    Q10 K10 inspect    id=- id+w=-  Does the API expose ticket data outside the operator trust boundary?
+    Q11 K11 inspect    id=- id+w=-  Could merge alter audit history, schedule duplicate mail or partially persist?
+    Q12 K12 inspect    id=Y id+w=Y  Do agents mean service operators, and does duplicate mean explicit operator selection?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=2 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-merge-9f5969/samples/m2-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 2, 'experiment': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which existing actor and entry points should initiate a merge?
+    Q2 K2 inspect    id=Y id+w=Y  Which existing ticket behavior and content must survive?
+    Q3 K3 inspect    id=Y id+w=-  How do callers select source and canonical target and observe the result?
+    Q4 K4 default    id=Y id+w=-  How should self-merges, repeats, chains and terminal tickets behave?
+    Q5 K5 inspect    id=Y id+w=-  How are link, audit, notifications and concurrent writes persisted?
+    Q6 K6 inspect    id=Y id+w=-  Which runtime and dependencies apply?
+    Q7 K7 inspect    id=Y id+w=-  Which modules own mutation and expose it?
+    Q8 K8 experiment id=Y id+w=-  What checks prove a real agent can merge and the result survives restart?
+    Q9 K9 default    id=Y id+w=-  Where must agents be able to use the result?
+    Q10 K10 inspect    id=Y id+w=-  How is authorization and requester privacy preserved across tickets?
+    Q11 K11 experiment id=Y id+w=-  What failure could lose ticket data or duplicate side effects?
+    Q12 K12 inspect    id=Y id+w=Y  What do agents and duplicate mean here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-merge-9f5969/samples/m2-sol-Q  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 11 / 4 of 12
+    Q1 K1 inspect    id=Y id+w=Y  How are help-desk agents identified, and which operator surface can submit a merge?
+    Q2 K2 inspect    id=Y id+w=Y  What existing lifecycle, reporting and requester behavior must survive a merge?
+    Q3 K3 inspect    id=Y id+w=Y  How should source, target, actor, audit and error details appear in the API?
+    Q4 K4 default    id=Y id+w=-  What should happen for self-merge, closed or missing tickets, repeat requests and merge chains?
+    Q5 K5 inspect    id=Y id+w=-  Which fields and history should be retained, and how should the relation survive a restart?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies constrain the feature?
+    Q7 K7 inspect    id=- id+w=-  Where do existing ticket mutations coordinate state, audit and notifications?
+    Q8 K8 experiment id=Y id+w=Y  Which tests exercise the HTTP boundary, persistence and existing consumers?
+    Q9 K9 inspect    id=Y id+w=-  Is a deployment target identified for this change?
+    Q10 K10 inspect    id=Y id+w=-  What actor and data visibility guarantees does the API provide?
+    Q11 K11 inspect    id=Y id+w=-  Could a partial save or duplicate notification leave the merge inconsistent?
+    Q12 K12 inspect    id=Y id+w=-  What do agents and duplicate mean in this product?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-merge-9f5969/samples/m3-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 3}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 5 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who are agents in this application and which ticket surfaces do they use?
+    Q2 K2 default    id=Y id+w=Y  What should agents see on both tickets after a merge, and which existing reads or writes should change?
+    Q3 K3 inspect    id=Y id+w=Y  Which route, request direction, response and error envelope fit the existing ticket API and CLI?
+    Q4 K4 default    id=Y id+w=-  What should happen for self-merges, retries, previously merged tickets, and closed tickets?
+    Q5 K5 inspect    id=Y id+w=-  Which state must survive a restart, and how are related writes made consistent on failure or overlapping reque
+    Q6 K6 inspect    id=Y id+w=-  What runtime, packaging and dependencies are used?
+    Q7 K7 inspect    id=Y id+w=-  Where are ticket changes validated and persisted, and where are related effects emitted?
+    Q8 K8 inspect    id=Y id+w=Y  Which test commands cover API behavior, persisted state and any existing CLI?
+    Q9 K9 inspect    id=Y id+w=-  Is a deployment target named or is the result consumed from this checkout?
+    Q10 K10 inspect    id=Y id+w=Y  What actor attribution or access controls does the runtime already provide?
+    Q11 K11 default    id=Y id+w=-  Can a merge conceal ticket information or notify someone unexpectedly?
+    Q12 K12 inspect    id=Y id+w=Y  Do agent, ticket and duplicate have existing domain meanings?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-merge-9f5969/samples/m3-sol-Q  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 7 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which ticket entry point do agents use and how is a merge observed?
+    Q2 K2 inspect    id=Y id+w=Y  Which ticket fields, ordinary transitions, and callers must retain their behavior?
+    Q3 K3 inspect    id=Y id+w=Y  What endpoint, request fields, response and errors fit the existing API?
+    Q4 K4 default    id=Y id+w=-  What happens for self-merges, repeat merges and attempts to chain merges?
+    Q5 K5 inspect    id=Y id+w=-  What is retained from the duplicate and how does it survive a restart?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and storage constraints govern the feature?
+    Q7 K7 inspect    id=Y id+w=Y  Where do transition, persistence and audit invariants live?
+    Q8 K8 inspect    id=Y id+w=Y  What existing tests can prove the merge at the API and storage boundaries?
+    Q9 K9 default    id=Y id+w=-  Where should the implementation be handed off?
+    Q10 K10 inspect    id=Y id+w=Y  How does the application identify authorized agents and preserve audit attribution?
+    Q11 K11 inspect    id=Y id+w=-  Which write failures or concurrent changes can leave records inconsistent?
+    Q12 K12 inspect    id=Y id+w=Y  What do agent and duplicate mean in this application?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=2 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/samples/n1-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 2, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  How is a requester identified and where will a reminder appear?
+    Q2 K2 inspect    id=Y id+w=-  Which ticket events and delivery behaviors must be preserved?
+    Q3 K3 inspect    id=Y id+w=-  What configuration and reminder payload fit the existing interfaces?
+    Q4 K4 default    id=Y id+w=-  What elapsed time and repeat cadence should trigger a reminder?
+    Q5 K5 inspect    id=Y id+w=-  How is the waiting interval identified across legacy data, re-entry and restarts?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and disable controls apply?
+    Q7 K7 inspect    id=Y id+w=-  Which seam owns scheduling versus delivery?
+    Q8 K8 experiment id=Y id+w=-  Which local check proves recipient, timing and deduplication?
+    Q9 K9 default    id=Y id+w=-  Where must the change be delivered?
+    Q10 K10 inspect    id=Y id+w=-  How should reminder work scale and avoid exposing ticket data?
+    Q11 K11 inspect    id=Y id+w=-  How can stale or duplicate reminders occur and how can tests expose them?
+    Q12 K12 inspect    id=Y id+w=Y  Which recorded state means the ticket is waiting on its requester?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/samples/n1-sol-Q  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'person': 3, 'experiment': 1}; later results 3; spec found False
+  referenced later (id / id+words): 12 / 4 of 12
+    Q1 K1 inspect    id=Y id+w=-  What delivery surface can the requester observe?
+    Q2 K2 person     id=Y id+w=-  How many reminders should one waiting period produce?
+    Q3 K3 inspect    id=Y id+w=Y  Which configuration and notification format fit the service?
+    Q4 K4 person     id=Y id+w=-  How long is too long, and how is elapsed time measured?
+    Q5 K5 inspect    id=Y id+w=-  How can a waiting period and its reminder survive restart and concurrent processing?
+    Q6 K6 inspect    id=Y id+w=-  What runtime, dependencies and scheduler are supported?
+    Q7 K7 inspect    id=Y id+w=-  Which module owns eligibility, queueing and delivery?
+    Q8 K8 experiment id=Y id+w=Y  Which checks can verify due boundaries and actual delivery?
+    Q9 K9 inspect    id=Y id+w=Y  Which checkout or environment is the intended delivery target?
+    Q10 K10 inspect    id=Y id+w=-  What safeguards prevent stale or misdirected reminders?
+    Q11 K11 person     id=Y id+w=-  What should happen to tickets that were already waiting before rollout?
+    Q12 K12 inspect    id=Y id+w=Y  Which ticket state and events mean waiting on the requester?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=1 heading_entries real/none=0/0 know_assum_lines=0 regex={'result_awaiting': 1} negated~={'result': 0, 'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/samples/n2-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'person': 1, 'experiment': 1, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 10 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who receives the reminder, and which existing notification surface delivers it?
+    Q2 K2 inspect    id=Y id+w=Y  Which existing ticket and notification behaviors must carry through?
+    Q3 K3 inspect    id=Y id+w=-  Should the delay be configurable, and what notification type and copy fit existing contracts?
+    Q4 K4 person     id=Y id+w=-  What constitutes too long, how many reminders should a wait receive, and what starts or ends a wait?
+    Q5 K5 inspect    id=Y id+w=-  Which persisted data can identify the wait and deduplicate across retries and restart?
+    Q6 K6 inspect    id=- id+w=-  What Node version and worker settings apply?
+    Q7 K7 inspect    id=- id+w=-  Which store, worker and notifier seams own this behavior?
+    Q8 K8 experiment id=Y id+w=-  What local checks observe actual delivery and timing boundaries?
+    Q9 K9 default    id=Y id+w=-  Which checkout or server should receive the work?
+    Q10 K10 inspect    id=Y id+w=Y  How can scans and notifications stay within the worker's workload and recipient boundary?
+    Q11 K11 inspect    id=Y id+w=-  Can failures, transitions, or restarts trigger an obsolete or duplicate reminder?
+    Q12 K12 inspect    id=Y id+w=Y  Which repository state corresponds to 'waiting on them'?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/samples/n2-sol-Q  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 6 / 2 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which requester and delivery surface receives a reminder?
+    Q2 K2 inspect    id=Y id+w=-  Which ticket flows should continue unchanged?
+    Q3 K3 inspect    id=Y id+w=-  What settings and notification fields fit current contracts?
+    Q4 K4 default    id=Y id+w=-  How long counts as too long, and should a continuous wait trigger repeat reminders?
+    Q5 K5 inspect    id=Y id+w=-  What starts and ends a wait, and how is reminder state retained across retries and restarts?
+    Q6 K6 inspect    id=- id+w=-  Which scheduled process and runtime should own the scan?
+    Q7 K7 inspect    id=- id+w=-  Which existing modules own ticket transitions, notification production and delivery?
+    Q8 K8 experiment id=- id+w=-  How do we observe the reminder at the delivery boundary without live sends?
+    Q9 K9 inspect    id=- id+w=-  Where must the feature be returned?
+    Q10 K10 inspect    id=- id+w=-  What access and duplication boundaries must the reminder respect?
+    Q11 K11 inspect    id=- id+w=-  Where could reminders be lost or duplicated as replies, retries or restarts occur?
+    Q12 K12 inspect    id=Y id+w=Y  What does waiting on the requester mean in this project's state model?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/samples/n3-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 8 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who is the requester and where can they observe a reminder?
+    Q2 K2 inspect    id=Y id+w=Y  Which state means waiting on the requester and which adjacent flows must retain current behavior?
+    Q3 K3 inspect    id=Y id+w=Y  How should operators set the threshold, and what notification event and content does the existing contract sup
+    Q4 K4 default    id=Y id+w=Y  How long is too long, how often do reminders repeat, and when does another waiting period begin?
+    Q5 K5 inspect    id=Y id+w=Y  Which persisted data identifies a waiting period and how should reminders behave across restart or overlapping
+    Q6 K6 inspect    id=Y id+w=-  What runtime owns periodic work and what mechanism does it use to deliver or retry notifications?
+    Q7 K7 inspect    id=Y id+w=Y  Where do state changes, scans, and formatting belong in the existing module structure?
+    Q8 K8 inspect    id=Y id+w=-  Which checks can observe timing deterministically and confirm delivery through the normal entry point?
+    Q9 K9 inspect    id=Y id+w=Y  Is a deployed target or real delivery channel part of the request?
+    Q10 K10 inspect    id=Y id+w=-  Which existing operational and data-minimization bounds govern reminder scans and message content?
+    Q11 K11 experiment id=Y id+w=Y  What existing behavior could cause stale or duplicate reminders, and can it be reproduced locally?
+    Q12 K12 inspect    id=Y id+w=Y  What do ticket, requester, and waiting on them mean in this product?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-questions-remind-9f5969/samples/n3-sol-Q  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-22 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who should receive the reminder and through which channel?
+    Q2 K2 inspect    id=Y id+w=-  Which current ticket activity should stay outside this feature?
+    Q3 K3 inspect    id=Y id+w=-  What notification contract fits the current system?
+    Q4 K4 default    id=Y id+w=-  How long is too long and how often should the requester be reminded?
+    Q5 K5 inspect    id=Y id+w=-  What starts and ends an uninterrupted waiting period and what survives restart?
+    Q6 K6 inspect    id=Y id+w=Y  Which existing worker and settings govern reminder timing?
+    Q7 K7 inspect    id=Y id+w=-  Where can eligibility and enqueueing be handled together?
+    Q8 K8 inspect    id=Y id+w=Y  Which checks can observe delivery and timing locally?
+    Q9 K9 default    id=Y id+w=-  Where should the result become available?
+    Q10 K10 inspect    id=Y id+w=-  Which recipient data and message content are necessary?
+    Q11 K11 inspect    id=Y id+w=-  How should a reply or duplicate check affect a pending reminder?
+    Q12 K12 inspect    id=Y id+w=Y  Which exact state means waiting on the requester?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=4 regex={'knowledge_awaiting': 2} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-tickets-39d5f8/samples/v1-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 4 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Where do agents create tickets today?
+    Q2 K2 inspect    id=Y id+w=-  Which current create and read behavior must be preserved?
+    Q3 K3 inspect    id=Y id+w=Y  Which upload columns and response fit the existing contract?
+    Q4 K4 default    id=Y id+w=-  How should a batch with invalid rows behave?
+    Q5 K5 inspect    id=Y id+w=Y  Where must imported tickets and their side effects persist?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependency conventions apply?
+    Q7 K7 inspect    id=Y id+w=-  Which existing seams support the importer?
+    Q8 K8 inspect    id=Y id+w=-  Which executable checks cover an upload?
+    Q9 K9 inspect    id=Y id+w=-  Where is delivery observed?
+    Q10 K10 inspect    id=Y id+w=-  What bounds apply to upload processing?
+    Q11 K11 inspect    id=Y id+w=-  Can partial writes or duplicate side effects escape a failed batch?
+    Q12 K12 inspect    id=Y id+w=Y  What does agent mean in the repo?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=2 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-tickets-39d5f8/samples/v1-sol-S  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which agent-facing surface exposes ticket creation?
+    Q2 K2 inspect    id=Y id+w=-  Which current workflows use ticket creation?
+    Q3 K3 inspect    id=Y id+w=Y  What CSV wire shape and fields fit the API?
+    Q4 K4 default    id=Y id+w=-  How should an invalid row affect the upload?
+    Q5 K5 inspect    id=Y id+w=-  How are ticket IDs and side effects persisted?
+    Q6 K6 inspect    id=Y id+w=-  Which runtime and dependencies are supported?
+    Q7 K7 inspect    id=Y id+w=-  Where do decoding and writes belong?
+    Q8 K8 experiment id=Y id+w=-  Which check observes successful and rejected uploads?
+    Q9 K9 inspect    id=Y id+w=-  Where is the delivered feature usable?
+    Q10 K10 inspect    id=Y id+w=-  What bounds constrain CSV resource usage?
+    Q11 K11 inspect    id=Y id+w=-  What effects might bulk creation bypass?
+    Q12 K12 inspect    id=Y id+w=-  How does this product identify agents?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-tickets-39d5f8/samples/v2-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 2 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who is an agent, and which existing interface do they use?
+    Q2 K2 inspect    id=- id+w=-  Which existing ticket creation behavior must bulk creation preserve?
+    Q3 K3 inspect    id=- id+w=-  What request encoding and response should the upload use?
+    Q4 K4 default    id=- id+w=-  What should happen when a row is invalid or the file is large?
+    Q5 K5 inspect    id=- id+w=-  How do tickets, IDs and side effects survive requests and restarts?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies does the repository support?
+    Q7 K7 inspect    id=- id+w=-  Where can bulk validation finish before shared state changes?
+    Q8 K8 inspect    id=- id+w=-  Which tests can observe the feature over HTTP and after restart?
+    Q9 K9 inspect    id=- id+w=-  Where can the feature be delivered and observed?
+    Q10 K10 inspect    id=- id+w=-  How should uploads be bounded and authorized?
+    Q11 K11 experiment id=- id+w=-  Can a failed upload produce partial writes or side effects?
+    Q12 K12 inspect    id=Y id+w=Y  What do agent, CSV and ticket mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-tickets-39d5f8/samples/v2-sol-S  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Where do agents create tickets and see the import outcome?
+    Q2 K2 inspect    id=Y id+w=-  Which single-create behavior and permissions must import preserve?
+    Q3 K3 inspect    id=Y id+w=-  Which CSV fields and result/error format fit the existing application?
+    Q4 K4 inspect    id=Y id+w=-  How should malformed rows and partial batches be handled?
+    Q5 K5 inspect    id=Y id+w=-  Where are tickets persisted, and what atomic write behavior is available?
+    Q6 K6 inspect    id=Y id+w=-  Which runtime and dependencies can the import use?
+    Q7 K7 inspect    id=Y id+w=-  Where are routing, validation, and persistence separated?
+    Q8 K8 inspect    id=Y id+w=-  What suite and boundary can demonstrate successful and rejected imports?
+    Q9 K9 inspect    id=Y id+w=Y  What local or deployed delivery target is established?
+    Q10 K10 inspect    id=Y id+w=-  What file size, row limits and error feedback fit the application?
+    Q11 K11 inspect    id=Y id+w=-  Which app conventions prevent unauthorized or partial writes?
+    Q12 K12 inspect    id=Y id+w=-  How does this repository define agents and tickets?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-tickets-39d5f8/samples/v3-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 3}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which entry point do agents use?
+    Q2 K2 inspect    id=Y id+w=-  What existing creation behavior applies?
+    Q3 K3 inspect    id=Y id+w=-  How is a CSV uploaded and what does the result contain?
+    Q4 K4 default    id=Y id+w=-  What should invalid rows and duplicates do?
+    Q5 K5 inspect    id=Y id+w=-  Where do the tickets live and when do they become visible?
+    Q6 K6 inspect    id=Y id+w=-  Which runtime and dependencies apply?
+    Q7 K7 inspect    id=Y id+w=Y  What existing seam should own mutation?
+    Q8 K8 inspect    id=Y id+w=-  What observes the outcome?
+    Q9 K9 default    id=Y id+w=-  Where should the result be delivered?
+    Q10 K10 default    id=Y id+w=-  What resources are bounded?
+    Q11 K11 inspect    id=Y id+w=-  What could produce partial writes?
+    Q12 K12 inspect    id=Y id+w=Y  What do agents and CSV mean here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-tickets-39d5f8/samples/v3-sol-S  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Agent identity and the ticket entry point?
+    Q2 K2 inspect    id=Y id+w=Y  Which creation features must be preserved?
+    Q3 K3 inspect    id=Y id+w=-  Which columns and response are appropriate?
+    Q4 K4 default    id=Y id+w=-  What should happen on a malformed or invalid batch?
+    Q5 K5 inspect    id=Y id+w=-  Who owns imported rows and how are they stored?
+    Q6 K6 inspect    id=Y id+w=-  Which dependencies and test commands are available?
+    Q7 K7 inspect    id=Y id+w=-  Where should parsing and writes live?
+    Q8 K8 inspect    id=Y id+w=-  Which check observes uploads and created tickets?
+    Q9 K9 default    id=Y id+w=-  Where must the result be usable?
+    Q10 K10 inspect    id=Y id+w=-  Which bounds should protect the upload and access?
+    Q11 K11 inspect    id=Y id+w=-  Could failed batches create partial or duplicate tickets?
+    Q12 K12 inspect    id=Y id+w=Y  Does agent refer to a ticket app role?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u1-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which admin entry point should accept the file?
+    Q2 K2 inspect    id=Y id+w=-  Which user-creation rules already apply and what behavior must be preserved?
+    Q3 K3 inspect    id=Y id+w=-  What upload shape and result match the interface?
+    Q4 K4 inspect    id=Y id+w=-  How should malformed rows and duplicates be handled?
+    Q5 K5 inspect    id=Y id+w=-  Where is uniqueness enforced and how are writes coordinated?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and existing modules are available?
+    Q7 K7 inspect    id=Y id+w=-  Where should decoding end and user creation begin?
+    Q8 K8 inspect    id=Y id+w=-  What checks exercise the real admin route?
+    Q9 K9 inspect    id=Y id+w=-  Where must the change be delivered?
+    Q10 K10 inspect    id=Y id+w=-  What resource and authorization bounds apply?
+    Q11 K11 inspect    id=Y id+w=-  What is most likely to create inconsistent data?
+    Q12 K12 inspect    id=Y id+w=-  What does admins, upload, and user mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u1-sol-S  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Where can administrators submit uploads?
+    Q2 K2 inspect    id=Y id+w=-  Which single-user behaviors and routes must be preserved?
+    Q3 K3 inspect    id=Y id+w=-  Which headers and response can callers rely on?
+    Q4 K4 inspect    id=Y id+w=-  How should invalid or duplicate rows affect writes?
+    Q5 K5 inspect    id=Y id+w=-  Where do created users persist and how is the actor identified?
+    Q6 K6 inspect    id=- id+w=-  Which Node runtime and dependencies are available?
+    Q7 K7 inspect    id=- id+w=-  Where do HTTP handling, CSV parsing and user validation belong?
+    Q8 K8 inspect    id=- id+w=-  Which command and surface prove successful and rejected uploads?
+    Q9 K9 default    id=Y id+w=-  Where is delivery required?
+    Q10 K10 inspect    id=Y id+w=-  What access restrictions and bounded input handling are needed?
+    Q11 K11 inspect    id=- id+w=-  What regression or import failure is most consequential?
+    Q12 K12 inspect    id=Y id+w=-  What do CSV and admins mean for this repo?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u2-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Who is an admin and where does the upload run?
+    Q2 K2 inspect    id=Y id+w=-  What user creation behavior exists?
+    Q3 K3 inspect    id=Y id+w=-  What CSV schema and response fit the app?
+    Q4 K4 default    id=Y id+w=-  How should malformed or duplicate rows affect the batch?
+    Q5 K5 inspect    id=Y id+w=-  What state lifetime and ownership does the store provide?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies are available?
+    Q7 K7 inspect    id=Y id+w=-  Which modules own parsing, access checks and mutation?
+    Q8 K8 inspect    id=Y id+w=-  Which tests observe authorized and rejected uploads?
+    Q9 K9 inspect    id=Y id+w=-  Where is delivery authorized?
+    Q10 K10 default    id=Y id+w=-  How should resource use be bounded?
+    Q11 K11 inspect    id=Y id+w=-  Which failures could create unauthorized or partial state?
+    Q12 K12 inspect    id=Y id+w=-  What do CSV and admins mean in this repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u2-sol-S  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 4}; later results 3; spec found True
+  referenced later (id / id+words): 0 / 0 of 12
+    Q1 K1 inspect    id=- id+w=-  Which existing entry point and identity model support an admin import?
+    Q2 K2 inspect    id=- id+w=-  What user behavior must be preserved?
+    Q3 K3 default    id=- id+w=-  What CSV and response contract should be used?
+    Q4 K4 default    id=- id+w=-  How should invalid, duplicate and oversized uploads behave?
+    Q5 K5 inspect    id=- id+w=-  Where do users live, and how are writes coordinated?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependencies does the repository use?
+    Q7 K7 inspect    id=- id+w=-  Where should parsing and writes live?
+    Q8 K8 inspect    id=- id+w=-  How can the import be exercised through the real boundary?
+    Q9 K9 default    id=- id+w=-  Where does delivery occur?
+    Q10 K10 default    id=- id+w=-  What bounds should protect the upload and admin access?
+    Q11 K11 inspect    id=- id+w=-  What evidence would expose a bypass or partial creation?
+    Q12 K12 inspect    id=- id+w=-  How does this repository define an admin and a user?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u3-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 8 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which entry point reaches admins?
+    Q2 K2 inspect    id=- id+w=-  Which creation rules does the import share?
+    Q3 K3 inspect    id=Y id+w=-  Which columns and response format fit the application?
+    Q4 K4 inspect    id=- id+w=-  What happens for bad rows, duplicates and large files?
+    Q5 K5 inspect    id=Y id+w=-  How are identity and persistence managed?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependencies are available?
+    Q7 K7 inspect    id=- id+w=-  Where does the bulk action fit?
+    Q8 K8 inspect    id=Y id+w=-  How can imported users be observed?
+    Q9 K9 default    id=Y id+w=Y  What is the delivery target?
+    Q10 K10 inspect    id=Y id+w=-  Which authorization and resource bounds apply?
+    Q11 K11 inspect    id=Y id+w=-  What failure would leave a partially applied batch?
+    Q12 K12 inspect    id=Y id+w=-  What does admins mean here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-section-users-39d5f8/samples/u3-sol-S  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 4}; later results 3; spec found True
+  referenced later (id / id+words): 0 / 0 of 12
+    Q1 K1 inspect    id=- id+w=-  Which admin entry point exists?
+    Q2 K2 inspect    id=- id+w=-  Which creation rules already apply?
+    Q3 K3 default    id=- id+w=-  What upload and response contract fits?
+    Q4 K4 default    id=- id+w=-  What should happen with invalid rows and duplicates?
+    Q5 K5 inspect    id=- id+w=-  How does user state persist and who can write it?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependencies are present?
+    Q7 K7 inspect    id=- id+w=-  Where do transport and store logic belong?
+    Q8 K8 inspect    id=- id+w=-  What check proves the import at its entry point?
+    Q9 K9 default    id=- id+w=-  Where should the finished feature be delivered?
+    Q10 K10 default    id=- id+w=-  What upload bounds and authorization controls are needed?
+    Q11 K11 inspect    id=- id+w=-  Which failure can leave users partially created?
+    Q12 K12 inspect    id=- id+w=-  What does admin mean in this application?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t1-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 2, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 11 / 3 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which local entry point and actor model exist?
+    Q2 K2 inspect    id=Y id+w=-  Which existing create behavior and side effects apply?
+    Q3 K3 inspect    id=Y id+w=-  What should the file and response contain?
+    Q4 K4 default    id=Y id+w=-  What should happen when a row is invalid?
+    Q5 K5 inspect    id=Y id+w=-  Where are tickets, events and retry state stored?
+    Q6 K6 inspect    id=Y id+w=-  Which runtime and dependencies are supported?
+    Q7 K7 inspect    id=- id+w=-  Where should decoding and creation meet?
+    Q8 K8 experiment id=Y id+w=Y  Which tests can verify the HTTP and persistence behaviors?
+    Q9 K9 default    id=Y id+w=-  What target should be returned?
+    Q10 K10 inspect    id=Y id+w=-  How should uploads be bounded?
+    Q11 K11 inspect    id=Y id+w=-  Which existing integrations could fail midway through a batch?
+    Q12 K12 inspect    id=Y id+w=Y  What does agents mean in this service?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t1-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 2}; later results 3; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who are the agents and where is upload available?
+    Q2 K2 inspect    id=- id+w=-  What single-ticket behavior does import preserve?
+    Q3 K3 inspect    id=- id+w=-  What upload and response contract fits the service?
+    Q4 K4 default    id=- id+w=-  How do malformed, invalid and oversized imports behave?
+    Q5 K5 inspect    id=- id+w=-  What ticket, audit and notification data survives reload?
+    Q6 K6 inspect    id=- id+w=-  Which dependencies and runtime are permitted?
+    Q7 K7 inspect    id=- id+w=-  Which module should own creation and CSV decoding?
+    Q8 K8 inspect    id=- id+w=-  Which test proves import and atomicity?
+    Q9 K9 inspect    id=- id+w=-  Where is delivery authorized?
+    Q10 K10 default    id=- id+w=-  What bounds keep imports practical and predictable?
+    Q11 K11 inspect    id=- id+w=-  What can leave a partially written import?
+    Q12 K12 inspect    id=Y id+w=-  What does agents mean in the product?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t1-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Agent role and upload workflow
+    Q2 K2 inspect    id=Y id+w=-  Which creation side effects and workflows are preserved?
+    Q3 K3 inspect    id=Y id+w=-  What headers, encoding and response shape fit the service?
+    Q4 K4 inspect    id=Y id+w=-  How should invalid rows and repeated uploads behave?
+    Q5 K5 inspect    id=Y id+w=-  How are tickets and associated activity persisted and shared?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies are supported?
+    Q7 K7 inspect    id=Y id+w=-  Where can upload reuse the creation flow?
+    Q8 K8 inspect    id=Y id+w=-  Which consumer can be exercised locally?
+    Q9 K9 inspect    id=Y id+w=-  Where is delivery authorized and observable?
+    Q10 K10 inspect    id=Y id+w=-  What upload limits and authorizations apply?
+    Q11 K11 inspect    id=Y id+w=-  Which side effects could leave an inconsistent batch?
+    Q12 K12 inspect    id=Y id+w=Y  What do agents and tickets mean here?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t1-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 10 / 2 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which agent entry point already accepts ticket creation?
+    Q2 K2 inspect    id=Y id+w=-  Which behavior should imported tickets share with single-ticket creation?
+    Q3 K3 inspect    id=- id+w=-  Which fields and response shape should the upload support?
+    Q4 K4 default    id=- id+w=-  What happens if any row fails, and how is it reported?
+    Q5 K5 inspect    id=Y id+w=Y  Which actor, audit, notification, and persistence mechanisms are available?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependency conventions constrain parsing?
+    Q7 K7 inspect    id=Y id+w=-  Where should parsing and mutations live?
+    Q8 K8 inspect    id=Y id+w=Y  How can a real upload be tested?
+    Q9 K9 inspect    id=Y id+w=-  Where should delivery occur?
+    Q10 K10 inspect    id=Y id+w=-  What bounds and access controls apply to uploads?
+    Q11 K11 inspect    id=Y id+w=-  Can a failed import leave IDs, audit entries, or notifications behind?
+    Q12 K12 inspect    id=Y id+w=-  What does agents mean in this application?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t2-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which agent entry point exists?
+    Q2 K2 inspect    id=Y id+w=-  Which creation behavior must carry through?
+    Q3 K3 inspect    id=Y id+w=-  Which encoding and response fit the API?
+    Q4 K4 default    id=Y id+w=-  How should invalid rows affect the upload?
+    Q5 K5 inspect    id=Y id+w=-  What state must share one transaction?
+    Q6 K6 inspect    id=Y id+w=-  What dependencies and Node versions are allowed?
+    Q7 K7 inspect    id=Y id+w=-  Where do payload and mutation boundaries live?
+    Q8 K8 inspect    id=Y id+w=-  What suite can observe persisted creation and rejection?
+    Q9 K9 inspect    id=Y id+w=-  Where is the result due?
+    Q10 K10 inspect    id=Y id+w=-  What upload limit applies?
+    Q11 K11 inspect    id=Y id+w=-  Can failed persistence leave partial effects?
+    Q12 K12 inspect    id=Y id+w=-  Who are agents in this product?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t2-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 6 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which agent workflow consumes the upload?
+    Q2 K2 inspect    id=Y id+w=Y  Which existing ticket behaviors must remain available?
+    Q3 K3 inspect    id=Y id+w=Y  What ticket fields and response contract should import use?
+    Q4 K4 default    id=Y id+w=-  How should invalid rows affect a batch?
+    Q5 K5 inspect    id=Y id+w=Y  How can batch writes preserve IDs and persistence?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies can the feature use?
+    Q7 K7 inspect    id=Y id+w=Y  Where are HTTP validation and store persistence separated?
+    Q8 K8 inspect    id=Y id+w=Y  How will a real upload prove ticket creation?
+    Q9 K9 inspect    id=Y id+w=-  What checkout or runtime is authorized for delivery?
+    Q10 K10 inspect    id=Y id+w=Y  What upload bounds already exist?
+    Q11 K11 inspect    id=Y id+w=-  What could cause partial creation or loss on restart?
+    Q12 K12 inspect    id=Y id+w=-  Does the repository define agents or CSV imports?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t2-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 9, 'default': 2, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 2 / 0 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who are agents and where do they upload?
+    Q2 K2 inspect    id=- id+w=-  Which behavior must single-ticket callers retain?
+    Q3 K3 inspect    id=- id+w=-  Which CSV fields, response and error contract apply?
+    Q4 K4 default    id=- id+w=-  What happens for an invalid row or duplicate?
+    Q5 K5 inspect    id=- id+w=-  What state is committed and what happens on failure or restart?
+    Q6 K6 inspect    id=- id+w=-  Which runtime and dependencies does the repository permit?
+    Q7 K7 inspect    id=- id+w=-  Where does existing ticket creation expose reusable seams?
+    Q8 K8 experiment id=- id+w=-  What demonstrates upload and ticket creation at the consumer boundary?
+    Q9 K9 inspect    id=- id+w=-  Where should the product be delivered?
+    Q10 K10 default    id=- id+w=-  What input bounds keep imports predictable?
+    Q11 K11 inspect    id=- id+w=-  Which existing tests could expose regressions in creation effects?
+    Q12 K12 inspect    id=Y id+w=-  Do 'agents' and 'upload' name an existing role and surface?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t2-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 4 of 12
+    Q1 K1 inspect    id=Y id+w=Y  Which existing entry point and actor model should agents use?
+    Q2 K2 inspect    id=Y id+w=-  Which ticket creation behaviors must apply to every imported row?
+    Q3 K3 inspect    id=Y id+w=Y  What CSV columns and response shape fit existing contracts?
+    Q4 K4 default    id=Y id+w=-  How should one invalid row affect the batch?
+    Q5 K5 inspect    id=Y id+w=-  How do stored tickets and related records survive failures and restarts?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependencies does the project support?
+    Q7 K7 inspect    id=Y id+w=Y  Where are the transport, validation, and mutation seams?
+    Q8 K8 inspect    id=Y id+w=-  Which tests exercise the real supported boundary?
+    Q9 K9 inspect    id=Y id+w=-  Is a release target named or evidenced?
+    Q10 K10 inspect    id=Y id+w=-  How is request size bounded?
+    Q11 K11 experiment id=Y id+w=Y  Does request failure leave a partial batch?
+    Q12 K12 inspect    id=Y id+w=-  What does agents mean in this application?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t3-sol-A  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 8, 'default': 3, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 1 of 12
+    Q1 K1 inspect    id=Y id+w=-  Who are agents in this repository and which entry point serves them?
+    Q2 K2 inspect    id=Y id+w=-  Which single-ticket behaviors must bulk creation reuse?
+    Q3 K3 default    id=Y id+w=-  What CSV transport, headers and response should the entry point use?
+    Q4 K4 default    id=Y id+w=-  What should happen when one row fails validation?
+    Q5 K5 inspect    id=Y id+w=-  How are imported tickets and related side effects stored?
+    Q6 K6 inspect    id=Y id+w=-  What runtime and dependency constraints apply?
+    Q7 K7 inspect    id=Y id+w=-  Where should parsing and atomic creation sit?
+    Q8 K8 experiment id=Y id+w=Y  Which existing suite exercises the request through persistence?
+    Q9 K9 default    id=Y id+w=-  Where should the feature be delivered?
+    Q10 K10 inspect    id=Y id+w=-  What bounds protect synchronous upload processing?
+    Q11 K11 inspect    id=Y id+w=-  Can a failed batch leave tickets, audit entries or notifications behind?
+    Q12 K12 inspect    id=Y id+w=-  Does agent name an authenticated application role?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t3-sol-C  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 12}; later results 3; spec found True
+  referenced later (id / id+words): 12 / 2 of 12
+    Q1 K1 inspect    id=Y id+w=-  Where do agents create tickets?
+    Q2 K2 inspect    id=Y id+w=-  Which current ticket rules govern imported rows?
+    Q3 K3 inspect    id=Y id+w=-  Which upload interface and CSV columns fit the entry point?
+    Q4 K4 inspect    id=Y id+w=-  How should invalid rows and repeat imports behave?
+    Q5 K5 inspect    id=Y id+w=-  Where are tickets stored and which actor owns the import?
+    Q6 K6 inspect    id=Y id+w=Y  Can the existing runtime support parsing without new dependencies?
+    Q7 K7 inspect    id=Y id+w=-  Which creation logic can the importer reuse?
+    Q8 K8 inspect    id=Y id+w=-  Which command proves real ticket creation?
+    Q9 K9 inspect    id=Y id+w=-  Is there an authorized destination beyond the checkout?
+    Q10 K10 inspect    id=Y id+w=-  What input bounds fit the existing service?
+    Q11 K11 inspect    id=Y id+w=-  Can a bad row result in partial writes?
+    Q12 K12 inspect    id=Y id+w=Y  What do agent and ticket mean in this repo?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t3-sol-R  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 10, 'default': 1, 'experiment': 1}; later results 3; spec found True
+  referenced later (id / id+words): 0 / 0 of 12
+    Q1 K1 inspect    id=- id+w=-  Who can import and through which existing interface?
+    Q2 K2 inspect    id=- id+w=-  Which creation behavior and side effects must imports share?
+    Q3 K3 inspect    id=- id+w=-  What upload, headers and response should clients use?
+    Q4 K4 default    id=- id+w=-  How should invalid rows, empty files and malformed CSV behave?
+    Q5 K5 inspect    id=- id+w=-  How should partial writes, IDs and persistence work?
+    Q6 K6 inspect    id=- id+w=-  What runtime and dependency constraints apply?
+    Q7 K7 inspect    id=- id+w=-  Where do parsing, validation and persistence belong?
+    Q8 K8 inspect    id=- id+w=-  Which tests observe imports through the normal entry point?
+    Q9 K9 inspect    id=- id+w=-  What is the authorized delivery target?
+    Q10 K10 inspect    id=- id+w=-  How should input size and access be bounded?
+    Q11 K11 experiment id=- id+w=-  What would expose regressions in single-ticket creation?
+    Q12 K12 inspect    id=- id+w=-  What does agent mean in this service?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}
+
+~/e2e-runs/spec-elaboration-20261120/guides-tickets-97063b/samples/t3-sol-X  [other_undated_folder]
+  case=custom host=codex model=gpt-6.2-sol effort=medium date=2026-11-21 shiploop=2.4.1
+  categories apply 12/12; questions 12; by route {'inspect': 11, 'default': 1}; later results 3; spec found True
+  referenced later (id / id+words): 9 / 2 of 12
+    Q1 K1 inspect    id=Y id+w=-  Which entry point do support agents use?
+    Q2 K2 inspect    id=Y id+w=-  Which ticket creation behavior needs preserving?
+    Q3 K3 inspect    id=- id+w=-  Which columns and response fit the existing contract?
+    Q4 K4 inspect    id=- id+w=-  What happens on malformed rows and oversized input?
+    Q5 K5 inspect    id=Y id+w=Y  How are tickets persisted and isolated by actor?
+    Q6 K6 inspect    id=Y id+w=-  What runtime or dependencies does the project support?
+    Q7 K7 inspect    id=- id+w=-  Where do upload handling and ticket creation belong?
+    Q8 K8 inspect    id=Y id+w=Y  Which test can prove persistence through the upload entry point?
+    Q9 K9 default    id=Y id+w=-  Which checkout is the delivery target?
+    Q10 K10 inspect    id=Y id+w=-  What role gate and upload bounds fit the existing service?
+    Q11 K11 inspect    id=Y id+w=-  Can validation or persistence fail partway through creation?
+    Q12 K12 inspect    id=Y id+w=-  What do agent and ticket mean in the repository?
+  open: struct_assumptions=0 struct_unverified=0 struct_awaiting=0 heading_entries real/none=0/0 know_assum_lines=0 regex={} negated~={'knowledge': 0}

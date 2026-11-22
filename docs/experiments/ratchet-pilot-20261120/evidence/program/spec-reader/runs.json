@@ -1,0 +1,53 @@
+[
+ {
+  "run": "s1",
+  "seconds": 93.4,
+  "listed": [
+   "C-45",
+   "C-34"
+  ],
+  "checked_against_the_product": 37,
+  "changed": [
+   "ratchet/reading.md"
+  ],
+  "put_back": [],
+  "held_out_marks": [],
+  "launched_from": "b23da050d896de4cb94e0a6375045a4fc5e00865",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ {
+  "run": "s2",
+  "seconds": 51.6,
+  "listed": [
+   "C-45",
+   "C-34"
+  ],
+  "checked_against_the_product": 39,
+  "changed": [
+   "ratchet/reading.md"
+  ],
+  "put_back": [],
+  "held_out_marks": [],
+  "launched_from": "b23da050d896de4cb94e0a6375045a4fc5e00865",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ },
+ {
+  "run": "s3",
+  "seconds": 70.8,
+  "listed": [
+   "C-45",
+   "C-34"
+  ],
+  "checked_against_the_product": 33,
+  "changed": [
+   "ratchet/reading.md"
+  ],
+  "put_back": [],
+  "held_out_marks": [],
+  "launched_from": "b23da050d896de4cb94e0a6375045a4fc5e00865",
+  "model": "gpt-6.2-sol",
+  "effort": "medium"
+ }
+]

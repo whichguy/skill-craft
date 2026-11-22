@@ -1,0 +1,1561 @@
+{
+ "sites_on_existing_lines": 52,
+ "sampled": 40,
+ "suites": {
+  "q-base-1": {
+   "kind": "baseline",
+   "own": 31,
+   "acceptance": 31,
+   "acceptance_beyond_own": [],
+   "survive_both": 9,
+   "own_not_true_or_false": 0,
+   "left_out": []
+  },
+  "q-base-2": {
+   "kind": "baseline",
+   "own": 31,
+   "acceptance": 31,
+   "acceptance_beyond_own": [],
+   "survive_both": 9,
+   "own_not_true_or_false": 0,
+   "left_out": []
+  },
+  "p1S-ticket-assignment-medium": {
+   "kind": "baseline (amendment 11's cell)",
+   "own": 30,
+   "acceptance": 30,
+   "acceptance_beyond_own": [
+    "src/persistence.js:141"
+   ],
+   "survive_both": 9,
+   "own_not_true_or_false": 1,
+   "left_out": []
+  },
+  "q-spec-1": {
+   "kind": "question in the specification",
+   "own": 31,
+   "acceptance": 31,
+   "acceptance_beyond_own": [],
+   "survive_both": 9,
+   "own_not_true_or_false": 0,
+   "left_out": []
+  },
+  "q-spec-2": {
+   "kind": "question in the specification",
+   "own": 30,
+   "acceptance": 31,
+   "acceptance_beyond_own": [
+    "src/persistence.js:86"
+   ],
+   "survive_both": 9,
+   "own_not_true_or_false": 1,
+   "left_out": []
+  },
+  "q-plan-1": {
+   "kind": "question in the plan",
+   "own": 30,
+   "acceptance": 28,
+   "acceptance_beyond_own": [
+    "src/format.js:43"
+   ],
+   "survive_both": 9,
+   "own_not_true_or_false": 1,
+   "left_out": [
+    "node --test --test-reporter=spec --test-name-pattern='^C-20 ' acceptance/rest.spec.js"
+   ]
+  },
+  "q-plan-2": {
+   "kind": "question in the plan",
+   "own": 31,
+   "acceptance": 32,
+   "acceptance_beyond_own": [
+    "src/format.js:36"
+   ],
+   "survive_both": 8,
+   "own_not_true_or_false": 0,
+   "left_out": []
+  }
+ },
+ "faults": [
+  {
+   "file": "src/app.js",
+   "line": 16,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/format.js",
+   "line": 36,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 44,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/store.js",
+   "line": 31,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 41,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 19,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/app.js",
+   "line": 65,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/format.js",
+   "line": 36,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 58,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/store.js",
+   "line": 53,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 41,
+   "op": "bound-literal",
+   "old": "1",
+   "new": "2",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 21,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/format.js",
+   "line": 43,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 79,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/store.js",
+   "line": 53,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 41,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 22,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 86,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": null
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": null,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": null,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/store.js",
+   "line": 53,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 41,
+   "op": "rel-bound",
+   "old": "<=",
+   "new": "<",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 44,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 92,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/store.js",
+   "line": 93,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 47,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 52,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 141,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": null,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/store.js",
+   "line": 107,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 48,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 53,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 155,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/store.js",
+   "line": 159,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/query.js",
+   "line": 48,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/tickets/validate.js",
+   "line": 54,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 155,
+   "op": "arith-flip",
+   "old": "+",
+   "new": "-",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 160,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 160,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 170,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "by_suite": {
+    "q-base-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-base-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-spec-2": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-1": {
+     "own": false,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": false,
+     "acceptance": false
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 170,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 170,
+   "op": "bound-literal",
+   "old": "0",
+   "new": "1",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  },
+  {
+   "file": "src/persistence.js",
+   "line": 173,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "by_suite": {
+    "q-base-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-base-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "p1S-ticket-assignment-medium": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-1": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-spec-2": {
+     "own": true,
+     "acceptance": true
+    },
+    "q-plan-1": {
+     "own": true,
+     "acceptance": false
+    },
+    "q-plan-2": {
+     "own": true,
+     "acceptance": true
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+diff --git a/ratchet/spec.md b/ratchet/spec.md
+index 9c24489..d190391 100644
+--- a/ratchet/spec.md
++++ b/ratchet/spec.md
+@@ -45,7 +45,7 @@ Source: existing: src/config.js
+ ### C-3: A valid named assignment sets the ticket's assignee in either eligible status
+ Observable: For an existing ticket in each of `open` and `in_progress`, send `PUT /tickets/:id/assignee` with `{"assignee":"dana"}`. The request succeeds and a subsequent `GET /tickets/:id` shows `"assignee":"dana"`, including when the ticket previously showed a different agent.
+ Source: request
+-Open: The requester would settle the accepted name syntax and which spellings identify the same agent, including case, surrounding whitespace, whitespace-only strings, control characters, Unicode normalization and any name-specific length limit within the request-body limit. Assignment, same-agent detection and lookup need to agree on agent identity.
++Open: The requester would settle the accepted name syntax and which spellings identify the same agent, including case, surrounding whitespace, whitespace-only strings, control characters and Unicode normalization. Assignment, same-agent detection and lookup need to agree on agent identity.
+ 
+ ### C-4: A valid unassignment clears the ticket's assignee in either eligible status
+ Observable: For an assigned ticket in each of `open` and `in_progress`, send `PUT /tickets/:id/assignee` with `{"assignee":null}`. The request succeeds and a subsequent `GET /tickets/:id` shows `"assignee":null`.
+@@ -187,3 +187,7 @@ Source: request
+ ### C-37: The test suite runs new assignment coverage
+ Observable: The new behavior is covered by `node:test` tests under `test/`. Running `npm test` discovers and runs them with the existing suite.
+ Source: request
++
++### C-38: An agent name can have at most 40 characters
++Observable: On an eligible ticket, a PUT with an otherwise valid 40-character agent name succeeds. An otherwise valid 41-character agent name returns HTTP 400 with `error.code` equal to `"invalid"`.
++Source: answer

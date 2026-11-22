@@ -1,0 +1,27 @@
+Verdict: reject
+## What must be true
+- Start with npm start on PORT=0 and check that GET /health returns 200 with status ok. | held
+- With DUE_TIMES unset or any value other than on, compare POST, GET, PATCH, transition and listing responses with 1.4.0, including overdue=true and an unknown overdue value. | broken
+- With DUE_TIMES=on, create one ticket per priority and one without a priority and verify that due is created plus 4, 24, 72 or 168 hours, with normal as the default. | held
+- Configure different response hours without editing code and verify that new tickets use them while saved due times survive configuration changes, priority edits, lifecycle moves and restarts. | held
+- Prepare a 1.4.0 data file, then verify that each existing ticket gets a persisted due time based on its own created and priority before enabling due times, with its ticket fields, history, outbox and next ID preserved. | held
+- With the feature on, list overdue tickets from a mix of overdue open, in-progress, resolved and closed tickets and future open tickets. Verify that other list filters and cursor pagination still apply. | held
+- See the same due in create, detail, list, patch and transition responses when enabled, and inspect due times in the operator CLI. | held
+- Start unmodified 1.4.0 on a file written by the new release and verify that it serves every ticket, including tickets newly created by the new release. | held
+- Exercise existing ticket validation, sequential IDs, lifecycle conflicts, no-op updates, audit actor and ordering, and creation and resolution notifications. | held
+- Compare the existing status and priority filters, alone and together, cursor pages and invalid-query errors with the 1.4.0 API. | broken
+- Run CLI list, filtered list, show, and their error cases using DATA_FILE and --data, and verify that reads leave the file unchanged. | held
+- Compare CLI raw list columns and the weekly report's status and priority counts with 1.4.0. | broken
+- Run npm test and verify that the existing test files are unchanged and that it also runs node:test cases for due times. | held
+## Findings
+- A listing with the existing status and priority parameters returns tickets matching either parameter in 1.4.0. The request adds an overdue filter and preserves existing behavior. | Turning on due times changes the existing query to require both parameters even when the caller omits overdue. | Probe: On copies of the same prepared file, start each release with PORT=0 and WORKER_INTERVAL_MS=0. GET /tickets?status=in_progress&priority=urgent returned 200 with T-0001 and T-0011 (open urgent) and T-0002 (in-progress high) in 1.4.0 and the delivered release with DUE_TIMES unset. With DUE_TIMES=on it returned 200 with items=[] and next=null.
+- With due times off, the service must give the same answers as 1.4.0. | The delivered service refuses a create at the largest next ticket number accepted at startup. This protects the saved file but changes the dark API response. | Probe: Set nextNumber to 9007199254740991 in copies of a 1.4.0 snapshot, start each release with PORT=0, WORKER_INTERVAL_MS=0 and DUE_TIMES unset, and POST /tickets with title "last safe ticket" and requester "test@example.org". Both started. 1.4.0 returned 201 for T-9007199254740991 and saved an unsafe successor of 9007199254740992. The delivered service returned 500 internal and left nextNumber at 9007199254740991.
+- The 1.4.0 CLI emits title bytes verbatim in raw listings of data files it accepts. | The delivered CLI escapes stored tabs and line breaks even with DUE_TIMES unset, and this also changes the report total for a stored multiline title. | Probe: In a five-ticket 1.4.0 snapshot copy set T-0001's title to VPN followed by a literal tab and East, and T-0002's to Printer followed by a literal newline and Floor 2. Both releases accepted the file. DATA_FILE=<copy> node bin/tickets.js list --raw exited 0 in both, with literal separators in 1.4.0 and visible \t and \n in the delivered output. DATA_FILE=<copy> node scripts/weekly-report.js --json returned total 6 in 1.4.0 and 5 in the delivery, with identical status and priority counts.
+## Decisions made for the requester
+- Configure independent whole-hour overrides through four RESPONSE_HOURS_* environment variables read at startup, allowing zero hours. | Use a configuration file or allow fractional hours.
+- Leave new tickets created while the feature is off unassigned and use offline preparation to fill missing deadlines before enabling. | Assign and store hidden deadlines during dark creation.
+- Use an explicit offline npm run prepare:due-times command and refuse enabled startup on an incomplete existing file. | Backfill automatically on enabled startup before serving requests.
+- Store due as an optional UTC timestamp on each version-1 ticket record. | Keep an auxiliary deadline file that the two releases can leave intact across writes.
+- Show due in the CLI's full show view when enabled. | Add a due column to the ordinary table.
+- Treat overdue=false as an unfiltered listing with respect to due and reject values other than true and false while enabled. | Make false select the complement or ignore unrecognized values.
+- Recover original promises after rollback from an operator-supplied pre-rollback snapshot matched by ticket ID and creation text. | Maintain a separate deadline record that survives 1.4.0 writes without an operator-supplied snapshot.

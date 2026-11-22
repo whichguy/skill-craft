@@ -1,0 +1,11 @@
+python3 program/packet_position.py <the sister study's runs root>/*   (run 2026-11-21 18:08)
+Codex runs read: 62; packets with six instruction lines or more: 248
+group | packets | instruction lines given | in the first third | in the middle third | in the last third | median instruction lines | lines after the result template given (median)
+intake | 62 | 100% | 100% | 100% | 100% | 77 | 100%
+discovery | 62 | 99% | 97% | 100% | 99% | 93 | 94%
+research | 62 | 95% | 89% | 98% | 97% | 59 | 52%
+spec | 62 | 93% | 91% | 98% | 90% | 102 | 15%
+all stages | 248 | 97% | 94% | 99% | 96% | 85 | 90%
+packets of under 77 lines | 62 | 95% | 89% | 98% | 97% | 59 | 52%
+packets of 77 to 92 lines | 62 | 100% | 100% | 100% | 100% | 77 | 100%
+packets of 93 lines or more | 124 | 96% | 94% | 99% | 95% | 98 | 52%

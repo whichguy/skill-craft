@@ -1,0 +1,41 @@
+Verdict: reject
+## What must be true
+- Start with `npm start` and `PORT=0`, then get 200 from `/health` on the reported port. | held
+- Create tickets with sequential IDs, open status, the existing fields and a null assignee, then see the same values with GET and in the listing. | held
+- Assign and reassign an open ticket with PUT, then unassign it with null and read back each result. | held
+- Assign and unassign an in-progress ticket, then read back each result. | held
+- Attempt both operations on resolved and closed tickets and see a conflict with no assignment side effects. | held
+- Assign a 64-character name and reject an empty name, a 65-character name, a non-string, missing or unknown fields, malformed JSON, and a valid assignment to a missing ticket with the usual error envelope. | held
+- Repeat an assignment to the same agent and see the same ticket, timestamp, audit history and outbox. | held
+- Change an assignee with X-Actor and see updated advance and one audit entry showing who made the change and the previous and new assignee. | held
+- Read the notification file after assignments and reassignments to see the correct agent told which ticket was assigned, including different agents on the same ticket before the worker runs. | held
+- Disable the worker, inspect pending assignment events, restart with the worker enabled, and see pending events delivered while preserving the assignment. | held
+- List assigned and unassigned tickets using a named assignee and an empty assignee, including an encoded name and an unmatched name. | held
+- Combine status, priority and assignee filters against tickets matching only some of the filters, then page through the matching results in ID order. | held
+- List by status alone, by priority alone, and by status and priority together, then check normal pagination and errors for invalid filters, limits and cursors. | held
+- Patch an open ticket title and priority and repeat the patch to verify it changes neither the ticket nor its audit or outbox. | held
+- Patch a resolved ticket title and priority and see those edits saved and audited. | broken
+- Exercise valid and invalid transitions, including reopening a resolved ticket, and verify PATCH still refuses changes to a closed ticket. | held
+- Create and resolve a ticket, then see both existing requester notices reach the notification file. | held
+- Restart from a starting-product data file and see its tickets as unassigned with history, outbox and next ID intact. | held
+- Run the CLI list on mixed assignments and see the assignee for each row, then use the existing status and priority options separately. | held
+- Run CLI list with both existing filter options and see rows matching either option as on the starting product. | broken
+- Run the CLI raw listing and weekly report against the same file and verify the raw ID, status, priority and title positions and the report's counts. | held
+- Run CLI show to see the ticket and its history, check the existing failure exit codes, and verify these CLI reads leave the data file unchanged. | held
+- Run npm test with the original tests intact and see the added assignment node:test cases run and pass. | held
+- Run all 29 recorded acceptance commands and see them pass. | held
+## Findings
+- The starting product lets operators correct the title and priority of a resolved ticket with PATCH. | The delivery returns 409 for that edit and leaves the ticket and its history unchanged. | Probe: On each product create T-0002 with title "Resolved urgent" and priority "urgent", POST transitions to in_progress and then resolved, and send `PATCH /tickets/T-0002` with `{"title":"Resolved urgent corrected","priority":"high"}`. The starting product returned 200 with both changes and added a ticket.updated audit entry. The delivery returned 409 conflict with "ticket T-0002 is resolved and can no longer change" and added no entry.
+- The starting CLI lists tickets matching either of its two existing filters when both options are supplied. The request requires all filters to match on GET /tickets. | The delivery also requires both CLI filters to match, dropping tickets that used to appear. | Probe: With T-0001 open and normal and T-0002 resolved and urgent, run `node bin/tickets.js --data "$DATA_FILE" list --status open --priority urgent --raw` against each product's data file. Both commands exited 0. The starting product printed T-0001 and T-0002. The delivery printed zero rows.
+## Decisions made for the requester
+- Trim assignee names, reject blank names and control characters, and count UTF-16 code units toward the 64-character limit. | Store names literally, allow control characters, or count Unicode code points.
+- Compare the decoded assignee query value exactly and return an empty result for unmatched names. | Normalize query names like assignment bodies or apply the body name validation to the query.
+- Return 409 on an inactive ticket even for a same-agent request. | Return the unchanged ticket with 200 when the requested assignee is already present.
+- Address assignment notices to the agent name through the existing outbox. | Look up a separate delivery address for each agent.
+- Keep pending notices for earlier assignees and deduplicate pending notices by ticket and agent. | Withdraw earlier pending notices or queue a separate notice for every reassignment back to the same agent.
+- Send no notification to the former assignee when an assignment is cleared. | Notify the former assignee that the ticket was unassigned.
+- Record assignment and unassignment under the ticket.assigned audit action. | Give unassignment a separate action name.
+- Retain the assignee through resolve, close and reopen. | Clear the assignee when the ticket leaves an active state.
+- Put ASSIGNEE between PRIORITY and REQUESTER in the CLI table and display "-" for an unassigned ticket. | Put the column after REQUESTER or use a different placeholder.
+- Append assignee as a fifth raw column, empty when unassigned. | Keep the four-column raw output and display the assignee only in the table.
+- Keep CLI show's existing field list and expose assignment changes in its history. | Also add a current-assignee field to CLI show.

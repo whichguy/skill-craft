@@ -1,0 +1,493 @@
+{
+ "items": 29,
+ "failing_on_the_build": [],
+ "copies": [
+  "base",
+  "fault-1",
+  "fault-10",
+  "fault-11",
+  "fault-12",
+  "fault-13",
+  "fault-14",
+  "fault-15",
+  "fault-16",
+  "fault-17",
+  "fault-18",
+  "fault-2",
+  "fault-3",
+  "fault-4",
+  "fault-5",
+  "fault-6",
+  "fault-7",
+  "fault-8",
+  "fault-9",
+  "sabotage"
+ ],
+ "not_usable": {},
+ "sabotaged_file": "test/api.test.js",
+ "faults": {
+  "fault-1": {
+   "file": "src/persistence.js",
+   "line": 146,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "where": "changed"
+  },
+  "fault-2": {
+   "file": "src/store.js",
+   "line": 120,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "changed"
+  },
+  "fault-3": {
+   "file": "src/tickets/query.js",
+   "line": 32,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "changed"
+  },
+  "fault-4": {
+   "file": "src/tickets/validate.js",
+   "line": 69,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "changed"
+  },
+  "fault-5": {
+   "file": "src/store.js",
+   "line": 123,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "where": "changed"
+  },
+  "fault-6": {
+   "file": "src/tickets/query.js",
+   "line": 49,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "changed"
+  },
+  "fault-7": {
+   "file": "src/app.js",
+   "line": 16,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "where": "existing"
+  },
+  "fault-8": {
+   "file": "src/format.js",
+   "line": 36,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-9": {
+   "file": "src/persistence.js",
+   "line": 44,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-10": {
+   "file": "src/store.js",
+   "line": 31,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "where": "existing"
+  },
+  "fault-11": {
+   "file": "src/tickets/query.js",
+   "line": 41,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "where": "existing"
+  },
+  "fault-12": {
+   "file": "src/tickets/validate.js",
+   "line": 19,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "where": "existing"
+  },
+  "fault-13": {
+   "file": "src/app.js",
+   "line": 65,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "where": "existing"
+  },
+  "fault-14": {
+   "file": "src/format.js",
+   "line": 36,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "where": "existing"
+  },
+  "fault-15": {
+   "file": "src/persistence.js",
+   "line": 58,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "where": "existing"
+  },
+  "fault-16": {
+   "file": "src/store.js",
+   "line": 53,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "where": "existing"
+  },
+  "fault-17": {
+   "file": "src/tickets/query.js",
+   "line": 41,
+   "op": "bound-literal",
+   "old": "1",
+   "new": "2",
+   "where": "existing"
+  },
+  "fault-18": {
+   "file": "src/tickets/validate.js",
+   "line": 21,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  }
+ },
+ "seen_failing_on": {
+  "C-1": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4"
+  ],
+  "C-10": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4",
+   "fault-5"
+  ],
+  "C-11": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4",
+   "fault-5"
+  ],
+  "C-12": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-15",
+   "fault-18",
+   "fault-2",
+   "fault-4",
+   "fault-5",
+   "fault-9"
+  ],
+  "C-13": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4"
+  ],
+  "C-14": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4",
+   "fault-5"
+  ],
+  "C-15": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-6"
+  ],
+  "C-16": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-6"
+  ],
+  "C-17": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-6"
+  ],
+  "C-18": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-16",
+   "fault-18",
+   "fault-3",
+   "fault-6"
+  ],
+  "C-19": [
+   "base",
+   "fault-1",
+   "fault-10",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-4",
+   "fault-6",
+   "fault-9"
+  ],
+  "C-2": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-4",
+   "fault-5"
+  ],
+  "C-20": [
+   "fault-1",
+   "fault-10",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-18",
+   "fault-9"
+  ],
+  "C-21": [
+   "fault-1",
+   "fault-10",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-18",
+   "fault-9"
+  ],
+  "C-22": [
+   "base",
+   "fault-1",
+   "fault-10",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-5",
+   "fault-6",
+   "fault-9"
+  ],
+  "C-23": [
+   "fault-1",
+   "fault-10",
+   "fault-11",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-17",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-5",
+   "fault-6",
+   "fault-9",
+   "sabotage"
+  ],
+  "C-24": [
+   "base",
+   "fault-1",
+   "fault-10",
+   "fault-11",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-17",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-5",
+   "fault-6",
+   "fault-9",
+   "sabotage"
+  ],
+  "C-3": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4"
+  ],
+  "C-4": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4"
+  ],
+  "C-5": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4"
+  ],
+  "C-6": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4"
+  ],
+  "C-7": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4"
+  ],
+  "C-8": [
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-4"
+  ],
+  "C-9": [
+   "base",
+   "fault-1",
+   "fault-10",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-6",
+   "fault-9"
+  ],
+  "U-1": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-18",
+   "fault-2",
+   "fault-4",
+   "fault-5"
+  ],
+  "U-2": [
+   "base",
+   "fault-10",
+   "fault-12",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-5",
+   "fault-6"
+  ],
+  "U-3": [
+   "base",
+   "fault-10",
+   "fault-11",
+   "fault-12",
+   "fault-16",
+   "fault-17",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-6"
+  ],
+  "U-4": [
+   "base",
+   "fault-1",
+   "fault-10",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-18",
+   "fault-2",
+   "fault-4",
+   "fault-9"
+  ],
+  "U-5": [
+   "base",
+   "fault-1",
+   "fault-10",
+   "fault-11",
+   "fault-12",
+   "fault-15",
+   "fault-16",
+   "fault-17",
+   "fault-18",
+   "fault-2",
+   "fault-3",
+   "fault-4",
+   "fault-5",
+   "fault-6",
+   "fault-9",
+   "sabotage"
+  ]
+ },
+ "never_seen_failing": [],
+ "faults_unnoticed": [
+  "fault-7",
+  "fault-8",
+  "fault-13",
+  "fault-14"
+ ],
+ "refusal": "## Faults no check noticed\nEvery check still passes when the build carries any one of these single faults:\n- `src/app.js` line 16 (existing code): `false` became `true`\n- `src/format.js` line 36 (existing code): `===` became `!==`\n- `src/app.js` line 65 (existing code): `-` became `+`\n- `src/format.js` line 36 (existing code): `-` became `+`\nFor each one: add or strengthen a check so that it fails on that fault, or say under a heading `## Faults that change nothing` in your tests report why the edit does not alter behaviour.\n\nKeep the rest of your work. Never weaken a check to make this list shorter."
+}

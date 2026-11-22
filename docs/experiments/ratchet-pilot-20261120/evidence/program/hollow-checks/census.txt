@@ -1,0 +1,961 @@
+Census of nested test runs in acceptance suites (mechanical: counts and quotes, no interpretation)
+
+Unit: a nested run is one call (spawn/exec/spawnSync/... or a thin wrapper around one) whose argument list starts another test run (`npm ... test`, or node with `--test`).
+A call inside a shared helper function is listed once per call site, and its 'test' field lists each test that reaches it.
+Dropping column: yes = every nested run in the suite removes NODE_TEST_CONTEXT from the child env (delete / undefined / rest-destructure / allow-list env), no = every one keeps it, mixed = some of each.
+Evidence column: yes = the test requires a count/summary/named-test line from the child's output, no = exit status only (or output not inspected), mixed = per use.
+
+Scanned run folders (run.json and work/ present) per root, and how many had work/acceptance/:
+  ratchet-pilot-20261120-b6eab2: 25 folders, 22 with acceptance
+  ratchet-lens-20261121-08805f: 5 folders, 5 with acceptance
+  ratchet-reworded-20261121-08805f: 46 folders, 13 with acceptance
+  ratchet-parallel-20261121-6f54fb: 6 folders, 6 with acceptance
+  total: 82 folders, 46 with acceptance
+
+(1) One row per run
+root | run | case | model effort | enrich | nested runs (call sites/test uses) | dropping the variable | requiring evidence | ticket-assignment defects caught by (default-limit-changed ; resolved-template-replaced ; audit-not-saved) | (extra) how ratchet/acceptance.json launches the items
+pilot | g-ratchet-sol-high | grokbot-local | gpt-6.2-sol high | None | 1/4 | no | mixed |  | items launched as: plain node run.cjs x304
+pilot | p1-stand-in-rules | stand-in-rules | gpt-6.2-sol high | None | 1/2 | no | yes |  | items launched as: node --test (direct) x60; plain node check-npm-discovery.cjs x2; npm test x1
+pilot | p1-ticket-assignment | ticket-assignment | gpt-6.2-sol high | None | 5/5 | no | yes | caught by C-129,C-76 ; caught by C-142,C-76 ; caught by C-163,C-54,C-76 | items launched as: plain node run.cjs x190
+pilot | p1-ticket-due-times | ticket-due-times | gpt-6.2-sol high | None | 4/4 | no | mixed |  | items launched as: plain node run.cjs x223
+pilot | p1e-stand-in-rules | stand-in-rules | gpt-6.2-sol high | None | 1/5 | yes | yes |  | items launched as: node --test (direct) x71
+pilot | p1e2-stand-in-rules | stand-in-rules | gpt-6.2-sol high | None | 1/4 | yes | yes |  | items launched as: node --test (direct) x81
+pilot | p1e2-ticket-assignment | ticket-assignment | gpt-6.2-sol high | None | 3/7 | yes | mixed | caught by C-184,C-97,U-16 ; caught by C-184,U-16,U-7 ; caught by C-122,C-124,C-131,C-135,C-184,C-55,U-14,U-15,U-16 | items launched as: node --test (direct) x209
+pilot | p1e2-ticket-due-times | ticket-due-times | gpt-6.2-sol high | None | 6/6 | no | mixed |  | items launched as: plain node run.cjs x253
+pilot | p2-assign-filter-after-page | ticket-assignment | gpt-6.2-sol high | None | 3/7 | yes | mixed | no strength.json | items launched as: node --test (direct) x209
+pilot | p2-assign-filter-or | ticket-assignment | gpt-6.2-sol high | None | 3/8 | yes | mixed | no strength.json | items launched as: node --test (direct) x209
+pilot | p2-due-priority-moves-due | ticket-due-times | gpt-6.2-sol high | None | 6/6 | no | mixed |  | items launched as: plain node run.cjs x253
+pilot | p2-due-version-two | ticket-due-times | gpt-6.2-sol high | None | 4/7 | no | mixed |  | items launched as: plain node run.cjs x253
+pilot | p2-orders-cross-field | stand-in-rules | gpt-6.2-sol high | None | 1/4 | yes | yes |  | items launched as: node --test (direct) x81
+pilot | p2-orders-limit-never-trips | stand-in-rules | gpt-6.2-sol high | None | 1/4 | yes | yes |  | items launched as: node --test (direct) x81
+pilot | p2-orders-one-rule-missing | stand-in-rules | gpt-6.2-sol high | None | 1/4 | yes | yes |  | items launched as: node --test (direct) x81
+pilot | p2-orders-tested-only | stand-in-rules | gpt-6.2-sol high | None | 1/4 | yes | yes |  | items launched as: node --test (direct) x81
+pilot | p3-node-chess-engine-sol-high | node-chess-engine | gpt-6.2-sol high | None | 2/13 | yes | mixed |  | items launched as: runner script spawning node --test (run.cjs) x120
+pilot | p3-shared-expenses-sol-high | shared-expenses | gpt-6.2-sol high | None | 1/5 | yes | yes |  | items launched as: node --test (direct) x124
+pilot | p3-ticket-assignment-sol-high | ticket-assignment | gpt-6.2-sol high | None | 3/6 | yes | yes | no strength.json | items launched as: node --test (direct) x238
+pilot | p3-ticket-assignment-sol-medium | ticket-assignment | gpt-6.2-sol medium | None | 2/6 | no | mixed | caught by C-124,C-125,C-160,C-161,C-78,U-16 ; caught by C-124,C-125,C-160,C-161,U-12,U-16 ; caught by C-124,C-125,C-139,C-141,C-160,C-161,C-45,C-94,U-13,U-16,U-18 | items launched as: plain node run.cjs x191
+pilot | p3-ticket-due-times-sol-high | ticket-due-times | gpt-6.2-sol high | None | 4/4 | mixed | mixed |  | items launched as: plain node run.cjs x316
+pilot | smoke-standin-sol-high | stand-in-rules | gpt-6.2-sol high | None | 3/5 | yes | yes |  | items launched as: runner script spawning node --test (run-clause.cjs) x76
+lens | p1L-stand-in-rules | stand-in-rules | gpt-6.2-sol high | lenses | 4/7 | yes | yes |  | items launched as: runner script spawning node --test (run.cjs) x90
+lens | p1L-ticket-assignment | ticket-assignment | gpt-6.2-sol high | lenses | 5/8 | yes | mixed | caught by C-149,C-151,C-66,U-11 ; caught by C-149,C-151,C-92,U-11 ; caught by C-110,C-114,C-149,C-151,C-41,C-90,U-10,U-11 | items launched as: node --test (direct) x164
+lens | p1L-ticket-due-times | ticket-due-times | gpt-6.2-sol high | lenses | 4/5 | no | mixed |  | items launched as: plain node run.cjs x203
+lens | p3L-ticket-due-times-a | ticket-due-times | gpt-6.2-sol high | lenses | 4/4 | no | mixed |  | items launched as: plain node run.cjs x184
+lens | p3L-ticket-due-times-b | ticket-due-times | gpt-6.2-sol high | lenses | 1/5 | yes | mixed |  | items launched as: node --test (direct) x215
+reworded | p1R-stand-in-rules | stand-in-rules | gpt-6.2-sol high | reworded | 4/4 | yes | yes |  | items launched as: node --test (direct) x32
+reworded | p1R-ticket-assignment | ticket-assignment | gpt-6.2-sol high | reworded | 5/10 | yes | yes | caught by C-34,C-41,U-9 ; caught by C-26,C-41,U-9 ; caught by C-27,C-41,U-7,U-9 | items launched as: node --test (direct) x53
+reworded | p1R-ticket-due-times | ticket-due-times | gpt-6.2-sol high | reworded | 4/6 | yes | yes |  | items launched as: node --test (direct) x39
+reworded | p1S-ticket-assignment-high | ticket-assignment | claude-sonnet-5-5 high | reworded | 2/2 | yes | mixed | caught by C-31 ; caught by C-30,C-31 ; caught by C-13,C-30,C-31,U-6 | items launched as: node --test (direct) x40
+reworded | p1S-ticket-assignment-medium | ticket-assignment | claude-sonnet-5-5 medium | reworded | 2/2 | mixed | mixed | caught by C-22 ; caught by C-22 ; caught by C-22 | items launched as: node --test (direct) x27
+reworded | p3R-ticket-due-times-a | ticket-due-times | gpt-6.2-sol high | reworded | 1/4 | yes | yes |  | items launched as: node --test (direct) x42
+reworded | p3R-ticket-due-times-b | ticket-due-times | gpt-6.2-sol high | reworded | 1/1 | yes | yes |  | items launched as: node --test (direct) x41
+reworded | q-base-1 | ticket-assignment | claude-sonnet-5-5 medium | reworded | 1/1 | yes | yes | caught by C-21 ; caught by C-21 ; caught by C-21 | items launched as: node --test (direct) x26
+reworded | q-base-2 | ticket-assignment | claude-sonnet-5-5 medium | reworded | 3/3 | yes | yes | caught by C-23,C-24,U-5 ; caught by C-23,C-24,U-5 ; caught by C-22,C-23,C-24,U-5 | items launched as: node --test (direct) x29
+reworded | q-plan-1 | ticket-assignment | claude-sonnet-5-5 medium | reworded | 2/2 | no | mixed | missed ; missed ; caught by C-25 | items launched as: node --test (direct) x31
+reworded | q-plan-2 | ticket-assignment | claude-sonnet-5-5 medium | reworded | 3/3 | yes | yes | caught by C-21,C-22 ; caught by C-21,C-22,U-6 ; caught by C-21,C-22,C-25,U-6 | items launched as: node --test (direct) x32
+reworded | q-spec-1 | ticket-assignment | claude-sonnet-5-5 medium | reworded | 3/3 | mixed | mixed | caught by C-21 ; caught by C-20,C-21,U-6 ; caught by C-21 | items launched as: node --test (direct) x27
+reworded | q-spec-2 | ticket-assignment | claude-sonnet-5-5 medium | reworded | 1/1 | yes | no | caught by C-18,C-22 ; caught by C-22,U-6 ; caught by C-14,C-22 | items launched as: node --test (direct) x28
+parallel | b1-due-times-a | ticket-due-times | gpt-6.2-sol high | reworded | 1/4 | yes | mixed |  | items launched as: node --test (direct) x42
+parallel | b1-due-times-b | ticket-due-times | gpt-6.2-sol high | reworded | 1/3 | yes | yes |  | items launched as: node --test (direct) x41
+parallel | bs-blind | battleship | gpt-6.2-sol high | reworded | 1/3 | no | yes |  | items launched as: plain node checks.cjs x28
+parallel | bs-loop | battleship | gpt-6.2-sol high | reworded | 1/3 | yes | yes |  | items launched as: node --test (direct) x28
+parallel | gb-beside | grokbot-local | gpt-6.2-sol high | reworded | 1/1 | yes | yes |  | items launched as: node --test (direct) x115
+parallel | gb-blind | grokbot-local | gpt-6.2-sol high | reworded | 1/2 | no | yes |  | items launched as: plain node suite.cjs x115
+
+(2) Totals by model family
+family (models) | suites counted | suites with >=1 nested run | suites with >=1 nested run that keeps the variable | suites where every nested run keeps the variable | suites with >=1 nested run that keeps the variable and requires no evidence
+sol (gpt-6.2-sol) | 38 | 38 | 13 | 12 | 9
+sonnet (claude-sonnet-5-5) | 8 | 8 | 3 | 1 | 3
+other () | 0 | 0 | 0 | 0 | 0
+all | 46 | 46 | 16 | 13 | 12
+
+Counting rule for the last column: among that suite's nested runs that keep the variable, at least one has a test use with no evidence requirement (exit status only, or output not inspected).
+
+(3) Unclear cases (drop = unclear)
+  none
+
+Appendix A. Nested runs, per use
+## ratchet-pilot-20261120-b6eab2 / g-ratchet-sol-high  case=grokbot-local model=gpt-6.2-sol effort=high enrich=None preserve=None
+- startup.cjs:28 test=C-258 (nearest preceding test start: None) drop=no evidence=yes
+    call: h.npm(['test'], { cwd, env: { ...process.env, ...env } })
+    env: repoTests helper passes env {...process.env, ...env}; harness h.npm adds only npm_config_*; nothing removed
+    evidence: assert.match(result.output, /(?:# tests|ℹ tests) [1-9]\d*|Subtest:/)
+- startup.cjs:28 test=C-259 (nearest preceding test start: None) drop=no evidence=yes
+    call: h.npm(['test'], { cwd, env: { ...process.env, ...env } })
+    env: repoTests helper passes env {...process.env, ...env}; harness h.npm adds only npm_config_*; nothing removed
+    evidence: assert.equal(result.code, 0, result.output); assert.match(result.output, /(?:# tests|ℹ tests) [1-9]\d*|Subtest:/)
+- startup.cjs:28 test=C-260 (nearest preceding test start: None) drop=no evidence=no
+    call: h.npm(['test'], { cwd, env: { ...process.env, ...env } })
+    env: repoTests helper passes env {...process.env, ...env}; harness h.npm adds only npm_config_*; nothing removed
+    evidence: result of repoTests is not inspected; only operator data directory compared
+- startup.cjs:28 test=U-29 (nearest preceding test start: None) drop=no evidence=no
+    call: h.npm(['test'], { cwd, env: { ...process.env, ...env } })
+    env: repoTests helper passes env {...process.env, ...env}; harness h.npm adds only npm_config_*; nothing removed
+    evidence: assert.equal(result.code, 0, result.output); assert.match(result.output, /node\s+[^\n]*--test\b/) (command-echo line, not a count)
+## ratchet-pilot-20261120-b6eab2 / p1-stand-in-rules  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- check-npm-discovery.cjs:21 test=C-61 (nearest preceding test start: None) drop=no evidence=yes file_run_as=['plain node']
+    call: spawnSync('npm', [ 'test', '--', '--test-timeout=10000', '--test-reporter=./acceptance/npm-test-reporter.cjs', `--test-name-pattern=${pattern}`, ], { encoding: 'utf8', timeout: 30_000 })
+    env: spawnSync has no env option (standalone script; acceptance.json runs it as plain `node acceptance/check-npm-discovery.cjs C-61|C-62`, not under node --test)
+    evidence: assert.ok(cases.some(test => test.file === 'test/meter.test.js' && test.name === name), `npm test did not run ...`) (cases parsed from a custom reporter's `case ` lines)
+- check-npm-discovery.cjs:21 test=C-62 (nearest preceding test start: None) drop=no evidence=yes file_run_as=['plain node']
+    call: spawnSync('npm', [ 'test', '--', '--test-timeout=10000', '--test-reporter=./acceptance/npm-test-reporter.cjs', `--test-name-pattern=${pattern}`, ], { encoding: 'utf8', timeout: 30_000 })
+    env: spawnSync has no env option (standalone script; acceptance.json runs it as plain `node acceptance/check-npm-discovery.cjs C-61|C-62`, not under node --test)
+    evidence: assert.ok(cases.some(test => test.file === file && test.name.startsWith(`C-${id} `)), `npm test did not run the C-${id} coverage case ...`)
+## ratchet-pilot-20261120-b6eab2 / p1-ticket-assignment  case=ticket-assignment model=gpt-6.2-sol effort=high enrich=None preserve=None
+- compatibility.cjs:79 test=C-74 (nearest preceding test start: 'C-74') drop=no evidence=yes
+    call: h.command('npm', ['test'], tap)
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,WORKER_INTERVAL_MS,LOG_REQUESTS,NODE_OPTIONS (not NODE_TEST_CONTEXT); override {NODE_OPTIONS:'--test-reporter=tap'}
+    evidence: assert.ok(newNames.length && oldNames.length, 'Expected named TAP cases in both suites'); assert.deepEqual([...]filter(name => !actual.has(name)), [], 'Missing cases in npm test output')
+- compatibility.cjs:79 test=C-74 (nearest preceding test start: 'C-74') drop=no evidence=yes
+    call: h.command(process.execPath, ['--test', ...added], tap)
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,WORKER_INTERVAL_MS,LOG_REQUESTS,NODE_OPTIONS (not NODE_TEST_CONTEXT); override {NODE_OPTIONS:'--test-reporter=tap'}
+    evidence: assert.ok(newNames.length && oldNames.length, 'Expected named TAP cases in both suites'); assert.deepEqual([...]filter(name => !actual.has(name)), [], 'Missing cases in npm test output')
+- compatibility.cjs:80 test=C-74 (nearest preceding test start: 'C-74') drop=no evidence=yes
+    call: h.command(process.execPath, ['--test', ...original], tap)
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,WORKER_INTERVAL_MS,LOG_REQUESTS,NODE_OPTIONS (not NODE_TEST_CONTEXT); override {NODE_OPTIONS:'--test-reporter=tap'}
+    evidence: assert.ok(newNames.length && oldNames.length, 'Expected named TAP cases in both suites'); assert.deepEqual([...]filter(name => !actual.has(name)), [], 'Missing cases in npm test output')
+- compatibility.cjs:100 test=C-76 (nearest preceding test start: 'C-76') drop=no evidence=yes
+    call: h.command('npm', ['test', '--', ...files], tap)
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,WORKER_INTERVAL_MS,LOG_REQUESTS,NODE_OPTIONS (not NODE_TEST_CONTEXT); override {NODE_OPTIONS:'--test-reporter=tap'}
+    evidence: assert.ok(tapNames(result.stdout).length > 0, 'No original tests ran'); assert.doesNotMatch(result.stdout, /^not ok /m)
+- delivery.cjs:289 test=C-154 (nearest preceding test start: 'C-154') drop=no evidence=yes
+    call: h.command(process.execPath, [ '--test', '--test-reporter=tap', '--test-name-pattern=^backoff$', 'test/outbox.test.js', ])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,WORKER_INTERVAL_MS,LOG_REQUESTS (not NODE_TEST_CONTEXT); no env override
+    evidence: assert.match(ceiling.stdout, /^\s*ok \d+ - doubles from one second and stops at five minutes$/m)
+## ratchet-pilot-20261120-b6eab2 / p1-ticket-due-times  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=None preserve=None
+- cli-release.cjs:251 test=C-216 (nearest preceding test start: 'C-216') drop=no evidence=no
+    call: run(t, 'npm', ['test'], { timeout: 25000 })
+    env: harness.cjs cleanEnv(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,RESPONSE_HOURS,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,NODE_OPTIONS,ACCEPTANCE_* (not NODE_TEST_CONTEXT)
+    evidence: exited(result, 0); assert.doesNotMatch(result.stdout, /^not ok\b/m)
+- cli-release.cjs:274 test=C-217 (nearest preceding test start: 'C-217') drop=no evidence=yes
+    call: run(t, process.execPath, ['--test', '--test-reporter', reporter, ...suites], { timeout: 25000 })
+    env: harness.cjs cleanEnv(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,RESPONSE_HOURS,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,NODE_OPTIONS,ACCEPTANCE_* (not NODE_TEST_CONTEXT)
+    evidence: const passing = passingFiles(result.stdout); for (const file of suites) assert.ok(passing.has(file), 'no passing test case in ' + file)
+- cli-release.cjs:283 test=C-218 (nearest preceding test start: 'C-218') drop=no evidence=yes
+    call: run(t, 'npm', ['test'], { timeout: 25000, env: { NODE_OPTIONS: '--test-reporter "' + reporter + '"' }, })
+    env: harness.cjs cleanEnv(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,RESPONSE_HOURS,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,NODE_OPTIONS,ACCEPTANCE_* (not NODE_TEST_CONTEXT); override env {NODE_OPTIONS: reporter}
+    evidence: assert.ok(baselineTestFiles().some(... passing.has(file)), 'npm test did not report passing baseline cases'); for (const file of suites) assert.ok(passing.has(file), ...)
+- http.cjs:86 test=C-86 (nearest preceding test start: 'C-86') drop=no evidence=no
+    call: run(t, 'npm', ['test'], { timeout: 25000 })
+    env: harness.cjs cleanEnv(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,RESPONSE_HOURS,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,NODE_OPTIONS,ACCEPTANCE_* (not NODE_TEST_CONTEXT)
+    evidence: exited(await run(t, 'npm', ['test'], ...), 0)
+## ratchet-pilot-20261120-b6eab2 / p1e-stand-in-rules  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- package.cases.cjs:21 test=C-60 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test'], { cwd: root, env, encoding: 'utf8', timeout: 12000, killSignal: 'SIGKILL', })
+    env: runPackageTests(): env = {...process.env, NODE_OPTIONS...}; `delete env.NODE_TEST_CONTEXT;` before spawnSync
+    evidence: assert.match(output, /^TAP version \d+$/m) (assertNodeRunner)
+- package.cases.cjs:21 test=C-61 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test'], { cwd: root, env, encoding: 'utf8', timeout: 12000, killSignal: 'SIGKILL', })
+    env: runPackageTests(): env = {...process.env, NODE_OPTIONS...}; `delete env.NODE_TEST_CONTEXT;` before spawnSync
+    evidence: assert.ok(calls.length, 'npm test never exercised parseOrders') (probe observations from the child)
+- package.cases.cjs:21 test=C-62 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test'], { cwd: root, env, encoding: 'utf8', timeout: 12000, killSignal: 'SIGKILL', })
+    env: runPackageTests(): env = {...process.env, NODE_OPTIONS...}; `delete env.NODE_TEST_CONTEXT;` before spawnSync
+    evidence: assert.ok(calls.length, 'npm test never exercised total')
+- package.cases.cjs:21 test=C-63 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test'], { cwd: root, env, encoding: 'utf8', timeout: 12000, killSignal: 'SIGKILL', })
+    env: runPackageTests(): env = {...process.env, NODE_OPTIONS...}; `delete env.NODE_TEST_CONTEXT;` before spawnSync
+    evidence: assertExistingMeterTests: assert.match(output, /^ok \d+ - meter counts ticks and resets$/m); assertOrderTestsRan
+- package.cases.cjs:21 test=U-8 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test'], { cwd: root, env, encoding: 'utf8', timeout: 12000, killSignal: 'SIGKILL', })
+    env: runPackageTests(): env = {...process.env, NODE_OPTIONS...}; `delete env.NODE_TEST_CONTEXT;` before spawnSync
+    evidence: assertExistingMeterTests(stockRun.output); assertOrderTestsRan(observedRun.output)
+## ratchet-pilot-20261120-b6eab2 / p1e2-stand-in-rules  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- workflow.cjs:26 test=C-66 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assert.match(result.stdout, /ratchet: node:test ran a test/, result.stderr) (custom reporter line)
+- workflow.cjs:26 test=C-67 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: observeNpmTests: evidence set from trace written by an observer required in the child; assert.deepStrictEqual(expected.filter(name => !evidence.has(name)), [], ...)
+- workflow.cjs:26 test=C-68 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t)): assert.ok(evidence.has('meter'), 'npm test did not exercise the meter directly')
+- workflow.cjs:26 test=U-12 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t))
+- (not counted: runner script or non-run call) npm-observer.cjs:80: process.on('exit', () => { const inTestRunner = process.env.NODE_TEST_CONTEXT || process.execArgv.includes('--test'); if (inTestRunner && Object.keys(evidence).length > 0) { appendFileSync(process.env
+## ratchet-pilot-20261120-b6eab2 / p1e2-ticket-assignment  case=ticket-assignment model=gpt-6.2-sol effort=high enrich=None preserve=None
+- delivery.cases.cjs:248 test=C-72 (nearest preceding test start: 'C-72') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test', '--', '--test-reporter=tap', '--test-name-pattern=doubles from one second and stops at five minutes'], { env: env({}), timeout: 15000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env())
+    evidence: assert.match(output(cap), /(?:ok \d+ -|✔) doubles from one second and stops at five minutes/)
+- regression.cases.cjs:205 test=C-183 (nearest preceding test start: 'C-182') drop=yes evidence=no file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: assert.doesNotMatch(process.stdout + process.stderr, /MODULE_NOT_FOUND|.../) only
+- regression.cases.cjs:205 test=C-184 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: assert.ok(passingTests(full.stdout).length >= 117, 'the original suite did not run in full')
+- regression.cases.cjs:205 test=C-185 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: discoveredCoverage(full.stdout + full.stderr) -> discoveredAssignment: assert.ok(tests.some(name => /assign/i.test(name) && passingTests(full)...), 'npm test did not discover the assignment coverage')
+- regression.cases.cjs:205 test=U-16 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: assert.ok(passingTests(full).length > 117, 'no new tests ran alongside the baseline')
+- regression.cases.cjs:225 test=C-185 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run(process.execPath, ['--test', '--test-reporter=tap', ...names], { timeout: 17000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); run() default env: env(); discoveredAssignment() helper
+    evidence: assert.ok(tests.length > 0, 'no new node:test cases executed')
+- regression.cases.cjs:225 test=U-16 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run(process.execPath, ['--test', '--test-reporter=tap', ...names], { timeout: 17000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); run() default env: env(); discoveredAssignment() helper
+    evidence: assert.ok(tests.length > 0, 'no new node:test cases executed')
+## ratchet-pilot-20261120-b6eab2 / p1e2-ticket-due-times  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=None preserve=None
+- operator.cjs:287 test=C-232 (nearest preceding test start: 'C-231') drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: const names = new Set(executedNames(result.stdout)); assert(names.size, result.stderr || result.stdout)
+- operator.cjs:298 test=C-232 (nearest preceding test start: 'C-232') drop=no evidence=no
+    call: command(process.execPath, ['--test', '--test-reporter=tap'], { cwd: sandbox(t).original() })
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: for (const name of executedNames(baseline.stdout)) assert(names.has(name), ...) (subset check, vacuous on empty output; the sibling npm child in the same test has assert(names.size))
+- operator.cjs:303 test=C-232 (nearest preceding test start: 'C-232') drop=no evidence=yes
+    call: command(process.execPath, ['--test', '--test-reporter=tap', file])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(cases.length, `no runnable tests in ${file}`)
+- operator.cjs:313 test=C-233 (nearest preceding test start: 'C-233') drop=no evidence=no
+    call: command(process.execPath, ['--test', '--test-reporter=tap', ...files.filter((file) => /\.test\.[cm]?js$/.test(file))])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert.equal(result.status, 0, failures.join('\n') + ...) only
+- use-cases.cjs:427 test=U-15 (nearest preceding test start: 'U-15') drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'], { cwd: baseline })
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: const tests = (output) => Number(/^# tests (\d+)$/m.exec(output)?.[1]); assert(tests(result.stdout) > tests(original.stdout), 'npm test did not discover additional tests')
+- use-cases.cjs:429 test=U-15 (nearest preceding test start: 'U-15') drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(tests(result.stdout) > tests(original.stdout), 'npm test did not discover additional tests')
+## ratchet-pilot-20261120-b6eab2 / p2-assign-filter-after-page  case=ticket-assignment model=gpt-6.2-sol effort=high enrich=None preserve=None
+- delivery.cases.cjs:248 test=C-72 (nearest preceding test start: 'C-72') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test', '--', '--test-reporter=tap', '--test-name-pattern=doubles from one second and stops at five minutes'], { env: env({}), timeout: 15000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env())
+    evidence: assert.match(output(cap), /(?:ok \d+ -|✔) doubles from one second and stops at five minutes/)
+- regression.cases.cjs:205 test=C-183 (nearest preceding test start: 'C-182') drop=yes evidence=no file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: assert.doesNotMatch(process.stdout + process.stderr, /MODULE_NOT_FOUND|.../) only
+- regression.cases.cjs:205 test=C-184 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: assert.ok(passingTests(full.stdout).length >= 117, 'the original suite did not run in full')
+- regression.cases.cjs:205 test=C-185 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: discoveredCoverage(full.stdout + full.stderr) -> discoveredAssignment: assert.ok(tests.some(name => /assign/i.test(name) && passingTests(full)...), 'npm test did not discover the assignment coverage')
+- regression.cases.cjs:205 test=U-16 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: assert.ok(passingTests(full).length > 117, 'no new tests ran alongside the baseline')
+- regression.cases.cjs:225 test=C-185 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run(process.execPath, ['--test', '--test-reporter=tap', ...names], { timeout: 17000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); run() default env: env(); discoveredAssignment() helper
+    evidence: assert.ok(tests.length > 0, 'no new node:test cases executed')
+- regression.cases.cjs:225 test=U-16 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run(process.execPath, ['--test', '--test-reporter=tap', ...names], { timeout: 17000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); run() default env: env(); discoveredAssignment() helper
+    evidence: assert.ok(tests.length > 0, 'no new node:test cases executed')
+## ratchet-pilot-20261120-b6eab2 / p2-assign-filter-or  case=ticket-assignment model=gpt-6.2-sol effort=high enrich=None preserve=None
+- delivery.cases.cjs:248 test=C-72 (nearest preceding test start: 'C-72') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test', '--', '--test-reporter=tap', '--test-name-pattern=doubles from one second and stops at five minutes'], { env: env({}), timeout: 15000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env())
+    evidence: assert.match(output(cap), /(?:ok \d+ -|✔) doubles from one second and stops at five minutes/)
+- regression.cases.cjs:215 test=C-183 (nearest preceding test start: 'C-182') drop=yes evidence=no file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: assert.doesNotMatch(process.stdout + process.stderr, /MODULE_NOT_FOUND|.../) only
+- regression.cases.cjs:215 test=C-184 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: originalSuitePassed(output(npmTest())) -> assertDiscovered: assert.ok(cases.length > 0, 'no node:test cases executed in ...')
+- regression.cases.cjs:215 test=C-185 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: discoveredCoverage(full); assertDiscovered(full, originalTestFiles)
+- regression.cases.cjs:215 test=U-16 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: env(), timeout: 26000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); npmTest(): run('npm',['test'],{env: env()})
+    evidence: originalSuitePassed(full); discoveredAssignment(full)
+- regression.cases.cjs:236 test=C-184 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run(process.execPath, ['--test', '--test-reporter=tap', ...files], { timeout: 17000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); run() default env: env(); assertDiscovered() helper
+    evidence: assert.ok(cases.length > 0, 'no node:test cases executed in ' + files.join(', '))
+- regression.cases.cjs:236 test=C-185 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run(process.execPath, ['--test', '--test-reporter=tap', ...files], { timeout: 17000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); run() default env: env(); assertDiscovered() helper
+    evidence: assert.ok(cases.length > 0, ...); assert.deepEqual(missing, [], 'tests missing from npm test: ...')
+- regression.cases.cjs:236 test=U-16 (nearest preceding test start: 'C-182') drop=yes evidence=yes file_run_as=['node --test']
+    call: run(process.execPath, ['--test', '--test-reporter=tap', ...files], { timeout: 17000 })
+    env: support.cjs env(): {...process.env}, then `delete result.NODE_TEST_CONTEXT;` (default env of run() as well as explicit env()); run() default env: env(); assertDiscovered() helper
+    evidence: assert.ok(cases.length > 0, ...)
+## ratchet-pilot-20261120-b6eab2 / p2-due-priority-moves-due  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=None preserve=None
+- operator.cjs:287 test=C-232 (nearest preceding test start: 'C-231') drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: const names = new Set(executedNames(result.stdout)); assert(names.size, result.stderr || result.stdout)
+- operator.cjs:298 test=C-232 (nearest preceding test start: 'C-232') drop=no evidence=no
+    call: command(process.execPath, ['--test', '--test-reporter=tap'], { cwd: sandbox(t).original() })
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: for (const name of executedNames(baseline.stdout)) assert(names.has(name), ...) (subset check, vacuous on empty output; the sibling npm child in the same test has assert(names.size))
+- operator.cjs:303 test=C-232 (nearest preceding test start: 'C-232') drop=no evidence=yes
+    call: command(process.execPath, ['--test', '--test-reporter=tap', file])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(cases.length, `no runnable tests in ${file}`)
+- operator.cjs:313 test=C-233 (nearest preceding test start: 'C-233') drop=no evidence=no
+    call: command(process.execPath, ['--test', '--test-reporter=tap', ...files.filter((file) => /\.test\.[cm]?js$/.test(file))])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert.equal(result.status, 0, failures.join('\n') + ...) only
+- use-cases.cjs:427 test=U-15 (nearest preceding test start: 'U-15') drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'], { cwd: baseline })
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: const tests = (output) => Number(/^# tests (\d+)$/m.exec(output)?.[1]); assert(tests(result.stdout) > tests(original.stdout), 'npm test did not discover additional tests')
+- use-cases.cjs:429 test=U-15 (nearest preceding test start: 'U-15') drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(tests(result.stdout) > tests(original.stdout), 'npm test did not discover additional tests')
+## ratchet-pilot-20261120-b6eab2 / p2-due-version-two  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=None preserve=None
+- operator.cjs:313 test=C-233 (nearest preceding test start: 'C-233') drop=no evidence=no
+    call: command(process.execPath, ['--test', '--test-reporter=tap', ...files.filter((file) => /\.test\.[cm]?js$/.test(file))])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert.equal(result.status, 0, failures.join('\n') + ...) only
+- suite.cjs:29 test=C-232 (nearest preceding test start: None) drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env); assertNpmDiscovery() in suite.cjs
+    evidence: const names = new Set(executedNames(result.stdout)); assert(names.size, result.stderr || result.stdout)
+- suite.cjs:29 test=U-15 (nearest preceding test start: None) drop=no evidence=yes
+    call: command('npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env); assertNpmDiscovery() in suite.cjs
+    evidence: const names = new Set(executedNames(result.stdout)); assert(names.size, result.stderr || result.stdout)
+- suite.cjs:34 test=C-232 (nearest preceding test start: None) drop=no evidence=yes
+    call: command(process.execPath, ['--test', '--test-reporter=tap', ...Object.keys(incomingSources)])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(originalNames.length, original.stderr || original.stdout)
+- suite.cjs:34 test=U-15 (nearest preceding test start: None) drop=no evidence=yes
+    call: command(process.execPath, ['--test', '--test-reporter=tap', ...Object.keys(incomingSources)])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(originalNames.length, original.stderr || original.stdout)
+- suite.cjs:40 test=C-232 (nearest preceding test start: None) drop=no evidence=yes
+    call: command(process.execPath, ['--test', '--test-reporter=tap', file])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(cases.length, `no runnable tests in ${file}`)
+- suite.cjs:40 test=U-15 (nearest preceding test start: None) drop=no evidence=yes
+    call: command(process.execPath, ['--test', '--test-reporter=tap', file])
+    env: support.cjs environment(): {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_HOURS_*,RESPONSE_HOURS,NODE_OPTIONS (not NODE_TEST_CONTEXT); command() always passes env: environment(env)
+    evidence: assert(cases.length, `no runnable tests in ${file}`)
+## ratchet-pilot-20261120-b6eab2 / p2-orders-cross-field  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- workflow.cjs:26 test=C-66 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assert.match(result.stdout, /ratchet: node:test ran a test/, result.stderr) (custom reporter line)
+- workflow.cjs:26 test=C-67 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: observeNpmTests: evidence set from trace written by an observer required in the child; assert.deepStrictEqual(expected.filter(name => !evidence.has(name)), [], ...)
+- workflow.cjs:26 test=C-68 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t)): assert.ok(evidence.has('meter'), 'npm test did not exercise the meter directly')
+- workflow.cjs:26 test=U-12 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t))
+- (not counted: runner script or non-run call) npm-observer.cjs:80: process.on('exit', () => { const inTestRunner = process.env.NODE_TEST_CONTEXT || process.execArgv.includes('--test'); if (inTestRunner && Object.keys(evidence).length > 0) { appendFileSync(process.env
+## ratchet-pilot-20261120-b6eab2 / p2-orders-limit-never-trips  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- workflow.cjs:26 test=C-66 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assert.match(result.stdout, /ratchet: node:test ran a test/, result.stderr) (custom reporter line)
+- workflow.cjs:26 test=C-67 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: observeNpmTests: evidence set from trace written by an observer required in the child; assert.deepStrictEqual(expected.filter(name => !evidence.has(name)), [], ...)
+- workflow.cjs:26 test=C-68 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t)): assert.ok(evidence.has('meter'), 'npm test did not exercise the meter directly')
+- workflow.cjs:26 test=U-12 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t))
+- (not counted: runner script or non-run call) npm-observer.cjs:80: process.on('exit', () => { const inTestRunner = process.env.NODE_TEST_CONTEXT || process.execArgv.includes('--test'); if (inTestRunner && Object.keys(evidence).length > 0) { appendFileSync(process.env
+## ratchet-pilot-20261120-b6eab2 / p2-orders-one-rule-missing  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- workflow.cjs:26 test=C-66 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assert.match(result.stdout, /ratchet: node:test ran a test/, result.stderr) (custom reporter line)
+- workflow.cjs:26 test=C-67 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: observeNpmTests: evidence set from trace written by an observer required in the child; assert.deepStrictEqual(expected.filter(name => !evidence.has(name)), [], ...)
+- workflow.cjs:26 test=C-68 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t)): assert.ok(evidence.has('meter'), 'npm test did not exercise the meter directly')
+- workflow.cjs:26 test=U-12 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t))
+- (not counted: runner script or non-run call) npm-observer.cjs:80: process.on('exit', () => { const inTestRunner = process.env.NODE_TEST_CONTEXT || process.execArgv.includes('--test'); if (inTestRunner && Object.keys(evidence).length > 0) { appendFileSync(process.env
+## ratchet-pilot-20261120-b6eab2 / p2-orders-tested-only  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- workflow.cjs:26 test=C-66 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assert.match(result.stdout, /ratchet: node:test ran a test/, result.stderr) (custom reporter line)
+- workflow.cjs:26 test=C-67 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: observeNpmTests: evidence set from trace written by an observer required in the child; assert.deepStrictEqual(expected.filter(name => !evidence.has(name)), [], ...)
+- workflow.cjs:26 test=C-68 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t)): assert.ok(evidence.has('meter'), 'npm test did not exercise the meter directly')
+- workflow.cjs:26 test=U-12 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: run('npm', ['test'], { env: nestedEnvironment })
+    env: npmTest(): nestedEnvironment = {...process.env,...}; `delete nestedEnvironment.NODE_TEST_CONTEXT;` before run('npm',['test'])
+    evidence: assertSuccess(npmTest()); assertBothSuites(observeNpmTests(t))
+- (not counted: runner script or non-run call) npm-observer.cjs:80: process.on('exit', () => { const inTestRunner = process.env.NODE_TEST_CONTEXT || process.execArgv.includes('--test'); if (inTestRunner && Object.keys(evidence).length > 0) { appendFileSync(process.env
+## ratchet-pilot-20261120-b6eab2 / p3-node-chess-engine-sol-high  case=node-chess-engine model=gpt-6.2-sol effort=high enrich=None preserve=None
+- suite.cjs:42 test=C-2 (nearest preceding test start: None) drop=yes evidence=no
+    call: command('npm', ['test'], { ...options, env: { ...process.env, ...options.env, npm_config_cache: cache, npm_config_logs_max: '0', npm_config_update_notifier: 'false', }, })
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); npmTest() helper
+    evidence: npmTest({ cwd, env }) result not inspected (execFileSync throws on non-zero exit)
+- suite.cjs:42 test=C-89 (nearest preceding test start: None) drop=yes evidence=no
+    call: command('npm', ['test'], { ...options, env: { ...process.env, ...options.env, npm_config_cache: cache, npm_config_logs_max: '0', npm_config_update_notifier: 'false', }, })
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); npmTest() helper
+    evidence: assert.doesNotThrow(() => npmTest())
+- suite.cjs:42 test=U-13 (nearest preceding test start: None) drop=yes evidence=no
+    call: command('npm', ['test'], { ...options, env: { ...process.env, ...options.env, npm_config_cache: cache, npm_config_logs_max: '0', npm_config_update_notifier: 'false', }, })
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); npmTest() helper
+    evidence: npmTest() result not inspected (the same test then calls auditCoverage, which has evidence checks on separate runs)
+- suite.cjs:86 test=C-80 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: assert.ok(productTestEvents().length > 0, 'no chess rule tests ran under test/')
+- suite.cjs:86 test=C-81 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=C-82 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=C-83 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=C-84 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=C-85 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=C-86 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=C-87 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=C-88 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage: assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/'); assert.ok(caughtRegression, ...)
+- suite.cjs:86 test=U-13 (nearest preceding test start: 'C-88') drop=yes evidence=yes
+    call: spawnSync(process.execPath, [ ...args, '--test', '--test-reporter', join(__dirname, 'suite-reporter.cjs'), 'test/', ], subprocessOptions(options))
+    env: fixtures.cjs subprocessOptions(): env = {...process.env, ...options.env}; `delete env.NODE_TEST_CONTEXT;` (used by command() and the spawnSync call); productTestEvents() helper
+    evidence: auditCoverage([...]): assert.ok(passed.size > 0, 'the built-in runner reported no passing chess tests under test/')
+- (not counted: runner script or non-run call) run.cjs:14: spawn(process.execPath, [ '--test', '--test-reporter=tap', `--test-name-pattern=^${id} `, join(__dirname, file + '.cjs'), ], { ...subprocessOptions({ timeout: 0 }), stdio: 'inherit', detached: true, }
+## ratchet-pilot-20261120-b6eab2 / p3-shared-expenses-sol-high  case=shared-expenses model=gpt-6.2-sol effort=high enrich=None preserve=None
+- suite.cases.cjs:24 test=C-83 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: launch(args, { env })
+    env: runBuiltInSuite(): env = {...process.env}; `delete env.NODE_TEST_CONTEXT;` then launch(['--test',...], { env })
+    evidence: assert.ok(events.some(entry => entry.type === 'test:pass' && Number.isInteger(entry.line)), 'Expected a registered node:test test...')
+- suite.cases.cjs:24 test=C-84 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: launch(args, { env })
+    env: runBuiltInSuite(): env = {...process.env}; `delete env.NODE_TEST_CONTEXT;` then launch(['--test',...], { env })
+    evidence: assert.ok(events.length > 0, 'Expected discovered test files')
+- suite.cases.cjs:24 test=C-85 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: launch(args, { env })
+    env: runBuiltInSuite(): env = {...process.env}; `delete env.NODE_TEST_CONTEXT;` then launch(['--test',...], { env })
+    evidence: assert.ok(testCount(output) > 0, output)
+- suite.cases.cjs:24 test=C-86 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: launch(args, { env })
+    env: runBuiltInSuite(): env = {...process.env}; `delete env.NODE_TEST_CONTEXT;` then launch(['--test',...], { env })
+    evidence: trace of HTTP activity from observer in the child: assert.deepEqual(missing, []) over publicCoverage(trace) (requires child-run traffic; no count/summary)
+- suite.cases.cjs:24 test=U-19 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: launch(args, { env })
+    env: runBuiltInSuite(): env = {...process.env}; `delete env.NODE_TEST_CONTEXT;` then launch(['--test',...], { env })
+    evidence: assert.ok(testCount(output) > 0, output); assert.ok(events.some(entry => entry.type === 'test:pass' && ...))
+- (not counted: runner script or non-run call) suite.cases.cjs:50: deadline(run.closed, 15_000, 'node --test')
+## ratchet-pilot-20261120-b6eab2 / p3-ticket-assignment-sol-high  case=ticket-assignment model=gpt-6.2-sol effort=high enrich=None preserve=None
+- compatibility.cjs:49 test=C-196 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npmCommand(['test', '--', '--test-reporter=tap', ...files], options)
+    env: support.cjs npmEnv(): {...env(settings), npm_config_*}; env() = {...process.env} minus ENV_KEYS which include 'NODE_TEST_CONTEXT'; npmTests() helper
+    evidence: assert.match(result.stdout, /# tests [1-9]\d*\b/)
+- compatibility.cjs:49 test=C-198 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npmCommand(['test', '--', '--test-reporter=tap', ...files], options)
+    env: support.cjs npmEnv(): {...env(settings), npm_config_*}; env() = {...process.env} minus ENV_KEYS which include 'NODE_TEST_CONTEXT'; npmTests() helper
+    evidence: observedTests(): assert.deepEqual(omitted, [], 'New assignment cases missing from npm test execution') over executed `ok N -` lines
+- compatibility.cjs:49 test=C-199 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npmCommand(['test', '--', '--test-reporter=tap', ...files], options)
+    env: support.cjs npmEnv(): {...env(settings), npm_config_*}; env() = {...process.env} minus ENV_KEYS which include 'NODE_TEST_CONTEXT'; npmTests() helper
+    evidence: assert.match(output, /# tests [1-9]\d*\b/)
+- compatibility.cjs:49 test=U-25 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npmCommand(['test', '--', '--test-reporter=tap', ...files], options)
+    env: support.cjs npmEnv(): {...env(settings), npm_config_*}; env() = {...process.env} minus ENV_KEYS which include 'NODE_TEST_CONTEXT'; npmTests() helper
+    evidence: observedTests(result, ...); assert.match(passed(result), /# fail 0\b/)
+- effects.cjs:330 test=C-80 (nearest preceding test start: 'C-80') drop=yes evidence=yes
+    call: npmCommand(['test', '--', '--test-reporter=tap', '--test-name-pattern=^without a file, deliveries are kept in memory$', 'test/notifier.test.js'])
+    env: support.cjs npmEnv(): {...env(settings), npm_config_*}; env() = {...process.env} minus ENV_KEYS which include 'NODE_TEST_CONTEXT'
+    evidence: assert.match(passed(memory), /^\s*ok \d+ - without a file, deliveries are kept in memory$/m)
+- effects.cjs:389 test=C-87 (nearest preceding test start: 'C-87') drop=yes evidence=yes
+    call: npmCommand(['test', '--', '--test-reporter=tap', '--test-name-pattern=doubles from one second and stops at five minutes', 'test/outbox.test.js'])
+    env: support.cjs npmEnv(): {...env(settings), npm_config_*}; env() = {...process.env} minus ENV_KEYS which include 'NODE_TEST_CONTEXT'
+    evidence: assert.match(output, /^\s*ok \d+ - doubles from one second and stops at five minutes$/m)
+## ratchet-pilot-20261120-b6eab2 / p3-ticket-assignment-sol-medium  case=ticket-assignment model=gpt-6.2-sol effort=medium enrich=None preserve=None
+- operations.cjs:29 test=C-124 (nearest preceding test start: None) drop=no evidence=no
+    call: commandAsync(['test', ...(filenames.length ? ['--', ...filenames] : [])], { cwd, executable: 'npm' })
+    env: harness.cjs: spawn(..., { env: { ...env, ...settings } }) where env = { ...process.env, PORT:'0', DATA_FILE:'', NOTIFY_FILE:'', WORKER_INTERVAL_MS:'0', MAX_BODY_BYTES:'', LOG_REQUESTS:'' } (NODE_TEST_CONTEXT kept); npmTest() helper
+    evidence: await npmTest(copy); then assert.ok(!fs.existsSync(.../node_modules)) (output() asserts exit status 0 only)
+- operations.cjs:29 test=C-125 (nearest preceding test start: None) drop=no evidence=no
+    call: commandAsync(['test', ...(filenames.length ? ['--', ...filenames] : [])], { cwd, executable: 'npm' })
+    env: harness.cjs: spawn(..., { env: { ...env, ...settings } }) where env = { ...process.env, PORT:'0', DATA_FILE:'', NOTIFY_FILE:'', WORKER_INTERVAL_MS:'0', MAX_BODY_BYTES:'', LOG_REQUESTS:'' } (NODE_TEST_CONTEXT kept); npmTest() helper
+    evidence: fallback branch (when no Node 22): await npmTest() (exit status only)
+- operations.cjs:29 test=C-160 (nearest preceding test start: None) drop=no evidence=yes
+    call: commandAsync(['test', ...(filenames.length ? ['--', ...filenames] : [])], { cwd, executable: 'npm' })
+    env: harness.cjs: spawn(..., { env: { ...env, ...settings } }) where env = { ...process.env, PORT:'0', DATA_FILE:'', NOTIFY_FILE:'', WORKER_INTERVAL_MS:'0', MAX_BODY_BYTES:'', LOG_REQUESTS:'' } (NODE_TEST_CONTEXT kept); npmTest() helper
+    evidence: assert.match(tap, /^(?:#|ℹ) fail 0$/m); assert.match(tap, /^(?:#|ℹ) pass [1-9]\d*$/m)
+- operations.cjs:29 test=C-161 (nearest preceding test start: None) drop=no evidence=yes
+    call: commandAsync(['test', ...(filenames.length ? ['--', ...filenames] : [])], { cwd, executable: 'npm' })
+    env: harness.cjs: spawn(..., { env: { ...env, ...settings } }) where env = { ...process.env, PORT:'0', DATA_FILE:'', NOTIFY_FILE:'', WORKER_INTERVAL_MS:'0', MAX_BODY_BYTES:'', LOG_REQUESTS:'' } (NODE_TEST_CONTEXT kept); npmTest() helper
+    evidence: proveNewTestsDiscovered(tap): assert.ok(tap.includes(name), 'expected npm test to discover ...'); assert.match(tap, /^(?:#|ℹ) fail 0$/m)
+- operations.cjs:29 test=U-16 (nearest preceding test start: None) drop=no evidence=yes
+    call: commandAsync(['test', ...(filenames.length ? ['--', ...filenames] : [])], { cwd, executable: 'npm' })
+    env: harness.cjs: spawn(..., { env: { ...env, ...settings } }) where env = { ...process.env, PORT:'0', DATA_FILE:'', NOTIFY_FILE:'', WORKER_INTERVAL_MS:'0', MAX_BODY_BYTES:'', LOG_REQUESTS:'' } (NODE_TEST_CONTEXT kept); npmTest() helper
+    evidence: ops.proveNewTestsDiscovered(await ops.npmTest())
+- operations.cjs:205 test=C-125 (nearest preceding test start: 'C-125') drop=no evidence=no
+    call: commandAsync(['--test'], { executable: runtime })
+    env: harness.cjs: spawn(..., { env: { ...env, ...settings } }) where env = { ...process.env, PORT:'0', DATA_FILE:'', NOTIFY_FILE:'', WORKER_INTERVAL_MS:'0', MAX_BODY_BYTES:'', LOG_REQUESTS:'' } (NODE_TEST_CONTEXT kept)
+    evidence: if (runtime) output(await commandAsync(['--test'], { executable: runtime })) (exit status only; only when a Node 22 binary exists)
+## ratchet-pilot-20261120-b6eab2 / p3-ticket-due-times-sol-high  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=None preserve=None
+- events.cjs:289 test=C-203 (nearest preceding test start: 'C-203 retries have the specified elapsed delays and preserve the five-minute cap') drop=yes evidence=yes
+    call: ctx.run(process.execPath, [ '--test', '--test-reporter=tap', '--test-name-pattern=' + name, 'test/outbox.test.js', ], { NODE_TEST_CONTEXT: undefined })
+    env: ctx.run(..., { NODE_TEST_CONTEXT: undefined }): support.cjs environment() deletes keys whose override value is undefined
+    evidence: assert.match(result.stdout, /ok \d+ - doubles from one second and stops at five minutes/)
+- operations.cjs:123 test=C-96 (nearest preceding test start: 'C-96 start, CLI, preparation and tests work from a checkout with no installed npm dependencies') drop=no evidence=no
+    call: npm(['test'])
+    env: npm(args) -> ctx.run('npm', args, {}, checkout); support.cjs environment(): {...process.env, TZ, PORT, WORKER_INTERVAL_MS} minus DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,DUE_TIMES_RECOVERY_FILE,NODE_OPTIONS,hours keys; no NODE_TEST_CONTEXT override here
+    evidence: equal(suite.code, 0, suite.stdout + suite.stderr)
+- operations.cjs:442 test=C-274 (nearest preceding test start: 'C-274 npm test discovers and passes both legacy and new node:test coverage') drop=yes evidence=yes
+    call: ctx.run('npm', ['test'], { NODE_TEST_CONTEXT: undefined })
+    env: ctx.run(..., { NODE_TEST_CONTEXT: undefined }): environment() deletes keys whose override value is undefined
+    evidence: const counts = /(?:#|ℹ) tests\s+(\d+)/.exec(result.stdout); assert.ok(counts && Number(counts[1]) > added.length, result.stdout)
+- scenarios.cjs:851 test=U-21 (nearest preceding test start: 'U-21 a maintainer runs the release suite and drills the documented upgrade and rollback') drop=yes evidence=yes
+    call: ctx.run('npm', ['test'], { NODE_TEST_CONTEXT: undefined })
+    env: ctx.run(..., { NODE_TEST_CONTEXT: undefined }): environment() deletes keys whose override value is undefined
+    evidence: assert.match(suite.stdout, /deadline|due times|prepar/i) (text match on test-name words in the child's output) after equal(suite.code, 0)
+- (not counted: runner script or non-run call) operations.cjs:430: staticCheck('C-273 new test files provide node:test coverage for the deadline feature and its consumers', () => { const previous = new Set(baselineFiles('test')); const added = fs.readdirSync(path.joi
+## ratchet-pilot-20261120-b6eab2 / smoke-standin-sol-high  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=None preserve=None
+- project-clauses.cjs:17 test=C-53 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command('npm', [ 'test', '--', '--require', './acceptance/coverage-probe.cjs', '--test-reporter=./acceptance/coverage-reporter.cjs', ], { ORDERS_ACCEPTANCE_PROBE: probe })
+    env: project-clauses.cjs command(): env = {...process.env, ...extraEnv}; `delete env.NODE_TEST_CONTEXT;` before spawnSync; projectCoverage() helper
+    evidence: assert.ok(cases.length, `npm test reported no node:test cases for ${probe}`) (cases from a custom reporter's ORDERS_CASE lines); assertsFixture: assert.ok(witnesses.size, ...)
+- project-clauses.cjs:17 test=C-54 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command('npm', [ 'test', '--', '--require', './acceptance/coverage-probe.cjs', '--test-reporter=./acceptance/coverage-reporter.cjs', ], { ORDERS_ACCEPTANCE_PROBE: probe })
+    env: project-clauses.cjs command(): env = {...process.env, ...extraEnv}; `delete env.NODE_TEST_CONTEXT;` before spawnSync; projectCoverage() helper
+    evidence: assert.ok(cases.length, `npm test reported no node:test cases for ${probe}`) (cases from a custom reporter's ORDERS_CASE lines); assertsFixture: assert.ok(witnesses.size, ...)
+- project-clauses.cjs:17 test=C-55 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command('npm', [ 'test', '--', '--require', './acceptance/coverage-probe.cjs', '--test-reporter=./acceptance/coverage-reporter.cjs', ], { ORDERS_ACCEPTANCE_PROBE: probe })
+    env: project-clauses.cjs command(): env = {...process.env, ...extraEnv}; `delete env.NODE_TEST_CONTEXT;` before spawnSync; projectCoverage() helper
+    evidence: assert.ok(cases.length, `npm test reported no node:test cases for ${probe}`) (cases from a custom reporter's ORDERS_CASE lines); assertsFixture: assert.ok(witnesses.size, ...)
+- project-clauses.cjs:78 test=C-56 (nearest preceding test start: 'C-56 npm test passes with zero failures') drop=yes evidence=yes
+    call: command('npm', ['test'])
+    env: project-clauses.cjs command(): env = {...process.env, ...extraEnv}; `delete env.NODE_TEST_CONTEXT;` before spawnSync
+    evidence: assert.equal(status, 0, output); reportsCount(output, 'fail', 0)
+- project-clauses.cjs:88 test=C-58 (nearest preceding test start: 'C-58 both existing meter tests pass') drop=yes evidence=yes
+    call: command(process.execPath, ['--test', 'test/meter.test.js'])
+    env: project-clauses.cjs command(): env = {...process.env, ...extraEnv}; `delete env.NODE_TEST_CONTEXT;` before spawnSync
+    evidence: reportsCount(output, 'pass', 2); reportsCount(output, 'fail', 0)
+- (not counted: runner script or non-run call) run-clause.cjs:21: spawn(process.execPath, [ '--test', `--test-name-pattern=^${clause} `, `acceptance/${suite}.cjs`, ], { detached: true, stdio: 'inherit' })
+## ratchet-lens-20261121-08805f / p1L-stand-in-rules  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=lenses preserve=None
+- project.cjs:55 test=C-78 (nearest preceding test start: None) drop=yes evidence=yes
+    call: run(process.execPath, ['--test', '--test-reporter=tap', '--require', preload])
+    env: project.cjs run(): env = {...baseEnv(process.env), npm_config_update_notifier}; `delete env.NODE_TEST_CONTEXT;` (all calls go through run()); traceDiscoveredSuite()
+    evidence: records = traceRecords(child stdout); coverage checks over records of parseOrders calls made inside the child's tests
+- project.cjs:55 test=C-79 (nearest preceding test start: None) drop=yes evidence=yes
+    call: run(process.execPath, ['--test', '--test-reporter=tap', '--require', preload])
+    env: project.cjs run(): env = {...baseEnv(process.env), npm_config_update_notifier}; `delete env.NODE_TEST_CONTEXT;` (all calls go through run()); traceDiscoveredSuite()
+    evidence: records from the child's trace; assert.deepEqual(missing, [], 'Total cases absent from the discovered project tests')
+- project.cjs:60 test=C-80 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npm(['test', '--', '--test-reporter=tap'])
+    env: project.cjs run(): env = {...baseEnv(process.env), npm_config_update_notifier}; `delete env.NODE_TEST_CONTEXT;` (all calls go through run()); projectSuite()
+    evidence: assertExistingMeterChecks: assert.match(output, /^ok \d+ - meter counts ticks and resets$/m)
+- project.cjs:60 test=U-8 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npm(['test', '--', '--test-reporter=tap'])
+    env: project.cjs run(): env = {...baseEnv(process.env), npm_config_update_notifier}; `delete env.NODE_TEST_CONTEXT;` (all calls go through run()); projectSuite()
+    evidence: assertExistingMeterChecks(result.stdout)
+- project.cjs:72 test=C-80 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npm(['test', '--', '--test-reporter=tap', '--require', preload])
+    env: project.cjs run(): env = {...baseEnv(process.env), npm_config_update_notifier}; `delete env.NODE_TEST_CONTEXT;` (all calls go through run())
+    evidence: assert.ok(records.some(({ kind }) => kind === 'parse'), 'No discovered node:test case calls parseOrders')
+- project.cjs:72 test=U-8 (nearest preceding test start: None) drop=yes evidence=yes
+    call: npm(['test', '--', '--test-reporter=tap', '--require', preload])
+    env: project.cjs run(): env = {...baseEnv(process.env), npm_config_update_notifier}; `delete env.NODE_TEST_CONTEXT;` (all calls go through run())
+    evidence: assert.ok(records.some(({ kind }) => kind === 'parse'), ...)
+- project.cjs:161 test=C-77 (nearest preceding test start: 'C-77 uses node --test through npm test and discovers the existing meter checks') drop=yes evidence=yes
+    call: npm(['test', '--', '--test-reporter=tap', '--test-name-pattern=^meter '])
+    env: project.cjs run(): env = {...baseEnv(process.env), npm_config_update_notifier}; `delete env.NODE_TEST_CONTEXT;` (all calls go through run())
+    evidence: assert.match(result.stdout, /^# Subtest: meter counts ticks and resets$/m)
+- (not counted: runner script or non-run call) run.cjs:7: spawn(process.execPath, [ '--test', '--test-reporter=tap', '--test-name-pattern=^' + item + ' ', resolve(__dirname, file + '.cjs'), ], { detached: true, stdio: 'inherit' })
+## ratchet-lens-20261121-08805f / p1L-ticket-assignment  case=ticket-assignment model=gpt-6.2-sol effort=high enrich=lenses preserve=None
+- journeys.cjs:336 test=U-11 (nearest preceding test start: 'U-11') drop=yes evidence=yes file_run_as=['node --test']
+    call: child(t, 'npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...))
+    evidence: assert.ok(names.length > 0); for (const name of names) assert.ok(run.stdout.includes(' - ' + name), name)
+- journeys.cjs:338 test=U-11 (nearest preceding test start: 'U-11') drop=yes evidence=yes file_run_as=['node --test']
+    call: command(process.execPath, ['--test', '--test-reporter=tap', ...added], {})
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...))
+    evidence: const names = onlyNew.split('\n').filter(line => /^ok \d+ - /.test(line)); assert.ok(names.length > 0)
+- operator.cjs:497 test=C-149 (nearest preceding test start: 'C-148') drop=yes evidence=yes file_run_as=['node --test']
+    call: child(t, 'npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...)); suite(t) helper
+    evidence: assert.match(npm.stdout, /# pass [1-9]\d*/)
+- operator.cjs:497 test=C-150 (nearest preceding test start: 'C-148') drop=yes evidence=yes file_run_as=['node --test']
+    call: child(t, 'npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...)); suite(t) helper
+    evidence: for (const name of tests) assert.ok(npm.stdout.includes(' - ' + name), name) (tests non-empty asserted)
+- operator.cjs:497 test=C-151 (nearest preceding test start: 'C-148') drop=yes evidence=no file_run_as=['node --test']
+    call: child(t, 'npm', ['test', '--', '--test-reporter=tap'])
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...)); suite(t) helper
+    evidence: assert.equal(exit.code, 0, ...) for two concurrent suite runs; no output check
+- operator.cjs:524 test=C-150 (nearest preceding test start: 'C-150') drop=yes evidence=yes file_run_as=['node --test']
+    call: processResult(process.execPath, ['--test', '--test-reporter=tap', ...newFiles])
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...))
+    evidence: assert.ok(tests.length > 0) over `ok N -` lines of the child's output
+- support.cjs:133 test=U-11 (nearest preceding test start: None) drop=yes evidence=yes
+    call: child(t, 'npm', ['test'], {}, dir)
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...)); failingTestCommand() helper
+    evidence: assert.notEqual(code, 0); assert.match(run.stdout, /an intentional failing assertion/)
+- support.cjs:133 test=C-150 (nearest preceding test start: None) drop=yes evidence=yes
+    call: child(t, 'npm', ['test'], {}, dir)
+    env: support.cjs environment(): {...process.env, ...{PORT,WORKER_INTERVAL_MS,DATA_FILE,NOTIFY_FILE,MAX_BODY_BYTES,LOG_REQUESTS,NODE_OPTIONS,NODE_TEST_CONTEXT: undefined}, npm_config_*}; spawn/spawnSync omit undefined env values (all calls pass env: environment(...)); failingTestCommand() helper
+    evidence: assert.notEqual(code, 0); assert.match(run.stdout, /an intentional failing assertion/)
+## ratchet-lens-20261121-08805f / p1L-ticket-due-times  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=lenses preserve=None
+- readers.cjs:38 test=C-189 (nearest preceding test start: None) drop=no evidence=yes
+    call: nodeRun(['test', '--', '--test-reporter=tap', ...originals], { npm: true, timeout: 18000 })
+    env: support.cjs environment(): {...process.env} minus NODE_OPTIONS,PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,hours settings (not NODE_TEST_CONTEXT); nodeRun() passes env: environment(options.env); originalSuite()
+    evidence: assert.match(result.stdout, /^# pass [1-9]\d*/m)
+- readers.cjs:46 test=C-190 (nearest preceding test start: None) drop=no evidence=yes
+    call: nodeRun(['test', '--', '--test-reporter=./acceptance/suite-reporter.cjs'], { npm: true, timeout: 18000 })
+    env: support.cjs environment(): {...process.env} minus NODE_OPTIONS,PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,hours settings (not NODE_TEST_CONTEXT); nodeRun() passes env: environment(options.env); discoveredSuite()
+    evidence: assert.ok(events.length > 0, ...); assert.ok(newTests.length > 0, 'npm test did not discover any new node:test cases under test/') (events from a custom reporter)
+- readers.cjs:46 test=U-12 (nearest preceding test start: None) drop=no evidence=yes
+    call: nodeRun(['test', '--', '--test-reporter=./acceptance/suite-reporter.cjs'], { npm: true, timeout: 18000 })
+    env: support.cjs environment(): {...process.env} minus NODE_OPTIONS,PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,hours settings (not NODE_TEST_CONTEXT); nodeRun() passes env: environment(options.env); discoveredSuite()
+    evidence: assert.ok(events.length > 0 ...); assert.ok(executed.some(({ file }) => file.endsWith(path.join('test', 'api.test.js'))))
+- runtime.cjs:52 test=C-75 (nearest preceding test start: 'C-75') drop=no evidence=yes
+    call: nodeRun(['test', '--', 'test/api.test.js'], { npm: true })
+    env: support.cjs environment(): {...process.env} minus NODE_OPTIONS,PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,hours settings (not NODE_TEST_CONTEXT); nodeRun() passes env: environment(options.env)
+    evidence: assert.match(suite.stdout + suite.stderr, /Subtest:|✔|✖/)
+- scenarios.cjs:336 test=U-12 (nearest preceding test start: 'U-12') drop=no evidence=no
+    call: nodeRun(['test'], { npm: true, timeout: 18000 })
+    env: support.cjs environment(): {...process.env} minus NODE_OPTIONS,PORT,DATA_FILE,NOTIFY_FILE,WORKER_INTERVAL_MS,MAX_BODY_BYTES,LOG_REQUESTS,DUE_TIMES,hours settings (not NODE_TEST_CONTEXT); nodeRun() passes env: environment(options.env)
+    evidence: assert.equal(run.code, 0, tail(...)) for this run (the same test's second npm run, via discoveredSuite, has evidence assertions)
+## ratchet-lens-20261121-08805f / p3L-ticket-due-times-a  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=lenses preserve=None
+- operations.cjs:10 test=C-169 (nearest preceding test start: None) drop=no evidence=yes
+    call: command(['test', ...args], { npm_config_offline: 'true' }, { executable: 'npm', timeout: 35_000, ...options })
+    env: support.cjs command() passes env: env({...npmEnvironment, ...settings}); env() = {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,DUE_TIMES,LOG_REQUESTS,MAX_BODY_BYTES,WORKER_INTERVAL_MS,NODE_OPTIONS,hours policy keys (not NODE_TEST_CONTEXT); npmTest() helper
+    evidence: two npm runs: assert.ok(sources.some(([, contents]) => includesTitle(contents)), 'npm test did not name a new case') over `ok N -` lines; second run: assert.match(failure.stdout + failure.stderr, /acceptance failing probe/)
+- operations.cjs:335 test=C-168 (nearest preceding test start: 'C-168') drop=no evidence=no
+    call: command(['--test', ...cases], {}, { timeout: 35_000 })
+    env: support.cjs command() passes env: env({...npmEnvironment, ...settings}); env() = {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,DUE_TIMES,LOG_REQUESTS,MAX_BODY_BYTES,WORKER_INTERVAL_MS,NODE_OPTIONS,hours policy keys (not NODE_TEST_CONTEXT)
+    evidence: success(command(['--test', ...cases], ...)) (exit status 0 only)
+- scenarios.cjs:370 test=U-11 (nearest preceding test start: 'U-11') drop=no evidence=yes
+    call: command(['test', '--', '--test-reporter=tap'], { npm_config_offline: 'true' }, { executable: 'npm', timeout: 35_000, cwd: f.dir })
+    env: support.cjs command() passes env: env({...npmEnvironment, ...settings}); env() = {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,DUE_TIMES,LOG_REQUESTS,MAX_BODY_BYTES,WORKER_INTERVAL_MS,NODE_OPTIONS,hours policy keys (not NODE_TEST_CONTEXT)
+    evidence: assert.ok(cases.some(line => /due|deadline|overdue/i.test(line)), 'new due-time cases ran') over /^ok \d+ - / lines
+- scenarios.cjs:379 test=U-11 (nearest preceding test start: 'U-11') drop=no evidence=yes
+    call: command(['test', '--', '--test-name-pattern=maintainer sees a regression'], { npm_config_offline: 'true' }, { executable: 'npm', timeout: 15_000, cwd: f.dir })
+    env: support.cjs command() passes env: env({...npmEnvironment, ...settings}); env() = {...process.env} minus PORT,DATA_FILE,NOTIFY_FILE,DUE_TIMES,LOG_REQUESTS,MAX_BODY_BYTES,WORKER_INTERVAL_MS,NODE_OPTIONS,hours policy keys (not NODE_TEST_CONTEXT)
+    evidence: assert.notEqual(failing.status, 0); assert.match(failing.stdout + failing.stderr, /maintainer sees a regression/)
+## ratchet-lens-20261121-08805f / p3L-ticket-due-times-b  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=lenses preserve=None
+- release.cjs:17 test=C-194 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: s.run('test', patterns.length ? ['--', ...patterns] : [], {}, { cwd, npm: true, probe: false, controlledTime: false, data: null })
+    env: support.cjs run() -> flags(): env built from an explicit allow-list {PATH, TMPDIR, TZ, npm_config_*, PORT, WORKER_INTERVAL_MS, DATA_FILE, ...overrides}, not spread from process.env, so NODE_TEST_CONTEXT is absent from the child (no explicit delete of it)
+    evidence: legacyTests(): assert.ok(shipped.size > 0, 'the legacy run did not report its tests'); assert.ok(running.has(name), 'legacy test did not pass under npm test: ' + name)
+- release.cjs:17 test=C-195 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: s.run('test', patterns.length ? ['--', ...patterns] : [], {}, { cwd, npm: true, probe: false, controlledTime: false, data: null })
+    env: support.cjs run() -> flags(): env built from an explicit allow-list {PATH, TMPDIR, TZ, npm_config_*, PORT, WORKER_INTERVAL_MS, DATA_FILE, ...overrides}, not spread from process.env, so NODE_TEST_CONTEXT is absent from the child (no explicit delete of it)
+    evidence: assert.ok(discovered.size > 0); assert.ok(discovered.has(name), 'new case did not run and pass: ' + name); failingTestExits: assert.match(failed.stdout + failed.stderr, /acceptance runner sentinel/)
+- release.cjs:17 test=C-196 (nearest preceding test start: None) drop=yes evidence=no file_run_as=['node --test']
+    call: s.run('test', patterns.length ? ['--', ...patterns] : [], {}, { cwd, npm: true, probe: false, controlledTime: false, data: null })
+    env: support.cjs run() -> flags(): env built from an explicit allow-list {PATH, TMPDIR, TZ, npm_config_*, PORT, WORKER_INTERVAL_MS, DATA_FILE, ...overrides}, not spread from process.env, so NODE_TEST_CONTEXT is absent from the child (no explicit delete of it)
+    evidence: const output = await npmTest(s, root, files); exit(output) (exit status only; later assertions read test sources)
+- release.cjs:17 test=C-197 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: s.run('test', patterns.length ? ['--', ...patterns] : [], {}, { cwd, npm: true, probe: false, controlledTime: false, data: null })
+    env: support.cjs run() -> flags(): env built from an explicit allow-list {PATH, TMPDIR, TZ, npm_config_*, PORT, WORKER_INTERVAL_MS, DATA_FILE, ...overrides}, not spread from process.env, so NODE_TEST_CONTEXT is absent from the child (no explicit delete of it)
+    evidence: assert.ok([...testNames(result)].some(name => /(?:1\.4\.0|rollback|base release)/i.test(name)))
+- release.cjs:17 test=U-16 (nearest preceding test start: None) drop=yes evidence=yes file_run_as=['node --test']
+    call: s.run('test', patterns.length ? ['--', ...patterns] : [], {}, { cwd, npm: true, probe: false, controlledTime: false, data: null })
+    env: support.cjs run() -> flags(): env built from an explicit allow-list {PATH, TMPDIR, TZ, npm_config_*, PORT, WORKER_INTERVAL_MS, DATA_FILE, ...overrides}, not spread from process.env, so NODE_TEST_CONTEXT is absent from the child (no explicit delete of it)
+    evidence: assert.ok(names.some(name => /due|deadline/i.test(name))); legacyTests; failingTestExits
+## ratchet-reworded-20261121-08805f / p1R-stand-in-rules  case=stand-in-rules model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- orders.cjs:247 test=C-26 (nearest preceding test start: 'C-26 npm test runs the order and meter tests and succeeds') drop=yes evidence=yes file_run_as=['node --test']
+    call: runProjectTests('npm', ['test'])
+    env: project-tests.cjs runProjectTests(): env = {...process.env, NODE_OPTIONS, RATCHET_TEST_EVIDENCE}; `delete env.NODE_TEST_CONTEXT;` before spawn (all calls go through runProjectTests)
+    evidence: assertCombinedRun: assert.ok(meterCases.length >= 2, 'npm test did not run both existing meter cases.') (observed set written by a preload inside the child); assertOrderCoverage
+- orders.cjs:304 test=U-5 (nearest preceding test start: 'U-5 a maintainer runs npm test to verify the order helpers alongside the meter') drop=yes evidence=yes file_run_as=['node --test']
+    call: runProjectTests('npm', ['test'])
+    env: project-tests.cjs runProjectTests(): env = {...process.env, NODE_OPTIONS, RATCHET_TEST_EVIDENCE}; `delete env.NODE_TEST_CONTEXT;` before spawn (all calls go through runProjectTests)
+    evidence: assertCombinedRun(...): meterCases.length >= 2 and assertOrderCoverage
+- project-tests.cjs:61 test=C-25 (nearest preceding test start: None) drop=yes evidence=yes
+    call: runProjectTests(process.execPath, ['--test'])
+    env: project-tests.cjs runProjectTests(): env = {...process.env, NODE_OPTIONS, RATCHET_TEST_EVIDENCE}; `delete env.NODE_TEST_CONTEXT;` before spawn (all calls go through runProjectTests); findOrderCoverage() helper
+    evidence: missingOrderCoverage(directRun.observed).length === 0, else assertOrderCoverage: assert.deepEqual(missing, [], 'No project node:test case exercised ...')
+- project-tests.cjs:65 test=C-25 (nearest preceding test start: None) drop=yes evidence=yes
+    call: runProjectTests('npm', ['test'])
+    env: project-tests.cjs runProjectTests(): env = {...process.env, NODE_OPTIONS, RATCHET_TEST_EVIDENCE}; `delete env.NODE_TEST_CONTEXT;` before spawn (all calls go through runProjectTests); findOrderCoverage() helper
+    evidence: assertOrderCoverage({ observed: union of both runs }): assert.deepEqual(missing, [], ...)
+## ratchet-reworded-20261121-08805f / p1R-ticket-assignment  case=ticket-assignment model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- entrypoints.cjs:130 test=C-41 (nearest preceding test start: 'C-40 starts and handles an assignment from a checkout with no installed npm packages') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite('npm', ['test'], box.dir)
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite()); baseRun() helper
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child
+- entrypoints.cjs:130 test=C-42 (nearest preceding test start: 'C-40 starts and handles an assignment from a checkout with no installed npm packages') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite('npm', ['test'], box.dir)
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite()); baseRun() helper
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child
+- entrypoints.cjs:130 test=C-43 (nearest preceding test start: 'C-40 starts and handles an assignment from a checkout with no installed npm packages') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite('npm', ['test'], box.dir)
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite()); baseRun() helper
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child
+- entrypoints.cjs:130 test=U-9 (nearest preceding test start: 'C-40 starts and handles an assignment from a checkout with no installed npm packages') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite('npm', ['test'], box.dir)
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite()); baseRun() helper
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child
+- entrypoints.cjs:137 test=C-42 (nearest preceding test start: 'C-40 starts and handles an assignment from a checkout with no installed npm packages') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite(process.execPath, ['--test', ...candidates.map(({ file }) => file)])
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite()); changedTests() helper
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child; changedTests: assert.ok(cases.length > 0, 'the new test files did not register any node:test cases')
+- entrypoints.cjs:137 test=C-43 (nearest preceding test start: 'C-40 starts and handles an assignment from a checkout with no installed npm packages') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite(process.execPath, ['--test', ...candidates.map(({ file }) => file)])
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite()); changedTests() helper
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child; changedTests: assert.ok(cases.length > 0, 'the new test files did not register any node:test cases')
+- entrypoints.cjs:137 test=U-9 (nearest preceding test start: 'C-40 starts and handles an assignment from a checkout with no installed npm packages') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite(process.execPath, ['--test', ...candidates.map(({ file }) => file)])
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite()); changedTests() helper
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child; changedTests: assert.ok(cases.length > 0, 'the new test files did not register any node:test cases')
+- entrypoints.cjs:156 test=C-41 (nearest preceding test start: 'C-41 npm test still passes every pre-existing case with its original assertions intact') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite('npm', ['test'])
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite())
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child; assert.ok(originalTests.length > 0)
+- entrypoints.cjs:181 test=C-43 (nearest preceding test start: 'C-43 one npm test run discovers both the old suite and the new assignment cases') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite('npm', ['test'])
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite())
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child
+- entrypoints.cjs:189 test=U-9 (nearest preceding test start: 'U-9 a maintainer runs npm test and sees both the original and assignment cases pass together') drop=yes evidence=yes file_run_as=['node --test']
+    call: suite('npm', ['test'])
+    env: entrypoints.cjs suite(): env = settings({NODE_OPTIONS reporter, npm_config_update_notifier}); `delete env.NODE_TEST_CONTEXT;` (every call goes through suite())
+    evidence: suite() itself asserts rows.length > 0 ('no node:test results from ...') over `acceptance-result` lines from a custom reporter in the child
+## ratchet-reworded-20261121-08805f / p1R-ticket-due-times  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- operators.cjs:184 test=C-29 (nearest preceding test start: 'C-28 both report commands keep totals and counts when the same tickets have deadlines') drop=yes evidence=yes file_run_as=['node --test']
+    call: command('npm', ['test'], { cwd, env: { NODE_V8_COVERAGE: coverage }, allowFailure: true })
+    env: harness.cjs environment(): {...process.env, PORT, WORKER_INTERVAL_MS, ...} then `delete env[key]` for a list that includes 'NODE_TEST_CONTEXT' (command() always passes env: environment(env)); runDeadlineSuite() helper
+    evidence: verifyDeadlineTests: assert.ok(results(actual.stdout) > results(previous.stdout), 'npm test emitted no additional node:test results')
+- operators.cjs:184 test=U-8 (nearest preceding test start: 'C-28 both report commands keep totals and counts when the same tickets have deadlines') drop=yes evidence=yes file_run_as=['node --test']
+    call: command('npm', ['test'], { cwd, env: { NODE_V8_COVERAGE: coverage }, allowFailure: true })
+    env: harness.cjs environment(): {...process.env, PORT, WORKER_INTERVAL_MS, ...} then `delete env[key]` for a list that includes 'NODE_TEST_CONTEXT' (command() always passes env: environment(env)); runDeadlineSuite() helper
+    evidence: same helper with verifyExisting: true; also verifyOriginalResults (assert.ok(expected.length > 0, ...))
+- operators.cjs:185 test=C-29 (nearest preceding test start: 'C-28 both report commands keep totals and counts when the same tickets have deadlines') drop=yes evidence=yes file_run_as=['node --test']
+    call: command('npm', ['test'], { cwd: original })
+    env: harness.cjs environment(): {...process.env, PORT, WORKER_INTERVAL_MS, ...} then `delete env[key]` for a list that includes 'NODE_TEST_CONTEXT' (command() always passes env: environment(env)); runDeadlineSuite() helper (baseline checkout run)
+    evidence: assert.ok(results(actual.stdout) > results(previous.stdout), ...) counts result lines of this run
+- operators.cjs:185 test=U-8 (nearest preceding test start: 'C-28 both report commands keep totals and counts when the same tickets have deadlines') drop=yes evidence=yes file_run_as=['node --test']
+    call: command('npm', ['test'], { cwd: original })
+    env: harness.cjs environment(): {...process.env, PORT, WORKER_INTERVAL_MS, ...} then `delete env[key]` for a list that includes 'NODE_TEST_CONTEXT' (command() always passes env: environment(env)); runDeadlineSuite() helper (baseline checkout run)
+    evidence: same; verifyOriginalResults: assert.ok(expected.length > 0, 'could not read the baseline node:test results')
+- operators.cjs:201 test=C-30 (nearest preceding test start: 'C-30 npm test still passes the original suite without editing its files') drop=yes evidence=yes file_run_as=['node --test']
+    call: command('npm', ['test'], { allowFailure: true })
+    env: harness.cjs environment(): {...process.env, PORT, WORKER_INTERVAL_MS, ...} then `delete env[key]` for a list that includes 'NODE_TEST_CONTEXT' (command() always passes env: environment(env))
+    evidence: verifyOriginalResults(actual, previous): assert.ok(expected.length > 0, 'could not read the baseline node:test results'); assert.ok(index >= 0, 'preexisting test did not pass under npm test: ...')
+- operators.cjs:201 test=C-30 (nearest preceding test start: 'C-30 npm test still passes the original suite without editing its files') drop=yes evidence=yes file_run_as=['node --test']
+    call: command('npm', ['test'], { cwd: original })
+    env: harness.cjs environment(): {...process.env, PORT, WORKER_INTERVAL_MS, ...} then `delete env[key]` for a list that includes 'NODE_TEST_CONTEXT' (command() always passes env: environment(env))
+    evidence: assert.ok(expected.length > 0, 'could not read the baseline node:test results')
+## ratchet-reworded-20261121-08805f / p1S-ticket-assignment-high  case=ticket-assignment model=claude-sonnet-5-5 effort=high enrich=reworded preserve=None
+- misc.check.js:112 test=C-31 (nearest preceding test start: 'C-31 the test files that existed before the change are unchanged and npm test passes') drop=yes evidence=yes
+    call: spawnSync('npm', ['test'], { cwd: ROOT, encoding: 'utf8', timeout: 50000, env: cleanEnv() })
+    env: misc.check.js cleanEnv(): {...process.env} minus every key starting with 'NODE_TEST'
+    evidence: assert.match(`${run.stdout}${run.stderr}`, /(pass|passed)[ :]+\d+|# pass \d+|ℹ pass \d+/i)
+- misc.check.js:138 test=C-32 (nearest preceding test start: 'C-32 new behaviour has node:test tests under test/, and npm test runs them with the existing ones') drop=yes evidence=no
+    call: spawnSync(process.execPath, ['--test', '--test-reporter=tap', ...files.map((file) => path.join(ROOT, file))], { cwd: ROOT, encoding: 'utf8', timeout: 50000, env: cleanEnv() })
+    env: misc.check.js cleanEnv(): {...process.env} minus every key starting with 'NODE_TEST'
+    evidence: assert.equal(list.status, 0, ...) only
+- (not counted: runner script or non-run call) lib.js:6: file (it matches no node --test pattern)
+## ratchet-reworded-20261121-08805f / p1S-ticket-assignment-medium  case=ticket-assignment model=claude-sonnet-5-5 effort=medium enrich=reworded preserve=None
+- misc.test.js:18 test=C-21 (nearest preceding test start: 'C-21 the existing tests are unchanged and pass') drop=no evidence=no file_run_as=['node --test']
+    call: spawnSync(process.execPath, ['--test', '--test-reporter=spec', ...existing], { cwd: root, encoding: 'utf8' })
+    env: spawnSync has no env option (child inherits process.env, including NODE_TEST_CONTEXT)
+    evidence: assert.equal(r.status, 0, r.stdout.slice(-2000)) only
+- misc.test.js:27 test=C-22 (nearest preceding test start: 'C-22 npm test runs the new assignment tests along with the existing ones and passes') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test', '--silent', '--', '--test-reporter=spec', 'test/'], { cwd: root, encoding: 'utf8', env: (({ NODE_TEST_CONTEXT, ...e }) => e)(process.env) })
+    env: env: (({ NODE_TEST_CONTEXT, ...e }) => e)(process.env)
+    evidence: assert.equal(r.status, 0, ...); assert.match(r.stdout, /assign/i) (text match on test-name words in the spec reporter output)
+## ratchet-reworded-20261121-08805f / p3R-ticket-due-times-a  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- operations.cjs:46 test=C-2 (nearest preceding test start: 'C-1 npm start honors configured and default ports, including both accepted endpoints') drop=yes evidence=yes file_run_as=['node --test']
+    call: world.launch('npm', args, { cwd, mode: 'test', nodeOptions: `--test-reporter=${JSON.stringify(reporter)}`, env: { DUE_TIMES: undefined }, })
+    env: harness.cjs launch(): env = {...process.env, ..., NODE_TEST_CONTEXT: undefined, ...}; `for (const key of Object.keys(env)) if (env[key] === undefined) delete env[key];` before spawn; npmTest() helper (args = scripts.test === 'node --test' ? ['test','--','--test-concurrency=3'] : ['test'])
+    evidence: assert.ok(result.events.length > 0, result.diagnostic || 'npm test did not run') (events from a custom reporter in the child)
+- operations.cjs:46 test=C-33 (nearest preceding test start: 'C-1 npm start honors configured and default ports, including both accepted endpoints') drop=yes evidence=yes file_run_as=['node --test']
+    call: world.launch('npm', args, { cwd, mode: 'test', nodeOptions: `--test-reporter=${JSON.stringify(reporter)}`, env: { DUE_TIMES: undefined }, })
+    env: harness.cjs launch(): env = {...process.env, ..., NODE_TEST_CONTEXT: undefined, ...}; `for (const key of Object.keys(env)) if (env[key] === undefined) delete env[key];` before spawn; npmTest() helper (args = scripts.test === 'node --test' ? ['test','--','--test-concurrency=3'] : ['test'])
+    evidence: checkOriginalSuite: assert.ok(expected.length > 0, 'no stock tests reported'); assert.deepEqual(summarize(current.events, files), expected, ...)
+- operations.cjs:46 test=C-34 (nearest preceding test start: 'C-1 npm start honors configured and default ports, including both accepted endpoints') drop=yes evidence=yes file_run_as=['node --test']
+    call: world.launch('npm', args, { cwd, mode: 'test', nodeOptions: `--test-reporter=${JSON.stringify(reporter)}`, env: { DUE_TIMES: undefined }, })
+    env: harness.cjs launch(): env = {...process.env, ..., NODE_TEST_CONTEXT: undefined, ...}; `for (const key of Object.keys(env)) if (env[key] === undefined) delete env[key];` before spawn; npmTest() helper (args = scripts.test === 'node --test' ? ['test','--','--test-concurrency=3'] : ['test'])
+    evidence: checkAddedSuite: assert.ok(tests.length > 0, 'npm test reported no added node:test cases under test/')
+- operations.cjs:46 test=U-8 (nearest preceding test start: 'C-1 npm start honors configured and default ports, including both accepted endpoints') drop=yes evidence=yes file_run_as=['node --test']
+    call: world.launch('npm', args, { cwd, mode: 'test', nodeOptions: `--test-reporter=${JSON.stringify(reporter)}`, env: { DUE_TIMES: undefined }, })
+    env: harness.cjs launch(): env = {...process.env, ..., NODE_TEST_CONTEXT: undefined, ...}; `for (const key of Object.keys(env)) if (env[key] === undefined) delete env[key];` before spawn; npmTest() helper (args = scripts.test === 'node --test' ? ['test','--','--test-concurrency=3'] : ['test'])
+    evidence: checkOriginalSuite(world, result); checkAddedSuite(result)
+## ratchet-reworded-20261121-08805f / p3R-ticket-due-times-b  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- operators.cjs:208 test=U-6 (nearest preceding test start: 'U-6 a support lead inspects tickets and history then reads the weekly report across cutover') drop=yes evidence=yes file_run_as=['node --test']
+    call: command(w, 'npm', ['test'], { env: { NODE_V8_COVERAGE: coverage } })
+    env: support.cjs environment(): {...process.env} with every name matching /^(?:PORT|DATA_FILE|...|NODE_OPTIONS|NODE_TEST_CONTEXT|NODE_V8_COVERAGE|RATCHET_.*)$/ deleted; launch() passes environment({...})
+    evidence: assertAddedRan: assert.ok(loaded.has(file), file + ' did not run in npm test'); assert.ok(passing.some(line => line.includes(title)), 'npm test did not report a passing result for ' + title); assertOriginalRan
+## ratchet-reworded-20261121-08805f / q-base-1  case=ticket-assignment model=claude-sonnet-5-5 effort=medium enrich=reworded preserve=none
+- assign.test.js:526 test=C-21 (nearest preceding test start: 'C-21 npm test runs the tests in test/ and passes') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test', '--silent'], { cwd: ROOT, encoding: 'utf8', timeout: 50000, env })
+    env: env = { ...process.env, PORT: '', ACC_INNER: '1' }; `delete env.NODE_TEST_CONTEXT;` passed as env
+    evidence: const m = /(?:# |ℹ )tests (\d+)/.exec(r.stdout); assert.ok(m && Number(m[1]) > 0)
+## ratchet-reworded-20261121-08805f / q-base-2  case=ticket-assignment model=claude-sonnet-5-5 effort=medium enrich=reworded preserve=none
+- misc.accept.js:46 test=C-23 (nearest preceding test start: 'C-23 the existing test suite passes unchanged') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync(process.execPath, ['--test', '--test-reporter=spec', 'test/'], { cwd: L.ROOT, encoding: 'utf8', timeout: 55000, env: cleanEnv() })
+    env: misc.accept.js cleanEnv(): { ...process.env, PORT: '' } with `delete e.NODE_TEST_CONTEXT`
+    evidence: assert.match(r.stdout, /pass 1[0-9][0-9]/)
+- misc.accept.js:61 test=C-24 (nearest preceding test start: 'C-24 new node:test tests exist under test/ and npm test passes without new dependencies') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test', '--silent', '--', '--test-reporter=spec'], { cwd: L.ROOT, encoding: 'utf8', timeout: 55000, env: cleanEnv() })
+    env: misc.accept.js cleanEnv(): { ...process.env, PORT: '' } with `delete e.NODE_TEST_CONTEXT`
+    evidence: assert.ok(/assign/i.test(r.stdout), 'npm test output includes assignment tests') (word match on test names; exit status also asserted)
+- misc.accept.js:145 test=U-5 (nearest preceding test start: 'U-5 an existing client and operator keep working unchanged') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync(process.execPath, ['--test', '--test-reporter=spec', 'test/'], { cwd: L.ROOT, encoding: 'utf8', timeout: 55000, env: cleanEnv() })
+    env: misc.accept.js cleanEnv(): { ...process.env, PORT: '' } with `delete e.NODE_TEST_CONTEXT`
+    evidence: assert.match(r.stdout, /pass 1[0-9][0-9]/)
+## ratchet-reworded-20261121-08805f / q-plan-1  case=ticket-assignment model=claude-sonnet-5-5 effort=medium enrich=reworded preserve=plan
+- rest.spec.js:154 test=C-19 (nearest preceding test start: 'C-19 the existing test suite passes') drop=no evidence=no file_run_as=['node --test']
+    call: spawnSync(process.execPath, ['--test', 'test/'], { cwd: ROOT, encoding: 'utf8', timeout: 50000 })
+    env: spawnSync has no env option (inherits process.env, including NODE_TEST_CONTEXT)
+    evidence: assert.equal(r.status, 0, r.stdout.slice(-2000)) only
+- rest.spec.js:169 test=C-20 (nearest preceding test start: 'C-20 new tests exist under test/ for the endpoint, filter and command line, and npm test passes') drop=no evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test', '--silent'], { cwd: ROOT, encoding: 'utf8', timeout: 55000 })
+    env: spawnSync has no env option (inherits process.env, including NODE_TEST_CONTEXT)
+    evidence: assert.ok(/assign/i.test(r.stdout), 'npm test output names assignment tests') (word match on test names; exit status also asserted)
+## ratchet-reworded-20261121-08805f / q-plan-2  case=ticket-assignment model=claude-sonnet-5-5 effort=medium enrich=reworded preserve=plan
+- checks-misc.js:21 test=C-21 (nearest preceding test start: 'C-21 the tests that existed before still pass, unmodified') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync(process.execPath, ['--test', ...files], { cwd: ROOT, env: cleanEnv(), encoding: 'utf8', timeout: 50000 })
+    env: lib.js cleanEnv(): { ...process.env, ...extra } minus every key starting with 'NODE_TEST' (and LOG_REQUESTS)
+    evidence: assert.match(r.stdout, /fail 0/)
+- checks-misc.js:35 test=C-22 (nearest preceding test start: 'C-22 new node:test tests under test/ cover assignment and npm test runs them with the existing ones') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync('npm', ['test'], { cwd: ROOT, env: cleanEnv(), encoding: 'utf8', timeout: 50000 })
+    env: lib.js cleanEnv(): { ...process.env, ...extra } minus every key starting with 'NODE_TEST' (and LOG_REQUESTS)
+    evidence: assert.match(r.stdout, /fail 0/); const total = Number(/tests (\d+)/.exec(r.stdout)[1]); assert.ok(total > oldTotal, ...)
+- checks-misc.js:39 test=C-22 (nearest preceding test start: 'C-22 new node:test tests under test/ cover assignment and npm test runs them with the existing ones') drop=yes evidence=yes file_run_as=['node --test']
+    call: spawnSync(process.execPath, ['--test', ...before], { cwd: ROOT, env: cleanEnv(), encoding: 'utf8', timeout: 50000 })
+    env: lib.js cleanEnv(): { ...process.env, ...extra } minus every key starting with 'NODE_TEST' (and LOG_REQUESTS)
+    evidence: const oldTotal = Number(/tests (\d+)/.exec(old.stdout)[1]); assert.ok(total > oldTotal, ...)
+## ratchet-reworded-20261121-08805f / q-spec-1  case=ticket-assignment model=claude-sonnet-5-5 effort=medium enrich=reworded preserve=spec
+- assign.spec.js:634 test=C-20 (nearest preceding test start: 'C-20 the existing tests in test/ are unmodified and pass') drop=no evidence=no file_run_as=['node --test']
+    call: spawnSync(process.execPath, ['--test', ...existing], { cwd: L.ROOT, encoding: 'utf8' })
+    env: spawnSync has no env option (inherits process.env, including NODE_TEST_CONTEXT)
+    evidence: assert.equal(r.status, 0, r.stdout.slice(-2000)) only
+- assign.spec.js:645 test=C-21 (nearest preceding test start: 'C-21 npm test runs new test files together with the existing ones and passes') drop=yes evidence=yes file_run_as=['node --test']
+    call: tap([process.execPath, '--test', '--test-reporter=tap', ...existing])
+    env: local tap() helper: spawnSync(args[0], args.slice(1), { ..., env: (() => { const e = { ...process.env }; delete e.NODE_TEST_CONTEXT; return e; })() })
+    evidence: const count = out => Number(/^# tests (\d+)/m.exec(out)[1]); assert.ok(count(full.stdout) > count(base.stdout), ...)
+- assign.spec.js:643 test=C-21 (nearest preceding test start: 'C-21 npm test runs new test files together with the existing ones and passes') drop=yes evidence=yes file_run_as=['node --test']
+    call: tap(['npm', 'test', '--silent', '--', '--test-reporter=tap'])
+    env: local tap() helper: spawnSync(args[0], args.slice(1), { ..., env: (() => { const e = { ...process.env }; delete e.NODE_TEST_CONTEXT; return e; })() })
+    evidence: assert.ok(count(full.stdout) > count(base.stdout), `npm test ran ${count(full.stdout)} tests, ...`)
+## ratchet-reworded-20261121-08805f / q-spec-2  case=ticket-assignment model=claude-sonnet-5-5 effort=medium enrich=reworded preserve=spec
+- npmtest.acc.js:15 test=C-22 (nearest preceding test start: 'C-22 package.json has no dependencies and npm test passes with tests for the new behaviour') drop=yes evidence=no file_run_as=['node --test']
+    call: spawnSync('npm', ['test'], { cwd: ROOT, encoding: 'utf8', timeout: 50000, env: { ...process.env, NODE_TEST_CONTEXT: undefined } })
+    env: env: { ...process.env, NODE_TEST_CONTEXT: undefined } (spawnSync omits undefined env values)
+    evidence: assert.equal(r.status, 0, ...) only
+## ratchet-parallel-20261121-6f54fb / b1-due-times-a  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- adapter.cjs:322 test=C-2 (nearest preceding test start: None) drop=yes evidence=no
+    call: run('npm', ['test'], { cwd, env })
+    env: adapter.cjs run() -> envFor(): {...process.env, ...ENV} then `delete env[name]` for a list that includes 'NODE_TEST_CONTEXT'; suite(cwd,{report}) helper
+    evidence: suite(checkout) with no reporter: execFileSync exit status only (throws on non-zero); output ignored
+- adapter.cjs:322 test=C-33 (nearest preceding test start: None) drop=yes evidence=yes
+    call: run('npm', ['test'], { cwd, env })
+    env: adapter.cjs run() -> envFor(): {...process.env, ...ENV} then `delete env[name]` for a list that includes 'NODE_TEST_CONTEXT'; suite(cwd,{report}) helper
+    evidence: suiteRuns: assert.ok(expected.length > 0, 'the original test suite reports executed node:test cases') (from a custom reporter); assert.deepEqual(unmatched(expected, actual), [], ...)
+- adapter.cjs:322 test=C-34 (nearest preceding test start: None) drop=yes evidence=yes
+    call: run('npm', ['test'], { cwd, env })
+    env: adapter.cjs run() -> envFor(): {...process.env, ...ENV} then `delete env[name]` for a list that includes 'NODE_TEST_CONTEXT'; suite(cwd,{report}) helper
+    evidence: assert.ok(unmatched(actual, expected).length > 0, 'npm test did not execute a new passing node:test case under test/')
+- adapter.cjs:322 test=U-8 (nearest preceding test start: None) drop=yes evidence=yes
+    call: run('npm', ['test'], { cwd, env })
+    env: adapter.cjs run() -> envFor(): {...process.env, ...ENV} then `delete env[name]` for a list that includes 'NODE_TEST_CONTEXT'; suite(cwd,{report}) helper
+    evidence: suiteRuns + assertExistingPassed + assertNewTestsPassed
+## ratchet-parallel-20261121-6f54fb / b1-due-times-b  case=ticket-due-times model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- adapter.cjs:363 test=C-33 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command('npm', ['test'], { cwd, env: suiteEnv, timeout: 20000 })
+    env: adapter.cjs env(): {...process.env, npm_config_*} then `delete result[key]` for a list that includes 'NODE_TEST_CONTEXT'; suite(old) helper
+    evidence: verifyOriginalTests: assert.ok(expected.length > 0, 'the reporter must observe original passing node:test cases')
+- adapter.cjs:363 test=C-34 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command('npm', ['test'], { cwd, env: suiteEnv, timeout: 20000 })
+    env: adapter.cjs env(): {...process.env, npm_config_*} then `delete result[key]` for a list that includes 'NODE_TEST_CONTEXT'; suite(old) helper
+    evidence: newDueTimeTests: assert.ok(newCases.length > 0, 'npm test must execute added node:test cases from test/')
+- adapter.cjs:363 test=U-7 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command('npm', ['test'], { cwd, env: suiteEnv, timeout: 20000 })
+    env: adapter.cjs env(): {...process.env, npm_config_*} then `delete result[key]` for a list that includes 'NODE_TEST_CONTEXT'; suite(old) helper
+    evidence: newDueTimeTests(h, original, current); assert.equal(current.run.exit.code, 0, ...)
+## ratchet-parallel-20261121-6f54fb / bs-blind  case=battleship model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- adapter.cjs:313 test=C-23 (nearest preceding test start: None) drop=no evidence=yes
+    call: childProcess(t, process.execPath, args, { cwd: root, env })
+    env: runRuleTests(): env = { ...process.env } (plus RATCHET_RULES_FILE/RATCHET_TRACE_FILE when tracing), passed to childProcess(); nothing deleted
+    evidence: assert.ok(run.events.some(event => event.kind === 'node:test' && event.file.startsWith(testDirectory)), ...) (trace written by a preload inside the child)
+- adapter.cjs:313 test=C-24 (nearest preceding test start: None) drop=no evidence=yes
+    call: childProcess(t, process.execPath, args, { cwd: root, env })
+    env: runRuleTests(): env = { ...process.env } (plus RATCHET_RULES_FILE/RATCHET_TRACE_FILE when tracing), passed to childProcess(); nothing deleted
+    evidence: assert.ok(run.cases.length, 'node --test must discover actual cases under test/.')
+- adapter.cjs:313 test=U-4 (nearest preceding test start: None) drop=no evidence=yes
+    call: childProcess(t, process.execPath, args, { cwd: root, env })
+    env: runRuleTests(): env = { ...process.env } (plus RATCHET_RULES_FILE/RATCHET_TRACE_FILE when tracing), passed to childProcess(); nothing deleted
+    evidence: assert.ok(run.cases.length, ...); assert.ok(run.events.some(event => event.kind === 'node:test' && ...))
+## ratchet-parallel-20261121-6f54fb / bs-loop  case=battleship model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- structure.cjs:62 test=C-23 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command(t, process.execPath, ['--test'], { env, stdio: ['ignore', 'pipe', 'pipe'] })
+    env: projectTests(): env = {...process.env, NODE_V8_COVERAGE}; `delete env.NODE_OPTIONS; delete env.NODE_TEST_CONTEXT;` passed to command()
+    evidence: assertRuleCoverage: assert(project.discovered.length, 'No test files under test/ were executed') (from V8 coverage files of the child)
+- structure.cjs:62 test=C-24 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command(t, process.execPath, ['--test'], { env, stdio: ['ignore', 'pipe', 'pipe'] })
+    env: projectTests(): env = {...process.env, NODE_V8_COVERAGE}; `delete env.NODE_OPTIONS; delete env.NODE_TEST_CONTEXT;` passed to command()
+    evidence: assertRunner: assert(totals && Number(totals[1]) > 0, 'node --test did not report any passing tests')
+- structure.cjs:62 test=U-4 (nearest preceding test start: None) drop=yes evidence=yes
+    call: command(t, process.execPath, ['--test'], { env, stdio: ['ignore', 'pipe', 'pipe'] })
+    env: projectTests(): env = {...process.env, NODE_V8_COVERAGE}; `delete env.NODE_OPTIONS; delete env.NODE_TEST_CONTEXT;` passed to command()
+    evidence: assertRunner(project); assertRuleCoverage(...)
+## ratchet-parallel-20261121-6f54fb / gb-beside  case=grokbot-local model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- runtime.cjs:298 test=C-100 (nearest preceding test start: 'C-100') drop=yes evidence=yes
+    call: h.child(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['test'], { cwd: h.root, env })
+    env: env = { ...process.env, NODE_V8_COVERAGE }; `delete env.NODE_TEST_CONTEXT;` passed to h.child('npm', ['test'], { cwd, env })
+    evidence: assert.match(npm.output, /(?:#|ℹ)\s*tests\s+[1-9]\d*\b|# pass\s+[1-9]\d*\b/); assert.ok([...checks.keys()].some(name => /^test[\\/]/.test(name)), 'npm test executed tests under test/')
+## ratchet-parallel-20261121-6f54fb / gb-blind  case=grokbot-local model=gpt-6.2-sol effort=high enrich=reworded preserve=None
+- adapter.cjs:346 test=C-100 (nearest preceding test start: None) drop=no evidence=yes
+    call: run('npm', ['test'], { cwd: folder, env: { ...process.env, NODE_V8_COVERAGE: coverage }, }, 16000, signal)
+    env: npmRuleTests(): env: { ...process.env, NODE_V8_COVERAGE: coverage }; processHandle spawns with those options unchanged; nothing deleted
+    evidence: assert.match(result.stdout + result.stderr, /\b(?:ok\s+\d+|pass\s+[1-9]\d*)\b/i, 'npm test reports passing Node tests'); assert.ok(...file.startsWith('test/') && functions.length)
+- adapter.cjs:346 test=U-1 (nearest preceding test start: None) drop=no evidence=yes
+    call: run('npm', ['test'], { cwd: folder, env: { ...process.env, NODE_V8_COVERAGE: coverage }, }, 16000, signal)
+    env: npmRuleTests(): env: { ...process.env, NODE_V8_COVERAGE: coverage }; processHandle spawns with those options unchanged; nothing deleted
+    evidence: same assertions via s.ruleTests()

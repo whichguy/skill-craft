@@ -1,0 +1,15 @@
+## Faults no check noticed
+Every check still passes when the build carries any one of these single faults:
+- `src/app.js` line 16 (existing code): `false` became `true`
+- `src/format.js` line 36 (existing code): `===` became `!==`
+- `src/format.js` line 36 (existing code): `-` became `+`
+- `src/persistence.js` line 92 (existing code): `>=` became `>`
+- `src/persistence.js` line 160 (existing code): `||` became `&&`
+- `src/persistence.js` line 160 (existing code): `||` became `&&`
+- `src/persistence.js` line 170 (existing code): `||` became `&&`
+- `src/persistence.js` line 180 (existing code): `&&` became `||`
+- `src/persistence.js` line 180 (existing code): `&&` became `||`
+- `src/persistence.js` line 194 (existing code): `||` became `&&`
+For each one: add or strengthen a check so that it fails on that fault, or say under a heading `## Faults that change nothing` in your tests report why the edit does not alter behaviour.
+
+Keep the rest of your work. Never weaken a check to make this list shorter.

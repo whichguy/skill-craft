@@ -3107,3 +3107,1089 @@ shown: any gain from the changes it proposes, none of which has been run. Nothin
 **The owner's to decide.** Whether to pilot the counterexample check in ShipLoop's test gate, which is a product
 change and belongs with the session that owns ShipLoop's releases; whether this pilot's next step is the free
 replay of archived suites; and whether the reworded text goes into ShipLoop's specification stage.
+
+## 26. A program of experiments on Sol 6.2 at medium (2026-11-21 17:32; each part registered before its runs)
+
+Owner, after the reviews of section 25: "Create the experiments and tests to evaluate all these ideas" and "Run
+everything , using SOL 6.2 med as the runner".
+
+**The frame.** Every model session of this section runs on the Codex host with `gpt-6.2-sol` at medium. The ideas
+are the eight I gave the owner and the ranked ones of the two reviews; where two are the same idea they share an
+experiment. Each part is registered in its own subsection, with its rule and predictions, in a commit made before
+its first run. The parts, as planned:
+
+| Part | The idea | The instrument | Model sessions |
+|---|---|---|---|
+| D | a decision the request leaves out is carried, not made silently | three requests with a known unsaid point, read in the specification and the plan; the plain text first, a lever only where the plain text leaves room | 9, then up to 36 |
+| C | a check must be able to fail | a census of checks that run nothing in the suites on file; then test sessions with and without a script that refuses a check never seen to fail, scored on planted defects | 14 |
+| E | existing code is protected | faults seeded in existing code a change touches, replayed on suites on file | none |
+| V | the instruction arrives | the same text in the prompt or through a file, the checked duty first or last, read in Codex's own record | 12 |
+| R | a fresh reader | one marks unstated decisions in a specification; one checks a finished product | 27 |
+| T | a question at test design | a general question against one grounded in the repository; scenarios scored by a script against good and bad products | 12 |
+| A | ask after reading | a census of archived deliveries: are questions routed to "inspect" answered on record | none |
+| G | gaps in ShipLoop's own checks | tests that pin today's behaviour of its validators on made-up inputs | none |
+
+Rules common to every part, from the reviews and from F38: three plain runs before any comparison; a lever is run
+only where the plain runs leave room; a yardstick is shown to work on a good and a bad input before it scores
+anything; what I judge by reading is read a second time by a Sonnet subagent under shuffled names; no held-out
+check, planted defect or answer sheet is ever in a model session's folder or prompt; "more" of anything counted in
+a specification is not a result.
+
+Not run here: changes inside ShipLoop's own scripts (the order of a stage's text, joining receipts, a stage that
+finishes on entry, removals). They are product changes and need its release harness; part G pins the behaviour a
+fix would change, and part V is a bench stand-in for the first.
+
+### Part D1, registered 17:32: what the plain text does with three unsaid points (nine runs)
+
+**What it asks.** Amendment 14 found that on Sonnet the reworded text marks a missing limit as open by itself. The
+archive read by the session "Spec elaboration" says Sol behaves otherwise in ShipLoop: 12 of 12 due-times builds
+enforced a ceiling that none of their specifications named. So the first question on this runner is whether the
+plain text leaves room at all.
+
+**Cells.** Three requests, three runs each, the spec stage and then the plan stage (`--stop-after plan`), the
+reworded text with no question added:
+
+- `d-limit-1` to `-3`: `ticket-assignment-name-limit-unsaid` (amendment 14's request).
+- `d-states-1` to `-3`: `ticket-assignment-states-unsaid`, new: the ticket-assignment request less the sentence
+  "Only open and in-progress tickets can be assigned or unassigned." (171 words for 181).
+- `d-due-1` to `-3`: `ticket-due-times` as it is. Its unsaid point is the one earlier Sol runs decided wrongly:
+  who fills the due times into the existing data file, and what the service does when it starts with the switch on
+  and the file does not hold them.
+
+**The three points, sorted against the starting product before any run** (the session "Spec elaboration"'s first
+point, and the first review's distinction between a fact and a decision):
+
+- *The limit.* A decision the product does not settle, with like limits in plain sight (64 for the requester and
+  the actor, 200 for the title). Right under the text: an `Open:` line.
+- *The states.* A fact the product supplies: "A closed ticket can no longer change" (`docs/api.md`), and a resolved
+  one can. Following the product is right, and nothing in the inputs holds this requester's stricter wish. So the
+  reading is whether the inherited rule is made visible.
+- *The due times.* A decision only the requester can make. The request's words admit two readings (an operator
+  prepares the file before switching on; or the service fills it in itself when it starts switched on). The owner
+  later ruled for the second (the SDLC journal, round 9: "the reading the owner ruled right").
+
+**Classes**, a run at a time, read in the specification as the spec stage leaves it and in the plan.
+
+- For the limit and the due times: **O+** marked open and the answer taken named; **O** marked open, nothing
+  taken; **D** decided with no mark that it is open (for the due times: **D-refuse**, the service refuses to
+  start or to switch on until someone has prepared the file; **D-fill**, the service fills the file itself);
+  **P** passed over.
+- For the states: **I+** the product's rule is applied to assignment and its source is named; **I** applied with
+  no source and no mark; **O** or **O+** marked open; **D** a rule other than the product's is required with no
+  mark (for example resolved tickets refused too); **P** nothing says which states allow assignment.
+
+**Readings.**
+
+- **RD1.1, room.** A request *leaves room* for a lever when at least two of its three runs are D, I or P. A request
+  whose runs are O, O+ or I+ in at least two of three leaves none, and no lever is run on it.
+- **RD1.2, the known bad outcome.** For the due times, the number of runs that are D-refuse: the reading earlier
+  Sol runs built, which failed five of eight held-out checks.
+- **RD1.3, two readers.** My classes and a Sonnet subagent's, made from the nine pairs under shuffled names.
+- Reported: clauses, `Open:` lines, choice clauses, seconds for each session.
+
+**Predictions.** The limit: Sol at medium decides it or passes over it in two of three. The states: the product's
+rule is applied in three of three, with its source named in two. The due times: marked open in two of three, and
+D-refuse in at most one.
+
+**Limits known before the runs.** Three points on two products that are one code base; one model at one effort;
+three runs a request; the specification and the plan only, so what a build would do is not seen.
+
+### Part E, registered 17:36: faults seeded in the existing code a change touches (no model session)
+
+**What it asks.** Amendment 12 could not say whether writing down what must not change protects existing behaviour:
+the pool of 27 planted defects holds one that only such a clause can catch. This part gives that question an
+instrument with room.
+
+**The instrument.** `mutate.py --unchanged` (new): the harness's own fault catalog, placed only on lines of product
+source that a delivery left as the starting product has them, in the files it changed. On the ticket-assignment
+reference build that is 52 sites in six files (26 in `src/persistence.js`, 7 each in `src/store.js`,
+`src/tickets/query.js` and `src/tickets/validate.js`, 3 in `src/format.js`, 2 in `src/app.js`), against 6 on the
+lines the change added. The first 40 in the catalog's own order are used, the same 40 for every suite, since every
+cell of amendment 12 tested the same reference build. For each fault the script runs the product's own tests and
+every command of the suite's manifest.
+
+**What is read.** The seven suites of amendment 12 (three baseline, two with the question in the specification,
+two with it in the plan), all written by Sonnet at medium.
+
+- **RE.1, room.** Of the 40 faults, how many the product's own tests catch and how many survive them.
+- **RE.2, what a suite adds.** Of the faults that survive the product's own tests, how many each acceptance suite
+  catches. *The plan's question protects existing code* if both plan suites catch more of them than the best
+  baseline suite, by 3 or more. *It does not* if neither does. Otherwise not shown.
+- Reported: for each suite the faults it catches at all, since a suite whose run of the product's tests runs
+  nothing (F42) catches fewer of the 40 than the product's own tests do.
+
+**Predictions.** The product's own tests catch 25 to 35 of 40. Of the survivors a baseline suite catches 0 to 2 and
+each plan suite 2 or more above the best baseline, so "not shown" by the bar of 3 is the likeliest reading.
+
+**Limits known before the run.** One build and one case; seeded faults are mechanical edits, not the defects a
+person would plant; a fault can leave behaviour unchanged, and such a fault counts as surviving for every suite
+alike. The two specification-question suites are slow (156 and 276 seconds a pass).
+
+### Part G, recorded 17:36: tests that pin five gaps in ShipLoop's own checks (no model session)
+
+The second review of section 25 named five places where a released check accepts less than its duty asks. A Sonnet
+subagent wrote `shiploop-gaps/gap_checks.py`, which calls the real functions with made-up inputs and prints what
+they return; it changes nothing under `skills/`. All five are shown (`shiploop-gaps/gap_checks-output.txt`):
+
+1. `judge` passes a `check` row that exits 0 with empty output, or with any output that holds no runner summary. It
+   does fail one whose summary says no test ran, and it catches a listed id marked failed.
+2. `check_test_cases` accepts a case that names a criterion other than the one its own focused command declares, as
+   long as the criterion is one of the plan's; `coverage_notices` then prints one notice for the orphaned criterion
+   and the result is accepted.
+3. `_check_intake_questions` accepts an intake result with no question ledger at all, and refuses a malformed one.
+4. A plan's concern row is accepted with `decision` and `anchor` of any non-blank text, and a `no` row with a
+   one-word reason.
+5. `check_submitted` accepts `unverified: []` for product acceptance.
+
+These are today's behaviours pinned as tests, three of them deliberate choices recorded in the code's own comments.
+Whether any should change is a product decision for ShipLoop's owner; nothing here changes it.
+
+### Part D1, result (18:05): the plain text marks all three points; where it marks, the plan takes an answer
+
+Nine runs, started together at 17:32:59, all ended normally (a specification took 139 to 168 seconds, a plan 150
+to 241). Two
+readers, the second a Sonnet subagent given the nine pairs under shuffled names (`r1` to `r9`) and the classes of
+the registration, agree on all nine.
+
+| Request | Run | Clauses | `Open:` lines | Class | The answer the plan takes |
+|---|---|---|---|---|---|
+| limit unsaid | d-limit-1 | 37 | 6 | O+ | 64, "following the existing requester field's size" |
+| | d-limit-2 | 44 | 9 | O+ | 200, "matching the existing title scale" |
+| | d-limit-3 | 45 | 6 | O+ | 1,024 bytes, so that a name fits a request line |
+| states unsaid | d-states-1 | 39 | 7 | I+ | closed refused, resolved allowed (`Source: existing: docs/api.md`) |
+| | d-states-2 | 41 | 5 | I+ | the same |
+| | d-states-3 | 34 | 8 | I+ | the same |
+| due times | d-due-1 | 33 | 13 | O+ | a separate command; the service exits with status 2 on a file that lacks due times |
+| | d-due-2 | 34 | 11 | O+ | an offline command; enabled startup refuses |
+| | d-due-3 | 36 | 12 | O+ | a `prepare-due` command; enabled startup refuses |
+
+- **RD1.1, room: none.** No request has two runs that decide silently, inherit silently or pass over, so by the
+  registered rule no lever is run on *marking*: on Sol at medium, as on Sonnet (F46), the reworded text marks an
+  unsaid point by itself, nine of nine.
+- **RD1.2: no run requires the refusal with no mark** (0 of 3). Each due-times specification names the three ways
+  the service could behave, for example d-due-1's C-20: "Open: The production operator would settle whether
+  premature activation refuses startup, keeps serving with the feature hidden, or completes preparation before
+  serving."
+- **RD1.3:** the two readers agree, nine of nine. The second reader's one doubt: in the states runs the clauses that
+  *allow* assignment carry `Source: request`, and only the clause that refuses a closed ticket names the product's
+  documentation.
+- **Predictions.** Wrong on the limit (I expected two of three to decide or pass over); right on the states, with
+  the source named three times and not two; right on the due times.
+
+**F48 (what the registration did not ask, and the runs show). Marking a point open does not change which answer
+is built.** All three due-times plans take the answer the owner ruled wrong, a separate preparation step and a
+service that refuses to start, and each names filling at start among the alternatives it set aside ("preparing
+automatically on start", "Startup preparation ... would tie activation to a mutation", "Startup backfill would
+couple initial assignment to service restarts"). The two earlier runs of this text on Sol at **high** took the
+other answer and passed 8 of 8 held-out checks (section 21), so the answer taken moves with effort or with the run,
+while the mark is constant. On the limit the three plans take three different values. An open point is now visible
+and named; whose answer it gets is unchanged. Part D2 below is registered on that.
+
+**A limit of these nine runs found afterwards.** A session sees its working folder's path, and the nine folders
+were named `d-limit-…`, `d-states-…` and `d-due-…`. A name that holds the word "limit" could have pointed a session
+at the limit. The check below reruns the limit request under neutral names; every later wave uses neutral names,
+with the key in its registration.
+
+### Part C, the yardstick tried on two suites whose truth was known (17:39 to 17:46), and a census by reading
+
+`prove_fail.py` (new) runs every check of a suite on the build and on copies that ought to make a check fail: the
+starting product, the build with one failing test added to one of the product's own test files (the *sabotaged
+copy*), and the build with one seeded fault at a time. It was tried on two Sonnet suites of amendment 12:
+
+| Suite | What was known | Checks | Fail on the starting product | Fail on the sabotaged copy | Never seen failing | Faults unnoticed |
+|---|---|---|---|---|---|---|
+| q-plan-1 | its two checks that run the product's tests do nothing (F42) | 31 (C-20 fails on the build itself) | 28 of 30 | **none** | none | 4 of 18 |
+| q-base-2 | its nested runs work | 29 | 25 of 29 | C-23, C-24, U-5 | none | 4 of 18 |
+
+**F49. The unit of "a check that cannot fail" is the test, and the copy tells more than the check.** Counted by
+manifest entry the script saw nothing wrong with q-plan-1: the do-nothing test ("C-19 the existing test suite
+passes") shares its entry with a real one ("C-19 PATCH still refuses assignee; ..."), so entry C-19 fails whenever
+the real one does. The sabotaged copy separates the two suites cleanly: an existing test made to fail is noticed by
+three checks of the good suite and by no check of the bad one. The script now reports a copy that no check noticed
+(the refusal's first block), and the trial's lesson is in its docstring. The same four seeded faults go unnoticed
+in both suites, all on existing lines (`src/app.js` 16 and 65, `src/format.js` 36 twice).
+
+**A census by reading** (a Sonnet subagent; `evidence/program/hollow-checks/`): of the 82 run folders on file, 46
+hold an acceptance suite, and every one of the 46 starts the product's own tests from inside a check (207 uses at
+113 places). In 16 suites at least one such run keeps the variable that makes a nested run do nothing, in 13 every
+one does, and in 12 at least one of those asks for no evidence that tests ran. Reading cannot say more: whether the
+variable is set depends on how the manifest starts each check (30 suites start them with `node --test`, 10 with a
+plain `node` runner that registers tests in-process), and the reader did not work that out. The sabotaged copy
+answers it directly, so the census is rerun by script (below).
+
+### Part A, result: questions routed to "inspect" are mostly answered on record (a census, no model session)
+
+A Sonnet subagent read the intake results of archived ShipLoop deliveries (`evidence/program/intake-questions/`).
+184 runs carry an intake question ledger; 127 are in scope (123 under the E2E runs root from 2026-10-31 on, 4 of
+the SDLC study's round 12). They hold 447 questions: 270 routed to `inspect`, 158 to `default`, 15 to
+`experiment`, 3 to `person`, 1 to `research`; 24 runs have a ledger with no question. A later stage result or
+knowledge file cites the question's id for 121 of the 270 `inspect` questions (54 with two of the question's words
+near the id), nearly always in the discovery result. Read by hand, 15 `inspect` questions from 15 runs and 13
+cases: 14 have their answer stated in the specification, the environment or the architecture file; one has none (a
+Salesforce API version). The script's flags found 10 of those 15 by id and 3 with words: the answer is usually on
+record without the id beside it.
+
+**Reading.** The idea "ask after reading, and check that what was routed to inspection got answered" finds little
+to fix in the records: answers are there. What the records lack is the join: an id cited beside its answer in 3 of
+15. A script could require it; whether that is worth a refusal is ShipLoop's owner's to weigh. Not checked: that
+any stated answer is correct. Only three questions of 447 went to a person.
+
+### Registered 18:10, before any of their runs: the rest of part D, parts C and T, part V, part R
+
+Every session below runs on Codex with `gpt-6.2-sol` at medium. Runs are named neutrally; each key is here.
+
+**The apparatus added** (no session has used it): `one_session.py` runs one session in a prepared folder the way
+`ratchet.py` runs a stage; `program/prepare.py` makes the folder and the prompt; the texts are
+`program/question.md`, `program/revise.md`, `program/review-delivery.md` and `program/review-request.md`, and the
+answer sheet `program/replies.json`. `ratchet.py` gains `--tests-question`, `--deliver` and `--duty-at`, and
+`prove_fail.py` gains the report of a copy no check noticed, `--lines` and `--only`. A default run's ten prompts are
+byte for byte those of the committed runner, none of its 25 text constants changed, and the self-test passes.
+
+#### D1 check: the limit request under neutral names (3 runs)
+
+`n1` to `n3`: `ticket-assignment-name-limit-unsaid`, the spec stage only. **Reading:** the class of each (the
+registration's O, D, P; a specification alone cannot be O+). The nine-run result stands if at least two of three
+mark the limit open; if not, the folder names carried it, and F46's extension to Sol is withdrawn.
+**Prediction:** three of three mark it open.
+
+#### Part D2: one question to the requester (9 sessions, then up to 18)
+
+**What it asks.** F48: the point is marked and the wrong answer is still taken. The first review's third
+experiment: does a session that may ask one thing ask the thing that matters, and does the answer reach the plan?
+
+**Cells.** `g1` to `g9`, one for each run of part D1 (g1 to g3 the limit runs 1 to 3, g4 to g6 the states runs,
+g7 to g9 the due-times runs): a fresh session is given the starting product and the specification as the spec
+stage left it, and `program/question.md`: choose the one point where the requester's answer matters most, and
+write the question with its alternatives, what happens if no answer comes, and the next two points.
+
+**The stand-in requester** is `program/replies.json`, written before any question: one point for each request,
+with its reply (due times: the service fills the missing due times when it starts switched on and never refuses to
+start, the owner's ruling; the limit: at most 40 characters, a value no precedent in the product suggests; the
+states: the sentence taken out of the request). A question that asks about the request's point gets its reply; any
+other question gets "No preference. Use your judgement." I decide which it is, and a Sonnet subagent sorts the nine
+questions a second time without my sorting.
+
+**Then, only for a question that asked the point:** `h<n>` revises the specification with the answer
+(`program/revise.md`), and `j<n>` plans from the revised specification (`ratchet.py --spec-from`, the plan stage as
+it stands).
+
+**Readings.**
+
+- **RD2.1, the one question.** For each request, in how many of three runs `Question:` asks the request's point;
+  and in how many it is one of the two `Next:` lines.
+- **RD2.2, a question the files answer.** How many of the nine questions ask something the product's files settle
+  (two readers).
+- **RD2.3, the answer carried.** For each run that asked the point: the revised specification states the reply as
+  a requirement with `Source: answer`, and the plan follows it (due times: filled at start and no refusal; the
+  limit: 40; the states: open and in progress only). *One question reaches the plan* if, for the due times, at
+  least two of three runs ask the point and every one that asks carries the answer. Fewer than two asking: the
+  mechanism fails at choosing, whatever follows.
+
+**Predictions.** Due times: two of three ask the point. The limit: at most one of three (name identity or the
+success response may look weightier). The states: none of three asks (the product's rule looks settled, and
+nothing in the folder holds this requester's stricter wish). Every answer given is carried.
+
+**Limits known before the runs.** A scripted requester answers at once and has an answer; a real one may have
+neither. One answer changes a specification that was written without it: the clauses around it were drafted for
+the other reading. The plan is read, not built.
+
+#### Parts C and T: three levers on the test pass, on one base (1 run, then 12 test passes)
+
+**What they ask.** Three ideas act on the same stage and are read on the same yardsticks: a check must be able to
+fail (C); a question about preserved behaviour put to the test owner, in general words (T, general) or asked of
+the files the change touched (T, grounded).
+
+**Base.** `c0`: specification and plan for `ticket-assignment`, the reworded text, Sol at medium. Every test pass
+starts from them and from the reference build (`--plan-from c0 --build-from <the reference> --stop-after tests`).
+
+**Cells,** three runs each: `ta1` to `ta3` plain; `tb1` to `tb3` with `--prove-fail` (after the test session the
+script runs `prove_fail.py`, shows the session what it found once, and the session works again); `tc1` to `tc3`
+with `--tests-question general`; `td1` to `td3` with `--tests-question grounded`.
+
+**Yardsticks no session is shown.**
+
+- **Y1, planted defects** (`grade.py strength`): caught of 27; checks failing on the reference; checks failing on
+  the second correct delivery.
+- **Y2, faults in existing code** (`mutate.py --unchanged --manifest`, all 52 sites): how many the acceptance
+  checks catch, and how many of those the product's own tests miss. The proof of failure shows a session only
+  faults on even-numbered lines, so the **odd-numbered lines** are the yardstick for every arm, and the count on
+  all lines is reported beside it.
+- **Y3, the sabotaged copy** (`prove_fail.py --only sabotage`): does any check fail when an existing test is made
+  to fail.
+- Cost: seconds of the test sessions, checks written.
+
+**Readings.**
+
+- **RC.0, room.** Over the three plain runs: planted defects missed, odd-line faults that survive the acceptance
+  checks, runs where the sabotaged copy goes unnoticed.
+- **RC.1.** An arm *protects existing code* if each of its three runs catches at least 2 more odd-line faults than
+  the best plain run. It *does not* if none of its runs beats the best plain run. Otherwise not shown.
+- **RC.2, the defect the suites miss.** `update-rejects-resolved` (an edit of a resolved ticket is refused) was
+  missed by 6 of the 7 Sonnet suites of amendment 12. An arm *catches it* if all three of its runs do and at most
+  one plain run does.
+- **RC.3, harm.** An arm is *over-tight* if each of its runs fails more checks on the second correct delivery than
+  the worst plain run.
+- Reported: Y3 for each run, and for `tb` what the script found before and after its refusal.
+
+**Predictions.** Plain: 25 or 26 of 27; odd-line faults caught about as many as the product's own tests catch
+(part E so far: 31 against 31 of 40); the sabotaged copy unnoticed in one of three. With the proof of failure: the
+sabotaged copy noticed three of three after the refusal; odd-line faults up by one or two, so RC.1 not shown. The
+grounded question: catches `update-rejects-resolved` in two of three; the general one in one of three.
+
+**Limits known before the runs.** One case, one build, one specification and plan; a fault shown on an even line
+can teach a check that also catches the fault on the next odd line; three runs an arm; the reference build is
+correct, so nothing here says what a lever does on a build with a real defect.
+
+#### Part C, the census by script (no model session)
+
+`prove_fail.py WORK - OUT --only sabotage --changed 0 --unchanged 0` on each of the 46 suites on file whose work
+folder holds an acceptance suite and whose starting product had a test file. **Reading:** the suites in which no
+check fails on the sabotaged copy, by model family, beside the count from reading (16 with a nested run that keeps
+the variable). **Prediction:** between 5 and 12 of the suites that can be measured.
+
+#### Part V: the stage text through a command, and where the written question stands (18 runs)
+
+**What it asks.** The session "Spec elaboration" found that on Codex the model is given only what its own script
+shows it of a command's output, and that ShipLoop's later packets often arrive at under a third. Here every stage
+text is in the prompt. Does the channel matter at this text's size (108 lines, 9.7 thousand characters; the 28 stage
+packets of one archived ShipLoop run are 14 to 57 thousand), and does it matter where in the text a checked duty stands?
+
+**Cells.** `ticket-assignment`, the spec stage only, the reworded text with the rules question (`--rules
+spec-section`), three runs each: delivery in the prompt or through a command (`--deliver command`: the prompt
+names one command whose output is the whole text), with the question first (line 6), in its standing place (line
+54) or last (line 88). `v1` to `v3` prompt and first, `v4` to `v6` prompt and standing, `v7` to `v9` prompt and
+last, `v10` to `v12` command and first, `v13` to `v15` command and standing, `v16` to `v18` command and last.
+
+**Readings.**
+
+- **RV.1, what arrived.** For the command runs, from Codex's own record of the session: the share of the text's
+  non-blank lines among the outputs the model was given, and whether every line of the question was.
+- **RV.2, the duty done.** The specification has a `## Rules and edge cases` section with at least one entry.
+  *The channel matters* if the nine command runs have it in at least three fewer runs than the nine prompt runs.
+  *The place matters* if, within one channel, one place has it in three of three and another in at most one.
+
+**Read first, with no model** (`program/packet_position.py`, which reads the sister study's archived runs with
+that study's own reader and changes nothing; run while it was written, `evidence/program/delivery/`). In 62
+archived Codex runs of ShipLoop, four early stages each, 248 packets: of the instruction lines 97% were given on
+average, 94% of the first third, 99% of the middle, 96% of the last, with no trend by length. What goes missing
+stands after the instructions: of the lines after the result template (the template and the list of references)
+the median packet's share given is 100% at intake, 94% at discovery, 52% at research and 15% at the spec stage. So
+in ShipLoop the instructions arrive and the tail of the packet often does not. The runs below ask whether a duty
+placed at the end of a shorter text is lost the same way.
+
+**Predictions.** In the prompt the section is written nine of nine. Through the command the whole text is shown in
+at least seven of nine and the section written in at least eight of nine; no place effect at this size.
+
+**Limits known before the runs.** One text of one size; ShipLoop's packets are one and a half to six times as long, and a
+later packet repeats much of an earlier one, which this bench does not have.
+
+#### Part R: a fresh review of a finished change (24 sessions)
+
+**What it asks.** The first review's fourth experiment. A green gate has passed a wrong product here before
+(section 10: the due-times loop ended green on its own gate with 5 of 8 held-out checks failing from its first
+build to its last).
+Does a fresh reviewer catch what the gate missed, and does it matter whether the reviewer starts from the request
+and the starting product, or from the delivery's own specification and checks?
+
+**The four deliveries,** each with a green gate of its own, frozen before any review:
+
+- `ka`, **wrong, and plainly so.** The ticket-assignment reference with the planted defect
+  `update-rejects-resolved`: an edit of a resolved ticket is refused, where the product's documentation says only a
+  closed ticket can no longer change. Its record is the specification, plan and checks of q-base-2. Checked
+  before the registration: the product's own 122 tests pass and all 29 acceptance checks pass. **Right verdict:
+  reject, with that finding.**
+- `kb`, **right.** The reference itself, with the same record. **Right verdict: accept.**
+- `kc` and `kd`, **two builds that differ on a point the request leaves open.** The final builds of
+  p3-ticket-due-times-sol-high (it refuses to start on a file without due times) and p3R-ticket-due-times-b (it
+  fills them at start), each with its own record. The owner later ruled for filling; the request does not say.
+  **Right behaviour: the decision is listed under "Decisions made for the requester", whatever the verdict.**
+
+**Cells.** Each delivery, two arms, three sessions: arm `x` starts from the delivery's own record
+(`program/review-delivery.md`), arm `y` writes down what must be true from the request and the starting product,
+tries it, and only then reads the record (`program/review-request.md`). Runs `w<delivery><arm><n>`, for example
+`wax1`. The starting product stands outside the work folder: inside it, the product's own test command ran its
+tests too (found while preparing; 239 tests for 122).
+
+**Readings.**
+
+- **RR.1, the wrong build.** For each arm, in how many of three sessions the verdict on `ka` is reject *with a
+  finding that names the refused edit of a resolved ticket* (two readers). *A fresh review catches it* if an arm
+  does so in at least two of three while accepting `kb` in at least two of three. *Starting from the request
+  matters* if arm `y` does so in at least two more sessions than arm `x`.
+- **RR.2, the right build.** Sessions that reject `kb`, with their reason.
+- **RR.3, the open decision.** For `kc` and `kd`, in how many of three sessions each arm lists the start-up
+  decision; and the verdicts.
+- Reported: seconds, findings and whether each names a probe.
+
+**Predictions.** Arm `x` catches `ka` in at most one of three; arm `y` in two of three; `kb` is accepted in at
+least five of six; the start-up decision is listed for `kc` in at least five of six and for `kd` in at most three
+of six (a service that simply works draws no remark).
+
+**Limits known before the runs.** One planted defect, chosen because suites miss it; the bundle is curated, so a
+catch shows the mechanism, not how often real deliveries need it; the reviewer and the builders are one model
+family.
+
+### D1 check, result (18:14): under neutral names the limit is marked open three of three
+
+`n1` to `n3` (32, 42 and 37 clauses; 161 to 185 seconds): each specification marks the limit open and none states
+one. n1, C-2: "any separate name length bound beyond the existing HTTP body limit"; n2, C-7: "whether to set a
+name-specific length bound beyond the existing whole-body limit"; n3, C-7: "any name-specific length bound beyond
+the existing request-body limit". The folder names did not carry the nine-run result, and F46 holds on Sol at
+medium: six of six.
+
+### Part D2, result (18:16): a session given one question does not ask the point that decided the builds
+
+Nine sessions, 26 to 52 seconds each, every one wrote `ratchet/question.md` in the form asked and changed nothing
+else. Two readers (the second a Sonnet subagent given the nine files under shuffled names, with the three points
+and a copy of the starting product) agree on every sorting.
+
+| Request | Its point | `Question:` asks the point | A `Next:` line names it | What the three sessions asked |
+|---|---|---|---|---|
+| limit unsaid (g1 to g3) | the longest name | 0 of 3 | 0 of 3 | who turns an agent's name into a mail address: the relay, or a directory the operators keep |
+| states unsaid (g4 to g6) | the states that allow assignment | 0 of 3 | 0 of 3 | the same question, three times |
+| due times (g7 to g9) | who fills the due times in, and what the service does at start | 0 of 3 | 1 of 3 (g9, third) | whether the deadlines must survive a roll-back to 1.4.0 and a later upgrade, or may be worked out again |
+
+- **RD2.1: the one question asks the request's point in none of nine runs.** By the registered rule the mechanism
+  fails at choosing, so no specification is revised and no plan made under this part. My prediction for the due
+  times (two of three) was wrong; for the states (none) it held; for the limit (at most one) it held.
+- **RD2.2: none of the nine asks what the files settle.** Each question rests on something read in the product
+  (the notifier hands a recipient on as it is given; release 1.4.0 keeps only the fields it knows) and asks what
+  the files cannot say: how the relay treats a name, what the requester wants after a roll-back.
+- **RD2.3: not run**, since no question asked the point.
+
+**F50. Asked what matters most, a session ranks by cost, and the requester's own answer was not the costly kind.**
+The sessions agree with each other (three of three on each request, six of six across the two assignment
+requests) and their questions are good ones by the rule they were given: a notice that silently reaches nobody, a
+promised deadline that silently moves. The point that failed five of eight held-out checks is of another kind. A
+service that refuses to start says so at once and is cheap to change, so by cost it ranks low; it mattered
+because the requester had a preference about it. Nothing in the folder says which low-cost choices a requester
+holds a view on, and a ranking by cost cannot find them. What would have shown this requester the point is the
+plan's own `## Decisions` table: the refusal is a row of it in all three due-times plans, with filling at start
+among the alternatives set aside, and the limit taken is a row in all three limit plans. The stricter wish about
+states is in no table: the specifications applied the product's rule as a fact (I+), and a fact is not listed as a
+decision. So of the nine runs the decisions table shows the point in six and a single question in none.
+
+**Limits.** One model at one effort; the question text asks for the *one* point by cost, and another rule of
+choice (the point a requester most likely holds a view on) is untested; three requests on one code base.
+
+### Part D3, registered 18:16, before any of its runs: the answer given directly, into the plan and into a build
+
+**What it asks.** D2 tested the choosing and it failed. The other half of any way of asking is untested: when the
+requester's answer does arrive, is it carried, and is the built product then right where the plain one is wrong?
+
+**The question put** is no longer a session's. It is written here once for each request
+(`program/decision-questions.json`), as to a requester who was shown the decision the plan takes, and the reply is
+the one in `program/replies.json`. For the due times: "The specification leaves open how the tickets already in
+the data file get their due times. Left to itself the plan adds a separate preparation command that an operator
+runs, and has the service refuse to start with DUE_TIMES=on while any ticket lacks a due time. The alternative is
+that the service itself gives the missing due times when it starts switched on. Which do you want?" For the limit:
+"The request gives no longest length for an agent's name, and left to itself the plan takes a limit of its own. Is
+there a longest length you want?"
+
+**Cells.**
+
+- `h1` to `h3` (the limit specifications of d-limit-1 to 3) and `h7` to `h9` (the due-times specifications of
+  d-due-1 to 3), each as the spec stage left it: one session revises the specification with the question and the
+  reply (`program/revise.md`).
+- `j1` to `j3`: the plan stage from the revised limit specifications.
+- `b7` to `b9`: plan, build and test pass from the revised due-times specifications (`--spec-from h<n>
+  --stop-after tests`).
+- `p7` to `p9`: plan and build from the same three specifications without the answer (`--spec-from` the
+  specification as the spec stage left it, `--stop-after build`).
+
+**Readings.**
+
+- **RD3.1, into the specification.** The revised specification states the reply as a requirement with `Source:
+  answer` and no longer marks it open (a script finds the source line; two readers read the clause).
+- **RD3.2, into the plan.** The plan follows the reply: 40 for the limit (`j`), filling at start and no refusal
+  for the due times (`b`).
+- **RD3.3, into the build.** The held-out checks (`grade.py snapshots`, eight of them) on the first build of each
+  `b` and `p` run. *An answer reaches the product* if all three `b` builds pass at least seven of eight and at
+  least two of the three `p` builds fail three or more.
+- **RD3.4, into the delivery's own checks.** For each `b` run: the acceptance check of the clause that carries
+  `Source: answer` exists, passes on its own build, and fails on the first build of the `p` run made from the same
+  specification (the check laid over that build by script).
+- Reported: seconds for each stage; what else the revise session changed.
+
+**Predictions.** Carried into all six specifications and all six plans. The three `b` builds pass eight of eight;
+the three `p` builds fail five of eight. The answer's check fails on the paired plain build in at least two of
+three.
+
+**Limits known before the runs.** The question is mine and names both alternatives, so this is the mechanism at
+its best; three runs an arm; the plain arm stops after the build, since its own tests add nothing to these
+readings; the limit is read in the plan only.
+
+### Part V, result (18:20): at this size the text arrives whole through a command, and the duty is done wherever it stands
+
+Eighteen runs, 158 to 229 seconds each, every one a single spec session (no refusal), launched from
+f413b280a06c6c20616b2e5c04ccf06ac21bb8dc (`evidence/program/delivery/shown.txt`, `runs.json`).
+
+| Delivery | The question stands | Lines of the text given to the model | Lines of the question given | `## Rules and edge cases` written (entries) |
+|---|---|---|---|---|
+| prompt | first | in the prompt | in the prompt | 3 of 3 (6, 8, 9) |
+| prompt | standing | in the prompt | in the prompt | 3 of 3 (11, 9, 11) |
+| prompt | last | in the prompt | in the prompt | 3 of 3 (12, 13, 8) |
+| command | first | 83 of 83, three times | 7 of 7, three times | 3 of 3 (9, 9, 10) |
+| command | standing | 83 of 83, three times | 7 of 7, three times | 3 of 3 (11, 12, 9) |
+| command | last | 83 of 83, three times | 7 of 7, three times | 3 of 3 (8, 7, 6) |
+
+- **RV.1:** in all nine command runs Codex's own record shows the model was given every non-blank line of the
+  text. Its first tool call is the command the prompt names, and each time the model's script raises its own limit
+  on the output it shows itself (`max_output_tokens` of 15,000 to 24,000).
+- **RV.2: the channel does not matter and the place does not matter** at this size: the section is written in 18
+  of 18. Both predictions held.
+
+**F51. What ShipLoop loses on Codex is the tail of a long packet, not the channel and not a place within the
+instructions.** A text of 108 lines given as a command's output arrives whole, nine of nine, when the prompt says
+to read all of what the command prints. In 62 archived Codex runs of ShipLoop the instruction lines also arrive (97%
+on average, no third of the packet below 94%), and what goes missing stands after them: the result template and
+the list of references, a median of 15% given at the spec stage. So a duty belongs in the instructions, where it
+is read, and a pointer that matters should not live only in the references after the template. Whether the tail is
+lost because of its length or because the model takes it for reference material is not separated here.
+
+**Limits.** One text of 9.7 thousand characters, one stage, one case; the prompt of the command runs says "read
+all of what it prints", which ShipLoop's own entry text may not; no run here has a packet as long as ShipLoop's.
+
+### A note on yardstick Y2, written at 18:22 while the test passes of parts C and T are still running
+
+Part E's replay (six of seven suites done; its result follows when the last one ends) shows where the seeded
+faults that survive sit. Of the 40 faults on existing lines, the product's own tests catch 30 or 31, and seven
+survive every suite replayed so far: two in the request log (`src/app.js` lines 16 and 65), one in the table
+formatter (`src/format.js` line 36), and four in the checks a data file gets when it is loaded
+(`src/persistence.js` lines 92, 160 twice, 170). Two more in the table formatter are caught by one suite each and
+by no other. None is behaviour that ticket assignment touches; they are gaps
+of the product's own tests in files the change happened to edit. So Y2 has little room that a test pass for this
+change ought to fill, and a run that did catch them would be testing code the request does not concern. RC.1 is
+read as registered; this note says beforehand that "not shown" on Y2 would not mean a lever failed to protect what
+the change touched, and that the defect a change can plausibly cause (RC.2) is the better reading of protection.
+
+### Part D3, result (18:36; its fourth reading follows when the test passes end): the answer is carried into the specification, the plan and the build
+
+Launched from daf3fe89d032747df17d8fd8acabaf9abefb51a1. Six revise sessions (21 to 63 seconds), three plans for the
+limit, three answered runs through plan, build and test pass, three plain runs through plan and build.
+
+| Reading | The limit (`h1` to `h3`, `j1` to `j3`) | The due times (`h7` to `h9`, `b7` to `b9`, against `p7` to `p9`) |
+|---|---|---|
+| RD3.1, in the specification, `Source: answer` | 3 of 3: one new clause each, accepted at 40 and refused at 41 | 3 of 3: the use case and the preparation clause rewritten ("Missing due times alone never cause startup to fail"), the open line about refusing removed |
+| What else the revise session changed | nothing (5 lines added, 1 removed, each time) | nothing outside the use case and the clauses about preparing and starting: 6, 3 and 3 items touched, 13, 8 and 6 lines added |
+| RD3.2, in the plan | 3 of 3 take 40 | 3 of 3 fill at start; the three plain plans again take a separate command and a refusal |
+| RD3.3, held-out checks on the first build | not built | answered 8, 8 and 8 of 8; plain 3, 3 and 3 of 8 (`cli`, `migrate`, `restart`, `rollback`, `switch` fail each time) |
+
+- **RD3.1 and RD3.2: carried, six of six**, with no other change to the specification.
+- **RD3.3: an answer reaches the product.** All three answered builds pass every held-out check; all three plain
+  builds, made from the same three specifications by the same stages, fail the same five. The plain runs' own gate
+  is green each time.
+- With part D1's three plans, **six of six plans made without the answer take the refusal** on Sol at medium.
+
+**F52. One sentence from the requester is worth five of eight held-out checks here, and nothing else tried in this
+pilot moved them.** The specification text, the plan stage and the build stage are the same in both arms. What
+differs is one use case and a few clauses of the specification, 6 to 13 lines that say what the requester wants.
+The cost of carrying it is one session of about a minute. So the lever on this failure is neither wording nor effort but getting the answer, and
+F50 says a single question chosen by cost does not get it while the plan's decisions table shows where to ask.
+
+**One session record holds a held-out mark, and it is not held-out material.** The build session of `b9` listed
+the machine's processes, and the listing held the command line of another session's consultation, whose question
+names the harness's folder. Codex's own record shows the model was given that listing. Nothing of the held-out
+checks is in it, and no other plan or build session of the `b` and `p` runs holds a mark.
+
+**Limits.** The question was mine and named both alternatives; a real requester has to notice the row. One
+request, three specifications, one model at one effort. A build session took 341 to 519 seconds with the answer
+and 359 to 419 without.
+
+### Part R, result (18:36): a fresh reviewer finds the planted defect six times of six, every finding it reports is true, and its verdict cannot be used as a gate
+
+Twenty-four sessions, 91 to 320 seconds each, launched from f413b280a06c6c20616b2e5c04ccf06ac21bb8dc. Every one
+wrote `ratchet/review.md` in the form asked and changed nothing else; none changed the starting product. Two
+session records hold the repository's name: it is the path of the harness's own Python shim inside the session's
+home, printed by a `which`, and no held-out file.
+
+| Delivery | Arm | Verdicts | Findings | Names the planted defect | Lists the start-up decision | Seconds |
+|---|---|---|---|---|---|---|
+| `ka`, wrong | from the record | reject, reject, reject | 4, 4, 3 | 3 of 3 | | 94 to 136 |
+| | from the request first | reject, reject, reject | 2, 3, 2 | 3 of 3 | | 183 to 227 |
+| `kb`, classed right | from the record | reject, reject, reject | 4, 4, 2 | has none: 0 of 3 | | 91 to 127 |
+| | from the request first | reject, reject, reject | 1, 2, 3 | 0 of 3 | | 191 to 211 |
+| `kc`, refuses at start | from the record | reject, reject, reject | 5, 4, 4 | | 3 of 3 | 215 to 262 |
+| | from the request first | reject, reject, reject | 3, 2, 4 | | 3 of 3 | 242 to 320 |
+| `kd`, fills at start | from the record | accept, reject, accept | 0, 1, 0 | | 3 of 3 | 114 to 128 |
+| | from the request first | reject, reject, reject | 1, 2, 2 | | 3 of 3 | 231 to 312 |
+
+**Every finding was checked by running the products** (two Sonnet subagents, one for each case, given the reviews,
+the four deliveries and the starting product; `evidence/program/fresh-review/findings-checked.md`): the 24 reviews
+make 62 findings, 17 of them distinct, and **all 62 reproduce**. Nothing could not be run.
+
+- **RR.1, the wrong build.** Both arms reject `ka` with a finding that names the refused edit of a resolved
+  ticket, three of three each (the second reading agrees on all six; no review of `kb` reports it, and `kb` does
+  not have it). But no session accepts `kb`, so **by the registered rule "a fresh review catches it" is not met**:
+  the rule asked for the right build to be accepted in two of three. *Starting from the request does not matter*:
+  three against three.
+- **RR.2, the build I had classed as right.** `kb` is rejected six times of six, and each time for something
+  true. The reference delivery changes the shared matcher in `src/tickets/query.js` from `some` to `every`, so the
+  command line's `list --status S --priority P` now shows tickets that match both where it showed tickets that
+  match either: all twelve reviews of `ka` and `kb` report it. The other five (a fifth field in `list --raw`; `-`
+  shown both for no assignee and for an agent named `-`; a hand-edited 65-character assignee loaded; a second
+  notice to the same agent not queued while the first is pending; a repeated `assignee` parameter read by its
+  first value) are true as well. **My classification of `kb`, frozen before the reviews, was wrong by the rule
+  the reviewers were given.** The held-out checks do not look at the command line's filters, so the reference
+  passes them.
+- **RR.3, the open decision.** All twelve due-times reviews list how the existing tickets get their due times
+  under "Decisions made for the requester", for both builds and in both arms. I predicted at most three of six
+  for the build that fills at start. No review rejects `kc` for refusing to start.
+
+**The seventeen distinct findings by kind**, sorted by me before the second reader's sorting came back and by a
+Sonnet subagent (`evidence/program/fresh-review/kinds.md`); the two agree on the letter for 11 and on break against
+no break for 16 of 17:
+
+| Kind | Findings | In ordinary use | Only with hand-edited data, a failing disk or a number at the edge |
+|---|---|---|---|
+| A break: the request's own words, or existing behaviour it does not ask to change (both readers) | 7 | 3: the planted defect; the command line's filters (`ka`, `kb`); the HTTP list's filters with the switch on (`kc`) | 4, all in `kc` with the switch off |
+| No break: a choice on an open point, or a gap in new behaviour (both readers) | 9 | 5 | 4 |
+| Disputed | 1 (the second notice not queued: a break of "the agent ... is notified" to me, satisfied by the pending notice to the second reader) | 1 | |
+
+Read with the verdicts: the 18 rejections of `ka`, `kb` and `kc` each rest on at least one finding both readers
+class as a break. The four rejections of `kd` rest on none: on a ticket created while the switch is off taking its
+due time from the priority it has when the switch goes on (three reviews), on an hours setting too large to
+represent (two), on due times lost when release 1.4.0 saves the file (one). `kd` is the only delivery with no
+break found, and it is accepted twice in six, both times by the arm that starts from the record.
+
+**F53. A fresh reviewer is a sharp finder and a poor gate.** In one and a half to five minutes a session that
+built nothing reports what the delivery's own gate, its 29 or more acceptance checks and the held-out checks all
+passed: the planted defect six times of six (six of seven acceptance suites had missed it), and a change to
+existing behaviour in the reference delivery itself. Not one of 62 findings is false. But the verdict follows the
+findings without weighing them: a delivery with no break is still rejected four times of six, for a choice the
+request leaves open read as a requirement. The findings are the product of a review; the accept or reject line is
+not.
+
+**F54. Starting from the request first did not help, and cost more.** It caught the planted defect as often
+(three of three in each arm), reported fewer findings (27 against 35), took longer (235 seconds on average
+against 149), and on the one delivery with no break it rejected three times of three where the other arm rejected
+once: having written down what must be true, it held the build to its own reading. The first review expected the
+opposite; three sessions an arm on four deliveries is what this rests on.
+
+**F55. The same quirk of the starting product was changed, unasked, by two deliveries from different runs, and no
+suite or held-out check noticed.** The product's documents say a listing matches every filter given; its code
+matches either. The ticket-assignment reference changes it everywhere, the due-times build `kc` changes it when
+the switch is on, and `kd` leaves it. Part D1's specifications mark exactly this as open ("the requester would
+resolve the discrepancy"). A place where the documents and the code of the starting product disagree is a
+decision, and it is being made by whoever touches the file.
+
+**Limits.** Four deliveries, curated; one planted defect, chosen because suites miss it; the reviewer and the
+builders are one model family, and the checkers and second readers another; "no break" for `kd` means none was
+found by six reviews and two readers, not that none exists. Whether the reference's change to the command line is
+a defect of the E2E harness's reference or a welcome fix is its owner's to say.
+
+### Part D2b, registered 18:40, before any of its runs: three questions of three kinds (exploratory, nine sessions)
+
+**What it asks.** F50: one question chosen by cost asks the request's point in none of nine runs. Does a session
+that may ask three, one by cost, one about ordinary use and one about a place where what exists disagrees with
+itself, ask it? **Exploratory:** the three kinds were written after part D2's result and with the due-times point
+known to me. A hit would show that the point can be reached by a rule of choice; it would not show that this rule
+is the right one.
+
+**Cells.** `k1` to `k9`: as `g1` to `g9` (the same nine specifications of part D1, the same folders), with
+`program/question-three.md` in place of `program/question.md`.
+
+**Readings.**
+
+- **RD2b.1.** For each request, in how many of three runs one of the three questions asks the request's point, and
+  under which kind (two readers, the second without my sorting).
+- **RD2b.2.** How many of the 27 questions ask what the product's files settle.
+- Reported: what the third kind turns up. This product holds one such place (F55: its documents say a listing
+  matches every filter given, its code matches either).
+
+**Predictions.** Due times: the ordinary-use question asks the start-up point in two of three. The states: the
+ordinary-use question asks which states allow assignment in one of three. The limit: none of three. The
+disagreement question names the filters in at least six of nine.
+
+### Part D2b, result (18:44): three questions of three kinds still miss the point, and every session finds the place where the product disagrees with itself
+
+Nine sessions, 33 to 51 seconds, launched from 545c432df9603a982e5372ebc43cb35cfcffc77f; each wrote the file in
+the form asked and changed nothing else. Two readers agree on every sorting (the second a Sonnet subagent with the
+files under shuffled names; `evidence/program/one-question/three-questions*.md`).
+
+| Request | A question asks the request's point | Cost | Ordinary use | Disagreement |
+|---|---|---|---|---|
+| limit unsaid (k1 to k3) | 0 of 3 | who turns a name into a mail address, three times | whether `Dana` and `dana` are one agent (twice); whether a resolved ticket keeps its assignee | the filters: both, or either (3 of 3) |
+| states unsaid (k4 to k6) | 0 of 3 | the same, three times | capital letters (twice); spaces around a name | the filters (3 of 3) |
+| due times (k7 to k9) | 0 of 3 | deadlines after a roll-back, three times | whether the command line shows the deadline, three times | the filters, for an overdue listing (3 of 3) |
+
+- **RD2b.1: none of nine.** With three questions the request's own point is still not asked: 27 questions, none on
+  the longest name, the states that allow assignment, or who fills the due times in. My predictions (two of three
+  for the due times, one of three for the states) were wrong.
+- **RD2b.2: none of the 27 asks what the files settle.**
+- **The third kind works: nine of nine name the one place where this product's documents and code disagree**
+  (a listing "matches every filter given"; the code matches either), and one asks outright whether the command
+  line should change with the API. That is F55's place, which two deliveries changed unasked and which every
+  reviewer of part R reported.
+
+**F50 stands, more firmly, and gains a second half.** Thirty-six questions over two wordings do not reach the
+choice that sank the builds: a session does not see the plan's future answer to an open point as a question worth
+the requester's time, whichever way the question is framed. What a question step does reach, every time, is a
+disagreement that already stands in the files. So of the two things a requester needed to be asked here, the
+disagreement can be found by asking for it, and the preference cannot be found by asking the session to guess
+which preference matters; it shows only when the decision taken is put in front of the requester.
+
+**Limits.** Exploratory: the kinds were written after part D2 and with the due-times point known to me. One
+product, with one known disagreement that is easy to see once looked for.
+
+### Part D3, the fourth reading (18:47): the delivery's own check tells the answered build from the plain one, three of three
+
+The three answered runs ended their test passes (682, 739 and 796 seconds; 41, 41 and 43 checks; the first leaves
+one check failing on its own build, the other two none). `program/answer_check.py` ran each run's checks on its
+own build and on the first build of the plain run made from the same specification
+(`evidence/program/answer-carried/answer-checks.json`).
+
+- **RD3.4: three of three.** In each run the two items that carry `Source: answer` (the use case and the clause on
+  filling at start) have a check that passes on its own build and fails on the plain build. My prediction was at
+  least two of three.
+- On the plain build 16, 13 and 14 of each suite's checks fail in all: a build made without the answer does not
+  pass the acceptance suite written with it.
+
+So the answer is carried through every stage that exists here: specification, plan, build, and the delivery's own
+acceptance checks. The first review's third experiment asked for exactly this chain ("carry the reply into
+acceptance"); it holds, given the answer.
+
+### Part E, result (18:50): an acceptance suite adds almost nothing to what the product's own tests catch in existing code, and what survives is not what the change touches
+
+The replay ran from 17:36 to 18:49 (the two suites with the question in the specification take 156 and 276
+seconds a pass), from f83631bc5ff33238ab7fd553524d35e226b2dbad; `evidence/program/existing-code-faults/replay.json`
+holds every fault with its outcome for each suite.
+
+| Suite | Cell of amendment 12 | The product's own tests catch | The acceptance checks catch | Caught by the checks and missed by the own tests | Survive both |
+|---|---|---|---|---|---|
+| q-base-1 | baseline | 31 of 40 | 31 | 0 | 9 |
+| q-base-2 | baseline | 31 | 31 | 0 | 9 |
+| p1S-ticket-assignment-medium | baseline | 30 (one run did not end) | 30 | 0 | 9 |
+| q-spec-1 | question in the specification | 31 | 31 | 0 | 9 |
+| q-spec-2 | question in the specification | 30 (one run did not end) | 31 | 0 | 9 |
+| q-plan-1 | question in the plan | 30 (one run did not end) | 28 | 1 (`src/format.js` line 43) | 9 |
+| q-plan-2 | question in the plan | 31 | 32 | 1 (`src/format.js` line 36) | 8 |
+
+Where a run of the own tests did not end, the fault it was on is caught by the own tests in every other replay, so
+it is not counted as missed by them.
+
+- **RE.1, room.** The product's own tests catch 31 of the 40 faults and 9 survive them.
+- **RE.2: not shown.** Each plan suite catches one fault the own tests miss and no baseline suite catches any, so
+  the plan suites are ahead, by one where the bar was three. My prediction was two or more above the best
+  baseline, and "not shown".
+- **What survives.** Seven faults survive every suite: two in the request log, one in the table formatter, four in
+  the checks a data file gets when it is loaded. The two that one plan suite each catches are in the table
+  formatter. None is behaviour that ticket assignment changes.
+- q-plan-1's checks catch fewer faults than the product's own tests (28 against 30): its two checks that run those
+  tests run nothing (F42).
+
+**F56. Seeded faults on the existing lines of touched files measure the product's old test gaps, not the change's
+care.** An acceptance suite written for a change mirrors the product's own tests on existing code (31 against 31)
+because it tests the change and runs those tests; the faults nobody catches sit in code the request does not
+concern. A lever that raised this number would be buying tests of the request log and of file validation in a
+delivery of ticket assignment. The hand-planted defects that a change can plausibly cause (a guard tightened, a
+default moved, a notice replaced) remain the better yardstick of protection, and a fresh review found the one of
+them that suites miss (F53).
+
+**Limits.** One build, one case, forty mechanical faults; suites by one model at one effort.
+
+### Part R, the other half, registered 18:53 before its runs: a fresh reader of a specification (three sessions)
+
+**What it asks.** The program's table gave part R two halves; the review of a finished product is done. The other:
+does a session that did not write a specification find the clauses in it that decide beyond the request?
+
+**The specification and its known over-decisions.** `c0`'s, written by Sol at medium for `ticket-assignment`, as
+its plan stage left it (45 clauses: the spec stage wrote 44 and the plan stage added C-45). Eight test passes written from it (parts C and T, the ones ended by now) were run on the correct
+reference build, and two clauses' checks fail there in all eight because the reference does not do what the clause
+requires, where neither the request asks for it nor the starting product does it:
+
+- **C-34**, "A data file with an invalid assignee value is refused", for a saved assignee of 65 letters. Its source
+  line names the product's documents; the product's loader checks no length (it loads an over-long requester or
+  title too).
+- **C-45**, "A failed save leaves the last successful ownership state intact". The starting product keeps a change
+  in memory when a save fails (part R's finding C5 shows it), and the request does not speak of it.
+
+Two more fail in most passes and are not targets: C-44 is about which new tests exist, and C-40's failure is a real
+weakness of the reference (`-` shown both for no assignee and for an agent named `-`).
+
+**Cells.** `s1` to `s3`: a fresh session is given the starting product and that specification (the plan itself is
+not in the folder), and `program/spec-reader.md`: list the clauses that decide beyond the request, after checking each claim
+about existing behaviour in the product's files.
+
+**Readings.** **RR1.1:** in how many of three sessions each target is listed. *A fresh reader finds a
+specification's unasked decisions* if both targets are listed in at least two of three. **RR1.2:** how many other
+clauses a session lists, and whether it lists C-40 (which would be a wrong flag). Reported: seconds.
+
+**Predictions.** C-45 is listed in two of three, C-34 in one of three, and each session lists five to ten other
+clauses, which nothing here can score.
+
+**Limits known before the runs.** One specification, two targets; the targets are what suites happened to test and
+the reference happened not to do, so a clause listed and not among them may be just as right.
+
+### Part R, the other half, result (18:56): three fresh readers each list exactly the two clauses that reject a correct build
+
+Three sessions (52, 71 and 93 seconds), launched from b23da050d896de4cb94e0a6375045a4fc5e00865; each wrote
+`ratchet/reading.md` in the form asked and changed nothing else (`evidence/program/spec-reader/`).
+
+| Session | Listed under "Decided beyond the request" | Clauses it says it checked in the product's files |
+|---|---|---|
+| s1 | C-45, C-34 | 37 |
+| s2 | C-45, C-34 | 39 |
+| s3 | C-45, C-34 | 33 |
+
+- **RR1.1: both targets in three of three**, so *a fresh reader finds a specification's unasked decisions*. I
+  predicted two of three and one of three.
+- **RR1.2: no other clause is listed, by any session**, and C-40 is not. I predicted five to ten others each.
+- Each entry gives the reason from the code: for C-45, that the store applies a change before it saves and has no
+  way back; for C-34, that the loader checks no length, not even the requester's. Those are the reasons the checks
+  of these two clauses fail on the reference build, now in nine test passes of nine.
+
+**F57. One short reading of the specification by a session that did not write it removes the clauses that would
+later reject a correct product.** The author's own text tells it to cut a clause "a builder could leave out with
+nothing missing", and the author kept both: one it had sourced to documents the code does not follow, one the plan
+stage added as implied. A reader with one question, sent to check each claim about existing behaviour in the
+product's files, finds both and nothing else, in about a minute. Section 20 found that what rejects a correct product is
+a refusal the writer added on its own (F28: 28 times in 46); this is the cheapest lever on such clauses seen so
+far.
+
+**Limits.** One specification and two known targets, by one model at one effort. A clean sheet on the other 43
+clauses means none of them is known to be wrong, not that all are right. Whether the reading holds on a
+specification with no over-decision (does it then write `none`?) is not tested.
+
+### A change to how yardstick Y2 is measured, written at 19:03 before any test pass of parts C and T has been graded on it
+
+The registration reads Y2 on all 52 fault sites. Measured that way for twelve runs, the machine could not keep up:
+`mutate.py` runs the product's own tests for every fault, `npm test` starts a process for each test file at
+once, and three grading streams drove the load to 47 on 18 cores, where a check can fail for want of time. I
+stopped the streams before any of them had finished a replay (one run's planted-defect grading had finished and is
+kept: it shows no check that did not end).
+
+The change: Y2 is read on the **40 faults of part E** (the first 40 of the same 52, on the same reference build),
+and each fault's own-tests result is taken from part E's replay of q-base-2 (`mutate.py --own-from`, new), since
+the product and its own tests are the same files under every suite. The acceptance checks are run on every fault
+as before. The odd-numbered lines remain the yardstick for every arm; the proof of failure showed sessions faults
+from all 52 sites on even lines, so nothing held out was shown. What is lost: the twelve sites beyond the first
+forty.
+
+### Part C, the census by script: how it is run, written at 19:15 before its count exists
+
+The registered command (`prove_fail.py WORK - OUT --only sabotage`) runs every check twice over, on the build and on
+the sabotaged copy. On six suites it took up to several minutes each on a machine other sessions were also using,
+and was stopped twice to protect live sessions. `program/sabotage_census.py` asks the same question and stops at
+the first check that notices: it runs the manifest's commands on the sabotaged copy, last entry first, and when
+one fails it runs that one on an untouched copy; passing there makes the copy *noticed*, and a suite whose every
+command still passes on the sabotaged copy is *unnoticed*. Tried on the two suites whose truth is known: q-plan-1
+unnoticed, q-base-2 noticed by its last entry after one command (20 seconds for both). The six suites measured the
+registered way stay on file as a cross-check: three stand-in-rules suites unnoticed, ticket assignment and due
+times noticed, one product with no test file to sabotage.
+
+### Part C, the census by script, result (19:20): one suite of 39 claims that the existing tests pass and cannot tell when one fails
+
+46 suites, four minutes (`program/sabotage_census.py`; `evidence/program/hollow-checks/sabotage-census.json`). The
+six suites measured the registered way agree with it, six of six.
+
+| | Suites | By case |
+|---|---|---|
+| The product started with no test file | 7 | battleship 2, Grokbot-local 3, chess 1, shared expenses 1 |
+| A check fails when an existing test is made to fail | 33 | ticket assignment 15, due times 13, stand-in rules 5 |
+| No check fails | 6 | stand-in rules 5 (Sol at high), ticket assignment 1 (q-plan-1, Sonnet at medium) |
+
+A check that noticed was found after two commands at the median (the last entry first), 115 at the most.
+
+**The six, read.** q-plan-1 is the known case: a clause says the existing tests pass and its test starts a run
+that does nothing (F42). The five stand-in-rules suites are the strength cells of one request, which adds a module
+and was given a reference build: in the two I read, the clause is about which command `npm test` runs, not that
+the existing tests pass (p1: "the `scripts.test` value in `package.json` is `node --test`"); in two more a script
+reading shows the checks that start the product's tests failing on the given build already, so they decide
+nothing. I count none of the five as a check that cannot fail.
+
+- **The reading census overcounted.** It found 16 suites in which a nested run keeps the variable that makes it do
+  nothing. By script, two of the suites it listed notice the broken test at once (their manifest starts checks
+  with a plain `node` runner, where the variable is never set). What decides is how the check is started, which a
+  reader of the test file does not see.
+- **My prediction** (5 to 12 unnoticed of those measurable) holds as a count, six, and misses the point: one of
+  the six is the failure the idea is about.
+
+**F58. A do-nothing check of "the existing tests pass" is rare here: one suite in 39.** The rule "a check must be
+able to fail" is right, and the sabotaged copy is a cheap way to enforce it for this claim (a few seconds for most
+suites), but it would have changed one suite of those on file. The yardstick trial already showed where the rule
+has more to do: checks that pass on the starting product and on every faulted copy (one in each of the first two
+proof-of-failure runs, see below), which only a counterexample for that check's own behaviour can expose.
+
+**Limits.** Three cases with existing tests, one fixture family; the sabotage breaks one test file and says nothing
+of a check that runs some of the product's tests.
+
+### Part T, a fourth arm, registered 19:28 before its runs: every refusal the change touches, with its nearest allowed case (three test passes)
+
+**What is known at this moment.** Of the twelve test passes of parts C and T, the planted-defect grading exists
+for these: ta1 ta2 tb1 td2 . Each catches 26 of 27 and misses `update-rejects-resolved`: two plain runs, one with
+the proof of failure and one with the grounded question. The reports of the question arms show why: each
+lists "closed tickets refuse edits", and none lists or tests that a resolved ticket can still be edited. The defect
+tightens that guard by one state, so only a test of the case next to the refusal can see it. The first review said
+so before any of these runs: "Ask for the allowed neighbor as well as the refusal when a state guard changes"
+(`review/sol-ideas-answer.md`). My grounded question left that sentence out.
+
+**Stated plainly.** This arm is written knowing which defect the suites miss. The rule is the review's and names no
+state, route or file; whether it finds this defect is still open, and a hit would show the rule can reach it, not
+how often such a rule pays.
+
+**Cells.** `te1` to `te3`: as the other arms (`--plan-from c0 --build-from <the reference> --stop-after tests`), with
+`--tests-question neighbour` (new in `ratchet.py`; the other two question texts are unchanged): find each condition
+the change touches that refuses something, name the nearest case that must still be accepted, taken from the old
+code, and name or write one test for each side.
+
+**Readings.**
+
+- **RT2.1.** `update-rejects-resolved` caught in how many of three. *The question catches it* if all three do (the
+  bar of RC.2).
+- **RT2.2.** Planted defects caught of 27; checks failing on the reference and on the second correct delivery,
+  beside the plain runs (RC.3's bar for over-tight).
+- **RT2.3.** The entries under `## Refusals and their allowed neighbours`: how many, and whether the edit of a
+  resolved ticket is among the allowed cases.
+- Not measured for this arm: the seeded faults on existing lines (F56 says what that instrument measures).
+
+**Predictions.** It catches `update-rejects-resolved` in two of three; 26 or 27 of 27; one or two more checks fail
+on the second correct delivery than in the plain runs.
+
+### Parts C and T, result (20:24): fifteen test passes on one base; three levers move nothing that matters, and the fourth catches the missed defect once in three
+
+Every run starts from `c0`'s specification and plan (45 clauses, 6 use cases, Sol at medium) and the reference build,
+and ends after its test pass. Launched from f413b280a06c6c20616b2e5c04ccf06ac21bb8dc (`ta`, `tb`, `tc`, `td`) and
+from ac93c95b74c188a50741a3fc733691aa55f7d296 (`te`). Graded with the working copy at
+705581df4116da1fdf769929cca0e8a9543ab14e: planted defects by `grade.py strength`; seeded faults on existing lines
+on part E's 40 faults (see the note of 19:03); the sabotaged copy by `prove_fail.py`. No check failed to end in any
+grading; a check that failed once and passed when run again is counted as passing, as the gate counts it.
+`evidence/program/test-pass/table.json` holds every row, with each run's own report.
+
+| Arm | Runs | Seconds of test sessions | Planted defects caught of 27 | `update-rejects-resolved` | Checks failing on the reference | on the second correct delivery | Odd-line faults caught, of 22 (the own tests: 20) | All 40 (the own tests: 31) |
+|---|---|---|---|---|---|---|---|---|
+| plain | ta1 to ta3 | 834, 861, 862 | 26, 26, 26 | missed, 3 of 3 | 3, 4, 4 | 5, 4, 5 | 20, 20, 20 | 31, 31, 31 |
+| proof of failure | tb1 to tb3 | 1,323, 904, 989 in three sessions each, and two script proofs of 330 to 480 seconds | 26, 26, 26 | missed, 3 of 3 | 3, 5, 3 | 5, 4, 5 | 20, 20, 20 | 31, 31, 31 |
+| question, general | tc1 to tc3 | 938, 795, 956 | 26, 26, 26 | missed, 3 of 3 | 5, 5, 4 | 5, 4, 5 | 20, 20, 20 | 31, 31, 31 |
+| question, grounded | td1 to td3 | 931, 902, 899 | 26, 26, 26 | missed, 3 of 3 | 4, 6, 5 | 5, 6, 6 | 21, 21, 21 | 32, 35, 32 |
+| question, refusals and neighbours | te1 to te3 | 1,150, 881, 1,073 | 27, 26, 26 | caught once, missed twice | 4, 4, 4 | 4, 5, 5 | not measured | not measured |
+
+The sabotaged copy is noticed in every run. Every suite has 51 checks.
+
+- **RC.0, room.** The plain runs miss one planted defect of 27, the same one each time; two odd-line faults of 22
+  survive their checks; no plain suite fails to notice a broken existing test (I predicted one of three would).
+- **RC.1, existing code.** The proof of failure: *does not* (20, 20, 20 against a best plain run of 20). The general
+  question: *does not* (20, 20, 20). The grounded question: *not shown* (21 each, one more than the plain runs, where the bar was
+  two more in every run).
+- **RC.2, the defect the suites miss.** None of the three registered arms catches it in any run. The fourth:
+  catches it in one run of three (te1), so by the bar of all three *the question catches it* is not met. I
+  predicted two of three for it, two of three for the grounded question and one of three for the general one; the
+  last two caught it in none.
+- **RC.3, harm.** No arm is over-tight by the rule: the worst plain run fails five checks on the second correct
+  delivery, and no arm fails more than that in every run.
+
+**What each lever did.**
+
+- *The proof of failure.* In all three runs the script found the same check that nothing made fail (C-8: an
+  assignment to a ticket that does not exist answers 404, which the starting product's handler for an unknown
+  route answers too) and ten faults no check noticed, all on existing code. Each session then strengthened or
+  explained C-8, explained one fault as unreachable, and wrote regression checks for the others in a new file. The
+  bench's rule that every manifest entry names a clause kept those checks out of the manifest (entries named
+  `R-1`, `R-2`, `R-cli-table` and `R-data-file` were refused, in all three runs), and my refusal text had not said
+  where such a check may live. So the second proof found the same ten
+  faults unnoticed, and nothing moved on any yardstick, for 904 to 1,323 seconds of sessions against about 850, and
+  690 to 940 seconds of script time.
+- *The general question.* A table of 14 rows of preserved behaviour in each run, each row with its evidence and a
+  test. No reading moved.
+- *The grounded question.* 57, 95 and 105 entries, one for each route, command, field and message that passes
+  through a touched file. Its suites catch one to four seeded faults that the product's own
+  tests miss, in the table formatter and in the checks a data file gets on load: code the request does not
+  concern (F56). It lists "closed tickets refuse edits" and never that a resolved ticket can still be edited.
+- *Refusals and their allowed neighbours.* 58, 42 and 45 entries. te1 lists the existing guard on edits ("Existing edit
+  validation refuses a closed ticket. It allows the same edit while resolved.") with one test for each side, and its
+  suite catches all 27. te2 and te3 list the refusals the change itself adds (assignment while resolved or closed,
+  an assignee field in an edit, the limits on text) with their neighbours, and not the edit guard, which the
+  change's diff does not touch.
+
+**F59. A list of what must not change does not test the boundary; a list of refusals with their allowed
+neighbours can, when it reaches the right guard.** The twelve suites of the plain runs and the three registered
+arms all miss the defect that tightens an existing guard by one state: they test that a closed ticket refuses an
+edit and that an open one accepts it, and nothing in between. Of the thirteen suites graded for this request before today, four
+catch it: three written by Sol at high from the longer specification texts (164 to 209 checks) and one whose plan
+listed preserved behaviour; of the nine written from the reworded text, one (F36). Asked for each refusal's nearest
+allowed case, one session of three found that guard, tested its allowed side, and caught the defect; the other two
+looked at the refusals in the change's own diff. So the rule has the right shape, and its reach depends on which
+guards a session takes the change to touch: this defect sits on a guard beside the change, not in it. A fresh
+review of the built product found it six times of six (F53), because there the defect is in front of the reader.
+
+**F60. Feeding a test author what the script could not break buys tests of whatever the faults happened to
+touch.** The proof of failure did find a real do-nothing check in every run, and that half is worth keeping. Its
+other half, the list of unnoticed faults, sent three sessions to write checks of the request log and of file
+validation in a delivery of ticket assignment, for a quarter more session time on average and eleven to sixteen
+minutes of the script's own time in each run. As a gate it needs two
+things this bench did not give it: faults confined to what the change touches, and a place for a check that no
+clause covers.
+
+**Five session records hold a held-out mark, none of them held-out material.** Each of those test sessions listed
+the machine's processes and so saw the command line of another session's run (a consultation that names the
+harness's folder; a ShipLoop run started with its request). Nothing of the held-out checks or of the planted
+defects is in them.
+
+**Limits.** One case, one specification and plan, one reference build that is not itself clean (F55), three runs an
+arm, and a machine that was overloaded during part of the wave; the fourth arm was written knowing which defect
+the suites miss, and the seeded faults were not replayed on it.
+
+### What the program says, taken together (20:25, when its last part was read)
+
+131 model sessions in 106 runs, every one on Codex with `gpt-6.2-sol` at medium, and no rescoring of a registered
+reading. Where a registered reading was not met, or a registration turned out to rest on a wrong classification
+(part R's "right" build), the entry of that part says so. Each finding below has its evidence under `evidence/program/`.
+
+| Idea | Verdict on this bench | Finding |
+|---|---|---|
+| A point the request leaves out is carried, not decided silently | already done by the reworded text: marked 12 of 12 | F46, F48 |
+| The answer reaches the build | holds: 8 of 8 held-out checks three times against 3 of 8 three times; into the delivery's own check 3 of 3 | F52 |
+| A session chooses what to ask the requester | does not hold: the request's point asked 0 of 18; a disagreement inside the product found 9 of 9 | F50 |
+| A fresh reader of the specification | holds on the one specification with a ground truth: exactly the two over-decided clauses, 3 of 3 | F57 |
+| A fresh reviewer of the finished product | holds as a finder (planted defect 6 of 6, 62 of 62 findings true), not as a gate (a delivery with no break rejected 4 of 6); starting from the request first does not help | F53, F54 |
+| The instruction arrives | holds at this size (18 of 18); ShipLoop loses the tail of long packets, not instructions | F51 |
+| Existing code is protected | the instrument measures the product's old test gaps; suites mirror the own tests (31 against 31) | F56 |
+| A check must be able to fail | the unit is the test and the tool is a counterexample copy; do-nothing checks of "the existing tests pass" are rare here (1 suite in 39) | F49, F58 |
+| A question at test design | a general or a file-grounded question moves nothing (26 of 27 in all six runs); asking for each refusal's allowed neighbour catches the missed defect once in three | F59 |
+| The proof of failure shown to the test owner | finds a real do-nothing check in every run; its list of unnoticed faults buys tests of unrelated code and moved no reading | F49, F60 |
+| Ask after reading | nothing to fix: answers are on record (14 of 15) | part A |
+| Gaps in ShipLoop's own checks | five pinned as tests | part G |
+
+**The shape of it.** Three results point the same way. A session that did not write a thing, given one narrow
+question and sent to the files, is right where the author is not: about clauses that decide too much (F57) and
+about a finished build (F53). And the one input no session can supply
+is the requester's own preference: it cannot be guessed (F48), cannot be chosen as a question (F50), and when it
+is given it goes through every stage untouched (F52). More text in the author's packet moved nothing in this
+pilot; a second pair of eyes and one sentence from the requester each moved a great deal.
+
+**What I would try in ShipLoop, for its owner to decide.** None of these is tested in ShipLoop itself.
+
+1. *Put the plan's decisions in front of the requester.* The plan already lists each answer it takes for an open
+   point with the alternatives set aside. Attended, show that table before the build; unattended, put it at the top
+   of the final report as "decided for you; one sentence changes it". On the due-times request this is the
+   difference between 3 and 8 of 8.
+2. *Ask one thing at intake that a session finds every time:* where the product's documents and its code disagree,
+   and which the requester wants kept.
+3. *A second reading of the specification* by a fresh session, one question (which clauses require what the
+   request does not ask and the product does not do), each claim checked in the files. About a minute.
+4. *A fresh review after the gate, for its findings.* Each finding with a probe, sorted into "breaks the request or
+   existing behaviour" and "decides an open point"; no accept or reject line.
+5. *For every guard in the code a change touches, test the nearest allowed case as well as the refusal.* The one
+   planted defect the suites miss is a guard tightened by one state. Every inventory of preserved behaviour
+   written here lists "closed tickets refuse edits"; the one suite that also tested "a resolved ticket can still
+   be edited" caught all 27 (F59). The wording has to reach guards beside the change, not only in its diff.
+6. *Keep what must be read inside a packet's instructions,* not only in the references after the result template.
+
+**What I would not spend more on.** Wording of the specification text. A general question about preserved
+behaviour, at any stage. A verdict from a reviewer. Seeded faults on existing lines, as a measure of a delivery or
+as feedback to a test author.
+
+**Limits of the whole program.** One evening, one model at one effort, three requests on one fixture family, three
+runs a cell. The requester was a file. Several readings rest on a build I had classed as right and that was not
+clean (F55). The machine was shared and at times overloaded; gradings were checked for checks that did not end.
+
+**Received from the session "Spec elaboration" at 19:57, not checked by me.** It reran its reader over the same 62
+runs and reproduces the packet figures above (its journal, section 58). It adds two results of its own: on one
+one-sentence request the released spec stage decides silently in a different direction on each model (all three
+Sol specifications add a new ticket status, all three Sonnet ones reuse an existing state and record that as an
+assumption), and two judges reading five texts twice give an item the same state on 97 of 101 items, with nets
+steadier than counts. The first is the same thing as F48 seen from the other side: what is decided when nobody
+answers moves with the model.
+
+**Not delivered.** My note on F55, on the plain builds failing five held-out checks and on part G was sent to the
+session "Shiploop SDLC"; that session held it and it expired unread. The content is in this section.

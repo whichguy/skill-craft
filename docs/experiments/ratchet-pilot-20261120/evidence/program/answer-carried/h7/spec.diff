@@ -1,0 +1,60 @@
+diff --git a/ratchet/spec.md b/ratchet/spec.md
+index 32317c8..f4046a8 100644
+--- a/ratchet/spec.md
++++ b/ratchet/spec.md
+@@ -12,9 +12,9 @@ Source: request
+ Flow: The agent calls `GET /tickets?overdue=true`. The list contains overdue `open` and `in_progress` tickets and excludes `resolved` and `closed` tickets. The agent follows `next` with the same filters until it is null. If there are no matches, the agent sees an empty page. A resolved ticket that reopens can qualify again at its original deadline.
+ Source: request
+ 
+-### U-4: A production operator prepares the existing file to enable due times
+-Flow: The operator deploys with due times hidden, prepares the production `DATA_FILE` until all its tickets have durable deadlines based on their creation time and priority, then serves enabled production responses with `DUE_TIMES=on`. The operator can repeat preparation after an interruption without changing deadlines that were already saved. With the switch off again, callers see the old API responses.
+-Source: request
++### U-4: A production operator enables due times for tickets in the existing file
++Flow: The operator deploys with due times hidden, then starts the service with `DUE_TIMES=on`. During startup, the service assigns each missing deadline using the ticket's saved creation time and priority, saves the production `DATA_FILE`, and then serves enabled responses. Restarting after an interruption fills any deadlines still missing and preserves deadlines that were already saved. With the switch off again, callers see the old API responses.
++Source: answer
+ 
+ ### U-5: A production operator rolls back to 1.4.0 to recover service
+ Flow: The operator stops the new release and starts the unchanged 1.4.0 service on the same file. The operator can retrieve tickets from before activation and tickets created by the new release without restoring an older copy of the file.
+@@ -99,24 +99,23 @@ Open: The requester would settle whether any forms beyond the required single `o
+ Observable: Start with the switch unset, empty or set to a value other than `on`. Run the same ticket requests as on 1.4.0 against equivalent state, including state whose deadlines have been prepared. Successful responses carry no `due`, and existing statuses, response bodies and errors still apply. `GET /tickets?overdue=true` and other `overdue` values have no effect on the result. Combined status and priority filters still match either supplied field as in 1.4.0.
+ Source: request
+ 
+-### C-17: Operators can prepare production deadlines before exposing the feature.
+-Observable: Starting with a 1.4.0 production file, use the release's preparation procedure while due-time responses are still hidden. An inspection of `DATA_FILE` confirms every ticket has a persisted deadline before enabling responses. A file with zero tickets needs no deadlines added.
+-Source: request
+-Open: The production operator would settle how and when preparation runs, including whether it may stop ticket writes or must run while the service is serving traffic. The request fixes the outcome before activation.
++### C-17: The service automatically fills missing production deadlines at startup with `DUE_TIMES=on`.
++Observable: Start the service with `DUE_TIMES=on` on a 1.4.0 production file without running a separate preparation command. Startup succeeds despite the missing deadlines. The service calculates each missing deadline from that ticket's saved creation time and priority and saves the updated `DATA_FILE` before serving requests. A file with zero tickets needs no deadlines added.
++Source: answer
+ 
+-### C-18: Preparation calculates a deadline for each legacy ticket that lacks one.
+-Observable: Prepare a file containing tickets with different saved `created` times and priorities, including tickets in `open`, `in_progress`, `resolved` and `closed`. Each missing deadline becomes that ticket's own saved creation instant plus the response hours for its priority in the ticket record. Changing the preparation clock or the ticket's `updated` time does not shift that calculation. With default hours, the offsets are 4 for `urgent`, 24 for `high`, 72 for `normal` and 168 for `low`.
++### C-18: Enabled startup calculates a deadline for each stored ticket that lacks one.
++Observable: Start with `DUE_TIMES=on` on a file containing tickets with different saved `created` times and priorities, including tickets in `open`, `in_progress`, `resolved` and `closed`. Each missing deadline becomes that ticket's own saved creation instant plus the response hours for its priority in the ticket record. Changing the startup clock or the ticket's `updated` time does not shift that calculation. With default hours, the offsets are 4 for `urgent`, 24 for `high`, 72 for `normal` and 168 for `low`.
+ Source: request
+ Open: The requester would settle which schedule governs legacy tickets if response hours had already been changed before preparation. For tickets created while responses are hidden, the operator would settle whether deadlines are assigned at creation or filled in during preparation.
+ 
+-### C-19: Repeating preparation keeps deadlines that are already saved.
+-Observable: Prepare a file that contains some tickets with saved deadlines and some without. Repeat preparation after an interruption or under changed response-hour settings. Tickets whose deadline was already saved keep that exact value, and the procedure can finish assigning deadlines to the remaining tickets.
++### C-19: Enabled startup keeps deadlines that are already saved.
++Observable: Start with `DUE_TIMES=on` on a file that contains some tickets with saved deadlines and some without. Restart with the switch on after an interruption or under changed response-hour settings. Tickets whose deadline was already saved keep that exact value, and startup finishes assigning deadlines to the remaining tickets.
+ Source: implied: U-4 and the requirement that a ticket's due time is set once
+ 
+ ### C-20: The production service exposes due-time behavior only after its file holds all required deadlines.
+-Observable: Attempt activation with `DUE_TIMES=on` against a production file containing a ticket without a deadline. Any successful enabled ticket response comes only after the file contains all required deadlines. After successful preparation, start with `DUE_TIMES=on` and observe enabled responses.
++Observable: Start with `DUE_TIMES=on` against a production file containing a ticket without a deadline. The service saves all required deadlines to the file before serving requests. The first enabled ticket response exposes the saved deadline.
+ Source: request
+-Open: The production operator would settle whether premature activation refuses startup, keeps serving with the feature hidden, or completes preparation before serving. The requester would settle enabled behavior when no `DATA_FILE` is configured. The existing off-mode in-memory service remains covered by C-16.
++Open: The requester would settle enabled behavior when no `DATA_FILE` is configured. The existing off-mode in-memory service remains covered by C-16.
+ 
+ ### C-21: A saved due time cannot be silently replaced as a way to handle invalid deadline data.
+ Observable: If a production file contains a value for an assigned deadline that cannot be interpreted as a time, the service does not present a guessed or recalculated deadline for that ticket as if it were the saved one. If startup refuses the file as unusable, the diagnostic identifies the file and the offending record, with exit status 2 as for other data-file validation failures.
+@@ -155,7 +154,7 @@ Observable: With the worker off, inspect `GET /admin/outbox` after preparing dea
+ Source: existing: docs/operations.md and docs/decisions/0006-notification-outbox.md
+ 
+ ### C-29: Release 1.4.0 can start on the new release's production file and show every saved ticket.
+-Observable: Prepare a production file, serve the new release with due times enabled and create another ticket. Stop it and start the unmodified 1.4.0 release against the same file, without conversion or an older backup. Health succeeds. Paging `GET /tickets` and reading individual ids return all tickets from before and after activation with their legacy fields, including all four statuses. The file is readable by 1.4.0, whose loader requires version 1.
++Observable: Start the new release with `DUE_TIMES=on` on a production file and create another ticket after it starts serving. Stop it and start the unmodified 1.4.0 release against the same file, without conversion or an older backup. Health succeeds. Paging `GET /tickets` and reading individual ids return all tickets from before and after activation with their legacy fields, including all four statuses. The file is readable by 1.4.0, whose loader requires version 1.
+ Source: request
+ Open: Release 1.4.0 drops unrecognized fields on rewrite. The requester would settle whether original deadlines must also survive a 1.4.0 write followed by re-enabling the new release, and which recovery procedure to use if so.
+ 

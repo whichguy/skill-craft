@@ -1,0 +1,21 @@
+diff --git a/ratchet/spec.md b/ratchet/spec.md
+index 8bf87e7..a13e112 100644
+--- a/ratchet/spec.md
++++ b/ratchet/spec.md
+@@ -62,7 +62,7 @@ Open: The requester can settle the exact success status and whether the response
+ ### C-6: The assignee value in an assignment request must be a name or JSON null
+ Observable: The request accepts an ordinary non-empty agent name such as `"Dana Lee"`, or JSON `null` to clear the assignment. An omitted `assignee`, the empty string, numbers, booleans, arrays and objects are refused with 400 `invalid`.
+ Source: request
+-Open: The requester can settle how spaces, whitespace-only values, control characters and case affect name validity or identity, and whether a name-specific length bound is needed. The existing body byte limit still applies.
++Open: The requester can settle how spaces, whitespace-only values, control characters and case affect name validity or identity. The existing body byte limit still applies.
+ 
+ ### C-7: Assignment requests follow the API's JSON object requirement
+ Observable: A body with no JSON value, malformed JSON, or a top-level array, string, number, boolean or null returns 400 `invalid`. The unassignment value is null inside the object.
+@@ -223,3 +223,7 @@ Source: request
+ ### C-45: The test suite runs new assignment tests with the existing tests
+ Observable: Run `npm test` and see it discover and run new `node:test` tests under `test/` for the assignment behaviour.
+ Source: request
++
++### C-46: An agent name can be at most 40 characters long
++Observable: On an eligible ticket, `PUT /tickets/:id/assignee` accepts an otherwise valid 40-character agent name. A 41-character agent name returns 400 `invalid`.
++Source: answer

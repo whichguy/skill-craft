@@ -1,0 +1,128 @@
+[
+ {
+  "run": "g1",
+  "specification_of": "d-limit-1",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 39.4,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g2",
+  "specification_of": "d-limit-2",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 44.2,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g3",
+  "specification_of": "d-limit-3",
+  "case": "ticket-assignment-name-limit-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 26.1,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g4",
+  "specification_of": "d-states-1",
+  "case": "ticket-assignment-states-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 30.3,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g5",
+  "specification_of": "d-states-2",
+  "case": "ticket-assignment-states-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 41.1,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g6",
+  "specification_of": "d-states-3",
+  "case": "ticket-assignment-states-unsaid",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 45.1,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g7",
+  "specification_of": "d-due-1",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 30.3,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g8",
+  "specification_of": "d-due-2",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 52.2,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ },
+ {
+  "run": "g9",
+  "specification_of": "d-due-3",
+  "case": "ticket-due-times",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "seconds": 28.7,
+  "changed": [
+   "ratchet/question.md"
+  ],
+  "put_back": [],
+  "launched_from": "f413b280a06c6c20616b2e5c04ccf06ac21bb8dc",
+  "held_out_marks": []
+ }
+]

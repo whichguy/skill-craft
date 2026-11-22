@@ -1,0 +1,275 @@
+{
+ "items": 51,
+ "failing_on_the_build": [
+  "C-34",
+  "C-44",
+  "C-45"
+ ],
+ "copies": [
+  "base",
+  "fault-1",
+  "fault-10",
+  "fault-11",
+  "fault-12",
+  "fault-13",
+  "fault-14",
+  "fault-15",
+  "fault-16",
+  "fault-17",
+  "fault-18",
+  "fault-19",
+  "fault-2",
+  "fault-20",
+  "fault-21",
+  "fault-22",
+  "fault-23",
+  "fault-24",
+  "fault-25",
+  "fault-26",
+  "fault-27",
+  "fault-3",
+  "fault-4",
+  "fault-5",
+  "fault-6",
+  "fault-7",
+  "fault-8",
+  "fault-9",
+  "sabotage"
+ ],
+ "sabotaged_file": "test/api.test.js",
+ "lines": "even",
+ "faults": {
+  "fault-1": {
+   "file": "src/persistence.js",
+   "line": 146,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "where": "changed"
+  },
+  "fault-2": {
+   "file": "src/store.js",
+   "line": 120,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "changed"
+  },
+  "fault-3": {
+   "file": "src/tickets/query.js",
+   "line": 32,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "changed"
+  },
+  "fault-4": {
+   "file": "src/app.js",
+   "line": 16,
+   "op": "bool-flip",
+   "old": "false",
+   "new": "true",
+   "where": "existing"
+  },
+  "fault-5": {
+   "file": "src/format.js",
+   "line": 36,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-6": {
+   "file": "src/persistence.js",
+   "line": 44,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-7": {
+   "file": "src/tickets/query.js",
+   "line": 48,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-8": {
+   "file": "src/tickets/validate.js",
+   "line": 22,
+   "op": "rel-bound",
+   "old": ">",
+   "new": ">=",
+   "where": "existing"
+  },
+  "fault-9": {
+   "file": "src/format.js",
+   "line": 36,
+   "op": "arith-flip",
+   "old": "-",
+   "new": "+",
+   "where": "existing"
+  },
+  "fault-10": {
+   "file": "src/persistence.js",
+   "line": 58,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "where": "existing"
+  },
+  "fault-11": {
+   "file": "src/tickets/query.js",
+   "line": 48,
+   "op": "bool-flip",
+   "old": "true",
+   "new": "false",
+   "where": "existing"
+  },
+  "fault-12": {
+   "file": "src/tickets/validate.js",
+   "line": 44,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-13": {
+   "file": "src/persistence.js",
+   "line": 86,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "where": "existing"
+  },
+  "fault-14": {
+   "file": "src/tickets/validate.js",
+   "line": 52,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "where": "existing"
+  },
+  "fault-15": {
+   "file": "src/persistence.js",
+   "line": 92,
+   "op": "rel-bound",
+   "old": ">=",
+   "new": ">",
+   "where": "existing"
+  },
+  "fault-16": {
+   "file": "src/tickets/validate.js",
+   "line": 54,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-17": {
+   "file": "src/persistence.js",
+   "line": 160,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "where": "existing"
+  },
+  "fault-18": {
+   "file": "src/persistence.js",
+   "line": 160,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "where": "existing"
+  },
+  "fault-19": {
+   "file": "src/persistence.js",
+   "line": 170,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "where": "existing"
+  },
+  "fault-20": {
+   "file": "src/persistence.js",
+   "line": 170,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "where": "existing"
+  },
+  "fault-21": {
+   "file": "src/persistence.js",
+   "line": 170,
+   "op": "bound-literal",
+   "old": "0",
+   "new": "1",
+   "where": "existing"
+  },
+  "fault-22": {
+   "file": "src/persistence.js",
+   "line": 180,
+   "op": "eq-flip",
+   "old": "!==",
+   "new": "===",
+   "where": "existing"
+  },
+  "fault-23": {
+   "file": "src/persistence.js",
+   "line": 180,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "where": "existing"
+  },
+  "fault-24": {
+   "file": "src/persistence.js",
+   "line": 180,
+   "op": "eq-flip",
+   "old": "===",
+   "new": "!==",
+   "where": "existing"
+  },
+  "fault-25": {
+   "file": "src/persistence.js",
+   "line": 180,
+   "op": "logic-flip",
+   "old": "&&",
+   "new": "||",
+   "where": "existing"
+  },
+  "fault-26": {
+   "file": "src/persistence.js",
+   "line": 194,
+   "op": "logic-flip",
+   "old": "||",
+   "new": "&&",
+   "where": "existing"
+  },
+  "fault-27": {
+   "file": "src/persistence.js",
+   "line": 194,
+   "op": "rel-bound",
+   "old": "<",
+   "new": "<=",
+   "where": "existing"
+  }
+ },
+ "never_seen_failing": [
+  "C-8"
+ ],
+ "copies_unnoticed": [],
+ "faults_unnoticed": [
+  "fault-4",
+  "fault-5",
+  "fault-9",
+  "fault-15",
+  "fault-17",
+  "fault-18",
+  "fault-19",
+  "fault-23",
+  "fault-25",
+  "fault-26"
+ ]
+}

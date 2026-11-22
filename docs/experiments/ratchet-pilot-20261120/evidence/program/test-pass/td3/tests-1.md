@@ -1,0 +1,121 @@
+## Failing now
+
+- C-6 — `PUT` of `" Dana "` after assigning `"Dana"` succeeds and leaves the ticket and audit unchanged. The corresponding filter returns no match.
+- C-34 — The service starts with a saved 65-letter assignee. The numeric and empty-string cases stop startup and name the affected record.
+- C-40 — The human listing prints an assigned agent named `-` and an unassigned ticket with the same ownership display.
+- C-44 — `npm test` discovers the new assignment cases. Those cases do not exercise assignee visibility in the CLI.
+- C-45 — A blocked file replacement returns 500 `internal` and leaves the last saved file intact. The running service nevertheless shows the new owner, update time, audit entry and pending notice. An unrelated successful save publishes that state, which then appears after restart.
+
+## Discoveries
+
+- Ownership text used in the human listing needs a distinguishable representation when it also serves as an unassigned marker. | Observable: Compare the same saved ticket with null ownership and with an accepted name equal to the CLI's marker. | Why: Both ownership states produced identical rows with the other fields held fixed.
+- Following an assignee cursor evaluates current ownership after the last ID returned. | Observable: Clear the previous page’s last ticket and assign two other tickets to the filtered agent, one on either side of that ID. The next page includes the new match after the cursor. | Why: The same cursor remained usable after its previous ticket stopped matching, so the cursor does not represent a fixed set of agent tickets.
+- The raw report's positional compatibility and its row width are distinct contract questions. | Observable: Count the columns in assigned and unassigned raw rows, then run the weekly report on the same file. | Why: The current raw listing has a fifth field while the existing positional report still counts each ticket once. Raw assignee visibility remains open.
+
+## Preserved behaviour
+
+- `src/app.js` · Health probes received HTTP 200 and `{"status":"ok"}` from `GET /health`. · **C-43 existing health, missing routes and request logging keep their public conventions**
+- `src/app.js` · List callers received HTTP 200 with `items` and `next` from `GET /tickets`. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/app.js` · Create callers received HTTP 201 and the new ticket from `POST /tickets`. · **C-43 existing create and read routes preserve fields, defaults, IDs, metadata and errors**
+- `src/app.js` · Read callers received HTTP 200 and the ticket from `GET /tickets/:id` or 404 `not_found` for an absent ID. · **C-43 existing create and read routes preserve fields, defaults, IDs, metadata and errors**
+- `src/app.js` · Edit callers received HTTP 200 and the changed ticket from `PATCH /tickets/:id`. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/app.js` · Lifecycle callers received HTTP 200 and the moved ticket from `POST /tickets/:id/transition`. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/app.js` · History callers received HTTP 200 and an `items` array from `GET /tickets/:id/audit`. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/app.js` · History callers received 404 `not_found` for an absent ticket. · **C-43 existing create and read routes preserve fields, defaults, IDs, metadata and errors**
+- `src/app.js` · Operators received HTTP 200 and outbox events grouped into `pending`, `sent` and `dead` from `GET /admin/outbox`. · **C-43 existing requester outbox records deduplicate while pending and retain their wording on delivery**
+- `src/app.js` · Existing JSON routes returned the JSON content type with UTF-8 charset. · **C-43 existing health, missing routes and request logging keep their public conventions**
+- `src/app.js` · Unmatched paths and unsupported methods returned the JSON 404 `not_found` envelope with a diagnostic. · **C-43 existing health, missing routes and request logging keep their public conventions**
+- `src/app.js` · Existing write routes validated JSON bodies and applied the configured `MAX_BODY_BYTES`. · **C-43 existing create, edit and transition validation still enforces text, field, body and actor rules**
+- `src/app.js` · Existing write routes applied the `X-Actor` header limit and trimming before recording the actor. · **C-43 existing create, edit and transition validation still enforces text, field, body and actor rules**
+- `src/app.js` · Operators could set `LOG_REQUESTS=1` to log method, path and status for successful and rejected requests. Logging was off by default. · **C-43 existing health, missing routes and request logging keep their public conventions**
+- `src/format.js` · Human `list` displayed the ticket ID. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/format.js` · Human `list` displayed the ticket status. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/format.js` · Human `list` displayed the ticket priority. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/format.js` · Human `list` displayed the ticket requester. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/format.js` · Human `list` displayed the ticket update time to the minute. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/format.js` · Human `list` displayed the ticket title. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/format.js` · Raw `list --raw` emitted the ID in tab-separated column 1. · **C-41 raw columns retain their positions and the npm weekly report counts each saved ticket once**
+- `src/format.js` · Raw `list --raw` emitted the status in tab-separated column 2. · **C-41 raw columns retain their positions and the npm weekly report counts each saved ticket once**
+- `src/format.js` · Raw `list --raw` emitted the priority in tab-separated column 3. · **C-41 raw columns retain their positions and the npm weekly report counts each saved ticket once**
+- `src/format.js` · Raw `list --raw` emitted the title in tab-separated column 4. · **C-41 raw columns retain their positions and the npm weekly report counts each saved ticket once**
+- `src/format.js` · The weekly report counted one raw row per ticket by status and priority. · **C-41 raw columns retain their positions and the npm weekly report counts each saved ticket once**
+- `src/format.js` · `show` displayed the ticket ID, title, status, priority, requester and full creation and update timestamps. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/format.js` · `show` displayed a history with the actor, action, change and before-to-after notation for an existing value. · **C-43 existing CLI list and show keep their ticket fields, history, empty output and exit conventions**
+- `src/persistence.js` · `DATA_FILE` selected the canonical file for save and reload, including a new path under a missing directory. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The canonical document used `version: 1`. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · `savedAt` held a timestamp for the save. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · `nextNumber` reserved the next ticket number across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved ticket record kept `id` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved ticket record kept `title` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved ticket record kept `priority` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved ticket record kept `requester` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved ticket record kept `status` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved ticket record kept `created` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved ticket record kept `updated` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved audit record kept `seq` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved audit record kept `ticket` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved audit record kept `action` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved audit record kept `actor` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved audit record kept `at` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved audit record kept `changes` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The outbox object kept `nextId` across restart so event IDs remained sequential. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `id` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `key` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `type` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `to` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `ticket` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `data` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `status` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `attempts` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `created` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `nextAttemptAt` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `lastError` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · The saved relay event kept `sentAt` across restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · A normal successful save completed the whole-file replacement and left only the canonical file. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/persistence.js` · An interruption at the replacement boundary left a whole snapshot for the next start. · **C-32 interruption before the data-file replacement leaves a whole ownership state**
+- `src/persistence.js` · The CLI reader left the file bytes unchanged. · **C-42 listing assigned or pre-upgrade data leaves its exact bytes intact**
+- `src/persistence.js` · Invalid JSON stopped startup with a JSON diagnostic. · **C-43 unusable existing data documents still fail startup with record-specific diagnostics**
+- `src/persistence.js` · An unsupported data version stopped startup with a version diagnostic. · **C-43 unusable existing data documents still fail startup with record-specific diagnostics**
+- `src/persistence.js` · An invalid ticket record stopped startup with a record diagnostic. · **C-43 unusable existing data documents still fail startup with record-specific diagnostics**
+- `src/persistence.js` · A `nextNumber` that would reuse an ID stopped startup. · **C-43 unusable existing data documents still fail startup with record-specific diagnostics**
+- `src/persistence.js` · An audit sequence gap stopped startup with a record diagnostic. · **C-43 unusable existing data documents still fail startup with record-specific diagnostics**
+- `src/persistence.js` · An unknown outbox status stopped startup with a record diagnostic. · **C-43 unusable existing data documents still fail startup with record-specific diagnostics**
+- `src/store.js` · Create callers received sequential prefixed IDs, an open ticket, its submitted fields and creation/update times initially equal. · **C-43 existing create and read routes preserve fields, defaults, IDs, metadata and errors**
+- `src/store.js` · Read callers received the stored business fields and timestamps. · **C-43 existing create and read routes preserve fields, defaults, IDs, metadata and errors**
+- `src/store.js` · Read callers received the existing 404 for a missing record. · **C-43 existing create and read routes preserve fields, defaults, IDs, metadata and errors**
+- `src/store.js` · List callers received ID-ordered pages and could follow their cursors. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/store.js` · Edit callers could change title and priority, and an identical edit left the timestamp, audit and outbox unchanged. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/store.js` · Edit callers received 409 for closed tickets and 404 for missing ones. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/store.js` · Lifecycle callers could progress through in-progress and resolved, then reopen or close. Illegal transitions returned 409. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/store.js` · Audit callers received per-ticket history in global sequence order with the ticket, actor and time. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/store.js` · The create audit recorded `ticket.created` and the title, priority, requester and status deltas from null. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/store.js` · The edit audit recorded `ticket.updated` and the changed title or priority deltas. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/store.js` · The transition audit recorded `ticket.transitioned` and the previous and new status. · **C-43 existing edit, lifecycle and audit routes preserve changes, actor order, no-ops and conflicts**
+- `src/store.js` · Requesters received the existing create and resolve notices. · **C-29 received and resolved notices still go to the requester and assignment goes to the agent**
+- `src/store.js` · A pending resolution notice was deduplicated when the same ticket resolved again. · **C-43 existing requester outbox records deduplicate while pending and retain their wording on delivery**
+- `src/store.js` · The worker recorded delivery attempts and the sent state for operators and preserved that metadata after restart. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/store.js` · Operations could restore previous tickets, history, outbox and the next counters from a single saved snapshot. · **C-43 existing data-file records, counters and delivery metadata survive save and restart**
+- `src/templates.js` · The requester received the existing received-notice subject with the ticket ID. · **C-43 existing requester outbox records deduplicate while pending and retain their wording on delivery**
+- `src/templates.js` · The requester received the existing received-notice body with title, ticket ID and the help desk follow-up. · **C-43 existing requester outbox records deduplicate while pending and retain their wording on delivery**
+- `src/templates.js` · The requester received the existing resolved-notice subject with the ticket ID. · **C-43 existing requester outbox records deduplicate while pending and retain their wording on delivery**
+- `src/templates.js` · The requester received the existing resolved-notice body with title, ticket ID and the seven-day reply instruction. · **C-43 existing requester outbox records deduplicate while pending and retain their wording on delivery**
+- `src/templates.js` · The existing notifier tests exercised refusal of an unknown template type. · **C-43 npm test still runs and passes the existing suite with the original files unchanged**
+- `src/tickets/query.js` · HTTP and CLI callers could select a valid status and invalid values were rejected. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/tickets/query.js` · HTTP and CLI callers could select a valid priority and invalid values were rejected. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/tickets/query.js` · The existing singleton status parameter used its first supplied value. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/tickets/query.js` · The existing singleton priority parameter used its first supplied value. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/tickets/query.js` · List requests without predicates included every ticket eligible for the page. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/tickets/query.js` · List requests defaulted to 20 tickets and accepted integral limits from 1 to 100. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/tickets/query.js` · List requests accepted opaque returned cursors and refused malformed cursors. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/tickets/query.js` · Unknown query parameters, including `offset`, were ignored. · **C-43 existing status, priority, cursor and limit query behavior remains compatible**
+- `src/store.js` · CLI consumers could traverse multiple ticket pages and receive every match in numeric ID order. · **C-43 CLI listing drains multiple pages for operators and raw report readers**
+- `src/persistence.js` · Pending and dead requester notices kept their non-null failure data and retry schedule on reload. · **C-43 restart retains pending retry and dead requester records with their non-null errors**
+- `src/tickets/query.js` · The CLI supported human `list --status` and `list --priority`. · **C-40 human listing identifies each owner, shows unassigned work and supports both existing filters**
+- `src/tickets/validate.js` · Create accepted title, requester and optional priority only. · **C-16 existing create fields remain valid and assignee is rejected on create**
+- `src/tickets/validate.js` · Existing create titles were required trimmed single-line strings of at most 200 characters. · **C-43 existing create, edit and transition validation still enforces text, field, body and actor rules**
+- `src/tickets/validate.js` · Existing requesters were required trimmed single-line strings of at most 64 characters. · **C-43 existing create, edit and transition validation still enforces text, field, body and actor rules**
+- `src/tickets/validate.js` · The existing priority default was `normal`. · **C-43 existing create and read routes preserve fields, defaults, IDs, metadata and errors**
+- `src/tickets/validate.js` · An explicit priority accepted low, normal, high or urgent and rejected any other value. · **C-43 existing create, edit and transition validation still enforces text, field, body and actor rules**
+- `src/tickets/validate.js` · Edit accepted a title or priority or both, and rejected any extra fields. · **C-17 existing patch field combinations remain valid and assignee is rejected on edit**
+- `src/tickets/validate.js` · Edit rejected empty edits, invalid priorities and invalid title values. · **C-43 existing create, edit and transition validation still enforces text, field, body and actor rules**
+- `src/tickets/validate.js` · Transition accepted only the `to` field naming a lifecycle state. · **C-43 existing create, edit and transition validation still enforces text, field, body and actor rules**

@@ -1,0 +1,19 @@
+{
+ "_about": "Part D2 of the program (journal section 26): what a stand-in requester answers, written before any question was put. A reply is given when the session's `Question:` asks about the case's point (alone or among other things); to any other question the answer is `otherwise`. This file is never copied into a session's folder; only the one answer given reaches a session, in the next step's prompt.",
+ "otherwise": "No preference. Use your judgement.",
+ "ticket-due-times": {
+  "point": "who or what puts the due times into the existing data file, and what the service does when it is started with DUE_TIMES=on while the file holds tickets without due times",
+  "reply": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+  "why_this_reply": "the reading the owner ruled right (the SDLC structure study's journal, round 9); each of the three plans of part D1 took the other answer"
+ },
+ "ticket-assignment-name-limit-unsaid": {
+  "point": "the longest name an agent may have",
+  "reply": "At most 40 characters.",
+  "why_this_reply": "a number no limit in the product suggests (the product has 64 and 200; the three plans of part D1 took 64, 200 and 1,024 bytes), so a plan that says 40 has it from the answer"
+ },
+ "ticket-assignment-states-unsaid": {
+  "point": "the ticket states in which a ticket may be assigned or unassigned",
+  "reply": "Only open and in-progress tickets can be assigned or unassigned.",
+  "why_this_reply": "the sentence taken out of the request, word for word; the product's own rule (only a closed ticket is final) differs, and each of the three specifications of part D1 followed the product"
+ }
+}

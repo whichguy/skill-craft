@@ -1,0 +1,36 @@
+diff --git a/ratchet/spec.md b/ratchet/spec.md
+index f86c4a1..2e0535d 100644
+--- a/ratchet/spec.md
++++ b/ratchet/spec.md
+@@ -12,9 +12,9 @@ Source: request
+ Flow: The agent calls `GET /tickets?overdue=true`. The list contains open and in-progress tickets whose due time is earlier than the service's current time. Resolved and closed tickets are excluded. The agent can narrow the list with existing filters or follow the next cursor. If no tickets match, the list is empty.
+ Source: request
+ 
+-### U-4: A production operator prepares the existing data file to enable due times
+-Flow: While the service gives its old API responses, the operator prepares the existing `DATA_FILE`. Tickets in all states receive missing due times based on their own creation times and priorities. The operator confirms that the file holds due times for every ticket, then serves with `DUE_TIMES=on`. The API shows the saved due times. If preparation is interrupted, the operator can retry it without moving due times that were already saved.
+-Source: implied: production exposure depends on completing the data-file update first
++### U-4: A production operator starts the service with due times enabled
++Flow: The operator starts the service on the existing `DATA_FILE` with `DUE_TIMES=on`. During startup the service assigns missing due times to tickets in all states based on their own creation times and priorities, saves the file, and then serves. The API shows the saved due times. If startup preparation is interrupted, the operator can restart the service without moving due times that were already saved.
++Source: answer
+ 
+ ### U-5: A production operator rolls back to 1.4.0 to restore service
+ Flow: The operator stops the new process, starts release 1.4.0 on the same data file, then reads the tickets through the old API. Release 1.4.0 starts with the existing tickets and the tickets added by the new release.
+@@ -94,13 +94,13 @@ Source: existing: docs/api.md, src/tickets/query.js and src/pagination.js
+ Observable: Starting with a valid 1.4.0 file, the prepared data file holds a due time for every ticket, including resolved and closed tickets. For example, a stored high-priority ticket created at 2025-09-01T08:00:00.000Z has a default due time of 2025-09-02T08:00:00.000Z regardless of its saved `updated` time or the date of preparation. Preparation uses the ticket's saved priority and the response hours in effect for the assignment.
+ Source: request
+ 
+-### C-16: An operator can establish file readiness before enabling due-time responses in production.
+-Observable: The operator has a way to prepare the production file and verify completion before enabling due-time responses. While any ticket in that file lacks a valid saved due time, the service cannot serve a due-enabled view of that file. This includes a ticket written after an earlier preparation pass if it still lacks a due time. A file with no tickets has no ticket due times to fill.
+-Source: request
+-Open: The requester decides whether preparation is a separate operator action or can complete at startup before serving, and whether writes must remain available during preparation. The build may choose how completion is reported. The requester decides when dues are first assigned for tickets written while responses still use the old contract.
++### C-16: With `DUE_TIMES=on`, the service fills missing due times during startup before serving requests.
++Observable: A startup with `DUE_TIMES=on` on a valid production file whose tickets lack due times succeeds without a separate operator preparation step. The service assigns each missing due time from that ticket's own creation time and saved priority using the configured response hours. This includes tickets written after an earlier startup if they still lack a due time. The service saves the updated file before serving requests, and every ticket in the file must have a valid saved due time before the service serves due-time responses. Missing due times alone never cause startup to fail. A file with no tickets has no ticket due times to fill.
++Source: answer
++Open: The requester decides whether writes must remain available during preparation. The build may choose how completion is reported. The requester decides when dues are first assigned for tickets written while responses still use the old contract.
+ 
+ ### C-17: A ticket's saved due time survives reuse of the data file by the new release.
+-Observable: After a ticket with a due time is saved, a later restart or rerun of preparation preserves that due time even under different response-hour settings. Saves made by the new release with due responses disabled, including ticket writes, outbox saves and shutdown, preserve previously saved due times.
++Observable: After a ticket with a due time is saved, a later restart preserves that due time even under different response-hour settings. Saves made by the new release with due responses disabled, including ticket writes, outbox saves and shutdown, preserve previously saved due times.
+ Source: implied: U-2 and U-4 require a due time to be set once across normal operations
+ 
+ ### C-18: Due-time preparation preserves the recoverability of the production data file.
