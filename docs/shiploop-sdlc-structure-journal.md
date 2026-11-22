@@ -3730,7 +3730,8 @@ speaks for the count.
     `due-medium-3` (finished 14:28), were still alive after 11 and 8 hours: hung test commands of ShipLoop's base
     run in its temporary checkouts, parentless, two of them holding a listening port on the wildcard address. Both
     runs' `left_behind` verdicts report nothing left. I stopped the five by process id.
-  - Twenty-nine more parentless `node` processes hold wildcard ports from temporary folders named `base-tests-*`,
+  - Twenty-nine more parentless `node` processes (corrected 2026-11-21: 27 of the 29 listeners were the check's;
+    see R145) hold wildcard ports from temporary folders named `base-tests-*`,
     `pristine-*` and `suite-*`, the oldest six days old. Those are the prefixes of the harness's own base check,
     `checks/base_tests.py`, which runs `node --test` with a 120-second limit and, when the limit passes, stops that
     one process: the test-file runners and the servers they started live on. I did not stop them: they are not
@@ -3799,6 +3800,71 @@ again alone five times on the saved work, the first result is kept and both are 
 replay of the refused attempt (R143) and the moved-file test carry them. The cases have no installed dependencies,
 so the `send-back` exit is shown by its test alone. A suite whose tests skip themselves in the copy is accepted by
 design and this round does not look for one.
+
+### Owner decision, 2026-11-21: stop the leaked test servers and fix the check
+
+Asked whether to stop the leaked test servers of R144 and to fix the harness check that leaks them, the owner
+answered "Yes, stop and fix" (23:38 local). Both were done while the second confirmation round was running. The round
+runs the harness of the candidate's own tree, which this does not touch.
+
+- **R145 (the stop; `evidence/leaked-servers-stopped.txt`).** Listed again just before stopping (`list_leaked.py`):
+  70 `node` processes on the machine, 31 of them parentless, 27 of those in a temporary folder named `base-tests-*`
+  (12), `suite-*` (11) or `pristine-*` (4). Every one of the 27 is a test-file process of `node --test` holding one
+  listening port, and none has a living runner. Twenty started on 2026-11-15, five on 2026-11-20 and two on
+  2026-11-21. They were stopped by process id at 23:41 (`stop_leaked.py`), each one checked again just before its
+  signal: still `node`, still parentless, the same start time, the same folder. All 27 ended on SIGTERM and a listing
+  afterwards shows none.
+  - **Correction to R144 (2026-11-21).** Its "twenty-nine" was the count of every `node` process listening on the
+    wildcard address. Twenty-seven of those were the check's. The other two are not: one is in a run folder of
+    another study (`e2e-runs/fixrate-pilot2-20261115`) and one is a server in another session's scratch folder. Both
+    were left alone, with two more parentless `node` processes that hold no port.
+  - **A change inside the round, not in its registration.** The stop came six minutes after the round's launch, with
+    all three runs in planning. It removes listeners that a run's own tests or the harness's checks could have
+    reached. It cannot make ShipLoop accept or refuse a delivery, so the round's rule is read as registered.
+  - **One more, and what it says about the cause.** The sweep after the round found a 28th: a `pristine-*` process
+    started at 23:55 by another session's run of the ticket case (`e2e-runs/r-20261121-2c3d50/w2/d4`), whose
+    pristine check "did not end within 120 s" on that session's own copy of the unfixed check. Its folder was
+    gone and it was the last of its group; it was stopped the same way at 00:25. That run lost its verdict to a hang
+    14 minutes after the 27 were stopped, so the 27 were not the cause of that hang.
+- **R146 (the fix).** `node_test` in `test/shiploop_e2e/checks/base_tests.py` ran `node --test` with a 120-second
+  limit and, when the limit passed, stopped the one process it had started, the runner. The runner has one process
+  for each test file, and a test file that leaves a server listening never ends. Those processes lived on with no
+  parent, each with its port, in a folder the check had already deleted. Now each run has a session of its own and,
+  at the limit, the check ends the run's whole process group with `listeners.end_group`, the harness's one group
+  kill, which its other checks already use.
+  - **Earlier fix and what it left.** e74097b10c2e165d8e25a919059b9ad7b2958602 (2026-11-15) put the check inside an
+    owned process group in the hermetic tests' wrapper (`test/fixture_process.py`) and left the check file as it was,
+    to keep the oracle digest. A check started by a live run, or by a test without the wrapper, kept leaking:
+    eleven of the 27 started after that commit was written (four later that day, five on 2026-11-20, two on
+    2026-11-21).
+  - **Working with that wrapper.** A session of its own takes the run out of the group the wrapper owns, so the
+    check, when it is itself stopped (SIGTERM), now stops its run on the way out.
+  - **Fail-first.** A new test gives `node_test` a test file that leaves a server listening and a limit of five
+    seconds. With the old check the test file's process is still alive ten seconds after the limit (the test then
+    stops it itself); with the fix it is gone. A second test runs the real check under the wrapper and stops it while
+    its run hangs: it passes with the old check (one group), fails with the fix less its SIGTERM line (the run
+    outlives the check), and passes with the fix.
+  - **Suites, one after another.** `shiploop-e2e-brownfield` 31 tests, `shiploop-e2e-environment` 140 and
+    `shiploop-e2e-user-directory` 45 pass. `shiploop-e2e-brownfield-tickets` passed 51 of 52 and then, run again
+    alone, 52 of 52: on the first run the base's own tests did not end within 120 seconds once, in the base copy, for
+    one of the calibration's 159 results. That is the fixture's hang on a shared machine, not the fix; nothing was
+    left behind by it. Both results are kept.
+  - **What it changes for comparisons.** The oracle digest goes from `dba32b3f6860` to `b32933f70500`; the evaluator
+    digest (`cc221376b337`) is unchanged. `promotion.py` compares a case only across equal digests, so attempts graded
+    before and after are separate experiments for it. What the check reports is unchanged: the same verdict lines,
+    and the same diagnostic for a run that does not end.
+  - **Not covered, written down.** The harness gives one check 180 seconds, less than the check's own worst case of
+    two runs of 120. When that limit passes, `run.py` stops the shell it started and the check can die before it
+    stops its run. None of the 27 was left that way: that would leave a runner alive, and none had one. A test file
+    that starts a process in a session of its own is outside the group. A process that a run leaves behind after its
+    runner has ended by itself is not stopped either: none is on record.
+  - **Still open.** ShipLoop's own base run leaves the same kind of process behind when a test command hangs (the
+    five of R144). That is the engine's runner, not this check, and is not changed here.
+  Whether these servers are what the ticket fixture loses verdicts to (R55) is not established, and the 28th speaks
+  against their being the only cause. 26728eddd587930f5da3f6600e5d7ab4017d8acc measured that fixture's wrong
+  answers as another server on the same port number and noted that some "could in principle come from another
+  tickets server". A leaked base-test server is one such server; live runs of the same case on the machine are
+  others.
 
 ## Evidence (all rounds)
 
@@ -3872,6 +3938,7 @@ design and this round does not look for one.
 | `confirm_read.py`, `evidence/confirm-r15.txt` | round 15: the confirmation round: each delivery's verdicts, checks, work items, every release-verify attempt with its counts and floors; the wrong refusal and the uncommitted return reproduced by hand (R136 to R142) |
 | `evidence/gate-on-file-final.txt`, `evidence/mutants-final.txt`, `evidence/suites-final.txt` | round 15: the committed rule (no count) on 28 saved release checks, with the refused attempt replayed (R143); its twelve mutants; the 24 suites and the fail-first results |
 | `review-r15/sol-max-brief-3.txt`, `review-r15/sol-max-review-3.md` | round 15: the question put to Sol 6.2 at max effort about the count measured in the work area and the moved-file fix, and its verbatim answer |
+| `list_leaked.py`, `stop_leaked.py`, `evidence/leaked-servers-stopped.txt` | round 15: the leaked test servers of the harness's base check: the listing, each process stopped with its start time, port and folder, and what was left alone (R145) |
 
 To rerun: `python3 -I stage_census.py <work>/census.json` writes the run list the other scripts read
 (`passes_census.py <work>/census.json <work>/samples.jsonl`, `review_edits.py <work>/census.json
@@ -3926,6 +3993,9 @@ Round 15: `python3 stop_at_stage.py --plugin-dir <plugin> --root <out> --until p
 <name>:ticket-due-times:<host>:<model>:medium ...` ends each sample at the plan; `python3 -I plan_rows.py [--blind
 <key file>] state,migrate-before,migrate-after,switchover <name>=<run folder> ...` prints the rows;
 `criteria_census.py` and `meta_test_census.py` take `<name>=<run folder or tree>` and print the two baselines.
+Leaked test servers: `python3 -I list_leaked.py` prints one JSON line for each `node` process (it stops nothing);
+`python3 -I stop_leaked.py <that listing> [<minimum age in seconds>]` stops, by process id, the parentless ones in
+a folder of the base check.
 The observers: `python3 test/shiploop_e2e/observers/observe.py <case> <delivered tree> [--out <file>]`; run on the
 sixteen trees of round 13 it reproduces `evidence/observers-calibration.txt`.
 The rebuilt rule on saved deliveries: `python3 -I gate_on_file.py <candidate>/skills/shiploop/scripts 600

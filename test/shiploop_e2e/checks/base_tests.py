@@ -6,7 +6,8 @@
 
 BASE is the case's base, a folder under test/shiploop_e2e/fixtures/ (its ``base.fixture``). Each subcommand copies the
 delivered tree (the files git tracks or would track, without .git) into a temporary folder and runs `node --test` there,
-so nothing is written into the delivery.
+so nothing is written into the delivery. A run that does not end is stopped whole at its limit, so no test file's
+process or server outlives the check.
 
 * ``pristine`` (pass-to-pass): the base's own test files, every .js, .cjs and .mjs file under its test/ folder, are written
   over the copy at the base's bytes and only they run. Every one of the base's tests must pass, as many as pass in the base
@@ -23,9 +24,13 @@ import argparse
 from pathlib import Path
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import listeners  # noqa: E402  (end_group: the harness's one group kill of its own children)
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 TEST_SUFFIXES = (".js", ".cjs", ".mjs")
@@ -55,15 +60,22 @@ def copy_tree(source: Path, dest: Path) -> None:
 
 
 def node_test(folder: Path, files: list[str]) -> tuple[int | None, int, int, str]:
-    """(return code or None on a hang, passed, failed, output tail) of `node --test [files]` in `folder`."""
-    try:
-        done = subprocess.run(["node", "--test", *files], cwd=folder, capture_output=True, text=True, timeout=RUN_SECONDS,
-                              stdin=subprocess.DEVNULL)
-    except subprocess.TimeoutExpired:
-        return None, 0, 0, f"node --test did not end within {RUN_SECONDS} s"
-    output = done.stdout + done.stderr
+    """(return code or None on a hang, passed, failed, output tail) of `node --test [files]` in `folder`.
+
+    The run has a session of its own, and at the limit its whole process group is ended (listeners.end_group). A run that
+    hangs is more than its runner: each test file has a process, and one that left a server listening never ends. Stopping
+    the runner alone left those processes alive, parentless, with their ports."""
+    with subprocess.Popen(["node", "--test", *files], cwd=folder, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                          stdin=subprocess.DEVNULL, start_new_session=True) as run:
+        try:
+            stdout, stderr = run.communicate(timeout=RUN_SECONDS)
+        except subprocess.TimeoutExpired:
+            return None, 0, 0, f"node --test did not end within {RUN_SECONDS} s"
+        finally:
+            listeners.end_group(run.pid)  # nothing is sent once the runner has ended and been collected
+    output = stdout + stderr
     counts = {kind: int(number) for kind, number in SUMMARY.findall(output)}
-    return done.returncode, counts.get("pass", 0), counts.get("fail", 0), output[-1500:]
+    return run.returncode, counts.get("pass", 0), counts.get("fail", 0), output[-1500:]
 
 
 def failing_names(output: str) -> str:
@@ -133,4 +145,6 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
+    # A stop from outside leaves through node_test's `finally`, so the run this check started stops with it.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     main()

@@ -1,0 +1,57 @@
+Round 15, the leaked test servers: listed and stopped on 2026-11-21 at 23:41 (local), at the owner's word
+("Yes, stop and fix"). Listed with list_leaked.py, stopped with stop_leaked.py (by process id, each one checked
+again just before its signal: still `node`, still parentless, same start time, same folder).
+
+Before: 70 `node` processes on the machine, 31 of them parentless.
+Parentless and in a folder of the harness's base check: 27 (base-tests- 12, suite- 11, pristine- 4); holding a listening port: 27; with a living runner in the same folder: 0.
+Started: Sun Nov 15: 20; Fri Nov 20: 5; Sat Nov 21: 2.
+Every one is a test-file process of `node --test` (its command line begins '/opt/homebrew/Cellar/node/26.12.1_1/bin/node --heap-prof-interval=524288 --watch-kill-sign').
+
+78590 stopped (SIGTERM): started Sun Nov 15 07:32:04 2026, port 49261, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-qx8uttf8
+79096 stopped (SIGTERM): started Sun Nov 15 07:32:08 2026, port 49958, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-g0sz283x
+79539 stopped (SIGTERM): started Sun Nov 15 07:32:11 2026, port 50548, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-1ttl7x6f
+79734 stopped (SIGTERM): started Sun Nov 15 07:32:13 2026, port 51119, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-40y1yyzd
+79874 stopped (SIGTERM): started Sun Nov 15 07:32:14 2026, port 51347, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/pristine-edz9fz2_
+75910 stopped (SIGTERM): started Sun Nov 15 07:55:10 2026, port 64000, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-qim9k2ja
+79654 stopped (SIGTERM): started Sun Nov 15 07:55:42 2026, port 50269, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/pristine-hhkwamv_
+81830 stopped (SIGTERM): started Sun Nov 15 07:56:05 2026, port 51896, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-m_sicxlb
+86483 stopped (SIGTERM): started Sun Nov 15 08:07:13 2026, port 49619, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-g6dahvzs
+4559 stopped (SIGTERM): started Sun Nov 15 08:19:49 2026, port 52193, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-2limisz8
+12403 stopped (SIGTERM): started Sun Nov 15 08:21:04 2026, port 58981, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-jjxo7vrt
+42241 stopped (SIGTERM): started Sun Nov 15 08:56:44 2026, port 50769, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-b6i2qwn1
+30607 stopped (SIGTERM): started Sun Nov 15 09:05:12 2026, port 62758, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-1so9pheb
+37142 stopped (SIGTERM): started Sun Nov 15 11:53:36 2026, port 61736, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-9_2ho_n9
+42963 stopped (SIGTERM): started Sun Nov 15 12:25:39 2026, port 49634, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-80kimq28
+51625 stopped (SIGTERM): started Sun Nov 15 12:27:42 2026, port 62136, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-r6l7453t
+61634 stopped (SIGTERM): started Sun Nov 15 14:49:46 2026, port 55734, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-rf966ixw
+24001 stopped (SIGTERM): started Sun Nov 15 15:27:42 2026, port 59131, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/pristine-lm5lv68j
+34209 stopped (SIGTERM): started Sun Nov 15 15:30:01 2026, port 64458, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-unq3nfwo
+33529 stopped (SIGTERM): started Sun Nov 15 16:09:09 2026, port 50546, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-6ibskj70
+9725 stopped (SIGTERM): started Fri Nov 20 17:03:41 2026, port 49199, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-5iu61ng0
+15636 stopped (SIGTERM): started Fri Nov 20 17:07:44 2026, port 56699, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/pristine-hnn9tb39
+29182 stopped (SIGTERM): started Fri Nov 20 17:14:41 2026, port 57235, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-1363dg2q
+37194 stopped (SIGTERM): started Fri Nov 20 17:20:53 2026, port 56000, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-zr2nn713
+43792 stopped (SIGTERM): started Fri Nov 20 21:41:08 2026, port 49443, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/base-tests-a3d46si8
+62069 stopped (SIGTERM): started Sat Nov 21 03:43:10 2026, port 59866, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-zalqgv43
+8388 stopped (SIGTERM): started Sat Nov 21 07:32:02 2026, port 50047, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/suite-dio8qoed
+listed 27, signalled 27
+
+After: 43 `node` processes, 0 parentless in a folder of the base check.
+Parentless `node` processes outside those folders, not the check's and left alone:
+  20836: started Sun Nov 15 09:31:02 2026, 56240, /Users/dadleet/e2e-runs/fixrate-pilot2-20261115/gemma4_26b/v2170-ds-battleship__R-8.1/work
+  77954: started Sun Nov 15 11:20:50 2026, no port, /Users/dadleet/e2e-runs/fixrate-false-alarms-20261115/gemma4_26b/grok-web-battleship__R-4.14/work
+  56210: started Wed Nov 18 03:12:39 2026, no port, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpinw1c4dt
+  23435: started Sat Nov 21 18:30:36 2026, 56855, /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-HghS6v/b19aa551-77eb-41d9-9e58-240ed0fb7345/scratchpad/lens/r-verify/work/assignment/ka
+
+R144 counted 29: that was every `node` process listening on the wildcard address. 27 of them were the check's;
+the other two are the two listeners in the list just above.
+
+One more, found by the sweep after the second confirmation round (2026-11-22, 00:23) and stopped at 00:25 with
+stop_leaked.py and a ten-minute minimum age:
+74840 stopped (SIGTERM): started Sat Nov 21 23:55:27 2026, port 56000, /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/pristine-j1omk2pi
+listed 1, signalled 1
+It was left at 23:55 by another session's run of ticket-due-times (e2e-runs/r-20261121-2c3d50/w2/d4), whose pristine
+check "did not end within 120 s" on that session's own copy of the unfixed check. Its folder had been deleted, its
+group leader had exited and it was the last member of its group. That hang came 14 minutes after the 27 were
+stopped, so those 27 were not its cause. None of the three runs of the second confirmation round left a process: the
+sweep by working folder found this one alone.

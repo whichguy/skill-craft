@@ -24,10 +24,12 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import socket
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -142,12 +144,50 @@ class PristineDiagnosticsTest(unittest.TestCase):
     def setUpClass(cls):
         cls.check = _load("base_tests_diagnostics", "shiploop_e2e/checks/base_tests.py")
 
-    def test_timeout_expired_returns_explicit_diagnostic_without_waiting(self):
-        with mock.patch.object(self.check.subprocess, "run", side_effect=subprocess.TimeoutExpired("node", 120)) as runner:
-            result = self.check.node_test(Path("unused"), ["test/a.js"])
+    @staticmethod
+    def alive(pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
+    def stop_left_process(self, recorded: Path) -> None:
+        """This test's own fallback, by the process id its test file recorded, so a failing run of it leaves nothing."""
+        if recorded.exists() and self.alive(pid := int(recorded.read_text())):
+            os.kill(pid, signal.SIGKILL)
+
+    @needs_node
+    def test_a_run_that_does_not_end_is_stopped_whole_at_its_limit(self):
+        """A test file that leaves a server listening never ends, and neither does the runner that waits for it. At the
+        limit node_test reports the hang and no process of the run is left. Before, the runner alone was stopped and the
+        test file's process lived on, parentless, with its port: 27 of them were found on 2026-11-21, the oldest six days
+        old (docs/shiploop-sdlc-structure-journal.md, round 15)."""
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        root = Path(folder.name)
+        (root / "test").mkdir()
+        (root / "test" / "leaves-a-server.test.js").write_text(
+            "const fs = require('node:fs');\n"
+            "const http = require('node:http');\n"
+            "const test = require('node:test');\n"
+            "http.createServer(() => {}).listen(0, '127.0.0.1', () => {\n"
+            "  fs.writeFileSync('worker.tmp', String(process.pid));\n"
+            "  fs.renameSync('worker.tmp', 'worker.pid');\n"
+            "});\n"
+            "test('passes and leaves its server listening', () => {});\n")
+        recorded = root / "worker.pid"
+        self.addCleanup(self.stop_left_process, recorded)
+        with mock.patch.object(self.check, "RUN_SECONDS", 5):
+            result = self.check.node_test(root, [])
         self.assertEqual(result[:3], (None, 0, 0))
-        self.assertIn("did not end within 120 s", result[3])
-        self.assertEqual(runner.call_args.kwargs["timeout"], self.check.RUN_SECONDS)
+        self.assertIn("did not end within 5 s", result[3])
+        self.assertTrue(recorded.exists(), "the test file's process did not start within the limit")
+        pid = int(recorded.read_text())
+        deadline = time.monotonic() + 10
+        while self.alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertFalse(self.alive(pid), f"the test file's process {pid} outlived the run that was stopped at its limit")
 
     def pristine(self, result):
         tmp = tempfile.TemporaryDirectory()

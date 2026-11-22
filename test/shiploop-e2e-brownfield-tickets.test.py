@@ -449,6 +449,56 @@ class BaseTestsProcessOwnershipTest(unittest.TestCase):
         self.assertEqual((done.returncode, done.stdout), (0, "helper-ready\n"))
         self.assert_fixture_stopped(record)
 
+    @needs_node
+    def test_the_real_check_stopped_by_its_owner_stops_the_node_run_it_started(self):
+        """The check gives each `node --test` a session of its own, so that it can stop a hung run whole. That takes the run
+        out of the group this wrapper owns: stopped by its owner while a run hangs, the check must stop that run on its way
+        out, because the owner's signal reaches the check alone."""
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        delivery = Path(folder.name)
+        record = delivery / "worker.json"
+        self.addCleanup(self.cleanup_owned_worker, record)
+        group_record = delivery / "owned-group"
+        self.addCleanup(self.cleanup_fixture_group, group_record)
+        ready = delivery / "node-pid"
+        (delivery / "test").mkdir()
+        (delivery / "test" / "leaves-a-server.test.js").write_text(
+            "const fs = require('node:fs');\n"
+            "const http = require('node:http');\n"
+            "const test = require('node:test');\n"
+            "http.createServer(() => {}).listen(0, '127.0.0.1', () => {\n"
+            f"  fs.writeFileSync({json.dumps(str(delivery / 'node-pid.tmp'))}, String(process.pid));\n"
+            f"  fs.renameSync({json.dumps(str(delivery / 'node-pid.tmp'))}, {json.dumps(str(ready))});\n"
+            "});\n"
+            "test('passes and leaves its server listening', () => {});\n")
+        check = [sys.executable, str(BASE_TESTS), "suite", "node-base"]  # the small base: its own tests take under a second
+        original = fixture_process.subprocess.Popen
+
+        def launch(argv, **kwargs):
+            child = original(argv, **kwargs)
+            if argv == check:
+                self.addCleanup(self.cleanup_launched, child)
+                # The owner's deadline starts only once the delivery's run hangs: the base's own tests run first.
+                deadline = time.monotonic() + 120
+                while not ready.exists():
+                    self.assertIsNone(child.poll(), "the check ended before the delivery's run started")
+                    self.assertLess(time.monotonic(), deadline, "the delivery's run did not start")
+                    time.sleep(0.05)
+                pid = int(ready.read_text())
+                group_record.write_text(str(os.getpgid(pid)))
+                record.write_text(json.dumps({"pid": pid, "identity": self.process_identity(pid)[1]}))
+            return child
+
+        with mock.patch.object(fixture_process.subprocess, "Popen", launch):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                fixture_process.run_owned(check, cwd=delivery, timeout=0.1)
+        worker = json.loads(record.read_text())
+        deadline = time.monotonic() + 10
+        while self.owned_worker_alive(worker) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assert_fixture_stopped(record)
+
     def test_launch_failure_never_signals_a_group(self):
         with mock.patch.object(fixture_process.subprocess, "Popen", side_effect=OSError("launch failed")), \
                 mock.patch.object(fixture_process.os, "killpg") as kill:
