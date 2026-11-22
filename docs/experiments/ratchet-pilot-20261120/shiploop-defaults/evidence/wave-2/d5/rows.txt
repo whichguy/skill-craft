@@ -1,0 +1,4 @@
+1. R-1 How are response hours configured? Decided: Set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL or DUE_HOURS_LOW to positive whole hours. Otherwise: Use one JSON environment value for all priorities.
+2. R-2 What happens with other overdue values and existing filters? Decided: Only exact true activates it. The filter intersects the existing status/priority result before paging. Otherwise: Reject values other than true and false.
+3. R-3 How does rollout populate the file? Decided: Run npm run backfill:due while the writer is stopped. Enabled startup also fills any missing deadlines before serving. Otherwise: Require a separate backfill and refuse startup when any value is missing.
+4. R-2 What changes in the CLI? Decided: Human list and show display due with the flag on; raw output keeps its four-column contract. Otherwise: Show due only in HTTP.

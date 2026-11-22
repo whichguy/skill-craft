@@ -148,6 +148,11 @@ RULES: tuple[Rule, ...] = (
     _r("unverified-and-deltas", r"^- (A\d+ \(consumer|.* \| reason: )"),
     # Product-acceptance's primary requirements and the tests that passed for each (run-5 batch F6, shiploop_primary).
     _r("unverified-and-deltas", r"^Primary requirements", "bullets"),
+    # The defaults the spec recorded, as the stage after the spec prints them, and the spec review's line on the list
+    # (shiploop_defaults).
+    _r("unverified-and-deltas", r"^Defaults the spec recorded:"),
+    _r("unverified-and-deltas", r"^\d+\. R-\d+ .* Decided: "),
+    _r("unverified-and-deltas", r"^Defaults list: final_result\.defaults"),
     # --- state / locator lines and recovery (_run_rules)
     _r("state-locators", r"^(State|Result records|Result inbox|Accepted history|Repository locator|CLI locator|"
        r"ShipLoop skill card|Run directory locator|Keepalive marker|Owner):"),

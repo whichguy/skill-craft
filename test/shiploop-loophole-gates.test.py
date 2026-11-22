@@ -54,6 +54,7 @@ PREREQUISITE_RUN = {"test-strategy": {"test_layers": [
 # A follow-on entry the handoff cites to the release-verify lessons, which every positioned run holds.
 FOLLOW_ON_ENTRY = {"class": "gap", "statement": "The export exits 0 on an unreadable file.",
                    "source": "lessons.open_next", "request_sentence": "", "needs": "a work item that fixes the exit code"}
+DEFAULT_ENTRY = contract.DEFAULT_ENTRY   # a choice the spec made (shiploop_defaults), stated by the fixture's R-1
 ADD_TEST = {"outcome": "add-work", "summary": "Add the unit test that shows R-1's logic works.",
             "headline": "R-1 needs a lower-layer test.",
             "work_items": [{"id": "W2", "title": "Add a unit test of R-1's logic",
@@ -135,6 +136,15 @@ DODGES = [
                                                                  source="commit:0123abc")]},
      "names no commit in this repository",
      lambda block: {**block, "follow_on": [dict(FOLLOW_ON_ENTRY, **{"class": "note"})]}),       # cite a record the run holds
+    # The defaults list (its design, 2.3): not seen in a live run yet, so the rows name the design's mechanical checks.
+    ("a default left as the template's row with one text filled in", "the defaults design, 2.3 (no live run yet)",
+     "spec", None, lambda block: {**block, "defaults": [dict(contract.nav.defaults.TEMPLATE_ROW, requirement="R-1")]},
+     "still holds the template placeholder",
+     lambda block: {**block, "defaults": []}),              # the named exit: delete the row when nothing was chosen
+    ("a default that names a requirement the spec does not hold", "the defaults design, 2.3 (no live run yet)",
+     "spec", None, lambda block: {**block, "defaults": [dict(DEFAULT_ENTRY, requirement="R-7")]},
+     "has no current entry in",
+     lambda block: {**block, "defaults": [DEFAULT_ENTRY]}),   # the named exit: name the R-<n> that carries the answer
 ]
 
 # improve-commit dodges (F5): (label, where it was seen, the files the fix touches, the message, refusal fragment, the

@@ -690,6 +690,27 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
             + marker + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
 
 
+def entries_after(state: Mapping[str, Any], stage: str, name: str) -> dict[str, Entry] | None:
+    """The entries of home file ``name`` as this run's newest knowledge commit of ``stage`` holds them
+    (``knowledge_subject``); None when the checkout has no such commit or the commit has no such file.
+
+    A reader that compares a stage's entries with the working tree's uses it (``shiploop_defaults.changed``).  Git
+    only reads here; None says "cannot be told", never "unchanged".
+    """
+    repo = Path(str(state.get("repo") or ""))
+    subject = knowledge_subject(state, stage)
+    found = _git(repo, "log", "--format=%H%x09%s", "--fixed-strings", "--grep=" + subject)
+    commits = [line.split("\t", 1) for line in found.stdout.splitlines()] if found.returncode == 0 else []
+    commit = next((row[0] for row in commits if len(row) == 2 and row[1] == subject), None)
+    if commit is None:
+        return None
+    shown = _git(repo, "show", commit + ":" + HOME + "/" + name)
+    if shown.returncode:
+        return None
+    prefix = next(key for key, (file, _) in _ENTRY_FILES.items() if file == name)
+    return _entries(shown.stdout, prefix)
+
+
 def entry_text(repo: Path, ident: str) -> Optional[str]:
     """The entry of requirement ``R-<n>`` (spec.md) or decision ``AD-<n>`` (architecture.md), uncut; None when there is none.
 

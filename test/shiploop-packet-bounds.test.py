@@ -322,6 +322,7 @@ class FieldSpillTests(unittest.TestCase):
 # runaway or binary file.  No kind is a refusal of the model's own text: the gates accept a field of any length.
 LIMIT_KINDS = {
     "shiploop_concerns.ROWS_PRINT": "print budget",
+    "shiploop_defaults.ROWS_PRINT": "print budget",
     "shiploop_fields.MIN_SHOWN_CHARS": "display cut",
     "shiploop_fields.COMPONENT_MAX": "guard",
     "shiploop_navigator.STEP_TASK_PRINT": "print budget",

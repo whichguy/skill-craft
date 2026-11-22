@@ -1918,6 +1918,29 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(state["accepted"][self.action]["evidence_refs"], [str(note)])
         self.assertEqual(state["improve_results"][self.action]["receipt"]["final_result"]["evidence_refs"], [str(note)])
 
+    def test_a_spec_review_imports_only_a_result_that_carries_a_usable_defaults_list(self):
+        """The defaults list is checked on the Improve import too (shiploop_defaults): a review whose final result drops
+        the list, or names a requirement the living spec lacks, is refused, and the list a review rewrites is the one the
+        run records."""
+        self._start_parent_at_stage("spec", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        self.assertEqual(seed["defaults"], [])
+        row = {"requirement": "R-1", "question": "Which file does the build write?", "default": "built.txt.",
+               "alternative": "A name the caller passes, which every caller would then have to give.",
+               "why": "The repository's check reads built.txt."}
+        dropped = {key: value for key, value in seed.items() if key != "defaults"}
+        completion, _receipt = self.completion_receipt(final_result=dropped)
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("a done spec result lists defaults", refused.stderr)
+        completion, _receipt = self.completion_receipt(final_result=dict(seed, defaults=[dict(row, requirement="R-9")]))
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("defaults[0].requirement R-9 has no current entry in", refused.stderr)
+        completion, _receipt = self.completion_receipt(final_result=dict(seed, defaults=[row]))
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(state["accepted"][self.action]["defaults"], [row])
+
     def test_a_revised_final_result_past_the_former_size_limits_imports_whole(self):
         """Plan F2 (2026-10-28): the Improve import ran the producer bounds, so a Grok step-plan review that lengthened
         step S1's task past 700 characters was refused (E6 plan sizing F32, 2026-10-25).  No size limit refuses model text

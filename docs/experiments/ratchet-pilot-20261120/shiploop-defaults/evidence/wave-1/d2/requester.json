@@ -1,0 +1,51 @@
+{
+  "case": "ticket-due-times",
+  "reply_enabled": true,
+  "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+  },
+  "run_dir": "~/e2e-runs/r-20261121-2c3d50/w1/d2/.shiploop-runs/work-20261122-071056-71df7d/run",
+  "seen_at": "2026-11-22T07:13:06Z",
+  "block_printed": true,
+  "rows": [
+    "1. R-1 How do operators enter the hours? Decided: One positive whole-hour variable per priority. Otherwise: A JSON setting updates all priorities as one value.",
+    "2. R-2 Does the exact deadline count as overdue? Decided: It counts once the clock is later than the deadline. Otherwise: Count the deadline instant itself as overdue.",
+    "3. R-3 How do existing files get prepared before enabling? Decided: Run one offline migration command, then enable the switch. Otherwise: Start a preparatory release that migrates its file during startup."
+  ],
+  "recorded": [
+    {
+      "alternative": "A JSON setting updates all priorities as one value",
+      "default": "One positive whole-hour variable per priority",
+      "question": "How do operators enter the hours?",
+      "requirement": "R-1",
+      "why": "Matches existing named environment settings and validation"
+    },
+    {
+      "alternative": "Count the deadline instant itself as overdue",
+      "default": "It counts once the clock is later than the deadline",
+      "question": "Does the exact deadline count as overdue?",
+      "requirement": "R-2",
+      "why": "The request uses has passed"
+    },
+    {
+      "alternative": "Start a preparatory release that migrates its file during startup",
+      "default": "Run one offline migration command, then enable the switch",
+      "question": "How do existing files get prepared before enabling?",
+      "requirement": "R-3",
+      "why": "Makes persistence and activation independent, with explicit single-writer ownership"
+    }
+  ],
+  "about": [
+    false,
+    false,
+    true
+  ],
+  "note": {
+    "exit": 0,
+    "id": "N1",
+    "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "output": "Owner note N1 written: ~/e2e-runs/r-20261121-2c3d50/w1/d2/.shiploop-runs/work-20261122-071056-71df7d/run/owner-notes/N1.md.\nThe run is at test-strategy (action nav-e44c359c138e439d90ca0ba0a77593a8); the model sees the note at its next ShipLoop callback or `next`."
+  }
+}

@@ -1,0 +1,128 @@
+==============================================================================================================
+e2e-runs-sdlc10/20261121-paired/sol-medium-due-p1 | results 26 | spec results 1
+  spec summary (247 chars): Use UTC ISO due, apply strict elapsed comparison, preserve the existing status/priority OR rule and raw CLI shape. Local phased file and server checks cover the rollout; deploying is an operator action. All requirements are pending implementation.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 393 words, 5 R ids; lines on the point: 6
+    [CHOICE-WORD] Basis: November 2026 help desk response-time request. Each new ticket stores creation time plus its priority's response hours, defaulting to urgent 4, high 24, normal 72, low 168. Per-priority environment overrides use positive whole hours; empty uses defaults. Compare exact UTC timestamps across all four priorities, a configure
+    [plain] ### R-3 Stored ticket migration and dark release
+    [plain] Basis: November 2026 rollout request and docs/operations.md. The candidate backfills missing due values from stored creation and priority before accepting requests. Verify the version 1 file on disk before activation, check that audit/outbox and ticket fields are preserved, and reopen with changed settings to confirm already ass
+    [plain] Basis: November 2026 rollback request. The unchanged 1.4.0 HTTP server must start on a version 1 candidate file and list all tickets, including those created after backfill. Verify against a local export of baseline commit 50dd172. An old writer projects out due when it saves; operators preserve a pre-rollback copy for deadline 
+    [plain] Basis: November 2026 preservation request and CONTRIBUTING.md. Preserve Node-only runtime, npm start with PORT, command-line and report behavior, validation, transitions, audits, notifications and existing pagination. Run unchanged original tests and the new node:test tests together with npm test.
+    [CHOICE-WORD] Reuse atomic replacement and the one-writer data file (docs/decisions/0008-json-data-file.md). Only startup and normal state writes touch the file, migration has no audit/outbox effects, and a failed migration cannot serve partial data. No new network, identity, platform or graphical surface.
+  intake questions: 11; on the point: [('Q9', 'inspect', 'Where can the migration and rollback be observed?', 'default=Use the existing service and a temporary file for delivery checks'), ('Q10', 'inspect', 'How can backfill complete before enabling API output?', 'default=Use the existing service and a temporary file for delivery checks')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2 | results 23 | spec results 1
+  spec summary (202 chars): S1/S9/S10 map to R-5. S2–S4 map to R-1. S5 maps to R-2 and R-3. S6–S8 map to R-4, with its activation boundary also in R-2. Production steps are delivered as operator instructions and rehearsed locally.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 273 words, 5 R ids; lines on the point: 5
+    [CHOICE-WORD] New tickets store creation plus their priority's configured elapsed hours, defaulting to urgent 4, high 24, normal 72 and low 168. Runtime environment overrides require no code change. Priority edits, transitions, restarts and changed settings leave existing deadlines intact. Verify at HTTP and persistence boundaries.
+    [plain] ### R-4 Backfill and roll back
+    [plain] Offline, atomically add missing deadlines to version 1 files from each stored creation and priority. Repeated backfill preserves set values and preserves all other logical state. An enabled service must not listen on a file still missing deadlines. Verify command, restart, and unmodified 1.4.0 boot against the post-upgrade file.
+    [plain] The offline backfill is available as `npm run backfill:due-times` and reports the number of tickets it updated. (W1/S1)
+    [plain] Keep npm start and npm test entry points, Node standard library only, unchanged existing tests and behavior outside the feature. Add node:test cases. Verify with the full suite and the local release rehearsal.
+  intake questions: 12; on the point: [('Q5', 'inspect', 'How can existing tickets be upgraded safely?', 'default=Use the existing repository contract'), ('Q8', 'experiment', 'Can the actual baseline binary read the migrated file?', 'default=Use the existing repository contract')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc14/r15b/20261121/sol-A-due-1 | results 26 | spec results 1
+  spec summary (297 chars): The condition is due strictly before now. The overdue predicate applies before pagination alongside existing filters. Command-line raw columns retain compatibility. The offline migration and enabled startup reuse the same atomic backfill. Concrete HTTP and rollback cases run after implementation.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 396 words, 4 R ids; lines on the point: 4
+    [CHOICE-WORD] Basis: help desk response-time request, 2026-11-21, S2–S4. With DUE_TIMES=on, ticket creation stores the created instant plus the configured hours for the creation priority (urgent 4, high 24, normal 72, low 168 by default). Positive whole-hour overrides come from the environment. Invalid active overrides prevent startup and nam
+    [plain] ### R-3 Backfill and rollout
+    [CHOICE-WORD] Basis: same request, S6–S7; docs/operations.md and decision 0008. An offline command fills missing deadlines from each existing ticket’s created instant and saved priority, saves once using the version-1 writer and leaves existing due values, IDs, audit and outbox intact. A second identical or reconfigured run over a fully popul
+    [plain] Basis: same request, S1 and S8–S10; README and package.json at adbb372. Version 1.4.0 starts and lists all tickets from a file written by the new release. Verify using the frozen release with new and backfilled tickets. The original service contracts and 117 tests carry forward; add node:test coverage under test/ and run npm tes
+  intake questions: 11; on the point: [('Q5', 'inspect', 'How can existing tickets receive durable deadlines?', 'default=Persist before serving the enabled API'), ('Q6', 'inspect', 'What test runtime and production launch commands exist?', 'default=Existing Node.js and npm scripts'), ('Q8', 'experiment', 'How can rollback be verified?', 'default=Run the frozen 1.4.0 checkout against migrated fixtures'), ('Q10', 'experiment', 'Does 1.4.0 accept additive ticket fields?', 'default=Verify using actual baseline release')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc14/r15b/20261121/sol-A-due-2 | results 36 | spec results 1
+  spec summary (152 chars): Treat exact deadline as still due, raw CLI columns as a stable machine contract, and version-1 reading by the actual baseline as the rollback criterion.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 260 words, 4 R ids; lines on the point: 4
+    [CHOICE-WORD] Ticket creation assigns an ISO UTC timestamp equal to creation plus 4 urgent, 24 high, 72 normal or 168 low hours by default. Operators can set each priority's hours through environment variables. A priority change, a restart with different settings, and a new-release flag-off interval preserve the stored value. Verify through c
+    [plain] ### R-3 Backfill and rollback
+    [plain] Seed a pre-release version-1 file with several priorities and states. The new release fills missing due values from creation and the recorded priority, writes before serving, and preserves the other state. Reopen with different configured hours and confirm assigned values. Start the original 1.4.0 executable using the candidate 
+    [plain] Keep Node.js built-in modules, the normal start and test commands, the existing tests, pagination, audit, outbox and CLI compatibility. New node:test cases run with the original suite.
+  intake questions: 8; on the point: [('Q4', 'inspect', 'Can existing data hold additive fields?', 'default=Use the repository contract'), ('Q7', 'inspect', 'Where does the service load and persist data?', 'default=Use the repository contract')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc14/r15b/20261121/sol-B-due-1 | results 23 | spec results 1
+  spec summary (203 chars): Strict comparison at the deadline boundary. Whole-hour environment settings follow current configuration conventions. New tickets receive stored deadlines while hidden, and backfill runs before enabling.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 340 words, 4 R ids; lines on the point: 4
+    [plain] - Operators can override each horizon via environment variables. HTTP and persistence tests show new tickets use changed hours and prior tickets keep their deadline across priority edits and restart.
+    [plain] - An operator command fills only missing deadlines from persisted creation times and priorities. Tests verify idempotence, partial backfill, unchanged audit and outbox, and preservation across restart.
+    [plain] - With a data file, enabled startup rejects missing deadlines until backfill finishes. A test checks the failure then starts successfully on the backfilled file.
+    [plain] - A local rollback drill starts the original 1.4.0 server on the candidate-written data file and enumerates all tickets. The operator runbook describes rollback file handling.
+  intake questions: 8; on the point: [('Q4', 'inspect', 'How can a persisted due time survive updates and restart?', 'default=Resolve from repository evidence')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc14/r15b/20261121/sol-B-due-2 | results 26 | spec results 1
+  spec summary (221 chars): R-1 through R-4 capture preserved interfaces, exact due assignments, gated overdue behavior and durable migration with real legacy-read verification. Production activation requires the operator's data and service manager.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 272 words, 4 R ids; lines on the point: 2
+    [CHOICE-WORD] S2-S4. Store UTC due as creation time plus the configured hours for the priority at assignment. Defaults are urgent 4, high 24, normal 72 and low 168. Acceptance: HTTP creates with each default and an override return exact ISO timestamps; a priority patch and settings change after restart retain the deadline.
+    [plain] S6-S8. On candidate startup, missing values are calculated from each persisted creation time and priority and saved before serving. Version 1 continues to load in release 1.4.0. Acceptance: inspect the saved file with the flag off, restart with changed settings and the flag on, then run a stock 1.4.0 HTTP process against candida
+  intake questions: 12; on the point: [('Q5', 'inspect', 'How can backfill run before exposure and survive restart?', 'default=Follow repository behavior and explicit rollout requirements'), ('Q8', 'experiment', 'How can tests start both releases?', 'default=Follow repository behavior and explicit rollout requirements'), ('Q10', 'inspect', 'How can migration remain atomic?', 'default=Follow repository behavior and explicit rollout requirements')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc14/r15c/20261121/sol-C-due-1 | results 26 | spec results 1
+  spec summary (264 chars): The existing file stays version 1. The activation boundary is exactly on, after startup persistence. Compare strictly earlier than now. Expose the stored deadline in human CLI views and preserve the raw report contract. Production execution remains with operators.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 436 words, 4 R ids; lines on the point: 4
+    [CHOICE-WORD] Basis: November 21, 2026 request, “A ticket's due time is set once.” On creation, the deadline is the created instant plus the priority window. Urgent, high, normal and low default to 4, 24, 72 and 168 hours. Operators may override each window via a positive whole-hour environment setting. An invalid setting reports its name at 
+    [plain] ### R-3 Backfill and rollback
+    [plain] Basis: November 21, 2026 request, “tickets already in the production data file get due times too” and release “1.4.0” must read the new file. Save missing deadlines at startup in the existing v1 file before exposure, from the stored created instant and stored priority. Retain pre-existing deadlines and preserve ticket IDs, updat
+    [plain] The migration uses the existing atomic persistence path. Existing CLI style and machine-readable formatting remain. No new infrastructure or credentials are required.
+  intake questions: 11; on the point: [('Q5', 'inspect', 'How are old records loaded and written?', 'default=Use repository evidence; keep existing surface')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc9/20261120/sol-medium-due-L-1 | results 26 | spec results 1
+  spec summary (177 chars): Documented exact switch and query values, strict time boundary, numeric hours, backward-readable persistence and local verification. Production execution remains with operators.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 373 words, 4 R ids; lines on the point: 7
+    [plain] - Changing configuration, editing priority, and moving between statuses keep the originally assigned ISO timestamp. Verify through API mutations and restarting from disk.
+    [plain] - Exactly DUE_TIMES=on exposes due in ticket responses and human CLI displays. When off, those responses keep their prior shape, and overdue is ignored. The CLI raw columns stay stable. Verify from HTTP and the CLI against a migrated file.
+    [plain] ### R-3 Production migration and rollback
+    [plain] - An offline migration fills missing due values from stored creation and priority without changing existing due, IDs, next numbering, timestamps, audit, or outbox. Repeat with different hours and verify file bytes stay unchanged once complete.
+    [plain] - Enabled startup rejects a persisted ticket with a missing deadline before serving. Verify before and after migration. An empty data set needs no backfill.
+    [plain] - Original 1.4.0 must start from upgraded v1 data and list all tickets. Rehearse on a temporary copy using original source. Document old writer behavior and rollback recovery options.
+  intake questions: 3; on the point: [('Q1', 'inspect', 'What format is safe for adding persisted deadlines and restarting 1.4.0?', 'default=Use the current reader-compatible data format'), ('Q2', 'inspect', 'How does the service take configuration and start?', 'default=Use matching environment configuration')]
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc9/20261120/sol-medium-due-L-2 | results 26 | spec results 1
+  spec summary (271 chars): S1-S4 map to R-1 and R-6. S5 maps to R-2 and R-3. S6-S7 map to R-2 and R-4. S8 maps to R-5. S9-S10 map to R-6. S11 is recorded in run options. Exact lowercase on and true, strict past-due cutoff, per-priority whole hours and existing CLI layout are the selected defaults.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 402 words, 6 R ids; lines on the point: 5
+    [plain] Each ticket receives an ISO UTC `due` set to its creation instant plus 4 hours for urgent, 24 for high, 72 for normal or 168 for low. Operators can configure each duration. Priority, status and configuration changes leave assigned deadlines intact. Confirm through fixed-clock creates, patches, transitions and restart. At 2025-09
+    [plain] ### R-4 Backfill and persistence
+    [plain] Before serving, startup fills missing deadlines using recorded creation time and priority, even with exposure off. It atomically writes the complete state, keeping assigned values, identifiers, audit and outbox. A conversion or save failure prevents serving incomplete data. Confirm on disk before any mutation or shutdown, then r
+    [plain] The actual 1.4.0 server starts on a copy of candidate-written data and lists every ticket in its original shape. 1.4.0 rewrites drop the new field. Operators retain a pre-rollback copy to recover deadlines on a later re-upgrade.
+    [plain] Preserve startup, the dependency-free package, lifecycle, audit, notifications, CLI and weekly report. Keep the existing tests unchanged and add node:test cases to `npm test`.
+  intake questions: 5; on the point: []
+  report Open items: 0 rows; mentions the point: False
+==============================================================================================================
+e2e-runs-sdlc9/20261120/sol-medium-due-S-1 | results 23 | spec results 1
+  spec summary (223 chars): Use strict expiry, optional positive whole-hour settings, an offline backfill, and a file-backed readiness gate. Local source delivery and exact rollback checks use disposable state. Production rollout belongs to operators.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 377 words, 4 R ids; lines on the point: 5
+    [CHOICE-WORD] Based on the 2026-11-20 request, S2–S4. Each new ticket uses its creation instant plus its priority's configured hours (urgent 4, high 24, normal 72, low 168 by default). The four environment settings accept positive whole hours. Compare all four timestamps in HTTP create responses against a fixed clock, then restart with new se
+    [plain] Based on S5, S7 and S9. With literal DUE_TIMES=on, create, get, list, update and transition ticket objects include the UTC ISO due value. The list intersects strictly expired open or in_progress tickets with the existing status/priority filter behavior before cursor paging. Use a manual clock to verify equality, one millisecond 
+    [plain] Based on S6–S8. In the operator's exclusive-writer maintenance window, the backfill fills missing due fields using the stored created and priority values. It preserves due values on reruns, and changes neither history nor pending notifications. A file-backed server with the feature enabled refuses stored tickets lacking due. Che
+    [plain] Based on S1, S9 and S10. The npm test entry point continues to run the unchanged suite plus new node:test checks in test/. No dependencies or changes to npm start, PORT, or raw CLI columns.
+    [plain] Preserve single-writer atomic file replacement and recoverable retries via the existing persistence boundary. Validate with disposable production-shaped files, including a failed backfill with an unchanged source file. No graphical or terminal interface redesign is in scope.
+  intake questions: 9; on the point: [('Q4', 'inspect', 'How can due survive restart and an old reader?', 'default=Use the existing project boundary established at discovery.'), ('Q7', 'inspect', 'What rollout interface is supported locally?', 'default=Use the existing project boundary established at discovery.'), ('Q8', 'experiment', 'Will 1.4.0 accept migrated and newly written tickets?', 'default=Use the existing project boundary established at discovery.')]
+  report Open items: 1 rows; mentions the point: True
+==============================================================================================================
+e2e-runs-sdlc9/20261120/sol-medium-due-S-2 | results 23 | spec results 1
+  spec summary (211 chars): R-1–R-6 map the requested behavior and existing service boundaries to HTTP, file and rollback checks. Exact activation and cutoff semantics are recorded; applicability of the local-only verification is explicit.
+  keys: ['evidence_refs', 'headline', 'outcome', 'primary', 'summary']
+  spec.md: 498 words, 6 R ids; lines on the point: 6
+    [CHOICE-WORD] Ticket creation returns its ISO UTC created time plus the configured priority hours. Defaults are urgent 4, high 24, normal 72 and low 168. At 2025-09-01T08:00:00Z those produce September 1 at 12:00, September 2 at 08:00, September 4 at 08:00 and September 8 at 08:00 UTC. Verify all four through POST, a per-priority override thr
+    [plain] The exact environment value DUE_TIMES=on exposes due on create, list, get, patch and transition. No API request can set due. Other flag values preserve ticket response fields and ignore overdue as an unknown query parameter. Verify with HTTP tests on both settings, including normal operation with a migrated file.
+    [plain] ### R-4 Backfill existing data once
+    [plain] For a version-1 row missing due, use that row's stored creation time and saved priority when the new release starts. A row with due keeps it. The new service persists missing values before serving; activation follows an off-mode start and file verification. No audit, outbox, next number or ticket fields are changed by migration.
+    [plain] Version 1.4.0 at 95d722f starts on a file from the new release and returns every existing and new ticket. Verify by starting the unchanged release on a copy and reading through HTTP. The legacy writer projects known fields when rewriting; operators needing to recover deadline metadata must retain the last new-release copy. Produ
+    [plain] Keep dependency-free npm start, PORT, CLI reports and established API behavior. The original test files stay intact; new tests under test/ run through npm test. Verify the suite and CLI read behavior against a migrated file.
+  intake questions: 12; on the point: [('Q8', 'experiment', 'Can the actual 1.4.0 binary read migrated and new tickets?', 'default=Use repository conventions and explicit request'), ('Q10', 'inspect', 'Which safe-write and consistency guarantees already exist?', 'default=Use repository conventions and explicit request'), ('Q11', 'experiment', 'Can a restart or rollback erase deadlines?', 'default=Use repository conventions and explicit request')]
+  report Open items: 1 rows; mentions the point: True

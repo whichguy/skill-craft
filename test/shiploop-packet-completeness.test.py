@@ -246,6 +246,8 @@ class PacketCompletenessTests(unittest.TestCase):
         # plan), and the lower-layer check product-acceptance holds a primary one to (F6).
         "primary": {"spec", "plan", "product-acceptance"},
         "lower_layer_check": {"product-acceptance"},
+        # The answers the spec chose for the requester (shiploop_defaults); its refusals are the spec's gates.
+        "defaults": {"spec"},
     }
 
     def test_a_producer_without_a_script_run_check_names_the_faults_complete_refuses(self) -> None:

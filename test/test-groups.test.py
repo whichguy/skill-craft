@@ -134,7 +134,8 @@ class TestGroupTests(unittest.TestCase):
         # Roundtable adds one opt-in calibration suite (2026-11-07).
         # Nonblocking recovery adds one real-worktree suite (2026-11-12).
         # Retiring the Closed Loop adapter (3 suites) and all Salesforce/hosted suites (12 ShipLoop + 2 apparatus) brings SHIPLOOP_SUITES to 127.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 127)
+        # The defaults list's suite adds one (2026-11-21).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 128)
         # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
@@ -147,7 +148,7 @@ class TestGroupTests(unittest.TestCase):
         # and all suites two fewer; backchain-graph stays, because its library moved into ShipLoop.
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
         # Bundled Grok/GAS harness (2 suites), Closed Loop ShipLoop adapter (3 suites), and Salesforce/hosted cases (14 suites) retired (2026-11-19).
-        self.assertEqual(len(suite_catalog.SUITES), 190)
+        self.assertEqual(len(suite_catalog.SUITES), 191)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -169,7 +170,7 @@ class TestGroupTests(unittest.TestCase):
         self.assertIn("shiploop-python-floor", {suite.id for suite in selected})
         self.assertIn("shiploop-clean-consumer", {suite.id for suite in selected})
         self.assertNotIn("python-floor", ci_policy.FULL_GROUPS)
-        self.assertEqual(len(selected), 76)
+        self.assertEqual(len(selected), 77)
         covered = Counter(suite.id for group in ci_policy.FULL_GROUPS
                           for suite in suite_catalog.select((group,)))
         self.assertTrue({suite.id for suite in selected} <= set(covered))
@@ -386,12 +387,13 @@ class TestGroupTests(unittest.TestCase):
                              [s.id for s in suite_catalog.select([group], changed)])
 
     def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
-        # All 190 rows after retiring the bundled harness, Closed Loop adapter, and Salesforce suites (2026-11-19).
+        # All 190 rows after retiring the bundled harness, Closed Loop adapter, and Salesforce suites (2026-11-19),
+        # and the defaults list's suite (2026-11-21): 191.
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "a5d87ecb26697c9e112f7e6467f72617cdd1b974b95fe08edc1b973cbce301fc")
+        self.assertEqual(digest, "d88a4f3af888db8ef6e0c4fec2889c3059d254f1878d0afd23cb23e0f8a36c1b")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])
@@ -403,7 +405,7 @@ class TestGroupTests(unittest.TestCase):
             self.assertEqual(suite_catalog.select(["smoke", "affected"], changed), suite_catalog.quick(changed))
             self.assertEqual(suite_catalog.select(["all"], changed), full)
             self.assertEqual(suite_catalog.select(["affected"], changed), suite_catalog.affected(changed))
-        self.assertEqual(len(suite_catalog.select(["python-floor"])), 76)
+        self.assertEqual(len(suite_catalog.select(["python-floor"])), 77)
 
     def test_full_only_membership_is_explicit_and_independent_of_timings(self) -> None:
         self.assertEqual(suite_catalog._FULL_ONLY_IDS, {
@@ -549,7 +551,7 @@ class TestGroupTests(unittest.TestCase):
             loads[owner] += suite_catalog._DURATION_SECONDS[suite.path]
         old = tuple(tuple(s for s in canonical if s.id in ids) for ids in members)
         self.assertEqual(suite_catalog.SHIPLOOP_SHARDS, old)
-        self.assertEqual(len(suite_catalog.select(["python-floor"])), 76)
+        self.assertEqual(len(suite_catalog.select(["python-floor"])), 77)
 
     def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
         canonical = suite_catalog.SHIPLOOP_SUITES

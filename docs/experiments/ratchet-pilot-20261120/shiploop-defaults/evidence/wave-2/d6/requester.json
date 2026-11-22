@@ -1,0 +1,46 @@
+{
+  "case": "ticket-due-times",
+  "reply_enabled": false,
+  "rule": {
+    "tickets": "\\b(backfill\\w*|back-fill\\w*|migrat\\w*|existing|already|older)\\b",
+    "start": "\\b(start\\w*|start-up|boot\\w*|launch\\w*|restart\\w*)\\b",
+    "absent": "\\b(missing|without|lack\\w*|no due|has none|have none|has no|have no)\\b"
+  },
+  "run_dir": "~/e2e-runs/r-20261121-2c3d50/w2/d6/.shiploop-runs/work-20261122-074050-1dcb56/run",
+  "seen_at": "2026-11-22T07:43:15Z",
+  "block_printed": true,
+  "rows": [
+    "1. R-1 How do operators set response hours? Decided: Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours. Otherwise: Use a single JSON settings variable, requiring an operator to edit a JSON object.",
+    "2. R-3 Is a ticket overdue at the exact deadline? Decided: It enters the overdue list once the deadline has passed. Existing filters still apply. Otherwise: Include the ticket at equality, changing results at the exact timestamp.",
+    "3. R-4 What command prepares the data? Decided: Startup prepares missing deadlines before opening the port, including startup with the flag off. Otherwise: Use a separate offline migration command, requiring a separate operator invocation."
+  ],
+  "recorded": [
+    {
+      "alternative": "Use a single JSON settings variable, requiring an operator to edit a JSON object.",
+      "default": "Use DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL and DUE_HOURS_LOW for positive whole hours.",
+      "question": "How do operators set response hours?",
+      "requirement": "R-1",
+      "why": "Existing configuration uses individual environment variables and whole numbers."
+    },
+    {
+      "alternative": "Include the ticket at equality, changing results at the exact timestamp.",
+      "default": "It enters the overdue list once the deadline has passed. Existing filters still apply.",
+      "question": "Is a ticket overdue at the exact deadline?",
+      "requirement": "R-3",
+      "why": "The request says the due time has passed."
+    },
+    {
+      "alternative": "Use a separate offline migration command, requiring a separate operator invocation.",
+      "default": "Startup prepares missing deadlines before opening the port, including startup with the flag off.",
+      "question": "What command prepares the data?",
+      "requirement": "R-4",
+      "why": "Startup owns file loading and can complete the write before any request."
+    }
+  ],
+  "about": [
+    false,
+    true,
+    true
+  ],
+  "note": null
+}

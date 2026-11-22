@@ -1,0 +1,34 @@
+Archived deliveries of ticket-due-times on Codex, gpt-6.2-sol at medium, as found under ~/e2e-runs* on 2026-11-21 22:20.
+Read from each run's result.json; the runs belong to the SDLC structure study and were not touched.
+P passed, F failed. STOPPED runs were ended by their harness before a product was built (planning samples).
+
+run                                                     plugin  class    migrate  restart  switch   rollback off      cli      suite    pristine
+e2e-runs-sdlc10/20261121-e1/e1-card-due-10              4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-card-due-11              4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-card-due-12              4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-card-due-7               4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-card-due-8               4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-card-due-9               4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-plain-due-10             4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-plain-due-11             4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-plain-due-12             4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-plain-due-7              4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-plain-due-8              4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-e1/e1-plain-due-9              4.2.0   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-paired/sol-medium-due-p1       4.2.0   FAILED   P        P        P        P        P        P        F        P       
+e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2       4.2.0   FAILED   F        F        F        F        P        F        P        P       
+e2e-runs-sdlc14/r15/plan-samples/candidate-sol-1        4.2.1   STOPPED  F        F        F        P        P        P        F        F       
+e2e-runs-sdlc14/r15/plan-samples/candidate-sol-2        4.2.1   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc14/r15/plan-samples/control-sol-1          4.2.1   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc14/r15/plan-samples/control-sol-2          4.2.1   STOPPED  F        F        F        P        P        P        F        P       
+e2e-runs-sdlc14/r15b/20261121/sol-A-due-1               4.2.1   FAILED   P        P        P        P        P        P        P        F       
+e2e-runs-sdlc14/r15b/20261121/sol-A-due-2               4.2.1   PASS     P        P        P        P        P        P        P        P       
+e2e-runs-sdlc14/r15b/20261121/sol-B-due-1               4.2.1   FAILED   F        F        F        F        P        F        P        P       
+e2e-runs-sdlc14/r15b/20261121/sol-B-due-2               4.2.1   PASS     P        P        P        P        P        P        P        P       
+e2e-runs-sdlc14/r15c/20261121/sol-C-due-1               4.2.1   PASS     P        P        P        P        P        P        P        P       
+e2e-runs-sdlc9/20261120/sol-medium-due-L-1              4.2.0   FAILED   F        F        F        F        P        F        P        P       
+e2e-runs-sdlc9/20261120/sol-medium-due-L-2              4.2.0   FAILED   P        P        P        P        P        P        P        P       
+e2e-runs-sdlc9/20261120/sol-medium-due-S-1              4.2.0   FAILED   F        F        F        F        P        F        P        P       
+e2e-runs-sdlc9/20261120/sol-medium-due-S-2              4.2.0   PASS     P        P        P        P        P        P        P        P       
+
+Full deliveries (class PASS or FAILED): 11; migrate passes in 7 and fails in 4.

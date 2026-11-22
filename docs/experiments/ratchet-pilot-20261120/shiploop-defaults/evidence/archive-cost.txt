@@ -1,0 +1,20 @@
+Archived full deliveries of ticket-due-times, Codex, gpt-6.2-sol at medium: time, the spec stage's time, output tokens,
+and the host's messages to the user. Read from each run's result.json, metrics.json and transcript.md on 2026-11-21.
+
+run                     seconds  spec stage s   output tokens  host messages
+sol-medium-due-p1       820      [20.0]         29389          8
+sol-medium-due-p2       901      [40.0]         32631          8
+sol-A-due-1             1129     [54.0]         34865          8
+sol-A-due-2             884      [43.0]         27558          8
+sol-B-due-1             855      [41.0]         27158          7
+sol-B-due-2             893      [58.0]         29723          7
+sol-C-due-1             926      [43.0]         33546          9
+sol-medium-due-L-1      913      [17.0]         29406          11
+sol-medium-due-L-2      1009     [42.0]         None           8
+sol-medium-due-S-1      1248     [61.0]         None           12
+sol-medium-due-S-2      987      [58.0]         33784          9
+
+seconds: 820 to 1248, median 913
+spec stage seconds: 17.0 to 61.0, median 43.0
+output tokens: 27158 to 34865, median 29723
+host messages: 7 to 12, median 8

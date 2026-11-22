@@ -1,0 +1,44 @@
+======================================================================================================================
+s1: pass True (PASS); status done; 2619 s; spec stage [131.0] s; output tokens 195151
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate P, due_times_probe.py restart P, due_times_probe.py switch P, due_times_probe.py rollback P, due_times_probe.py off P, due_times_probe.py cli P
+  gate counts: {"other": {"fired": 8, "caught": 6}, "test_layers": {"fired": 1, "caught": 1}, "mutation_not_done": {"fired": 3, "caught": 3}, "spec_writeback": {"fired": 2, "caught": 2}, "improve_regression_test": {"fired": 2, "caught": 2}}
+  spec results accepted: 1; spec.md: {'words': 1633, 'requirements': 10, 'default_words': 7}
+  defaults: 6 rows; the named clause says default: [True, True, False, False, False, True]
+    1.requirement: R-2
+    1.question: How does the help desk change the hours?
+    1.default: Operators set DUE_HOURS_URGENT, DUE_HOURS_HIGH, DUE_HOURS_NORMAL, DUE_HOURS_LOW in the service's environment and restart; unset means 4/24/72/168; a bad value stops start with a message naming it. Each value must be a whole number from 1 to 100000 hours, else start stops.
+    1.alternative: A settings file or an API to edit hours live; it would add a new file or endpoint to maintain.
+    1.why: Every other setting is an environment variable (README Configuration); the request names DUE_TIMES that way.
+    2.requirement: R-5
+    2.question: Is a ticket due exactly now overdue, and what does overdue=false do?
+    2.default: Overdue means due strictly before now; overdue=true narrows the list; overdue=false or any other value gets a 400 invalid error.
+    2.alternative: Accept overdue=false as 'only tickets not overdue'; it would add a second filter meaning.
+    2.why: The request defines only overdue=true; refusing other values matches how status and priority refuse bad values.
+    3.requirement: R-7
+    3.question: What happens with DUE_TIMES unset, off or misspelt?
+    3.default: Only the exact value on switches it on; anything else acts as off: no due in answers and overdue ignored. The service still stores due times in the data file.
+    3.alternative: Refuse to start on an unknown value; a typo would stop the service instead of silently staying off.
+    3.why: The request says 'until DUE_TIMES is on' the service answers as today.
+    4.requirement: R-6
+    4.question: When do existing tickets receive due times and what hours are used?
+    4.default: At the first start of the new release, whatever DUE_TIMES says, using the hours set at that moment; the file is rewritten once with no audit entries.
+    4.alternative: A separate migration command run by operators before the switch; it adds a step that can be forgotten.
+    4.why: The request wants the file to hold due times before DUE_TIMES is switched on.
+    5.requirement: R-8
+    5.question: What do operators lose by rolling back?
+    5.default: 1.4.0 starts and shows every ticket, but its next save drops the due times; the next upgrade recomputes them from created time and priority with the hours then in force.
+    5.alternative: Keep due in a side file that 1.4.0 never touches; it adds a second file to back up.
+    5.why: 1.4.0 cannot be changed, and it rewrites only the fields it knows.
+    6.requirement: R-2
+    6.question: What is the largest number of hours accepted?
+    6.default: 100000 hours (about 11 years); a larger value stops the service at start with a message naming the variable.
+    6.alternative: No limit; an absurd value would make a due time that is not a valid date and fail at ticket creation.
+    6.why: A hard bound keeps created + hours a valid date; the request gives none.
+  spec summary: Requirements trace S3 to R-1, R-2; S4 to R-3; S5 to R-4, R-5; S6 to R-6; S7 to R-7; S8 to R-8; S9 to R-9; S10 to R-10. Non-functional: compatibility and dependencies assessed, others excluded with reason. No open conflicts; reuse states.ACTIVE for overdue statuses. Improve review: R-2 bounded, missing config keys default (existing tests), backfill save lives in store open not the shared loader, R-8 replay made exact, R-5 clock named.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 6
+  host messages to the user: 45; naming a default: 2
+    say: Complete. The review changed a default (the hours bound), so I'll write a final result with the updated defaults.
+    say: Mutation testing found four product lines my tests don't pin: the two `dueTimes` defaults, a status code, and the default page size. I'm adding targeted tests f
+  report: {'section': True, 'after_request': True, 'rows': 48, 'none': False, 'not_recorded': False}
+  requester: reply enabled False; block printed True; about the point [False, False, True, True, False, False]; note None; ended None
+  owner notes in the run: []; delivered: null

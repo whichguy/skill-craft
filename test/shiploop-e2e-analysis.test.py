@@ -2522,6 +2522,35 @@ class GateCountsTest(unittest.TestCase):
                     self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), gate,
                                      str(caught.exception))
 
+    def test_each_defaults_refusal_classifies_under_its_own_gate(self) -> None:
+        """The defaults list's refusals, built by the gate's own functions, never typed (shiploop_defaults)."""
+        scripts = str(ROOT / "skills/shiploop/scripts")
+        sys.path.append(scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        import shiploop_defaults as defaults
+        import shiploop_navigator as navigator
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            (repo / "docs/shiploop").mkdir(parents=True)
+            (repo / "docs/shiploop/spec.md").write_text("## Requirements\n\n- R-1: Play.\n", encoding="utf-8")
+            done = {"outcome": "done", "summary": "s"}
+            row = {"requirement": "R-1", "question": "q", "default": "d", "alternative": "a", "why": "w"}
+            calls = [lambda: defaults.check_submitted(repo, "spec", done),
+                     lambda: defaults.check_submitted(repo, "spec", dict(done, defaults="none")),
+                     lambda: defaults.check_submitted(repo, "spec", dict(done, defaults=[dict(defaults.TEMPLATE_ROW)])),
+                     lambda: defaults.check_submitted(repo, "spec", dict(done, defaults=[dict(row, why="")])),
+                     lambda: defaults.check_submitted(repo, "spec", dict(done, defaults=[dict(row, id="D1")])),
+                     lambda: defaults.check_submitted(repo, "spec", dict(done, defaults=[dict(row, requirement="R-1 and R-2")])),
+                     lambda: defaults.check_submitted(repo, "spec", dict(done, defaults=[dict(row, requirement="R-9")])),
+                     lambda: defaults.canonical("R-1"),
+                     lambda: defaults.canonical([["R-1"]]),
+                     lambda: navigator._canonical_result(dict(done, defaults=[]), stage="discovery")]
+            for call in calls:
+                with self.assertRaises(ValueError) as caught:
+                    call()
+                self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "defaults",
+                                 str(caught.exception))
+
     def test_the_restate_and_small_pass_refusals_classify_under_their_gates(self) -> None:
         """The unverified restatement's refusals and the Improve convergence gate's, built by their gates, never typed."""
         scripts = str(ROOT / "skills/shiploop/scripts")

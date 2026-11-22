@@ -1,0 +1,102 @@
+======================================================================================================================
+d1: pass True (PASS); status done; 759 s; spec stage [53.0] s; output tokens 26968
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate P, due_times_probe.py restart P, due_times_probe.py switch P, due_times_probe.py rollback P, due_times_probe.py off P, due_times_probe.py cli P
+  gate counts: {"mutation_not_done": {"fired": 2, "caught": 2}}
+  spec results accepted: 1; spec.md: {'words': 371, 'requirements': 4, 'default_words': 1}
+  defaults: 4 rows; the named clause says default: [True, False, False, False]
+    1.requirement: R-1
+    1.question: How do operators override the response hours?
+    1.default: Set positive whole hours in DUE_HOURS_<PRIORITY> at startup.
+    1.alternative: A single JSON environment variable would require supplying a mapping.
+    1.why: README establishes per-setting environment variables and whole-number validation.
+    2.requirement: R-2
+    2.question: When is a ticket past due?
+    2.default: A ticket is overdue strictly after its timestamp.
+    2.alternative: An inclusive boundary would surface the ticket at the exact due instant.
+    2.why: The request says the due time has passed.
+    3.requirement: R-2
+    3.question: What changes for CLI users?
+    3.default: The human list and show can display due with the flag on. Raw output stays at four fields.
+    3.alternative: Adding a fifth raw field would change the column contract for scripts.
+    3.why: The README specifies the existing raw schema and report dependency.
+    4.requirement: R-3
+    4.question: When does existing data get filled?
+    4.default: The first new startup fills missing values before listening, even with the flag off.
+    4.alternative: A separate offline migration would add an operator command.
+    4.why: The feature must be dark until durable and maintainable by the existing service.
+  spec summary: Keep single writer, version 1 compatibility and local source delivery. Obtain rollback evidence with actual 1.4.0 against disposable data. Safety of production activation remains an operator responsibility.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 4
+  host messages to the user: 8; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 36, 'none': False, 'not_recorded': False}
+  requester: reply enabled True; block printed True; about the point [False, False, False, True]; note N1; ended None
+  owner notes in the run: ['N1.md']; delivered: {"N1": "nav-74337f1387b74d1cb854861822708edb"}
+======================================================================================================================
+d2: pass True (PASS); status done; 868 s; spec stage [52.0] s; output tokens 31570
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate P, due_times_probe.py restart P, due_times_probe.py switch P, due_times_probe.py rollback P, due_times_probe.py off P, due_times_probe.py cli P
+  gate counts: {"other": {"fired": 2, "caught": 1}, "mutation_not_done": {"fired": 2, "caught": 2}}
+  spec results accepted: 1; spec.md: {'words': 345, 'requirements': 5, 'default_words': 3}
+  defaults: 3 rows; the named clause says default: [True, True, False]
+    1.requirement: R-1
+    1.question: How do operators enter the hours?
+    1.default: One positive whole-hour variable per priority
+    1.alternative: A JSON setting updates all priorities as one value
+    1.why: Matches existing named environment settings and validation
+    2.requirement: R-2
+    2.question: Does the exact deadline count as overdue?
+    2.default: It counts once the clock is later than the deadline
+    2.alternative: Count the deadline instant itself as overdue
+    2.why: The request uses has passed
+    3.requirement: R-3
+    3.question: How do existing files get prepared before enabling?
+    3.default: Run one offline migration command, then enable the switch
+    3.alternative: Start a preparatory release that migrates its file during startup
+    3.why: Makes persistence and activation independent, with explicit single-writer ownership
+  spec summary: R-1 through R-5 trace the request. Operations retains ownership of production switch and file. The report CLI contract and local delivery boundary remain covered.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 3
+  host messages to the user: 10; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 36, 'none': False, 'not_recorded': False}
+  requester: reply enabled True; block printed True; about the point [False, False, True]; note N1; ended None
+  owner notes in the run: ['N1.md']; delivered: {"N1": "nav-e44c359c138e439d90ca0ba0a77593a8"}
+======================================================================================================================
+d3: pass False (FAILED); status done; 1103 s; spec stage [56.0] s; output tokens 39624
+  checks: base_tests.py suite node-tickets P, base_tests.py pristine node-tickets P, due_times_probe.py migrate F, due_times_probe.py restart F, due_times_probe.py switch F, due_times_probe.py rollback F, due_times_probe.py off P, due_times_probe.py cli F
+  gate counts: {"other": {"fired": 1, "caught": 1}, "mutation_not_done": {"fired": 3, "caught": 3}, "handoff_open_items": {"fired": 1, "caught": 1}}
+  spec results accepted: 1; spec.md: {'words': 513, 'requirements': 6, 'default_words': 4}
+  defaults: 3 rows; the named clause says default: [True, True, True]
+    1.requirement: R-1
+    1.question: How do operators override the hours?
+    1.default: Use one DUE_HOURS_<PRIORITY> environment setting per priority, with positive whole hours.
+    1.alternative: Use a separate configuration file that the operator edits and distributes.
+    1.why: Existing service configuration is environment-based.
+    2.requirement: R-2
+    2.question: Does a ticket count as overdue at the exact due instant?
+    2.default: It counts from the first instant after due.
+    2.alternative: Include tickets at the exact due instant.
+    2.why: The request says the due time has passed.
+    3.requirement: R-3
+    3.question: How do operators populate deadlines before activation?
+    3.default: Stop the writer, run an explicit backfill, then start with the flag on.
+    3.alternative: Run migration automatically before the new server listens.
+    3.why: An explicit command permits inspecting the completed file before switching on the feature.
+  spec summary: Production operation belongs to the help-desk operator. This run verifies the migration and rollback against disposable files using the exact 1.4.0 source; all new cases are pending implementation.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 3
+  host messages to the user: 11; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 40, 'none': False, 'not_recorded': False}
+  requester: reply enabled False; block printed True; about the point [False, False, True]; note None; ended None
+  owner notes in the run: []; delivered: null
+======================================================================================================================
+h1: pass True (PASS); status done; 460 s; spec stage [48.0] s; output tokens 15184
+  checks: test "$(python3 hello.py)" = 'Hello, wor P, python3 -c "import sys, unittest; suite  P
+  gate counts: {}
+  spec results accepted: 1; spec.md: {'words': 207, 'requirements': 2, 'default_words': 1}
+  defaults: 1 rows; the named clause says default: [True]
+    1.requirement: R-1
+    1.question: Should the printed greeting end with a newline?
+    1.default: The greeting is one line ending in a newline.
+    1.alternative: Omit the trailing newline, which would leave the next terminal prompt on the same line.
+    1.why: The request says prints, and the local Python print probe confirms the usual line ending.
+  spec summary: S1 maps to R-1 (command output) and R-2 (unittest coverage). Both are observed at the local process boundary. The default is a newline after the greeting.
+  stage-after-spec packets: 1, with the block: 1, rows printed: 1
+  host messages to the user: 10; naming a default: 0
+  report: {'section': True, 'after_request': True, 'rows': 29, 'none': False, 'not_recorded': False}
+  owner notes in the run: []; delivered: null
