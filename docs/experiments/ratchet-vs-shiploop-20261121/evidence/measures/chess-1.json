@@ -1,0 +1,184 @@
+{
+ "label": "chess-1",
+ "arm": "shiploop",
+ "case": "node-chess-engine",
+ "base": "32bcf7ba2a1756d4be622534370618a7ac28f2e5",
+ "points": {
+  "final": "4799e09a25584d856e1a1b0864a86579516269a3"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 10.4,
+  "seconds": 626.7,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.4.1"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 5987237,
+  "cached": 5857536,
+  "output": 21313,
+  "reasoning": 480,
+  "total": 6008550,
+  "uncached_input": 129701
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "chess": {
+     "observed": true,
+     "passed": 10,
+     "failed": [],
+     "of": 10
+    }
+   },
+   "static": {
+    "code": {
+     "files": 1,
+     "code_lines": 274,
+     "changed_code_lines": 274,
+     "functions": 21,
+     "named_functions": 21,
+     "longest_function": 46,
+     "longest_function_at": "src/chess.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 6.67,
+     "complexity_max": 21,
+     "complexity_over_10": 0.2857,
+     "duplication": {
+      "windows": 218,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 21,
+     "with_comment_above": 4,
+     "share": 0.1905
+    },
+    "surfaces": {
+     "env": [],
+     "paths": [],
+     "query": [],
+     "flags": [],
+     "exports": [
+      "IllegalMoveError",
+      "applyMove",
+      "legalMoves",
+      "startFen",
+      "status"
+     ],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 5,
+      "documented": 0,
+      "share": 0.0,
+      "missing": {
+       "exports": [
+        "IllegalMoveError",
+        "applyMove",
+        "legalMoves",
+        "startFen",
+        "status"
+       ]
+      }
+     },
+     "all": {
+      "surfaces": 5,
+      "documented": 5,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 0,
+     "process_words": 850,
+     "user_files": [],
+     "process_files": [
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md"
+     ]
+    },
+    "product_files": [
+     "src/chess.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 274,
+      "run": 272,
+      "functions": 21,
+      "functions_run": 21,
+      "branches": 174,
+      "branches_run": 171,
+      "line_share": 0.9927,
+      "function_share": 1.0,
+      "branch_share": 0.9828
+     },
+     "changed": {
+      "lines": 274,
+      "run": 272,
+      "functions": 21,
+      "functions_run": 21,
+      "branches": 174,
+      "branches_run": 171,
+      "line_share": 0.9927,
+      "function_share": 1.0,
+      "branch_share": 0.9828
+     },
+     "browser_free": {
+      "all": {
+       "lines": 274,
+       "run": 272,
+       "line_share": 0.9927,
+       "functions": 21,
+       "functions_run": 21,
+       "function_share": 1.0
+      },
+      "changed": {
+       "lines": 274,
+       "run": 272,
+       "line_share": 0.9927,
+       "functions": 21,
+       "functions_run": 21,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 141,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 47,
+     "survived": 12,
+     "did_not_end": 1,
+     "not_measured": 0,
+     "share": 0.797
+    }
+   }
+  }
+ }
+}

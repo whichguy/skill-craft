@@ -1,0 +1,467 @@
+{
+ "label": "chess-2",
+ "arm": "ratchet",
+ "case": "node-chess-engine",
+ "base": "9b9b5ecd5817f147b3afc4481b30ef465d264996",
+ "points": {
+  "first-build": "ff85436a3811423a75bb5efc8af20e5a06775426",
+  "final": "7fadc76caadbb6bc5c11a8d44766f327d93d5e6f"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 37.2,
+  "seconds": 2232.6,
+  "first_build_minutes": 8.5,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 13,
+  "final_pass": true,
+  "clauses": 56,
+  "seconds_by_role": {
+   "spec": 149.4,
+   "plan": 364.0,
+   "build": 431.8,
+   "tests": 898.9,
+   "delta": 289.4
+  },
+  "finished": "2026-11-22T00:36:21-0800"
+ },
+ "tokens": {
+  "rollouts": 13,
+  "counted": 13,
+  "input": 6539577,
+  "cached": 5821568,
+  "output": 87564,
+  "reasoning": 15933,
+  "total": 6627141,
+  "uncached_input": 718009,
+  "first_build": {
+   "input": 894575,
+   "cached": 782080,
+   "output": 20961,
+   "reasoning": 1748
+  }
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "chess": {
+     "observed": true,
+     "passed": 10,
+     "failed": [],
+     "of": 10
+    }
+   },
+   "static": {
+    "code": {
+     "files": 1,
+     "code_lines": 263,
+     "changed_code_lines": 263,
+     "functions": 32,
+     "named_functions": 24,
+     "longest_function": 35,
+     "longest_function_at": "src/chess.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 4.0,
+     "complexity_max": 15,
+     "complexity_over_10": 0.1562,
+     "duplication": {
+      "windows": 208,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 24,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [],
+     "paths": [],
+     "query": [],
+     "flags": [],
+     "exports": [
+      "IllegalMoveError",
+      "applyMove",
+      "legalMoves",
+      "startFen",
+      "status"
+     ],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 5,
+      "documented": 5,
+      "share": 1.0,
+      "missing": {}
+     },
+     "all": {
+      "surfaces": 5,
+      "documented": 5,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 158,
+     "process_words": 5301,
+     "user_files": [
+      "README.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md"
+     ]
+    },
+    "product_files": [
+     "src/chess.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 141,
+      "branches_run": 135,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9574
+     },
+     "changed": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 141,
+      "branches_run": 135,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9574
+     },
+     "browser_free": {
+      "all": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "changed": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    },
+    "all-suites": {
+     "all": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 141,
+      "branches_run": 135,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9574
+     },
+     "changed": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 141,
+      "branches_run": 135,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9574
+     },
+     "browser_free": {
+      "all": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "changed": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 172,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 50,
+     "survived": 10,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.833
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "chess": {
+     "observed": true,
+     "passed": 10,
+     "failed": [],
+     "of": 10
+    }
+   },
+   "static": {
+    "code": {
+     "files": 1,
+     "code_lines": 263,
+     "changed_code_lines": 263,
+     "functions": 32,
+     "named_functions": 24,
+     "longest_function": 35,
+     "longest_function_at": "src/chess.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 4.03,
+     "complexity_max": 15,
+     "complexity_over_10": 0.1562,
+     "duplication": {
+      "windows": 208,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 24,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [],
+     "paths": [],
+     "query": [],
+     "flags": [],
+     "exports": [
+      "IllegalMoveError",
+      "applyMove",
+      "legalMoves",
+      "startFen",
+      "status"
+     ],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 5,
+      "documented": 5,
+      "share": 1.0,
+      "missing": {}
+     },
+     "all": {
+      "surfaces": 5,
+      "documented": 5,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 213,
+     "process_words": 9306,
+     "user_files": [
+      "README.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/build-2.md",
+      "ratchet/build-3.md",
+      "ratchet/delta-1.md",
+      "ratchet/delta-2.md",
+      "ratchet/delta-3.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md",
+      "ratchet/tests-1.md",
+      "ratchet/tests-2.md",
+      "ratchet/tests-3.md"
+     ]
+    },
+    "product_files": [
+     "src/chess.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 145,
+      "branches_run": 138,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9517
+     },
+     "changed": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 145,
+      "branches_run": 138,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9517
+     },
+     "browser_free": {
+      "all": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "changed": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    },
+    "all-suites": {
+     "all": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 158,
+      "branches_run": 150,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9494
+     },
+     "changed": {
+      "lines": 263,
+      "run": 259,
+      "functions": 32,
+      "functions_run": 32,
+      "branches": 158,
+      "branches_run": 150,
+      "line_share": 0.9848,
+      "function_share": 1.0,
+      "branch_share": 0.9494
+     },
+     "browser_free": {
+      "all": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "changed": {
+       "lines": 263,
+       "run": 259,
+       "line_share": 0.9848,
+       "functions": 32,
+       "functions_run": 32,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 60,
+     "tests": {
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 173,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 50,
+     "survived": 10,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.833
+    },
+    "acceptance": {
+     "caught": 51,
+     "survived": 9,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.85
+    },
+    "either": {
+     "caught": 51,
+     "survived": 9,
+     "share": 0.85
+    }
+   }
+  }
+ }
+}

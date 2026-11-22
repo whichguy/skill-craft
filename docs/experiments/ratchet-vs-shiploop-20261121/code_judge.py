@@ -10,7 +10,7 @@ its own test command runs (test/), the files the delivery added or changed since
 file as a diff with ten lines of context. Left out: Markdown (documentation is measured apart), the arms' process
 folders (docs/shiploop, ratchet, acceptance), node_modules, data, and starting files the delivery did not touch. In
 what is shown, the tools' names, requirement ids (C-12, R-3, W1, AD-2), run folders and labels are masked. The folder
-names under OUT_DIR are numbers; key.json, which says which label is which arm, is never shown to a judge.
+names under OUT_DIR are fixed numbers, one per case (1 shared expenses, 2 chess, 3 tickets, 4 Grokbot); key.json, which says which label is which arm, is never shown to a judge.
 
 The judge scores each product from 1 to 5 on five criteria and names the better product or neither; score counts an
 arm as preferred only when both packets name it (registered reading R7).
@@ -112,13 +112,16 @@ def packet(root: Path, out: Path) -> None:
         record = json.loads(path.read_text())
         records.setdefault(record["case"], {})[record["arm"]] = record
     out.mkdir(parents=True, exist_ok=True)
-    key = {}
-    number = 0
-    for case in ("shared-expenses", "node-chess-engine", "ticket-assignment", "grokbot-local"):
+    key_path = out / "key.json"
+    key = json.loads(key_path.read_text()) if key_path.exists() else {}
+    for number, case in enumerate(("shared-expenses", "node-chess-engine", "ticket-assignment", "grokbot-local"), start=1):
         pair = records.get(case, {})
-        if set(pair) != {"shiploop", "ratchet"}:
-            continue
-        number += 1
+        if set(pair) != {"shiploop", "ratchet"} or (out / str(number) / "packet-1.md").exists():
+            continue  # a case's packets are written once, when both of its arms are measured, and never rewritten
+        trees = [root / "measure" / pair[arm]["label"] / "final" / "tree" for arm in ("shiploop", "ratchet")]
+        if not all((tree / ".git").exists() and "final" in (pair[arm].get("at") or {})
+                   for tree, arm in zip(trees, ("shiploop", "ratchet"))):
+            continue  # an arm whose final point is not measured yet: its tree may be missing or half made
         coin = random.Random(f"code-judge {case}").random() < 0.5
         labels = {"X": "shiploop" if coin else "ratchet", "Y": "ratchet" if coin else "shiploop"}
         texts = {}
@@ -137,7 +140,7 @@ def packet(root: Path, out: Path) -> None:
         (folder / "packet-2.md").write_text(head + "\n" + texts["Y"] + "\n" + texts["X"])
         key[str(number)] = {"case": case, "labels": labels,
                             "chars": len((folder / "packet-1.md").read_text())}
-    (out / "key.json").write_text(json.dumps(key, indent=1) + "\n")
+    key_path.write_text(json.dumps(key, indent=1) + "\n")
     print(json.dumps(key, indent=1))
 
 
@@ -169,7 +172,8 @@ def score(out: Path) -> None:
             answers.append(first_json(path.read_text()) if path.exists() else None)
         picks = [entry["labels"].get(answer.get("better")) if answer else None for answer in answers]
         preferred = picks[0] if picks[0] and picks[0] == picks[1] else None
-        verdicts[entry["case"]] = preferred
+        if all(answers):
+            verdicts[entry["case"]] = preferred  # a case with a reading missing is not measured, not "no difference"
         means = {}
         for label, arm in entry["labels"].items():
             values = [sum(answer[label]["scores"][k] for k in KEYS) / len(KEYS) for answer in answers

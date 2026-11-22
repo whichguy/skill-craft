@@ -1,0 +1,566 @@
+{
+ "label": "grokbot-2",
+ "arm": "ratchet",
+ "case": "grokbot-local",
+ "base": "c984d99c847ac33aba3117434b526fa9c8a102a8",
+ "points": {
+  "first-build": "e02f959d6d4490be639576c31b23db7c3b51aea4",
+  "final": "393ac3cc248457fc1ea6345fb98c5e675fa71713"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 162.3,
+  "seconds": 9738.5,
+  "first_build_minutes": 20.0,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 14,
+  "final_pass": true,
+  "clauses": 98,
+  "seconds_by_role": {
+   "spec": 179.8,
+   "plan": 705.2,
+   "build": 2145.1,
+   "tests": 4623.3,
+   "delta": 662.0
+  },
+  "finished": "2026-11-22T02:41:45-0800"
+ },
+ "tokens": {
+  "rollouts": 14,
+  "counted": 14,
+  "input": 31433269,
+  "cached": 30187648,
+  "output": 234368,
+  "reasoning": 50922,
+  "total": 31667637,
+  "uncached_input": 1245621,
+  "first_build": {
+   "input": 2837514,
+   "cached": 2582144,
+   "output": 52820,
+   "reasoning": 6191
+  }
+ },
+ "measured_points": {
+  "first-build": "e02f959d6d4490be639576c31b23db7c3b51aea4",
+  "final": "393ac3cc248457fc1ea6345fb98c5e675fa71713"
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 49,
+     "failed": [],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   },
+   "static": {
+    "code": {
+     "files": 7,
+     "code_lines": 1264,
+     "changed_code_lines": 1264,
+     "functions": 180,
+     "named_functions": 78,
+     "longest_function": 77,
+     "longest_function_at": "lib/chat.js",
+     "over_50_lines": 0.0222,
+     "complexity_mean": 3.01,
+     "complexity_max": 22,
+     "complexity_over_10": 0.0611,
+     "duplication": {
+      "windows": 1011,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 78,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [
+      "DATA_DIR",
+      "PORT",
+      "PROVIDER_TOKEN"
+     ],
+     "paths": [
+      "/api/actions",
+      "/api/person",
+      "/api/view"
+     ],
+     "query": [],
+     "flags": [],
+     "exports": [
+      "createServer"
+     ],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 7,
+      "documented": 3,
+      "share": 0.4286,
+      "missing": {
+       "paths": [
+        "/api/actions",
+        "/api/person",
+        "/api/view"
+       ],
+       "exports": [
+        "createServer"
+       ]
+      }
+     },
+     "all": {
+      "surfaces": 7,
+      "documented": 3,
+      "share": 0.4286,
+      "missing": {
+       "paths": [
+        "/api/actions",
+        "/api/person",
+        "/api/view"
+       ],
+       "exports": [
+        "createServer"
+       ]
+      }
+     },
+     "user_words": 1663,
+     "process_words": 10292,
+     "user_files": [
+      "README.md",
+      "provider/README.md",
+      "records/README.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md"
+     ]
+    },
+    "product_files": [
+     "lib/chat.js",
+     "lib/records.js",
+     "lib/store.js",
+     "lib/tasks.js",
+     "lib/workspace.js",
+     "public/app.js",
+     "server.js"
+    ]
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 413,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 29,
+     "survived": 31,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.483
+    }
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 1385,
+      "run": 772,
+      "functions": 195,
+      "functions_run": 101,
+      "branches": 307,
+      "branches_run": 225,
+      "line_share": 0.5574,
+      "function_share": 0.5179,
+      "branch_share": 0.7329
+     },
+     "changed": {
+      "lines": 1264,
+      "run": 651,
+      "functions": 179,
+      "functions_run": 85,
+      "branches": 235,
+      "branches_run": 172,
+      "line_share": 0.515,
+      "function_share": 0.4749,
+      "branch_share": 0.7319
+     },
+     "browser_free": {
+      "all": {
+       "lines": 808,
+       "run": 772,
+       "line_share": 0.9554,
+       "functions": 106,
+       "functions_run": 101,
+       "function_share": 0.9528
+      },
+      "changed": {
+       "lines": 687,
+       "run": 651,
+       "line_share": 0.9476,
+       "functions": 90,
+       "functions_run": 85,
+       "function_share": 0.9444
+      },
+      "left_out": [
+       "public/app.js"
+      ]
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": [
+      "public/app.js"
+     ]
+    },
+    "all-suites": {
+     "all": {
+      "lines": 1385,
+      "run": 772,
+      "functions": 195,
+      "functions_run": 101,
+      "branches": 307,
+      "branches_run": 225,
+      "line_share": 0.5574,
+      "function_share": 0.5179,
+      "branch_share": 0.7329
+     },
+     "changed": {
+      "lines": 1264,
+      "run": 651,
+      "functions": 179,
+      "functions_run": 85,
+      "branches": 235,
+      "branches_run": 172,
+      "line_share": 0.515,
+      "function_share": 0.4749,
+      "branch_share": 0.7319
+     },
+     "browser_free": {
+      "all": {
+       "lines": 808,
+       "run": 772,
+       "line_share": 0.9554,
+       "functions": 106,
+       "functions_run": 101,
+       "function_share": 0.9528
+      },
+      "changed": {
+       "lines": 687,
+       "run": 651,
+       "line_share": 0.9476,
+       "functions": 90,
+       "functions_run": 85,
+       "function_share": 0.9444
+      },
+      "left_out": [
+       "public/app.js"
+      ]
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": [
+      "public/app.js"
+     ]
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 49,
+     "failed": [],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   },
+   "static": {
+    "code": {
+     "files": 7,
+     "code_lines": 1720,
+     "changed_code_lines": 1720,
+     "functions": 251,
+     "named_functions": 121,
+     "longest_function": 78,
+     "longest_function_at": "lib/chat.js",
+     "over_50_lines": 0.0239,
+     "complexity_mean": 3.41,
+     "complexity_max": 27,
+     "complexity_over_10": 0.0797,
+     "duplication": {
+      "windows": 1392,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 121,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [
+      "DATA_DIR",
+      "PORT",
+      "PROVIDER_TOKEN"
+     ],
+     "paths": [
+      "/api/actions",
+      "/api/person",
+      "/api/receipt",
+      "/api/view"
+     ],
+     "query": [],
+     "flags": [],
+     "exports": [
+      "createServer"
+     ],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 8,
+      "documented": 3,
+      "share": 0.375,
+      "missing": {
+       "paths": [
+        "/api/actions",
+        "/api/person",
+        "/api/receipt",
+        "/api/view"
+       ],
+       "exports": [
+        "createServer"
+       ]
+      }
+     },
+     "all": {
+      "surfaces": 8,
+      "documented": 3,
+      "share": 0.375,
+      "missing": {
+       "paths": [
+        "/api/actions",
+        "/api/person",
+        "/api/receipt",
+        "/api/view"
+       ],
+       "exports": [
+        "createServer"
+       ]
+      }
+     },
+     "user_words": 2033,
+     "process_words": 21667,
+     "user_files": [
+      "README.md",
+      "provider/README.md",
+      "records/README.md"
+     ],
+     "process_files": [
+      "ratchet/build-1.md",
+      "ratchet/build-2.md",
+      "ratchet/build-3.md",
+      "ratchet/delta-1.md",
+      "ratchet/delta-2.md",
+      "ratchet/delta-3.md",
+      "ratchet/plan.md",
+      "ratchet/spec.md",
+      "ratchet/tests-1.md",
+      "ratchet/tests-2.md",
+      "ratchet/tests-3.md"
+     ]
+    },
+    "product_files": [
+     "lib/chat.js",
+     "lib/records.js",
+     "lib/store.js",
+     "lib/tasks.js",
+     "lib/workspace.js",
+     "public/app.js",
+     "server.js"
+    ]
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 783,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 32,
+     "survived": 28,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.533
+    }
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 1841,
+      "run": 1039,
+      "functions": 268,
+      "functions_run": 156,
+      "branches": 467,
+      "branches_run": 360,
+      "line_share": 0.5644,
+      "function_share": 0.5821,
+      "branch_share": 0.7709
+     },
+     "changed": {
+      "lines": 1720,
+      "run": 918,
+      "functions": 252,
+      "functions_run": 140,
+      "branches": 393,
+      "branches_run": 303,
+      "line_share": 0.5337,
+      "function_share": 0.5556,
+      "branch_share": 0.771
+     },
+     "browser_free": {
+      "all": {
+       "lines": 1068,
+       "run": 1039,
+       "line_share": 0.9728,
+       "functions": 159,
+       "functions_run": 156,
+       "function_share": 0.9811
+      },
+      "changed": {
+       "lines": 947,
+       "run": 918,
+       "line_share": 0.9694,
+       "functions": 143,
+       "functions_run": 140,
+       "function_share": 0.979
+      },
+      "left_out": [
+       "public/app.js"
+      ]
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 19,
+      "pass": 19,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": [
+      "public/app.js"
+     ]
+    },
+    "all-suites": {
+     "all": {
+      "lines": 1841,
+      "run": 1039,
+      "functions": 268,
+      "functions_run": 156,
+      "branches": 469,
+      "branches_run": 361,
+      "line_share": 0.5644,
+      "function_share": 0.5821,
+      "branch_share": 0.7697
+     },
+     "changed": {
+      "lines": 1720,
+      "run": 918,
+      "functions": 252,
+      "functions_run": 140,
+      "branches": 393,
+      "branches_run": 303,
+      "line_share": 0.5337,
+      "function_share": 0.5556,
+      "branch_share": 0.771
+     },
+     "browser_free": {
+      "all": {
+       "lines": 1068,
+       "run": 1039,
+       "line_share": 0.9728,
+       "functions": 159,
+       "functions_run": 156,
+       "function_share": 0.9811
+      },
+      "changed": {
+       "lines": 947,
+       "run": 918,
+       "line_share": 0.9694,
+       "functions": 143,
+       "functions_run": 140,
+       "function_share": 0.979
+      },
+      "left_out": [
+       "public/app.js"
+      ]
+     },
+     "commands": 113,
+     "tests": {
+      "tests": 19,
+      "pass": 19,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": [
+      "public/app.js"
+     ]
+    }
+   }
+  }
+ }
+}

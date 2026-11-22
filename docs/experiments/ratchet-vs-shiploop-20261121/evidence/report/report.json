@@ -1,0 +1,616 @@
+{
+ "facts": {
+  "node-chess-engine": {
+   "shiploop": {
+    "label": "chess-1",
+    "minutes": 10.4,
+    "first_build_minutes": null,
+    "stop": "PASS",
+    "input": 5987237,
+    "cached": 5857536,
+    "output": 21313,
+    "reasoning": 480,
+    "first_build_output": null,
+    "held_out": 10,
+    "held_out_of": 10,
+    "first_build_held_out": null,
+    "first_build_held_out_of": null,
+    "held_out_failed": {
+     "chess": []
+    },
+    "faults_own": 0.797,
+    "faults_own_counts": {
+     "caught": 47,
+     "survived": 12,
+     "did_not_end": 1,
+     "not_measured": 0,
+     "share": 0.797
+    },
+    "faults_acceptance": null,
+    "faults_either": null,
+    "calibrated": null,
+    "calibrated_pool": null,
+    "line_coverage": 0.9927,
+    "function_coverage": 1.0,
+    "line_coverage_all_suites": null,
+    "coverage_left_out": [],
+    "tests_run": 8,
+    "tests_passed": 8,
+    "docs_share": 0.0,
+    "docs_surfaces": 5,
+    "docs_documented": 0,
+    "docs_missing": {
+     "exports": [
+      "IllegalMoveError",
+      "applyMove",
+      "legalMoves",
+      "startFen",
+      "status"
+     ]
+    },
+    "docs_share_all": 1.0,
+    "user_words": 0,
+    "process_words": 850,
+    "comment_share": 0.1905,
+    "code": {
+     "files": 1,
+     "code_lines": 274,
+     "changed_code_lines": 274,
+     "functions": 21,
+     "named_functions": 21,
+     "longest_function": 46,
+     "longest_function_at": "src/chess.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 6.67,
+     "complexity_max": 21,
+     "complexity_over_10": 0.2857,
+     "duplication": {
+      "windows": 218,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   },
+   "ratchet": {
+    "label": "chess-2",
+    "minutes": 37.2,
+    "first_build_minutes": 8.5,
+    "stop": "max-cycles",
+    "input": 6539577,
+    "cached": 5821568,
+    "output": 87564,
+    "reasoning": 15933,
+    "first_build_output": 20961,
+    "held_out": 10,
+    "held_out_of": 10,
+    "first_build_held_out": 10,
+    "first_build_held_out_of": 10,
+    "held_out_failed": {
+     "chess": []
+    },
+    "faults_own": 0.833,
+    "faults_own_counts": {
+     "caught": 50,
+     "survived": 10,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.833
+    },
+    "faults_acceptance": 0.85,
+    "faults_either": 0.85,
+    "calibrated": null,
+    "calibrated_pool": null,
+    "line_coverage": 0.9848,
+    "function_coverage": 1.0,
+    "line_coverage_all_suites": 0.9848,
+    "coverage_left_out": [],
+    "tests_run": 16,
+    "tests_passed": 16,
+    "docs_share": 1.0,
+    "docs_surfaces": 5,
+    "docs_documented": 5,
+    "docs_missing": {},
+    "docs_share_all": 1.0,
+    "user_words": 213,
+    "process_words": 9306,
+    "comment_share": 0.0,
+    "code": {
+     "files": 1,
+     "code_lines": 263,
+     "changed_code_lines": 263,
+     "functions": 32,
+     "named_functions": 24,
+     "longest_function": 35,
+     "longest_function_at": "src/chess.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 4.03,
+     "complexity_max": 15,
+     "complexity_over_10": 0.1562,
+     "duplication": {
+      "windows": 208,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   }
+  },
+  "shared-expenses": {
+   "shiploop": {
+    "label": "expenses-1",
+    "minutes": 14.3,
+    "first_build_minutes": null,
+    "stop": "PASS",
+    "input": 10720404,
+    "cached": 10572416,
+    "output": 27535,
+    "reasoning": 2840,
+    "first_build_output": null,
+    "held_out": 6,
+    "held_out_of": 6,
+    "first_build_held_out": null,
+    "first_build_held_out_of": null,
+    "held_out_failed": {
+     "expenses": []
+    },
+    "faults_own": 0.817,
+    "faults_own_counts": {
+     "caught": 49,
+     "survived": 11,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.817
+    },
+    "faults_acceptance": null,
+    "faults_either": null,
+    "calibrated": null,
+    "calibrated_pool": null,
+    "line_coverage": 0.9455,
+    "function_coverage": 1.0,
+    "line_coverage_all_suites": null,
+    "coverage_left_out": [],
+    "tests_run": 5,
+    "tests_passed": 5,
+    "docs_share": 0.0,
+    "docs_surfaces": 3,
+    "docs_documented": 0,
+    "docs_missing": {
+     "env": [
+      "DATA_FILE",
+      "PORT"
+     ],
+     "paths": [
+      "/groups"
+     ]
+    },
+    "docs_share_all": 1.0,
+    "user_words": 0,
+    "process_words": 1351,
+    "comment_share": 0.0,
+    "code": {
+     "files": 1,
+     "code_lines": 165,
+     "changed_code_lines": 165,
+     "functions": 17,
+     "named_functions": 10,
+     "longest_function": 51,
+     "longest_function_at": "server.js",
+     "over_50_lines": 0.0588,
+     "complexity_mean": 4.18,
+     "complexity_max": 22,
+     "complexity_over_10": 0.1176,
+     "duplication": {
+      "windows": 130,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   },
+   "ratchet": {
+    "label": "expenses-2",
+    "minutes": 46.4,
+    "first_build_minutes": 10.2,
+    "stop": "max-cycles",
+    "input": 8090812,
+    "cached": 7321088,
+    "output": 111434,
+    "reasoning": 24942,
+    "first_build_output": 26349,
+    "held_out": 6,
+    "held_out_of": 6,
+    "first_build_held_out": 6,
+    "first_build_held_out_of": 6,
+    "held_out_failed": {
+     "expenses": []
+    },
+    "faults_own": 0.525,
+    "faults_own_counts": {
+     "caught": 31,
+     "survived": 28,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.525
+    },
+    "faults_acceptance": 0.525,
+    "faults_either": 0.525,
+    "calibrated": null,
+    "calibrated_pool": null,
+    "line_coverage": 0.9263,
+    "function_coverage": 0.8889,
+    "line_coverage_all_suites": 0.9263,
+    "coverage_left_out": [],
+    "tests_run": 13,
+    "tests_passed": 13,
+    "docs_share": 1.0,
+    "docs_surfaces": 4,
+    "docs_documented": 4,
+    "docs_missing": {},
+    "docs_share_all": 1.0,
+    "user_words": 754,
+    "process_words": 13632,
+    "comment_share": 0.0,
+    "code": {
+     "files": 1,
+     "code_lines": 285,
+     "changed_code_lines": 285,
+     "functions": 45,
+     "named_functions": 20,
+     "longest_function": 92,
+     "longest_function_at": "server.js",
+     "over_50_lines": 0.0444,
+     "complexity_mean": 3.13,
+     "complexity_max": 17,
+     "complexity_over_10": 0.0667,
+     "duplication": {
+      "windows": 229,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   }
+  },
+  "grokbot-local": {
+   "shiploop": {
+    "label": "grokbot-1",
+    "minutes": 26.5,
+    "first_build_minutes": null,
+    "stop": "PASS",
+    "input": 18624191,
+    "cached": 18434048,
+    "output": 52934,
+    "reasoning": 2436,
+    "first_build_output": null,
+    "held_out": 77,
+    "held_out_of": 77,
+    "first_build_held_out": null,
+    "first_build_held_out_of": null,
+    "held_out_failed": {
+     "grokbot": [],
+     "grokbot2": []
+    },
+    "faults_own": 0.45,
+    "faults_own_counts": {
+     "caught": 27,
+     "survived": 33,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.45
+    },
+    "faults_acceptance": null,
+    "faults_either": null,
+    "calibrated": null,
+    "calibrated_pool": null,
+    "line_coverage": 0.9381,
+    "function_coverage": 0.9221,
+    "line_coverage_all_suites": null,
+    "coverage_left_out": [
+     "public/app.js"
+    ],
+    "tests_run": 8,
+    "tests_passed": 8,
+    "docs_share": 0.5,
+    "docs_surfaces": 6,
+    "docs_documented": 3,
+    "docs_missing": {
+     "paths": [
+      "/api/action",
+      "/api/state"
+     ],
+     "exports": [
+      "createServer"
+     ]
+    },
+    "docs_share_all": 0.8333,
+    "user_words": 1440,
+    "process_words": 1495,
+    "comment_share": 0.0,
+    "code": {
+     "files": 5,
+     "code_lines": 1001,
+     "changed_code_lines": 1001,
+     "functions": 182,
+     "named_functions": 78,
+     "longest_function": 293,
+     "longest_function_at": "lib/workspace.js",
+     "over_50_lines": 0.033,
+     "complexity_mean": 2.44,
+     "complexity_max": 29,
+     "complexity_over_10": 0.0385,
+     "duplication": {
+      "windows": 805,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   },
+   "ratchet": {
+    "label": "grokbot-2",
+    "minutes": 162.3,
+    "first_build_minutes": 20.0,
+    "stop": "max-cycles",
+    "input": 31433269,
+    "cached": 30187648,
+    "output": 234368,
+    "reasoning": 50922,
+    "first_build_output": 52820,
+    "held_out": 77,
+    "held_out_of": 77,
+    "first_build_held_out": 77,
+    "first_build_held_out_of": 77,
+    "held_out_failed": {
+     "grokbot": [],
+     "grokbot2": []
+    },
+    "faults_own": 0.533,
+    "faults_own_counts": {
+     "caught": 32,
+     "survived": 28,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.533
+    },
+    "faults_acceptance": null,
+    "faults_either": null,
+    "calibrated": null,
+    "calibrated_pool": null,
+    "line_coverage": 0.9694,
+    "function_coverage": 0.979,
+    "line_coverage_all_suites": 0.9694,
+    "coverage_left_out": [
+     "public/app.js"
+    ],
+    "tests_run": 19,
+    "tests_passed": 19,
+    "docs_share": 0.375,
+    "docs_surfaces": 8,
+    "docs_documented": 3,
+    "docs_missing": {
+     "paths": [
+      "/api/actions",
+      "/api/person",
+      "/api/receipt",
+      "/api/view"
+     ],
+     "exports": [
+      "createServer"
+     ]
+    },
+    "docs_share_all": 0.375,
+    "user_words": 2033,
+    "process_words": 21667,
+    "comment_share": 0.0,
+    "code": {
+     "files": 7,
+     "code_lines": 1720,
+     "changed_code_lines": 1720,
+     "functions": 251,
+     "named_functions": 121,
+     "longest_function": 78,
+     "longest_function_at": "lib/chat.js",
+     "over_50_lines": 0.0239,
+     "complexity_mean": 3.41,
+     "complexity_max": 27,
+     "complexity_over_10": 0.0797,
+     "duplication": {
+      "windows": 1392,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   }
+  },
+  "ticket-assignment": {
+   "shiploop": {
+    "label": "tickets-1",
+    "minutes": 15.3,
+    "first_build_minutes": null,
+    "stop": "PASS",
+    "input": 11789243,
+    "cached": 11587200,
+    "output": 30077,
+    "reasoning": 3844,
+    "first_build_output": null,
+    "held_out": 18,
+    "held_out_of": 18,
+    "first_build_held_out": null,
+    "first_build_held_out_of": null,
+    "held_out_failed": {
+     "ticket-assignment": []
+    },
+    "faults_own": 1.0,
+    "faults_own_counts": {
+     "caught": 9,
+     "survived": 0,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 1.0
+    },
+    "faults_acceptance": null,
+    "faults_either": null,
+    "calibrated": 7,
+    "calibrated_pool": 27,
+    "line_coverage": 0.9516,
+    "function_coverage": 1.0,
+    "line_coverage_all_suites": null,
+    "coverage_left_out": [],
+    "tests_run": 123,
+    "tests_passed": 123,
+    "docs_share": 1.0,
+    "docs_surfaces": 2,
+    "docs_documented": 2,
+    "docs_missing": {},
+    "docs_share_all": 1.0,
+    "user_words": 4912,
+    "process_words": 880,
+    "comment_share": 0.6667,
+    "code": {
+     "files": 7,
+     "code_lines": 508,
+     "changed_code_lines": 62,
+     "functions": 11,
+     "named_functions": 6,
+     "longest_function": 11,
+     "longest_function_at": "src/store.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 1.91,
+     "complexity_max": 5,
+     "complexity_over_10": 0.0,
+     "duplication": {
+      "windows": 486,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   },
+   "ratchet": {
+    "label": "tickets-2",
+    "minutes": 100.4,
+    "first_build_minutes": 11.1,
+    "stop": "max-cycles",
+    "input": 12390215,
+    "cached": 11481728,
+    "output": 132054,
+    "reasoning": 24329,
+    "first_build_output": 28708,
+    "held_out": 18,
+    "held_out_of": 18,
+    "first_build_held_out": 18,
+    "first_build_held_out_of": 18,
+    "held_out_failed": {
+     "ticket-assignment": []
+    },
+    "faults_own": 0.96,
+    "faults_own_counts": {
+     "caught": 24,
+     "survived": 1,
+     "did_not_end": 2,
+     "not_measured": 0,
+     "share": 0.96
+    },
+    "faults_acceptance": 0.963,
+    "faults_either": 0.963,
+    "calibrated": 19,
+    "calibrated_pool": 27,
+    "line_coverage": 1.0,
+    "function_coverage": 1.0,
+    "line_coverage_all_suites": 1.0,
+    "coverage_left_out": [],
+    "tests_run": 134,
+    "tests_passed": 134,
+    "docs_share": 1.0,
+    "docs_surfaces": 2,
+    "docs_documented": 2,
+    "docs_missing": {},
+    "docs_share_all": 1.0,
+    "user_words": 5516,
+    "process_words": 13230,
+    "comment_share": 0.5556,
+    "code": {
+     "files": 9,
+     "code_lines": 582,
+     "changed_code_lines": 92,
+     "functions": 14,
+     "named_functions": 9,
+     "longest_function": 25,
+     "longest_function_at": "src/store.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 2.43,
+     "complexity_max": 5,
+     "complexity_over_10": 0.0,
+     "duplication": {
+      "windows": 554,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    }
+   }
+  }
+ },
+ "readings": {
+  "node-chess-engine": {
+   "R1 time": "shiploop",
+   "R2 tokens": null,
+   "R3 breadth": null,
+   "R4 depth": null,
+   "R5 coverage": null,
+   "R6 documentation": "ratchet",
+   "R7 code quality": "shiploop"
+  },
+  "shared-expenses": {
+   "R1 time": "shiploop",
+   "R2 tokens": null,
+   "R3 breadth": null,
+   "R4 depth": "shiploop",
+   "R5 coverage": null,
+   "R6 documentation": "ratchet",
+   "R7 code quality": "ratchet"
+  },
+  "grokbot-local": {
+   "R1 time": "shiploop",
+   "R2 tokens": "shiploop",
+   "R3 breadth": null,
+   "R4 depth": null,
+   "R5 coverage": null,
+   "R6 documentation": null,
+   "R7 code quality": "ratchet"
+  },
+  "ticket-assignment": {
+   "R1 time": "shiploop",
+   "R2 tokens": null,
+   "R3 breadth": null,
+   "R4b calibrated defects": "ratchet",
+   "R4 depth": null,
+   "R5 coverage": null,
+   "R6 documentation": null,
+   "R7 code quality": null
+  }
+ },
+ "overall": {
+  "quality_cells_ahead": {
+   "shiploop": 2,
+   "ratchet": 4
+  },
+  "behind_on_breadth": {
+   "shiploop": [],
+   "ratchet": []
+  },
+  "verdict": "no difference in results shown"
+ },
+ "predictions": {
+  "P1 ShipLoop ahead on time in 4 of 4": true,
+  "P2 ShipLoop ahead on tokens in 4 of 4": false,
+  "P3 breadth no difference in at least 3": true,
+  "P4 ShipLoop ahead on depth (a) in at least 2": false,
+  "P5 coverage no difference in at least 3": true,
+  "P6 documentation no difference in at least 3": false,
+  "P7 judge split or absent in at least 3": false,
+  "P8 overall no difference in results shown": true
+ }
+}

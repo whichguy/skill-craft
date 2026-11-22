@@ -1,0 +1,235 @@
+{
+ "label": "tickets-1",
+ "arm": "shiploop",
+ "case": "ticket-assignment",
+ "base": "f12f768441609c3ac0789633f96419f62ad090f3",
+ "points": {
+  "final": "bc51f6c7f84f5280d5252453e371406323f9826f"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 15.3,
+  "seconds": 920.9,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.4.1"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 11789243,
+  "cached": 11587200,
+  "output": 30077,
+  "reasoning": 3844,
+  "total": 11819320,
+  "uncached_input": 202043
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "ticket-assignment": {
+     "observed": true,
+     "passed": 18,
+     "failed": [],
+     "of": 18
+    }
+   },
+   "static": {
+    "code": {
+     "files": 7,
+     "code_lines": 508,
+     "changed_code_lines": 62,
+     "functions": 11,
+     "named_functions": 6,
+     "longest_function": 11,
+     "longest_function_at": "src/store.js",
+     "over_50_lines": 0.0,
+     "complexity_mean": 1.91,
+     "complexity_max": 5,
+     "complexity_over_10": 0.0,
+     "duplication": {
+      "windows": 486,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 6,
+     "with_comment_above": 4,
+     "share": 0.6667
+    },
+    "surfaces": {
+     "env": [],
+     "paths": [
+      "/tickets/:p/assignee"
+     ],
+     "query": [
+      "assignee"
+     ],
+     "flags": [],
+     "exports": [],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 2,
+      "documented": 2,
+      "share": 1.0,
+      "missing": {}
+     },
+     "all": {
+      "surfaces": 2,
+      "documented": 2,
+      "share": 1.0,
+      "missing": {}
+     },
+     "user_words": 4912,
+     "process_words": 880,
+     "user_files": [
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "README.md",
+      "docs/api.md",
+      "docs/decisions/0001-record-decisions.md",
+      "docs/decisions/0002-prefixed-sequential-ids.md",
+      "docs/decisions/0003-offset-pagination.md",
+      "docs/decisions/0004-error-envelope.md",
+      "docs/decisions/0005-cursor-pagination.md",
+      "docs/decisions/0006-notification-outbox.md",
+      "docs/decisions/0007-append-only-audit-log.md",
+      "docs/decisions/0008-json-data-file.md",
+      "docs/decisions/0009-ticket-assignment.md",
+      "docs/decisions/README.md",
+      "docs/decisions/template.md",
+      "docs/operations.md"
+     ],
+     "process_files": [
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md"
+     ]
+    },
+    "product_files": [
+     "src/app.js",
+     "src/format.js",
+     "src/persistence.js",
+     "src/store.js",
+     "src/templates.js",
+     "src/tickets/query.js",
+     "src/tickets/validate.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 1227,
+      "run": 1152,
+      "functions": 218,
+      "functions_run": 208,
+      "branches": 283,
+      "branches_run": 237,
+      "line_share": 0.9389,
+      "function_share": 0.9541,
+      "branch_share": 0.8375
+     },
+     "changed": {
+      "lines": 62,
+      "run": 59,
+      "functions": 11,
+      "functions_run": 11,
+      "branches": 24,
+      "branches_run": 22,
+      "line_share": 0.9516,
+      "function_share": 1.0,
+      "branch_share": 0.9167
+     },
+     "browser_free": {
+      "all": {
+       "lines": 1227,
+       "run": 1152,
+       "line_share": 0.9389,
+       "functions": 218,
+       "functions_run": 208,
+       "function_share": 0.9541
+      },
+      "changed": {
+       "lines": 62,
+       "run": 59,
+       "line_share": 0.9516,
+       "functions": 11,
+       "functions_run": 11,
+       "function_share": 1.0
+      },
+      "left_out": []
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 123,
+      "pass": 123,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": []
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 9,
+    "invalid": 0,
+    "sites_on_changed_lines": 9,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 9,
+     "survived": 0,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 1.0
+    }
+   },
+   "calibrated": {
+    "measured": true,
+    "caught": 7,
+    "pool": 27,
+    "missed": [
+     "actor-ignored",
+     "audit-bypassed",
+     "backoff-linear",
+     "cli-no-assignee",
+     "closed-assignable",
+     "conflict-as-invalid",
+     "memory-only-assignee",
+     "name-limit-off-by-one",
+     "no-envelope",
+     "no-unassign",
+     "notify-inline",
+     "notify-key-per-ticket",
+     "notify-no-template",
+     "notify-requester",
+     "old-assignee-undefined",
+     "old-data-refused",
+     "raw-column-inserted",
+     "same-agent-not-noop",
+     "update-rejects-resolved",
+     "validate-renamed"
+    ],
+    "not_judged": [],
+    "failing_on_reference": [
+     "TC-1 assigns, leaves repeated requests unchanged, and clears the assignee",
+     "TC-2 validates the assignee and restricts assignment to active tickets",
+     "TC-4 delivers one notification per effective assignment through the worker",
+     "TC-5 reads legacy and saved assignees in HTTP, CLI listings and the weekly report",
+     "TC-6 a failed assignment save restores ticket, audit and outbox before retry"
+    ],
+    "test_files": [
+     "test/assignment.test.js"
+    ]
+   }
+  }
+ }
+}

@@ -5,7 +5,16 @@ Apparatus: `docs/experiments/ratchet-vs-shiploop-20261121/`. Earlier work this b
 
 ## 0. Where it stands
 
-Registered 2026-11-21 23:55 (commit d522655ae4f6a8af0b289d346aa08cf44d2e9fbe), before any run; all eight runs started at 23:59. Results go in section 7.
+Registered 2026-11-21 23:55 (commit d522655ae4f6a8af0b289d346aa08cf44d2e9fbe), before any run; all eight runs started
+at 23:59 and ended by 02:41; measured and judged by 03:05. Section 7 has every number.
+
+**Result, as registered: no difference in results shown; ShipLoop costs 15% to 31% of Ratchet's time and about a
+quarter of its output tokens.** Every one of the eight products, and every Ratchet first build, passes every
+held-out check; coverage is 93% to 100% for both. Of the result cells, Ratchet is ahead in four (a user README on
+both new builds without a page; the blind code reading on shared expenses and Grokbot) and ShipLoop in two (seeded
+faults on shared expenses, 82% against 53%; the chess code reading); the registered rule needed a lead of three.
+On ticket assignment Ratchet's tests also catch 19 of 27 calibrated defects against ShipLoop's 7 (reported apart).
+One run a case: the lean to Ratchet is inside what one more run could move.
 
 ## 1. The question, in the owner's words (2026-11-21, late evening)
 
@@ -138,6 +147,14 @@ ticket assignment at medium, shared expenses, Grokbot; ShipLoop 2.3.0: Grokbot).
 Known limits of the readers, kept: the JavaScript reading is a lexer, not a parser (a function written in an unusual
 form may be missed); a route built from pieces at run time is not seen; JSON body fields are not surfaces.
 
+Two scope notes made during the measuring, each before the run it touches was measured:
+
+- 00:40. At a Ratchet first build there is no acceptance suite yet, so its seeded faults run against the own tests
+  alone (the first attempt with `--manifest` stopped on the missing `ratchet/acceptance.json`; no number was lost).
+- 01:45. For Grokbot, Ratchet's acceptance suite is about 300 browser commands; `mutate.py --manifest` runs every one
+  of them for a fault that survives, so 60 faults would take many hours. Grokbot's seeded faults run against the own
+  tests only, as R4(a) reads and as the pilot measured Grokbot (F22). Coverage with every suite is still taken.
+
 ## 5. Readings, registered before any run
 
 Per case and measure, one arm is **ahead** only by these margins; otherwise **no difference shown**:
@@ -176,3 +193,129 @@ the judge's preference split or absent in at least 3; P8 overall no difference i
 - A background task of this host has been seen to end at about two hours; a ShipLoop run resumes in place
   (`launch.py resume`), a Ratchet run cannot and would be reported as stopped.
 - The documentation and coverage measures are mine and new; section 4 says how they are checked before use.
+
+## 7. Results (all eight runs ended 2026-11-22 02:41; measured and judged by 03:05)
+
+Runs root `~/e2e-runs/d20261122-360a9f/` (label `-1` ShipLoop, `-2` Ratchet); one checkout for both arms,
+`source-d522655ae4f6` (ShipLoop 2.4.1, plugin 4.2.1). Every run ended by itself: no resume, no restart, no apparatus
+failure. Every ShipLoop run passed its harness verdict; every Ratchet run stopped at its three-cycle limit with its
+gate passing (as every whole loop of the pilot did). No run left a process behind. Evidence:
+`docs/experiments/ratchet-vs-shiploop-20261121/evidence/` (each run's measure record, the judge's answers, the report).
+
+### Cost (M1, M2)
+
+| Case | ShipLoop minutes | Ratchet minutes (first build) | Ratchet ÷ ShipLoop | Output tokens, ShipLoop / Ratchet | Uncached input, ShipLoop / Ratchet | Total input, ShipLoop / Ratchet |
+|---|---|---|---|---|---|---|
+| shared expenses | 14.3 | 46.4 (10.2) | 3.2× | 27,535 / 111,434 | 148k / 770k | 10.7M / 8.1M |
+| chess engine | 10.4 | 37.2 (8.5) | 3.6× | 21,313 / 87,564 | 130k / 718k | 6.0M / 6.5M |
+| ticket assignment | 15.3 | 100.4 (11.1) | 6.6× | 30,077 / 132,054 | 202k / 908k | 11.8M / 12.4M |
+| Grokbot-local | 26.5 | 162.3 (20.0) | 6.1× | 52,934 / 234,368 | 190k / 1,246k | 18.6M / 31.4M |
+
+ShipLoop ran each case as one Codex session (one rollout); Ratchet as 13 or 14 sessions. ShipLoop writes about a
+quarter of Ratchet's output tokens and a sixth of its uncached input. Its total input is close to Ratchet's, or
+higher (shared expenses), because one long session re-reads its whole cached context on every call.
+
+Ratchet's first build was ready at 8.5 to 20.0 minutes, near ShipLoop's whole delivery (10.4 to 26.5), and it
+already passed every held-out check it passed at the end (next table). Its cycles after that took 28.7 to 142.3
+minutes, and its specifications ended at 49 to 98 clauses; the ticket case's third build alone ran 45.8 minutes.
+
+### Results (M3 to M7)
+
+| Case | Arm | Held-out checks | Seeded faults caught by own tests | Line coverage, changed lines Node runs | New surfaces named in user documents | Tests the own command runs |
+|---|---|---|---|---|---|---|
+| shared expenses | ShipLoop | 6 of 6 | 49 of 60 (82%) | 95% | 0 of 3 (no README) | 5 |
+| | Ratchet | 6 of 6 (first build 6) | 31 of 59 (53%) | 93% | 4 of 4 | 13 |
+| chess engine | ShipLoop | 10 of 10 | 47 of 60 (80%; 1 did not end) | 99% | 0 of 5 (no README) | 8 |
+| | Ratchet | 10 of 10 (first build 10) | 50 of 60 (83%) | 98% | 5 of 5 | 16 |
+| ticket assignment | ShipLoop | 18 of 18 | 9 of 9 (100%; its change has 9 sites) | 95% | 2 of 2 | 123 (117 the service's own) |
+| | Ratchet | 18 of 18 (first build 18) | 24 of 25 (96%; 2 did not end) | 100% | 2 of 2 | 134 |
+| Grokbot-local | ShipLoop | 49 of 49 and 28 of 28 | 27 of 60 (45%) | 94% | 3 of 6 | 8 |
+| | Ratchet | 49 of 49 and 28 of 28 (first build the same) | 32 of 60 (53%) | 97% (first build 95%) | 3 of 8 | 19 |
+
+- **Breadth is at the ceiling again.** Every final product passes every held-out check, and so does every Ratchet
+  first build: the cycles after Ratchet's first build moved no held-out check, as in the pilot (section 2).
+- **Depth.** Seeded faults separate the arms on shared expenses only (ShipLoop 82% against 53%). On ticket
+  assignment's 27 calibrated defects Ratchet's tests catch 19 (18 at its first build) and ShipLoop's 7; 5 of
+  ShipLoop's 6 new test cases fail on the correct reference (a second correct product), so they can catch nothing
+  there, and 11 of Ratchet's tests do too. R4 as registered reads the seeded faults, so this is reported apart (R4b).
+- **Coverage** is high for both everywhere (93% to 100%); no difference shown.
+- **Documentation.** For the two new builds without a page, ShipLoop wrote no README: its documents are its
+  `docs/shiploop/` specification, architecture and environment notes, which name every new surface (all-documents
+  scope: 100% for both arms on both cases). Ratchet wrote a user README that names them all. On the ticket change
+  both updated the service's own documents; on Grokbot both READMEs name the settings and leave out the API routes.
+  User-document words: ShipLoop 0, 0, 4,912 (the service's, updated), 1,440; Ratchet 754, 213, 5,516, 2,033.
+- **Code, by script (reported, not read).** ShipLoop's code is smaller in three cases of four: changed code lines 165 against 285, 274
+  against 263, 62 against 92, 1,001 against 1,720; mean cyclomatic complexity per function 4.2/3.1, 6.7/4.0,
+  1.9/2.4, 2.4/3.4 (ShipLoop/Ratchet). No syntax failures in either.
+- **Code, read blind (R7; one Opus judge, two orders).** Chess: ShipLoop both times (means 4.6 against 3.9:
+  depth-3 move counts on three positions, timing limits tested; the other product's tests "pin behaviour the
+  request does not ask for"). Shared expenses: Ratchet both times (4.1 against 3.8: a commit queue and validated
+  reloads, "over-engineering in places"). Ticket assignment: split (3.9 against 4.0: one reading prefers the
+  smaller change that follows the service's conventions, the other the change that leaves the documented
+  `list --raw` output alone). Grokbot: Ratchet both times (4.0 against 3.5: schema-checked confirmations applied once,
+  receipts that survive a reload, validated atomic saves, 17 to 19 tests with real restarts and injected file faults;
+  the other product leaner and easier to read, with a Host check, but no schema on record changes and a snapshot
+  that crashes startup when damaged).
+
+### Readings (section 5's margins)
+
+| Case | R1 time | R2 tokens | R3 breadth | R4 depth | R5 coverage | R6 docs | R7 code | R4b calibrated |
+|---|---|---|---|---|---|---|---|---|
+| shared expenses | ShipLoop | – | – | ShipLoop | – | Ratchet | Ratchet | |
+| chess engine | ShipLoop | – | – | – | – | Ratchet | ShipLoop | |
+| ticket assignment | ShipLoop | – | – | – | – | – | – | Ratchet |
+| Grokbot-local | ShipLoop | ShipLoop | – | – | – | – | Ratchet | |
+
+(– no difference shown.) R2 as registered needs both output and total input at most two thirds: met on Grokbot
+only, because ShipLoop's one long session reads as much cached input as Ratchet's fourteen. A better reading, its
+own line and not the registered one: on output and on uncached input ShipLoop is at most a quarter of Ratchet in all
+four cases.
+
+**Overall, as registered: no difference in results shown.** Result cells ahead: ShipLoop 2 (depth on shared
+expenses, the chess code reading), Ratchet 4 (documentation on the two new builds without a page, the expenses and
+Grokbot code readings); neither arm is behind on breadth anywhere; the rule needs a lead of three cells and
+Ratchet's is two. ShipLoop is ahead on time in 4 of 4 cases and on tokens, as registered, in 1.
+
+### Predictions, scored as registered
+
+P1 right (time, 4 of 4). P2 wrong (tokens, 1 of 4: the total-input condition). P3 right (breadth, 4 of 4 no
+difference). P4 wrong (depth: ShipLoop ahead in 1 case, not 2). P5 right (coverage, 4 of 4). P6 wrong (docs: Ratchet
+ahead in 2 cases, so 2 no difference, not 3). P7 wrong (the judge named one product in both orders in 3 of 4
+cases). P8 right (overall).
+
+### What this says (my reading, for the owner to accept or not)
+
+- **Neither produces better results by the rule registered before the runs, and the result cells lean to
+  Ratchet.** Both deliver everything the requests ask (breadth equal everywhere), coverage is equal everywhere, and
+  seeded-fault depth is equal in three cases of four. Ratchet is ahead in four result cells (a user README on both
+  new builds without a page; the blind code reading on shared expenses and Grokbot, both for more defensive code and
+  deeper tests), ShipLoop in two (its tests catch 82% of seeded faults against 53% on shared expenses; the chess
+  code reading). The rule needed a lead of three; Ratchet's is two, from one run a case.
+- **The cost is not close.** ShipLoop delivers the same held-out result in 15% to 31% of the time and a
+  quarter of the output tokens, in all four cases. Ratchet's first build reaches that same held-out result in
+  about ShipLoop's time; everything Ratchet spends after its first build (29 to 142 minutes a case) buys its own
+  added clauses and more tests, not one more held-out check.
+- **What Ratchet gives that ShipLoop does not, measured:** a user README on new builds (ShipLoop writes none there;
+  its `docs/shiploop/` notes cover the same surfaces for a maintainer), on the ticket change a suite that carries to
+  another correct product (19 of 27 calibrated defects against 7), and, by the blind reading of the final products,
+  more defensive code with deeper tests on two cases. The README and 18 of the 19 calibrated catches are already
+  there at Ratchet's first build, so they come from its build stage, not from the later cycles; the first builds
+  were not given to the judge, so where the more defensive code came from is not shown.
+- **What ShipLoop's script-run fault check buys, measured again:** on shared expenses its 5 tests catch 82% of
+  seeded faults against 53% for Ratchet's 13 (the pilot's F22 on Grokbot, here on a second case). Elsewhere equal.
+- Since the request is the owner's question "which produces better results": on results, no difference shown by
+  the registered rule, with the result cells leaning to Ratchet (4 to 2, documentation and code readings); on
+  results per minute and per token, ShipLoop, by three to seven times.
+
+### Not shown by this run
+
+- One run per arm and case, one model (Sol 6.2 medium); the spread between two runs of one arm was not measured here
+  (F38 of the pilot: 24 to 26 of 27 for one text).
+- Breadth cannot separate them: all eight products and all four Ratchet first builds pass every held-out check.
+  A case where a first pass falls short is still missing (the pilot's conclusion too).
+- Documentation coverage is a surface count by script; it does not judge whether a README is useful. The blind
+  judge did not see documents.
+- The judge is one model family (Opus) reading each pair twice; its split on ticket assignment shows it is a reading,
+  not a gate.
+- Ratchet's three-cycle limit is the pilot's; a Ratchet run without it would only take longer (no run so far stopped
+  by itself).

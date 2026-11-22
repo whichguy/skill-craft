@@ -194,7 +194,7 @@ def markdown(rows: dict, per_case: dict, result: dict, scored: dict) -> str:
             lines.append(f"| {case} | {NAMES[arm]} | {minutes} | {fmt(f['output'], 'k')} | {fmt(f['input'], 'm')} | {held} | "
                          f"{fmt(f['faults_own'], 'pct')} | {fmt(f['line_coverage'], 'pct')} | {docs} | {fmt(f['tests_run'])} |")
     lines += ["", "## Readings (registered margins; a blank is no difference shown)", ""]
-    keys = ("R1 time", "R2 tokens", *QUALITY)
+    keys = ("R1 time", "R2 tokens", *QUALITY, "R4b calibrated defects")
     lines.append("| Case | " + " | ".join(keys) + " |")
     lines.append("|---|" + "---|" * len(keys))
     for case in CASE_ORDER:

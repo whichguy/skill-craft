@@ -1,0 +1,217 @@
+{
+ "label": "grokbot-1",
+ "arm": "shiploop",
+ "case": "grokbot-local",
+ "base": "0117dd628d3e23ddd9b8dce8398e19f469b8115d",
+ "points": {
+  "final": "9b4bf1e6766af38b08ec73e98be0f3482592e39b"
+ },
+ "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 26.5,
+  "seconds": 1587.4,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.4.1"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 18624191,
+  "cached": 18434048,
+  "output": 52934,
+  "reasoning": 2436,
+  "total": 18677125,
+  "uncached_input": 190143
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 49,
+     "failed": [],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   },
+   "static": {
+    "code": {
+     "files": 5,
+     "code_lines": 1001,
+     "changed_code_lines": 1001,
+     "functions": 182,
+     "named_functions": 78,
+     "longest_function": 293,
+     "longest_function_at": "lib/workspace.js",
+     "over_50_lines": 0.033,
+     "complexity_mean": 2.44,
+     "complexity_max": 29,
+     "complexity_over_10": 0.0385,
+     "duplication": {
+      "windows": 805,
+      "repeated": 0,
+      "share": 0.0
+     },
+     "syntax_failures": []
+    },
+    "comments": {
+     "named_functions": 78,
+     "with_comment_above": 0,
+     "share": 0.0
+    },
+    "surfaces": {
+     "env": [
+      "DATA_DIR",
+      "PORT",
+      "PROVIDER_TOKEN"
+     ],
+     "paths": [
+      "/api/action",
+      "/api/state"
+     ],
+     "query": [],
+     "flags": [],
+     "exports": [
+      "createServer"
+     ],
+     "scripts": []
+    },
+    "docs": {
+     "user": {
+      "surfaces": 6,
+      "documented": 3,
+      "share": 0.5,
+      "missing": {
+       "paths": [
+        "/api/action",
+        "/api/state"
+       ],
+       "exports": [
+        "createServer"
+       ]
+      }
+     },
+     "all": {
+      "surfaces": 6,
+      "documented": 5,
+      "share": 0.8333,
+      "missing": {
+       "exports": [
+        "createServer"
+       ]
+      }
+     },
+     "user_words": 1440,
+     "process_words": 1495,
+     "user_files": [
+      "README.md",
+      "provider/README.md",
+      "records/README.md"
+     ],
+     "process_files": [
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md"
+     ]
+    },
+    "product_files": [
+     "lib/records.js",
+     "lib/store.js",
+     "lib/workspace.js",
+     "public/app.js",
+     "server.js"
+    ]
+   },
+   "coverage": {
+    "own": {
+     "all": {
+      "lines": 1122,
+      "run": 621,
+      "functions": 197,
+      "functions_run": 87,
+      "branches": 229,
+      "branches_run": 179,
+      "line_share": 0.5535,
+      "function_share": 0.4416,
+      "branch_share": 0.7817
+     },
+     "changed": {
+      "lines": 1001,
+      "run": 500,
+      "functions": 181,
+      "functions_run": 71,
+      "branches": 163,
+      "branches_run": 131,
+      "line_share": 0.4995,
+      "function_share": 0.3923,
+      "branch_share": 0.8037
+     },
+     "browser_free": {
+      "all": {
+       "lines": 654,
+       "run": 621,
+       "line_share": 0.9495,
+       "functions": 93,
+       "functions_run": 87,
+       "function_share": 0.9355
+      },
+      "changed": {
+       "lines": 533,
+       "run": 500,
+       "line_share": 0.9381,
+       "functions": 77,
+       "functions_run": 71,
+       "function_share": 0.9221
+      },
+      "left_out": [
+       "public/app.js"
+      ]
+     },
+     "commands": 1,
+     "tests": {
+      "tests": 8,
+      "pass": 8,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+     },
+     "unloaded": [
+      "public/app.js"
+     ]
+    }
+   },
+   "mutation": {
+    "measured": true,
+    "sampled": 60,
+    "invalid": 0,
+    "sites_on_changed_lines": 304,
+    "failing_on_untouched": [],
+    "own": {
+     "caught": 27,
+     "survived": 33,
+     "did_not_end": 0,
+     "not_measured": 0,
+     "share": 0.45
+    }
+   }
+  }
+ }
+}

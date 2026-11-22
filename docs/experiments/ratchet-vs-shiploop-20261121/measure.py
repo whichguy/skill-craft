@@ -86,6 +86,8 @@ class Run:
             self.points = {"final": (result.get("committed") or {}).get("head")}
         else:
             record = json.loads((self.out / "run.json").read_text())
+            if not record.get("finished"):
+                raise SystemExit(f"{label}: the Ratchet run has not finished (run.json has no 'finished'); measure it when it ends")
             self.record = record
             shots = {shot["label"]: shot for shot in record.get("snapshots", [])}
             self.base = shots["base"]["commit"]
@@ -226,8 +228,13 @@ class Run:
         path = self.folder / point / "mutation.json"
         row = self.cached(path, again)
         if row is None:
-            argv = [sys.executable, str(PILOT / "mutate.py"), f"{self.label}-{point}", str(self.tree(point)), str(self.fixture()),
-                    str(path), "--workers", "2", "--own-command", self.spec["own"]] + (["--manifest"] if self.arm == "ratchet" else [])
+            tree = self.tree(point)
+            # none yet at a first build; and not for Grokbot, whose acceptance suite is about 300 browser commands: a
+            # fault that survives runs all of them, so 60 faults would take many hours (R4 reads the own tests only)
+            manifest = (self.arm == "ratchet" and (tree / "ratchet" / "acceptance.json").is_file()
+                        and self.case != "grokbot-local")
+            argv = [sys.executable, str(PILOT / "mutate.py"), f"{self.label}-{point}", str(tree), str(self.fixture()),
+                    str(path), "--workers", "2", "--own-command", self.spec["own"]] + (["--manifest"] if manifest else [])
             run_tool(argv, self.env, self.log)
             row = self.cached(path, False) or {}
         return summarize_mutation(row)
@@ -252,7 +259,13 @@ class Run:
             record["time"] = self.time_part()
         if "tokens" in only:
             record["tokens"] = self.tokens_part()
+        measured = record.get("measured_points") or {}
         for point in self.points:
+            if measured.get(point) not in (None, self.points[point]):  # a point measured at another commit: start it again
+                shutil.rmtree(self.folder / point, ignore_errors=True)
+                record.get("at", {}).pop(point, None)
+            measured[point] = self.points[point]
+            record["measured_points"] = measured
             (self.folder / point).mkdir(parents=True, exist_ok=True)
             row = record.setdefault("at", {}).setdefault(point, {})
             same = point == "first-build" and self.points.get("final") == self.points[point]

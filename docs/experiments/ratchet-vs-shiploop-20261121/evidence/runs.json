@@ -1,0 +1,310 @@
+{
+ "chess-1": {
+  "arm": "shiploop",
+  "case": "node-chess-engine",
+  "label": "chess-1",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/chess-1",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/test/shiploop_e2e/run.py",
+   "--source",
+   "checkout",
+   "--case",
+   "node-chess-engine",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/chess-1",
+   "--baseline",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/baselines.jsonl",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334343.3489978,
+    "ended": 1795335007.4475362,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/chess-1.log"
+ },
+ "chess-2": {
+  "arm": "ratchet",
+  "case": "node-chess-engine",
+  "label": "chess-2",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/chess-2",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/docs/experiments/ratchet-pilot-20261120/ratchet.py",
+   "run",
+   "--case",
+   "node-chess-engine",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--enrich",
+   "reworded",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/chess-2",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334349.1861582,
+    "ended": 1795336581.936067,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/chess-2.log"
+ },
+ "expenses-1": {
+  "arm": "shiploop",
+  "case": "shared-expenses",
+  "label": "expenses-1",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/expenses-1",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/test/shiploop_e2e/run.py",
+   "--source",
+   "checkout",
+   "--case",
+   "shared-expenses",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/expenses-1",
+   "--baseline",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/baselines.jsonl",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334366.855114,
+    "ended": 1795335257.2819588,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/expenses-1.log"
+ },
+ "expenses-2": {
+  "arm": "ratchet",
+  "case": "shared-expenses",
+  "label": "expenses-2",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/expenses-2",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/docs/experiments/ratchet-pilot-20261120/ratchet.py",
+   "run",
+   "--case",
+   "shared-expenses",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--enrich",
+   "reworded",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/expenses-2",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334366.931631,
+    "ended": 1795337152.864875,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/expenses-2.log"
+ },
+ "grokbot-1": {
+  "arm": "shiploop",
+  "case": "grokbot-local",
+  "label": "grokbot-1",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/grokbot-1",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/test/shiploop_e2e/run.py",
+   "--source",
+   "checkout",
+   "--case",
+   "grokbot-local",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/grokbot-1",
+   "--baseline",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/baselines.jsonl",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334366.709385,
+    "ended": 1795335996.545326,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/grokbot-1.log"
+ },
+ "grokbot-2": {
+  "arm": "ratchet",
+  "case": "grokbot-local",
+  "label": "grokbot-2",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/grokbot-2",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/docs/experiments/ratchet-pilot-20261120/ratchet.py",
+   "run",
+   "--case",
+   "grokbot-local",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--enrich",
+   "reworded",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/grokbot-2",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334366.780166,
+    "ended": 1795344105.3821912,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/grokbot-2.log"
+ },
+ "tickets-1": {
+  "arm": "shiploop",
+  "case": "ticket-assignment",
+  "label": "tickets-1",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/tickets-1",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/test/shiploop_e2e/run.py",
+   "--source",
+   "checkout",
+   "--case",
+   "ticket-assignment",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/tickets-1",
+   "--baseline",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/baselines.jsonl",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334367.01161,
+    "ended": 1795335325.042837,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/tickets-1.log"
+ },
+ "tickets-2": {
+  "arm": "ratchet",
+  "case": "ticket-assignment",
+  "label": "tickets-2",
+  "output": "/Users/dadleet/e2e-runs/d20261122-360a9f/tickets-2",
+  "commit": "d522655ae4f6a8af0b289d346aa08cf44d2e9fbe",
+  "shiploop_version": "2.4.1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "argv": [
+   "/opt/homebrew/opt/python@3.15/bin/python3.15",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/source-d522655ae4f6/docs/experiments/ratchet-pilot-20261120/ratchet.py",
+   "run",
+   "--case",
+   "ticket-assignment",
+   "--host",
+   "codex",
+   "--model",
+   "gpt-6.2-sol",
+   "--effort",
+   "medium",
+   "--enrich",
+   "reworded",
+   "--output",
+   "/Users/dadleet/e2e-runs/d20261122-360a9f/tickets-2",
+   "--quiet"
+  ],
+  "attempts": [
+   {
+    "started": 1795334367.10034,
+    "ended": 1795340393.097478,
+    "returncode": 0,
+    "refused_by_lease": false
+   }
+  ],
+  "log": "/Users/dadleet/e2e-runs/d20261122-360a9f/tickets-2.log"
+ }
+}
