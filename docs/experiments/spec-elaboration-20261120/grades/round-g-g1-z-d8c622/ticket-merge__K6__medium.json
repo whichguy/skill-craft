@@ -1,0 +1,152 @@
+{
+ "slot": "ticket-merge__K6__medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.2822724,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "`POST /tickets/T-0001/merge` with `{\"into\":\"T-0002\"}` and `X-Actor: dana` returns 200 and the source ticket ... Malformed request objects, unknown fields ... produce 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "An agent submits an explicit source and target pair. ... the source ticket, now `closed` with `mergedInto: \"T-0002\"` ... The target is identical to its state before the merge."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "An agent submits an explicit source and target pair.",
+   "missing": "Whether any similarity check (same requester, title, priority) is made or the agent's choice alone suffices is never stated explicitly; eligibility is defined only by status/link conditions."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the source ticket, now `closed` with `mergedInto: \"T-0002\"` ... Closed sources reject edits and ordinary transitions through their existing guards."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "The target is identical to its state before the merge. ... No copying of requester data, deletion, or new requester notification is required for this internal action."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Unfiltered lists still include both records in ID order. The source appears under `status=closed` and is absent from its previous status filter."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "merging an existing ticket into itself produce 400 `invalid`. ... A new merge conflicts (409 `conflict`) when the source or target is already closed, the source has been merged into a different ticket"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "a missing or noncanonical `into` ID ... produce 400 `invalid`. Missing source or target tickets produce 404 `not_found`.",
+   "missing": "Which id the error message names is not stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "the source has been merged into a different ticket or is the canonical ticket for an earlier merge, or the target itself has been merged."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "The same pair can be retried with 200 and equal source state, even after the canonical ticket closes. ... A retry, invalid request or failed save adds no audit record and changes no ticket."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "The target is identical to its state before the merge. ... Preserve prior audit, canonical history and existing outbox."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "Information boundary: X-Actor provides attribution under the existing internal access model.",
+   "missing": "Whether a named actor (not `system`) is required and whether requesters are kept from merging is not decided."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "`mergedInto: \"T-0002\"` ... persist under the existing DATA_FILE boundary when enabled. ... Version 1 files without the optional link still load."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A present link must point from a closed ticket to a distinct, existing, unmerged ticket, which may have closed since the merge. Reject files violating that invariant.",
+   "missing": "The refusal message and that it names the offending record are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Append exactly one `ticket.merged` entry to source history on first success with actor, timestamp and before/after status and link. Preserve prior audit, canonical history and existing outbox."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "A retry, invalid request or failed save adds no audit record and changes no ticket. ... Integrity: failed pre-rename save leaves visible state unchanged."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "No copying of requester data, deletion, or new requester notification is required for this internal action. ... Preserve prior audit, canonical history and existing outbox."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3, R-4",
+   "quote": "The existing internal API and CLI can read the record or audit. ... Preserve the four ordered TSV columns (ID, status, priority, title)",
+   "missing": "How `tickets show` presents the merged ticket and its link is not specified."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The link lives for the lifetime of the ticket.",
+   "missing": "That merges cannot be undone is only implied, and how an operator corrects a wrong merge is not stated."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Unfiltered lists still include both records in ID order. ... Confirm on the same API, including its existing cursor shape.",
+   "missing": "That create, edit, transition and audit endpoints for non-merged tickets behave unchanged is not stated as a requirement."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Preserve the four ordered TSV columns (ID, status, priority, title) and the report count keys. The source contributes one closed ticket and remains visible in its history."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-3, Non-functional requirements",
+   "quote": "CONTRIBUTING.md Changes go through the store. ... Compatibility: existing Node.js 22+ and built-ins only",
+   "missing": "Updating docs/api.md and CHANGELOG, a version bump, and a decision record are not required."
+  }
+ ]
+}

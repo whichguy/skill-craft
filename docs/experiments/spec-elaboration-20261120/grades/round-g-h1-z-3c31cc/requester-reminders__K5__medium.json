@@ -1,0 +1,154 @@
+{
+ "slot": "requester-reminders__K5__medium",
+ "case": "requester-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.21508860000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "After creating a ticket and moving it to in_progress, an agent can POST {\"to\":\"waiting_on_requester\"} ... From waiting_on_requester the agent can return to in_progress when a response arrives, or resolve the ticket."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Each uninterrupted wait becomes eligible at elapsed time greater than or equal to 72 hours (259200000 ms). ... A title or priority update during the wait leaves its start intact."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "At eligibility, the existing worker produces one ticket.requester_reminder notification ... A later tick and a restart preserve one logical event for that wait, even if it is dead."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-2, R-1",
+   "quote": "Waits end when the agent transitions out. ... No requester reply endpoint ... is required. / the agent can return to in_progress when a response arrives, or resolve the ticket."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2; Non-functional requirements",
+   "quote": "addressed to the ticket's requester. The subject identifies the ticket and the body requests the missing information. / Requesters receive messages only at the address stored on their ticket.",
+   "missing": "Template style, the exact fields (title, time waited, action to take), and what to do when the requester field is free text rather than an email address."
+  },
+  {
+   "id": "N-6",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2; Non-functional requirements",
+   "quote": "the existing worker produces one ticket.requester_reminder notification / Use the existing single scheduler and persisted outbox ... Existing worker cadence governs normal scheduling"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A later tick and a restart preserve one logical event for that wait, even if it is dead. ... The relay's existing deduplication identity (key and event ID) remains stable across attempts."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Leaving before eligibility suppresses it. Leaving after a failed send stops retries for that wait. ... Outbox retry cancellation applies only to pending reminders for the ended wait."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Reminder delivery uses the existing backoff, dead limit, and at-least-once contract. ... preserve one logical event for that wait, even if it is dead.",
+   "missing": "Whether the reminder template must exist before the event type can be enqueued."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Re-entering starts a new wait, including re-entry in the same millisecond."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "eligible at elapsed time greater than or equal to 72 hours ... a manual-clock HTTP-to-notifier case at threshold minus one millisecond and threshold.",
+   "missing": "The clock source/time zone used for the comparison and whether reminders are held outside business hours, weekends or holidays."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "The store owns waiting state and notification events.",
+   "missing": "The names and locations of the new stored fields (waiting-since time, reminder marker) and how persistence saves and loads them."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Existing version 1 data remains readable",
+   "missing": "Defaults for new fields when loading old files, and refusing a file with a bad new field with a message naming it."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "No requester reply endpoint, new permissions, or separate data service is required.",
+   "missing": "Who may configure the threshold, and whether/who may stop or send a reminder by hand given the X-Actor header and admin area."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "REQUESTER_REMINDER_AFTER_MS overrides this with a positive whole number. Empty uses default and invalid values fail startup naming the variable. ... Worker interval 0 prevents scheduled reminder creation and dispatch.",
+   "missing": "A feature-specific way to turn reminders off without stopping the whole worker."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2; R-1",
+   "quote": "Check local JSONL output, persisted outbox, and worker tests. / The weekly report counts the added status with raw CLI columns unchanged.",
+   "missing": "How operators see sent and upcoming reminders (outbox report, ticket history, CLI) as a product behaviour."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "idle scans perform no writes. Existing worker cadence governs normal scheduling",
+   "missing": "A bound on lateness after the threshold, a per-tick enqueue limit, and scan cost with thousands of tickets not blocking delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-1; R-2; Non-functional requirements",
+   "quote": "Existing transitions and finality hold. ... Creation and resolution messages keep their existing behavior. ... raw CLI columns unchanged ... CLI/report changes follow their existing output presentation."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Check config and a manual-clock HTTP-to-notifier case at threshold minus one millisecond and threshold.",
+   "missing": "Updates to API doc, operations doc, README settings table, changelog with version bump, and a decision record."
+  }
+ ]
+}

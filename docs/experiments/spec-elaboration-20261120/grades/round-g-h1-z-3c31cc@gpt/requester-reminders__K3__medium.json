@@ -1,0 +1,156 @@
+{
+ "slot": "requester-reminders__K3__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Add `waiting_on_requester` as an active status. Allow `in_progress \u2192 waiting_on_requester`, and from waiting allow `in_progress` or `resolved`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-2, R-2.a",
+   "quote": "at or after 72 elapsed hours in `waiting_on_requester` \u2026 The policy uses status entry rather than any subsequent ticket edit. \u2026 regardless of a title or priority edit during the wait."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2, R-2.b",
+   "quote": "One reminder per continuous waiting period is the default policy. \u2026 Resume before the first deadline and observe no reminder for that period. Re-enter waiting and the clock starts again."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, R-2.a, R-2.c, R-2",
+   "quote": "from waiting allow `in_progress` or `resolved`. \u2026 regardless of a title or priority edit during the wait. \u2026 Leaving waiting cancels an outstanding reminder \u2026 Reply ingestion and remote relay operation are outside the implementation scope."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "send a reminder through the existing outbox and notifier to the requester's stored address. \u2026 The message includes ticket ID and title and asks the requester to reply with needed information.",
+   "missing": "The subject and body format, whether to show elapsed waiting time, and what address to use when the requester field is free text are unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "Preserve all existing transitions and ordinary resolution notification. \u2026 The message includes ticket ID and title and asks the requester to reply with needed information."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "the single existing worker loop per CONTRIBUTING. When enabled and healthy, the first tick at or after expiry queues and attempts delivery."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2.c, R-2",
+   "quote": "preserves wait entry and the prior reminder's identity. \u2026 Sent, exhausted or cancelled reminders do not generate a new event for the same wait. \u2026 key/ID deduplication covers the existing crash window between delivery and attempt recording."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2.a, R-2.c, Non-functional requirements",
+   "quote": "A nonwaiting ticket never qualifies. \u2026 Leaving waiting cancels an outstanding reminder so that the worker cannot send it later, even after re-entry. \u2026 the first tick at or after expiry queues and attempts delivery."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "A failed delivery uses existing backoff and retry limits. Sent, exhausted or cancelled reminders do not generate a new event for the same wait.",
+   "missing": "Whether a reminder template must exist before the worker can enqueue the event is unspecified."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, R-2.b",
+   "quote": "One reminder per continuous waiting period \u2026 Re-enter waiting and the clock starts again. Two eligible periods have distinct reminder keys, even when entry times are equal. Resolving before delivery also ends the waiting period."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2, Non-functional requirements",
+   "quote": "At the first enabled worker tick at or after 72 elapsed hours in `waiting_on_requester` \u2026 Check with the injected clock, temporary data file and local transport.",
+   "missing": "The clock source used in production to record entry and compare elapsed time is unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2.c",
+   "quote": "With DATA_FILE enabled, reopening the service preserves wait entry and the prior reminder's identity.",
+   "missing": "The builder must choose the records and persistent field names for the wait entry time and reminder identity."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1.b",
+   "quote": "Version 1 data files created before this feature remain readable.",
+   "missing": "Defaults for missing fields and whether a malformed new field must cause a load error naming it are unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2.b, Non-functional requirements",
+   "quote": "An already-sent message remains recorded. \u2026 Preserve audit and outbox traceability",
+   "missing": "Whether delivery appends a ticket audit entry, what action and actor it would record, and whether it changes the ticket update time are unspecified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Existing caller access governs API reads and mutations.",
+   "missing": "The specification leaves open who may change reminder settings and whether anyone may manually send or suppress a reminder for a ticket that stays in waiting."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2, R-2.c, R-2.d",
+   "quote": "`REQUESTER_REMINDER_AFTER_MS` may override the default with a positive whole number of milliseconds. \u2026 Worker off stops scheduled work. \u2026 An unset or empty threshold uses 259200000. Invalid input causes a startup configuration error naming the variable.",
+   "missing": "The specification does not identify the worker interval setting or say that setting it to zero disables reminders."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2.b, R-2.c, Non-functional requirements",
+   "quote": "An already-sent message remains recorded. Verify through the service worker and outbox readback. \u2026 The outbox exposes the cancelled records. \u2026 the raw CLI column order",
+   "missing": "Where operators can see which reminders are due next is unspecified."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "When enabled and healthy, the first tick at or after expiry queues and attempts delivery.",
+   "missing": "The maximum number enqueued per tick and the acceptable cost or delivery delay when checking thousands of tickets are unspecified."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, R-1.b, Non-functional requirements",
+   "quote": "Preserve all existing transitions and ordinary resolution notification. \u2026 A simultaneous priority filter applies the documented intersection. \u2026 retains the original status buckets. \u2026 the ticket shape, the raw CLI column order, and existing retry semantics.",
+   "missing": "Preservation of the received notification, API responses and error codes for existing operations, and audit entries for existing actions is unspecified."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1.b, R-2.d, Non-functional requirements",
+   "quote": "Verify with API, CLI, report and restart tests. \u2026 Verify with loadConfig tests. \u2026 Check with the injected clock, temporary data file and local transport.",
+   "missing": "The specification does not require updates to the API and operations docs, README settings table, changelog, or version, or a decision record when a shared rule changes."
+  }
+ ]
+}

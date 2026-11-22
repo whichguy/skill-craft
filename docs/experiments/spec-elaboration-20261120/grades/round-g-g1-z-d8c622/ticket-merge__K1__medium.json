@@ -1,0 +1,150 @@
+{
+ "slot": "ticket-merge__K1__medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.23205320000000002,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "An agent posts `{\"into\":\"T-0001\"}` to `POST /tickets/T-0002/merge` ... The API returns 200 with T-0002, status `closed` and `mergedInto: \"T-0001\"`. / missing/unknown body fields and self-merge yield 400 `invalid`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "An agent posts `{\"into\":\"T-0001\"}` to `POST /tickets/T-0002/merge` ... returns 200 with T-0002, status `closed` and `mergedInto: \"T-0001\"`. The survivor's fields ... are preserved."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "Add a manual action ... The operation neither deduplicates automatically nor combines requester information.",
+   "missing": "Whether any similarity check (same requester, title, priority) is made before merging or the agent's choice alone suffices is never stated outright."
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "status `closed` and `mergedInto: \"T-0001\"` ... It remains accessible by ID and cannot be edited or transitioned."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The survivor's fields and each ticket's original content and creation time are preserved. ... The operation neither deduplicates automatically nor combines requester information."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The source is absent from its previous active status filter and appears under closed. It remains accessible by ID"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, R-1",
+   "quote": "self-merge yield 400 `invalid` ... a closed unmerged participant, a source already merged elsewhere, a target already merged, or a source that already has incoming duplicate links yields 409 `conflict`. / Resolved and in-progress participants are eligible too."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Malformed or noncanonical IDs, missing/unknown body fields and self-merge yield 400 `invalid`. Unknown source or target yields 404 `not_found`.",
+   "missing": "Which id the error message names (source vs target) is not stated."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a target already merged, or a source that already has incoming duplicate links yields 409 `conflict`. ... Links always point directly to existing survivor records, with no chains or cycles."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Exact retries return the persisted source with 200 and preserve its timestamp, link, history and outbox, including when the survivor has since closed."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The survivor's fields and each ticket's original content and creation time are preserved. ... The target's audit and the existing outbox are unchanged."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The action has the same internal API access boundary as existing mutations. X-Actor supplies the audit label with the documented system default."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "`mergedInto: \"T-0001\"` / Preserve version-1 loading, prior JSON field shapes for ordinary tickets ... Reopen a legacy file and a file saved after merge. The link and corresponding audit survive restart"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Reject saved links on nonclosed sources or links with invalid, missing, self or already-merged destinations.",
+   "missing": "The refusal message and that it names the offending record are not stated."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The source's audit gains one `ticket.merged` entry with status and link deltas, the acting label and the source's new updated time. The target's audit and the existing outbox are unchanged."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "The link and corresponding audit survive restart in one file update. ... If the synchronous save fails before replacement, the service ... keeps the original in-memory ticket and audit as well as the prior file."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-1, Non-functional requirements",
+   "quote": "The target's audit and the existing outbox are unchanged. Confirm through the audit and outbox routes. / unchanged notification payloads"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "The CLI remains read-only. Ticket detail and audit display the link. Raw lists remain positional",
+   "missing": "How the non-raw `tickets list` presents a merged ticket and the format of the link in `tickets show` are not decided."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-2, R-3, Non-functional requirements",
+   "quote": "keeping the normal transition table ... Preserve ... prior JSON field shapes for ordinary tickets ... Merge retains ordinary storage and visibility rules",
+   "missing": "No explicit statement that create/update/transition, list filters, id order, cursors and the audit endpoint are unchanged for non-merged tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Preserve ... the CLI's four raw columns and report status buckets. ... Raw lists remain positional and the report counts the duplicate as closed."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1, Non-functional requirements",
+   "quote": "Add a manual action alongside the lifecycle commands in docs/api.md. ... Tests cover local behavior with synthetic data.",
+   "missing": "CHANGELOG, version bump, decision record, no new dependency, TicketStore method, and per-path/atomicity test requirements are not stated."
+  }
+ ]
+}

@@ -1,0 +1,152 @@
+{
+ "slot": "ticket-merge__K6__medium",
+ "case": "ticket-merge",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "`POST /tickets/T-0001/merge` with `{\"into\":\"T-0002\"}` and `X-Actor: dana` returns 200 and the source ticket \u2026 Malformed request objects, unknown fields \u2026 produce 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "An agent submits an explicit source and target pair. \u2026 the source ticket, now `closed` with `mergedInto: \"T-0002\"` \u2026 The target is identical to its state before the merge."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the source ticket, now `closed` with `mergedInto: \"T-0002\"` \u2026 Closed sources reject edits and ordinary transitions through their existing guards."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "The source retains its id, title, requester, priority and created time. The target is identical to its state before the merge."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "the source ticket, now `closed` with `mergedInto: \"T-0002\"` \u2026 subsequent GETs \u2026 Unfiltered lists still include both records in ID order. The source appears under `status=closed` and is absent from its previous status filter."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "merging an existing ticket into itself produce 400 `invalid`. \u2026 A new merge conflicts (409 `conflict`) when the source or target is already closed \u2026 or the target itself has been merged.",
+   "missing": "Whether a resolved source or target is eligible and which error applies if either is refused."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "a missing or noncanonical `into` ID \u2026 produce 400 `invalid`. Missing source or target tickets produce 404 `not_found`. As with other routes, an unknown source path ID is a missing resource.",
+   "missing": "Which ticket ID the error message identifies when the source or target is invalid or missing."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A new merge conflicts (409 `conflict`) \u2026 the source has been merged into a different ticket or is the canonical ticket for an earlier merge, or the target itself has been merged."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2, R-3",
+   "quote": "The same pair can be retried with 200 and equal source state, even after the canonical ticket closes. \u2026 A retry, invalid request or failed save adds no audit record and changes no ticket."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "The target is identical to its state before the merge. \u2026 Preserve prior audit, canonical history and existing outbox."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1, Non-functional requirements",
+   "quote": "Preserve the internal HTTP boundary and actor-label semantics \u2026 same body-size limit and X-Actor validation. \u2026 X-Actor provides attribution under the existing internal access model.",
+   "missing": "Whether an omitted actor defaults to `system` and whether a caller with internal access faces any agent-role check."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "the source ticket, now `closed` with `mergedInto: \"T-0002\"` \u2026 With DATA_FILE enabled, restarting preserves the closed source, link and audit entry. Version 1 files without the optional link still load."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "A present link must point from a closed ticket to a distinct, existing, unmerged ticket, which may have closed since the merge. Reject files violating that invariant.",
+   "missing": "What the load error says and how it identifies the offending ticket record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "Append exactly one `ticket.merged` entry to source history on first success with actor, timestamp and before/after status and link. Preserve prior audit, canonical history and existing outbox. \u2026 Confirm through audit and outbox reads"
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "Preserve prior audit, canonical history and existing outbox. \u2026 failed pre-rename save leaves visible state unchanged. \u2026 use the existing full-state snapshot model and avoid new request-time I/O beyond its one save."
+  },
+  {
+   "id": "N-17",
+   "state": "covered",
+   "where": "R-3, Open questions",
+   "quote": "Preserve prior audit, canonical history and existing outbox. \u2026 the decision to omit a notification"
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-3, R-4",
+   "quote": "The existing internal API and CLI can read the record or audit. \u2026 Preserve the four ordered TSV columns (ID, status, priority, title) \u2026 The source contributes one closed ticket and remains visible in its history.",
+   "missing": "How `tickets show` displays the survivor ID and how the ordinary `tickets list` output presents the merge link."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "Closed sources reject edits and ordinary transitions through their existing guards. \u2026 The link lives for the lifetime of the ticket.",
+   "missing": "How an operator corrects a mistaken merge given the permanent link."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "Unfiltered lists still include both records in ID order. The source appears under `status=closed` and is absent from its previous status filter. \u2026 including its existing cursor shape. \u2026 Preserve prior audit, canonical history and existing outbox.",
+   "missing": "Whether creation, edits, transitions and audit reads retain all existing behavior for tickets outside the merge."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "Preserve the four ordered TSV columns (ID, status, priority, title) and the report count keys. The source contributes one closed ticket and remains visible in its history."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2, R-3, Non-functional requirements",
+   "quote": "Confirm the conflict cases and repeat case with HTTP \u2026 Changes go through the store. \u2026 a controlled save exception followed by a successful retry. \u2026 existing Node.js 22+ and built-ins only",
+   "missing": "Whether the change requires updates to docs/api.md and CHANGELOG, a version bump, a new decision record and a dedicated TicketStore method."
+  }
+ ]
+}

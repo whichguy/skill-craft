@@ -1,0 +1,158 @@
+{
+ "slot": "requester-reminders__K6__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, basis",
+   "quote": "a ticket waits on its requester while it is `resolved`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, behaviour",
+   "quote": "every ticket that is `resolved`, whose latest resolve time (`at` of its latest audit entry with `changes.status.to = 'resolved'`; not `ticket.updated`) is at least 7 days (604800000 ms) before the clock's now"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1.3 and R-1.6",
+   "quote": "resolved again later, its 7 days count from the new resolve, and it can be reminded once for that resolution."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1.4\u2013R-1.6",
+   "quote": "a ticket reopened (resolved -> open) before day 7 gets no reminder",
+   "missing": "The status rule covers transitions and ordinary edits. It leaves unspecified what action counts as a requester response when there is no reply endpoint."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1, behaviour and R-1.9",
+   "quote": "subject `[T-0001] Waiting for your reply` and a body containing the ticket title and the number of days waiting (7)",
+   "missing": "The recipient is the requester field. The specification leaves open how to deliver to a free-text value that is not an address and what action the body asks the requester to take."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1, basis and R-1.9",
+   "quote": "the resolved notice already says \"Reply within 7 days to reopen it\"",
+   "missing": "The reminder is due when the stated reply period expires. The specification gives no instruction for how the requester can act then or how the reminder should describe that deadline."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, behaviour and R-1.8",
+   "quote": "with `WORKER_INTERVAL_MS=0` no reminder is enqueued by the service on its own (no timer, no side effect of a request)."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1.3 and R-1.7",
+   "quote": "running the job again (also after the reminder is delivered/sent, and at 30 days) enqueues nothing more and appends no second `ticket.reminded`.",
+   "missing": "The persistent audit entry prevents another enqueue. What prevents a delivery retry from sending the already queued notification twice is unspecified."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1, behaviour",
+   "quote": "the worker, on each tick, finds every ticket that is `resolved`",
+   "missing": "The worker selects eligible tickets each tick and saves the event and audit entry together. Whether it checks eligibility again or holds it stable between selection and enqueue is unspecified."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-1, behaviour and R-1.9",
+   "quote": "an event of this type is never dead for want of a template.",
+   "missing": "The audit rule suppresses another reminder after enqueue. The specification leaves the retry and dead-state policy for other delivery failures and the timing of template validation undecided."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, behaviour",
+   "quote": "on each tick, finds every ticket that is `resolved`, whose latest resolve time (`at` of its latest audit entry with `changes.status.to = 'resolved'`; not `ticket.updated`) is at least 7 days (604800000 ms) before the clock's now"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1.6",
+   "quote": "resolved again later, its 7 days count from the new resolve, and it can be reminded once for that resolution.",
+   "missing": "The cycle resets the clock and allowance. How the outbox key distinguishes resolutions of the same ticket when an older reminder is pending is unspecified."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, behaviour and R-1.1\u2013R-1.2",
+   "quote": "on each tick, finds every ticket that is `resolved`, whose latest resolve time (`at` of its latest audit entry with `changes.status.to = 'resolved'`; not `ticket.updated`) is at least 7 days (604800000 ms) before the clock's now"
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1, behaviour and R-1.7",
+   "quote": "appends one audit entry `ticket.reminded`, actor `system`, empty `changes`, in the same store step (saved together)."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1.7 and R-2",
+   "quote": "the data file's version and readability of existing data files",
+   "missing": "The design adds no field requiring a default. It leaves unspecified whether loading must reject malformed reminder audit data and identify the offending field."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-1, behaviour",
+   "quote": "appends one audit entry `ticket.reminded`, actor `system`, empty `changes`",
+   "missing": "Whether appending the audit entry changes ticket.updated is unspecified."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-1, Left out (bounds)",
+   "quote": "no new ticket status, field, API endpoint or configuration variable",
+   "missing": "The threshold is fixed and the worker sends automatically. Whether anyone can manually trigger or suppress an individual reminder, and with what authority, is unspecified."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-1.8 and R-1, Left out (bounds)",
+   "quote": "with `WORKER_INTERVAL_MS=0` no reminder is enqueued by the service on its own",
+   "missing": "The existing worker interval controls scheduling. Its default and the validation error for an invalid value are unspecified."
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1.1 and R-2",
+   "quote": "Observed in `store.outboxReport()` / GET /admin/outbox and `store.history`."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, behaviour and R-1.10",
+   "quote": "the job runs before deliver-outbox in the same tick so a due reminder goes out in that tick or the next.",
+   "missing": "Each tick processes every eligible ticket. The specification gives no elapsed-time limit from threshold to delivery or cost bound that keeps a large scan from blocking delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Every existing API response, the lifecycle, `list --raw` column positions, the weekly report, the data file's version and readability of existing data files, and the `ticket.created` / `ticket.resolved` notifications are unchanged.",
+   "missing": "The preservation rule names raw column positions but leaves other command-line output and CLI list-filter behaviour unspecified."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1, acceptance lines and Open gaps",
+   "quote": "Pending: implementation, tests, decision record 0009, CHANGELOG 1.5.0.",
+   "missing": "Manual-clock tests, a decision record and a versioned changelog are specified. Updates to the API documentation, operations documentation and README settings table are unspecified."
+  }
+ ]
+}

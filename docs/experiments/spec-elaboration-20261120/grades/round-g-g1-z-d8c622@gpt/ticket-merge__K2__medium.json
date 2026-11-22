@@ -1,0 +1,151 @@
+{
+ "slot": "ticket-merge__K2__medium",
+ "case": "ticket-merge",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "`POST /tickets/:id/merge` with JSON `{ \"into\": \"<id>\" }`, `:id` = the duplicate, `into` = the surviving ticket. Answers 200 with the duplicate ticket after the merge \u2026 unknown extra field: 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "`POST /tickets/:id/merge` with JSON `{ \"into\": \"<id>\" }`, `:id` = the duplicate, `into` = the surviving ticket."
+  },
+  {
+   "id": "N-3",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, R-6",
+   "quote": "status `closed`, new field `mergedInto` = the survivor's id \u2026 `PATCH`/`transition` rules (closed ticket final)"
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1, R-4",
+   "quote": "The survivor is not changed. \u2026 `to` = the duplicate's requester"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "`status:\"closed\"`, `mergedInto:\"T-0001\"`; `GET /tickets/T-0002` returns the same",
+   "missing": "Whether the absorbed ticket appears in the unfiltered collection and which status filters include it."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "duplicate that is `in_progress` or `resolved`. \u2026 survivor is `resolved` or `in_progress` is allowed \u2026 equal to the duplicate: 409 `conflict` \u2026 Duplicate already `closed` (including already merged), or survivor `closed` (including a merged ticket): 409 `conflict`"
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Body not an object, `into` missing, not a string, or not a valid ticket id format, or unknown extra field: 400 `invalid`. \u2026 Unknown duplicate id or unknown `into` id: 404 `not_found`",
+   "missing": "How to respond to a missing or malformed duplicate id in the URL, and how the error message identifies the offending id or position."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Duplicate already `closed` (including already merged), or survivor `closed` (including a merged ticket): 409 `conflict`",
+   "missing": "Whether a ticket that has absorbed others can itself be absorbed and, if so, where those earlier links point afterward."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "Merging twice is therefore a 409 on the second call."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "`GET /tickets/T-0001` is unchanged (same `updated`). \u2026 The survivor's audit gains no entry (default)."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-3, Non-functional requirements",
+   "quote": "`actor` = the `X-Actor` header (or `system`) \u2026 no authentication exists in the service (internal network, README); none added (A1)."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, R-5",
+   "quote": "new field `mergedInto` = the survivor's id \u2026 a new store loaded from the file returns the duplicate with `status:\"closed\"` and `mergedInto`. A data file written before this change (no `mergedInto`) still loads (version stays 1)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "On load, `mergedInto` that is not a ticket id of the file, equals the ticket's own id, or is present on a ticket not `closed` is refused with a DataFileError naming the ticket.",
+   "missing": "Whether loading rejects cycles involving two or more tickets."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "`GET /tickets/T-0002/audit` ends with one entry `action:\"ticket.merged\"`, `actor` = the `X-Actor` header (or `system`), `changes` = `{ \"status\": {from:\"open\",to:\"closed\"}, \"mergedInto\": {from:null,to:\"T-0001\"} }` \u2026 The survivor's audit gains no entry (default)."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "Non-functional requirements",
+   "quote": "Atomicity: a merge applies status, `mergedInto`, audit, outbox and save in one store step (`apply`)"
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "`key:\"ticket.merged:T-0002\"`, `to` = the duplicate's requester, `ticket:\"T-0002\"`, `data.title` and `data.into:\"T-0001\"`; its rendered text (src/templates.js) names both ids.",
+   "missing": "What happens to previously queued notifications for the absorbed ticket and what the template says beyond naming both ids."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-6, R-7",
+   "quote": "`bin/tickets.js list --raw` columns (id, status, priority, title) keep their positions. \u2026 `bin/tickets.js show T-0002` displays the merge target.",
+   "missing": "Whether the ordinary list displays the absorbed ticket and how it presents the link."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "Open gaps / decisions",
+   "quote": "Out of scope: unmerge",
+   "missing": "How an operator corrects a mistaken merge when unmerge is unavailable."
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "Baseline, R-6",
+   "quote": "Existing behaviour not listed below is preserved (R-6). \u2026 `npm test` baseline suite (117 tests) still passes unchanged \u2026 Ids, pagination cursors, `PATCH`/`transition` rules"
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "R-6",
+   "quote": "`bin/tickets.js list --raw` columns (id, status, priority, title) keep their positions. `scripts/weekly-report.js` counts a merged duplicate as `closed`"
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-1, R-2, R-7, Non-functional requirements",
+   "quote": "Confirmed by API test \u2026 each confirmed by an API test \u2026 docs/api.md documents the endpoint \u2026 ADR docs/decisions/0009 \u2026 CHANGELOG.md section and `package.json` version bump \u2026 standard library only \u2026 one store step (`apply`); verified by R-3/R-4 tests."
+  }
+ ]
+}

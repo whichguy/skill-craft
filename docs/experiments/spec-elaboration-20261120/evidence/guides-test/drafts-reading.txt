@@ -1,0 +1,16 @@
+set g1-z (merge): 21 items
+  e1-k (the same text read twice): covered under both judges 13 submitted, 13 accepted; net 0 (higher [], lower []); same state from opus on 20 of 21 items, from astra on 21
+  e1-p (changed by the review): covered under both judges 9 submitted, 11 accepted; net 3 (higher ['N-6', 'N-9', 'N-21'], lower []); same state from opus on 17 of 21 items, from astra on 17
+  e2-k (the same text read twice): covered under both judges 9 submitted, 8 accepted; net 0 (higher [], lower []); same state from opus on 20 of 21 items, from astra on 20
+  e2-p (changed by the review): covered under both judges 8 submitted, 13 accepted; net 3 (higher ['N-4', 'N-14', 'N-21'], lower []); same state from opus on 17 of 21 items, from astra on 14
+  e3-k (the same text read twice): covered under both judges 14 submitted, 14 accepted; net 0 (higher [], lower []); same state from opus on 21 of 21 items, from astra on 21
+  e3-p (changed by the review): covered under both judges 12 submitted, 11 accepted; net 0 (higher [], lower []); same state from opus on 19 of 21 items, from astra on 18
+set h1-z (remind): 19 items
+  f1-k (changed by the review): covered under both judges 7 submitted, 7 accepted; net 0 (higher [], lower []); same state from opus on 17 of 19 items, from astra on 18
+  f1-p (changed by the review): covered under both judges 8 submitted, 9 accepted; net 2 (higher ['N-6', 'N-11'], lower []); same state from opus on 17 of 19 items, from astra on 16
+  f2-k (the same text read twice): covered under both judges 6 submitted, 6 accepted; net 0 (higher [], lower []); same state from opus on 18 of 19 items, from astra on 19
+  f2-p (changed by the review): covered under both judges 10 submitted, 10 accepted; net 0 (higher [], lower []); same state from opus on 18 of 19 items, from astra on 17
+  f3-k (the same text read twice): covered under both judges 3 submitted, 6 accepted; net 0 (higher [], lower []); same state from opus on 18 of 19 items, from astra on 16
+  f3-p (changed by the review): covered under both judges 5 submitted, 6 accepted; net 0 (higher [], lower []); same state from opus on 15 of 19 items, from astra on 19
+nets, accepted over submitted: driver p's reviewed texts [3, 3, 0, 2, 0, 0]; texts left unchanged [0, 0, 0, 0, 0]
+READING (the review's gain on driver p): not shown (swing 0; seen in 3 of 6)

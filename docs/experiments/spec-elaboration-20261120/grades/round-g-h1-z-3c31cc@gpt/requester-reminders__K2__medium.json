@@ -1,0 +1,161 @@
+{
+ "slot": "requester-reminders__K2__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A ticket in progress may enter `waiting_on_requester`; it may then resume in progress or resolve."
+  },
+  {
+   "id": "N-2",
+   "state": "partial",
+   "where": "R-2, policy and A1",
+   "quote": "one reminder per continuous wait at or after 72 elapsed hours by default.",
+   "missing": "The clock starts on entry and survives ordinary edits. The policy leaves priority-specific timing unstated."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2, A2",
+   "quote": "No second event for that wait appears. After exit and reentry, the next wait can send once. A pending failed attempt follows existing backoff while waiting and becomes canceled when the ticket leaves."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 and R-2, A1\u2013A2",
+   "quote": "A ticket in progress may enter `waiting_on_requester`; it may then resume in progress or resolve.",
+   "missing": "The exits and cancellation rule are specified, but a builder must decide what counts as a requester response and how it triggers an exit."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-2, A1",
+   "quote": "Only the latter produces one reminder addressed to the ticket requester. The rendered message identifies the ticket and requests a reply.",
+   "missing": "The subject, body, template style, inclusion of title and elapsed wait, and handling of a requester string that is not an email address are unspecified."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-2, A1",
+   "quote": "The rendered message identifies the ticket and requests a reply.",
+   "missing": "The reply route and effect are unspecified, as is whether the resolved notice\u2019s seven-day reopening instruction applies during a wait."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-2, A1\u2013A2 and Non-functional requirements, Scheduling",
+   "quote": "use the configured worker interval and avoid writing state on idle ticks."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2, A2 and State",
+   "quote": "Reminder retries preserve event identity for relay deduplication.",
+   "missing": "A2 rules out another event after success across ticks and restart. A stable identity alone leaves duplicate delivery after a relay accepts an attempt whose success was not persisted unresolved."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2, A1",
+   "quote": "Other ticket states send no reminder.",
+   "missing": "The spec leaves open whether enqueueing rechecks the current wait or relies on a ticket snapshot taken earlier in the tick."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2, A2",
+   "quote": "A pending failed attempt follows existing backoff while waiting and becomes canceled when the ticket leaves.",
+   "missing": "The terminal state after retries are exhausted, eligibility for a replacement after a dead event, and template validation before enqueueing are unspecified."
+  },
+  {
+   "id": "N-11",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2, A2",
+   "quote": "After exit and reentry, the next wait can send once. A pending failed attempt follows existing backoff while waiting and becomes canceled when the ticket leaves. A canceled reminder never sends after reentry.",
+   "missing": "Each new waiting period gets its own delay and allowance. The scope of the deduplication key across successive waits on the same ticket is unspecified."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-2, A1 and Non-functional requirements, Scheduling",
+   "quote": "Enter waiting at 08:00:00 UTC and run the worker one millisecond before the configured delay, then at the delay. Only the latter produces one reminder addressed to the ticket requester.",
+   "missing": "The exact threshold is tested in UTC with an injected clock. The production clock source and whether delivery can be deferred outside business hours, on weekends, or on holidays are unspecified."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-2, State",
+   "quote": "the single store owns tickets, lifecycle history and outbox in the existing file.",
+   "missing": "The spec leaves the representation of the wait start and reminder status open, including which records and field names are used on save and load."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "Non-functional requirements, Reliability",
+   "quote": "load version-1 legacy data and preserve request/response contracts other than the new status and operator outbox state.",
+   "missing": "The defaults for missing fields and rejection of malformed values with an error naming the field are unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-2 and Non-functional requirements, Privacy and observability",
+   "quote": "deliver to the stored requester, reuse existing file and operator visibility, and avoid expanding access.",
+   "missing": "The spec identifies a configuration setting and limits visibility, but leaves who may configure reminders and whether anyone may manually stop or send one undecided."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "one reminder per continuous wait at or after 72 elapsed hours by default. A positive whole-number `WAITING_REMINDER_MS` overrides the delay. When the worker is off, it performs no scheduled work.",
+   "missing": "The spec leaves the validation error for an invalid setting unspecified and does not identify a worker interval of zero as the off setting."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-2, State",
+   "quote": "Operators can see canceled reminders in the existing outbox report.",
+   "missing": "Only canceled reminders have a specified view. Visibility of sent and upcoming reminders and preservation of raw command-line column positions are undecided."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements, Scheduling",
+   "quote": "use the configured worker interval and avoid writing state on idle ticks.",
+   "missing": "There is no bound on lateness or enqueue batch size and no requirement for scan cost or continued delivery under a large backlog."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1 and Non-functional requirements, Reliability",
+   "quote": "preserve request/response contracts other than the new status and operator outbox state.",
+   "missing": "Existing transitions and API contracts are protected. Compatibility for received and resolved notifications, existing audit entries, command-line output, and the weekly report is unspecified."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2, A1 and Non-functional requirements",
+   "quote": "Verify at the threshold and after repeated ticks with an injected clock or persistence spy.",
+   "missing": "The spec calls for tests but leaves the API and operations docs, README settings table, changelog, version bump, and criteria for a decision record unspecified."
+  }
+ ]
+}

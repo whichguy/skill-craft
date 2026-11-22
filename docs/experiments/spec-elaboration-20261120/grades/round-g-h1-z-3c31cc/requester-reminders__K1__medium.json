@@ -1,0 +1,154 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.23717080000000001,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A ticket is *waiting on its requester* while its status is `resolved`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, A-1.4",
+   "quote": "at least REMIND_AFTER_HOURS hours after the time it last became `resolved` ... still reminded at 72 hours after the resolve, not 72 hours after the update"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A requester is reminded at most once for each time the ticket became `resolved`. Running the job again, any number of times, adds no second reminder"
+  },
+  {
+   "id": "N-4",
+   "state": "covered",
+   "where": "R-1, A-1.3, A-1.4, A-1.5",
+   "quote": "tickets in `open`, `in_progress` or `closed` are never reminded ... a ticket reopened (resolved -> open) before 72 hours is not reminded"
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "subject `[T-0001] Waiting for your reply`, body naming the ticket and its title and saying it is resolved and that replying within the reopen window reopens it",
+   "missing": "Whether the body states how long it has waited, and which address is used when the requester field is free text rather than an email address."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3; Open gaps",
+   "quote": "saying it is resolved and that replying within the reopen window reopens it"
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4; Non-functional requirements",
+   "quote": "The reminder runs only as a job of the worker, in order after the outbox job's registration, and never inside a request; `WORKER_INTERVAL_MS=0` stops it."
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "the outbox key frees once an event is sent (src/outbox.js), so \"reminded already\" must not depend on it ... including after the first reminder was sent, after the service restarted"
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "When that holds and the requester has not yet been reminded since that transition, the service enqueues one notification ... Sending the reminder to the outbox is one store change",
+   "missing": "That the condition is re-checked at the moment of enqueueing, against changes made since the tick's scan began."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "Without that template the delivery would go dead, so the template is required.",
+   "missing": "Whether the existing retries and dead state apply to reminders, and whether a dead reminder leads to another reminder later."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "A-2.3",
+   "quote": "a data file written by the current version (without any reminder data) still loads, and its resolved tickets past the threshold are reminded once."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-2, A-1.5, A-2.4",
+   "quote": "if it is resolved again, the 72 hours count from that later resolve ... that later resolve starts a new waiting period and may produce one new reminder",
+   "missing": "How outbox keys for reminders are formed across resolve cycles."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "A-1.2",
+   "quote": "at 71 hours 59 minutes 59 seconds after the resolve, running the job enqueues nothing; at exactly 72 hours it enqueues the reminder",
+   "missing": "Time zone, and whether reminders are held outside business hours, weekends or holidays."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, A-2.3",
+   "quote": "the requester has not yet been reminded since that transition ... a data file written by the current version (without any reminder data) still loads",
+   "missing": "What new data records the reminder, where it lives (ticket, audit or outbox), and its field name for saving and loading."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5, A-2.3",
+   "quote": "The data file format stays `version: 1` and an old file loads.",
+   "missing": "The stated default for any new field, and that a file with a bad new field is refused with a message naming it."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "appends an audit entry for the ticket with action `ticket.reminded`, actor `system` ... It does not change the ticket's status, title, priority or `updated`."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4, A-3.4",
+   "quote": "`REMIND_AFTER_HOURS` sets the threshold ... no endpoint is added.",
+   "missing": "Who may configure, stop or send a reminder by hand, given the X-Actor header and admin area."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "whole hours, default 72, from 0 to 8760 (0 turns reminders off). An unusable value ... stops the service at start with a message naming the variable ... `WORKER_INTERVAL_MS=0` stops it."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "A-1.1, A-3.1, R-5",
+   "quote": "reading `GET /admin/outbox` or `store.outboxReport()` ... `GET /tickets/T-0001/history` ends with an entry ... `bin/tickets.js list --raw` columns and the weekly report are unchanged",
+   "missing": "How operators see which reminders will be sent next."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements",
+   "quote": "the job's work is a scan of the tickets once per worker tick; it runs off the request path ... Excluded as a numeric bound",
+   "missing": "A bound on lateness after the threshold, on reminders enqueued per tick, and cost with thousands of tickets or effect on delivery."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "Preamble, R-1, R-5",
+   "quote": "is preserved unless a requirement below says otherwise ... Preserved: created and resolved notifications, the lifecycle table, `updated` semantics ... `bin/tickets.js list --raw` columns and the weekly report are unchanged."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-1 acceptance, A-4.6",
+   "quote": "README.md's table and docs/operations.md (and docs/api.md's list of audit actions and notification types) mention ... CHANGELOG entry and version bump to 1.5.0."
+  }
+ ]
+}

@@ -4215,6 +4215,9 @@ registered judge, is of Sonnet's family; a count below needs both judges, and th
 - For a sentence, Sonnet over Sol is **shown** when there are three counted specifications a side and every
   Sonnet count is above every Sol count; **the opposite** when every one is below; **not shown** otherwise.
   Three against three separate completely by chance one time in twenty in a given direction.
+  *Qualified 2026-11-21 18:24 (section 57): this count is less steady than was assumed here. Two readings of one
+  unchanged text gave 3 and 6 on one text of five, where the net of items higher under both judges did not move
+  on any of the five. Section 55's verdict stands as registered.*
 - For the comparison, shown when it is shown on both sentences.
 - A run that blocks or fails a check is reported and is not replaced; with fewer than three a side the sentence
   reads not shown.
@@ -4303,6 +4306,10 @@ Sets e are the merge sentence and sets f the reminders sentence.
 Sonnet over Sol is not shown on either sentence, so the comparison is not shown. On merge the two means are the
 same, 11.7. On remind two of Sonnet's three counts are above every one of Sol's and the third, 6, is level with
 two of them.
+
+*Qualified 2026-11-21 18:24 (section 57): one of those two Sol counts of 6 (f3) is 3 on a second reading of the
+same text. The verdict stands as registered and nothing is rescored; the nets of the description below, which did
+not move on a second reading, are the steadier of the two measures.*
 
 **The predictions.** 33 held: all six Sonnet runs reached the acceptance. 34 failed: every Sonnet specification
 is the longer on remind, and on merge one is shorter than one of Sol's and one is level with it. 35 failed: two
@@ -4467,3 +4474,85 @@ driver starts, and its hash is unchanged: `e189dc7b9046d48fa9dc418fd8fd920d8c7b1
 unchanged texts are all Sol's, so the swing is measured on Sol's kind of text; section 55 saw the two judges
 part more on Sonnet's, so the swing on Sonnet's texts may be larger than the one measured. The accepted texts
 were read about half an hour before the drafts. A specification's coverage of a checklist is not its quality.
+
+## 57. What the review adds on Sonnet: two or three items in half the runs and none in the other half; its lead on the reminders sentence is the first draft's (18:24, 2026-11-21)
+
+**What was judged.** Twenty-four readings, 18:17 to 18:22: the two judges on the twelve texts as first submitted,
+six a sentence, as section 56 registered. Every reading is complete and sealed, with the rubric all earlier sets
+carry. No run was made.
+
+**Sonnet's six, submitted and accepted.**
+
+| Run | Words, submitted then accepted | Items covered under both judges, submitted then accepted | Net of the accepted over the submitted | Items the review raised |
+|---|---|---|---|---|
+| e1, merge | 754, 1,077 | 9, 11 of 21 | 3 | what a read of the absorbed ticket returns (N-6); chains and cycles (N-9); the command line's raw columns and the weekly report (N-21) |
+| e2, merge | 500, 698 | 8, 13 of 21 | 3 | what the absorbed ticket becomes (N-4); what loading checks about the link (N-14); N-21 |
+| e3, merge | 703, 768 | 12, 11 of 21 | 0 | none |
+| f1, remind | 762, 865 | 8, 9 of 19 | 2 | what the requester does on getting a reminder (N-6); tickets already past the threshold (N-11) |
+| f2, remind | 1,439, 1,572 | 10, 10 of 19 | 0 | none |
+| f3, remind | 712, 928 | 5, 6 of 19 | 0 | none |
+
+**The same text read twice.** Five of Sol's submitted texts are its accepted text byte for byte, so these are two
+readings of one text by the same two judges, about half an hour apart.
+
+| Text | Items covered under both judges, the two readings | Net | Items given the same state, Opus and Astra |
+|---|---|---|---|
+| e1, merge | 13, 13 | 0 | 20 and 21 of 21 |
+| e2, merge | 9, 8 | 0 | 20 and 20 of 21 |
+| e3, merge | 14, 14 | 0 | 21 and 21 of 21 |
+| f2, remind | 6, 6 | 0 | 18 and 19 of 19 |
+| f3, remind | 3, 6 | 0 | 18 and 16 of 19 |
+
+**The rule of section 56** (`evidence/guides-test/drafts-reading.txt`). The swing is 0: no item moved under both
+judges between two readings of any unchanged text. The review's gain is seen in three of Sonnet's six runs (e1,
+e2 and f1, at 3, 3 and 2) and not in the other three (0). The rule asks for five of six: **not shown**.
+
+**The predictions.** 39 held: the swing is 0. 40 held: each judge gives the same state to 97 of the 101 items it
+read twice, 96%. 41 failed: the gain is seen in three runs, not four. 42 held: on remind Sonnet's first drafts
+count 8, 10 and 5 against Sol's 7, 6 and 3 in this one round.
+
+**As a description.**
+
+- *The review's gain is real where it appears, and it appears in half the runs.* It does not follow the words
+  the review added: 323 words brought three items and 198 brought three, 103 brought two, and 216, 133 and 65
+  brought none. What the review writes is mostly exactness (worked examples, the order of checks, layouts), and
+  an item of this checklist is raised only when a whole part of it was missing before.
+- *On the reminders sentence Sonnet led from its first draft.* With the review taken out, Sonnet's draft is
+  ahead of Sol's draft in eight of the nine pairings and level in the ninth (nets 2, 2, 3, 2, 2, 5, 0, 2, 2).
+  Section 55's nets for the accepted texts were 3 to 5. Most of that lead was there before any review.
+- *On the merge sentence Sonnet's first draft was behind, and its review brought it level.* Draft against
+  draft, Sonnet is behind Sol in six of the nine pairings (nets minus 5, 1, minus 5, minus 5, 2, minus 4, minus
+  1, 5, minus 1; counts 9, 8 and 12 against 13, 9 and 14). Accepted against accepted they are level (section
+  55).
+- *So the review matters on Sonnet when the draft is thin, and adds little when the draft is already full.*
+  That fits the two runs with the largest gains, e1 and e2, which are also the two whose authors gave
+  themselves about half of their instructions (58 and 44 of 102 lines, section 55): a hurried first draft, then
+  a review that reads everything. Two runs are too few to say more than that it fits.
+- *On Sol the review never acts.* It has the same instructions and changed nothing in five of six. The value of
+  the review is the model's, not the step's: nothing here suggests that more review would make Sol's
+  specification fuller.
+- *The instrument, measured for the first time.* A judge reading the same text twice gives an item the same
+  state 96% of the time, and no item moved under both judges at once, so the net used since section 46 is steady.
+  The plain count of items covered under both judges is not as steady: 13 and 13, 9 and 8, 14 and 14, 6 and 6,
+  and 3 against 6. One text counted 3 on one reading and 6 on the other, because the count needs both judges and
+  one of them changed three states. Section 54's rule was built on that count. Its verdict stands, and sections
+  54 and 55 now carry a dated note; had this been known, the rule would have been built on the nets.
+
+**What sections 55 and 57 say together.** Who writes mattered on one sentence and from the first draft. Who
+checks mattered on the other, and only because the same model's draft was thin. Neither is a lever ShipLoop
+holds: the stage, its packet and its review step were the same in every run. What differed was the model's own
+conduct in them.
+
+**Why this stops here.** Section 56 said the result would be reported as it is. It is reported, and nothing
+further is run unasked.
+
+**What it cost.** $2.86 for the registered judge's twelve readings; the second judge on subscription. That is
+about twice the $1.50 the owner was told, for the control section 56 added and recorded.
+
+**Limits.** As section 56's, and:
+
+- Three runs of six is a small number on either side of the rule.
+- The swing was measured on Sol's texts only. Between a Sonnet draft and its accepted text the judges changed
+  more states (a judge kept the same state on 14 to 19 items of 19 to 21), but those are different texts, so
+  this says nothing about the swing on Sonnet's.
+- The accepted texts were read half an hour before the drafts, in sets named differently.

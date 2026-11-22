@@ -1,0 +1,154 @@
+{
+ "slot": "ticket-merge__K4__medium",
+ "case": "ticket-merge",
+ "judge": "claude-opus-5-5",
+ "judge_effort": "high",
+ "tag": null,
+ "cost_usd": 0.237805,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Endpoint `POST /tickets/:id/merge`, body `{ \"into\": \"T-0001\" }` ... 200 with the duplicate ticket ... or an unknown field is 400 `invalid`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "(`:id` is the duplicate, `into` the surviving ticket)."
+  },
+  {
+   "id": "N-3",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "both tickets exist and are mergeable",
+   "missing": "Whether any duplicate check (same requester, title, priority) is made or the agent's word alone suffices is never stated."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 / Non-functional (State and data)",
+   "quote": "now `status: \"closed\"` and `mergedInto: \"<into>\"` ... Invariant: a ticket with `mergedInto` is `closed` and the target exists.",
+   "missing": "Whether the merged ticket can afterwards be edited, transitioned or reopened, and what the API answers if tried."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1 / R-3",
+   "quote": "The surviving ticket is unchanged (title, priority, status, `updated`). ... (it records the link only: the ticket's own fields stay as they were)"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "`GET /tickets/:id` of a merged ticket still answers.",
+   "missing": "Whether merged tickets appear in GET /tickets and under status filters is not stated."
+  },
+  {
+   "id": "N-7",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "Failure (409 `conflict`, message names the reason): merging a ticket into itself; a duplicate that is already closed (including already merged); a surviving ticket that is closed.",
+   "missing": "Treatment of tickets in the resolved state (either side) is not decided."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "unknown `:id` or unknown `into` is 404 `not_found`; body not an object, missing or non-ticket-id `into`, or an unknown field is 400 `invalid`.",
+   "missing": "Which id the error message names, and the answer for a malformed path `:id`."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-2",
+   "quote": "no chains: because closed tickets are refused as a target, a ticket merged into a ticket cannot be merged into a closed one.",
+   "missing": "Whether a survivor that has already absorbed others may itself be merged into another ticket (creating a chain)."
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2 / R-4",
+   "quote": "a duplicate that is already closed (including already merged) ... A refused merge changes nothing ... a refused or repeated merge enqueues nothing."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1 / R-3",
+   "quote": "The surviving ticket is unchanged (title, priority, status, `updated`). ... the surviving ticket gets one entry, action `ticket.merge_received`"
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "Preamble / R-6",
+   "quote": "any caller naming itself in `X-Actor` (default `system`) may merge ... no authentication or role check is added"
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-5",
+   "quote": "a merged ticket reloads with `status`, `mergedInto`, and the audit entries intact. `version` stays 1; a data file written before this change loads unchanged (no `mergedInto` means not merged)"
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "a record whose `mergedInto` is present but not a ticket id, or names no ticket, is refused as a corrupt data file.",
+   "missing": "Whether loading checks cycles and status/link agreement, and the refusal message naming the record."
+  },
+  {
+   "id": "N-15",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "one audit entry on the duplicate, action `ticket.merged`, the request's actor ... the surviving ticket gets one entry, action `ticket.merge_received` ... Visible in `GET /tickets/:id/audit` of each."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "Non-functional (Consistency)",
+   "quote": "a merge is applied atomically in memory (both tickets and the audit entries change in one store call, then one save)",
+   "missing": "Whether the notification is part of the same atomic change, and crash behaviour (before or after, never between)."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "one `ticket.merged` outbox notification to the duplicate's requester, key `ticket.merged:<id>` ... the surviving ticket's requester is not notified",
+   "missing": "What happens to pending notifications about the absorbed ticket; exact template wording."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-7",
+   "quote": "The operators' CLI stays read-only: `show` prints a merged ticket normally and shows `mergedInto` in its details; `list` and `list --raw` columns are unchanged"
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "Preserved: all existing endpoints, ticket fields and lifecycle"
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-7",
+   "quote": "`list` and `list --raw` columns are unchanged (the weekly report reads them by position).",
+   "missing": "How absorbed tickets are counted in the weekly report's totals and by-status counts."
+  },
+  {
+   "id": "N-22",
+   "state": "covered",
+   "where": "R-7 / Non-functional",
+   "quote": "`docs/api.md` documents the endpoint ... a decision record (docs/decisions/0009) ... `CHANGELOG.md` gains a 1.5.0 section and `package.json` version 1.5.0. ... Dependencies: none added"
+  }
+ ]
+}

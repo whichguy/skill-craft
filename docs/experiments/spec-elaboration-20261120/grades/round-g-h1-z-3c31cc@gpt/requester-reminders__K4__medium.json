@@ -1,0 +1,158 @@
+{
+ "slot": "requester-reminders__K4__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "A ticket is waiting on its requester while its status is `resolved`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1, R-4",
+   "quote": "a ticket resolved at T0 whose status is still `resolved` at T0 + REMINDER_AFTER_HOURS (default 72h)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "further ticks after the reminder, even once it is sent, enqueue nothing more."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, R-2",
+   "quote": "A ticket is waiting on its requester while its status is `resolved`",
+   "missing": "Status determines whether an agent edit, reopening or closure ends the wait. A builder still needs to know how a requester reply is recognized and translated into a transition out of resolved."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "`to` is the ticket's requester, `ticket` is its id, and the rendered message has subject `[<id>] Waiting on you` and a body naming the ticket title and saying it can be reopened by replying.",
+   "missing": "Whether the body includes the elapsed wait and how delivery handles a requester value that is not an email address."
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "a body naming the ticket title and saying it can be reopened by replying.",
+   "missing": "Both notices direct the requester to reply. The reminder's wording leaves open whether the resolved notice's seven-day deadline still applies, including when the reminder arrives after that deadline."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4, Non-functional requirements",
+   "quote": "the check is a job of the worker; no timer of its own and no request does it."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-2, Non-functional requirements",
+   "quote": "at most one event per (ticket, resolve time) key, before and after restart",
+   "missing": "The key prevents a second event. The spec leaves duplicate delivery of the same event unresolved if a send succeeds and the worker retries before recording success."
+  },
+  {
+   "id": "N-9",
+   "state": "partial",
+   "where": "R-1, Non-functional requirements",
+   "quote": "a ticket that is open, in_progress or closed is never reminded, however old.",
+   "missing": "Whether the worker verifies the current status and resolve period at enqueue time if the ticket changes after the scan."
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2, R-3",
+   "quote": "delivery follows the outbox rules unchanged (retry with backoff, dead after 5).",
+   "missing": "One event per resolved period rules out a replacement for a dead event. The spec leaves open whether enqueueing requires a registered reminder template."
+  },
+  {
+   "id": "N-11",
+   "state": "partial",
+   "where": "R-1, Non-functional requirements",
+   "quote": "the job scans all tickets each tick",
+   "missing": "The scan includes existing tickets and their resolve times are available from history. The spec does not explicitly decide whether the first tick enqueues the entire pre-deployment backlog."
+  },
+  {
+   "id": "N-12",
+   "state": "covered",
+   "where": "R-2, Non-functional requirements",
+   "quote": "a ticket reopened (resolved to open) and resolved again starts a new period: reminded again 72h after the new resolve, not before."
+  },
+  {
+   "id": "N-13",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "at T0 + 71h59m no reminder; at exactly T0 + 72h a reminder (threshold is inclusive).",
+   "missing": "The production clock and time zone for comparison, and whether nights, weekends or holidays delay a due reminder."
+  },
+  {
+   "id": "N-14",
+   "state": "covered",
+   "where": "R-1, R-2, Non-functional requirements",
+   "quote": "no new stored ticket field; the reminder lives in the outbox and persists with it. Invariant: at most one event per (ticket, resolve time) key, before and after restart"
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "a test that loads a data file with no reminder events.",
+   "missing": "Old files can represent zero reminders without a new ticket field. The loader's behavior for malformed reminder event data, including whether it rejects the file and names the offending field, is unspecified."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3",
+   "quote": "A reminder is not a ticket change: no audit entry, `updated` unchanged."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4, Non-functional requirements",
+   "quote": "no UI, no new input or endpoint",
+   "missing": "Who may change the deployment setting and whether anyone may manually send or suppress an individual reminder through existing administrative tools."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4",
+   "quote": "an unusable value (`abc`, `0`, `-1`) stops start with a message naming `REMINDER_AFTER_HOURS`. Confirmed by a config test.\n- Boundary: `WORKER_INTERVAL_MS=0` turns reminders off with the rest of the background work."
+  },
+  {
+   "id": "N-19",
+   "state": "partial",
+   "where": "R-3",
+   "quote": "a notifier test reading the NOTIFY_FILE line.",
+   "missing": "The file provides a record of delivery. The spec does not identify where operators see upcoming reminders or specify how reporting preserves raw CLI column positions."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, Non-functional requirements",
+   "quote": "the job scans all tickets each tick; at current size acceptable, no numeric bound invented.",
+   "missing": "The next tick bounds enqueueing in worker ticks. There is no maximum delivery delay, per-tick enqueue limit or requirement that scanning thousands of tickets leave delivery responsive."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "Created and resolved notifications, the lifecycle table, API responses, the audit log, the data file format (version 1; old files load) and the existing 117 tests are unchanged.",
+   "missing": "Preservation of list-filter behavior and of CLI and weekly report output is unspecified."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1, R-5",
+   "quote": "CHANGELOG section and version bump (1.5.0), README config row, docs/operations.md note, ADR 0009 for the reminder design",
+   "missing": "An update to the API documentation is unspecified."
+  }
+ ]
+}

@@ -1,0 +1,155 @@
+{
+ "slot": "ticket-merge__K5__medium",
+ "case": "ticket-merge",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "`POST /tickets/:id/merge`, body `{\"into\": \"T-xxxx\"}` \u2026 returns 200 with the duplicate ticket, now `closed` with `mergedInto` = target id \u2026 (missing, extra field, malformed id) is 400 `invalid`"
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1",
+   "quote": "an agent names both tickets. \u2026 An agent merges ticket A (the duplicate) into ticket B (the target)"
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "\"duplicate\" is not detected automatically; an agent names both tickets. \u2026 a source in open, in_progress or resolved status and a target in any non-closed, non-merged status is allowed."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1, R-2",
+   "quote": "the duplicate ticket, now `closed` with `mergedInto` = target id \u2026 a source already merged is 409 `conflict`",
+   "missing": "Whether ordinary edits, status transitions or reopening are allowed after the merge."
+  },
+  {
+   "id": "N-5",
+   "state": "covered",
+   "where": "R-1, R-3, R-4",
+   "quote": "the target is unchanged \u2026 on the source (changes: status and mergedInto) \u2026 a `ticket.merged` outbox event for the source's requester"
+  },
+  {
+   "id": "N-6",
+   "state": "partial",
+   "where": "R-1, R-5",
+   "quote": "now `closed` with `mergedInto` = target id \u2026 ticket JSON carries `mergedInto` only for a merged ticket; `GET /tickets/:id` and the listing show it",
+   "missing": "Whether the closed-status filter includes absorbed tickets and the other status filters exclude them."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "itself is 409 `conflict` \u2026 a closed source or closed target is 409 `conflict`; a target that is itself merged is 409 `conflict`; a source already merged is 409 `conflict` \u2026 resolved source is allowed; resolved target is allowed."
+  },
+  {
+   "id": "N-8",
+   "state": "partial",
+   "where": "R-1",
+   "quote": "unknown source or target id is 404 `not_found`; a body that is not `{into: <ticket id>}` (missing, extra field, malformed id) is 400 `invalid`.",
+   "missing": "How a malformed source ID in the path is classified and which ID the error message identifies."
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1, R-2",
+   "quote": "the target is unchanged \u2026 a source in open, in_progress or resolved status and a target in any non-closed, non-merged status is allowed. \u2026 a target that is itself merged is 409 `conflict`"
+  },
+  {
+   "id": "N-10",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "a source already merged is 409 `conflict`; the failed merge changes nothing (no audit entry, no notification)."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "the target is unchanged. \u2026 on the target a `ticket.merge_received` entry naming the source"
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1, Non-functional",
+   "quote": "actor from `X-Actor`. \u2026 Security: internal network, no new authentication; X-Actor only (default Q5).",
+   "missing": "Whether an omitted X-Actor header or an actor of system is accepted, or the caller must supply a named actor."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1, R-3",
+   "quote": "now `closed` with `mergedInto` = target id \u2026 the data file saves once. \u2026 a data file written before this feature loads unchanged (no `mergedInto`); a merged ticket survives a restart."
+  },
+  {
+   "id": "N-14",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-1, R-3",
+   "quote": "actor from `X-Actor`. \u2026 an audit entry `ticket.merged` on the source (changes: status and mergedInto) and on the target a `ticket.merge_received` entry naming the source; `GET /tickets/:id/audit` shows them",
+   "missing": "Whether both audit entries record the request actor and how the source ID is represented in the target entry's changes."
+  },
+  {
+   "id": "N-16",
+   "state": "partial",
+   "where": "R-2, R-3",
+   "quote": "the failed merge changes nothing (no audit entry, no notification). \u2026 one store call appends an audit entry \u2026 the data file saves once.",
+   "missing": "Whether a crash or save failure commits all ticket, audit and outbox changes together or leaves the entire previous state intact."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-4",
+   "quote": "a `ticket.merged` outbox event for the source's requester, naming the target, with a template in `src/templates.js` \u2026 one event per merge, key `ticket.merged:<source id>`.",
+   "missing": "The template wording and whether previously queued notifications for the absorbed ticket are delivered, changed or cancelled."
+  },
+  {
+   "id": "N-18",
+   "state": "partial",
+   "where": "R-5",
+   "quote": "the CLI `show` prints it; `list --raw` columns keep their positions.",
+   "missing": "How the ordinary CLI list displays an absorbed ticket and whether it prints the survivor's ID."
+  },
+  {
+   "id": "N-19",
+   "state": "absent",
+   "where": null,
+   "quote": null
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "R-1, R-5",
+   "quote": "Preserved: all existing endpoints, CLI, weekly-report columns. \u2026 unmerged tickets' JSON is byte-identical to before.",
+   "missing": "Whether filters, ID ordering and cursor pagination retain their previous behavior when the listing includes absorbed tickets."
+  },
+  {
+   "id": "N-21",
+   "state": "partial",
+   "where": "R-1, R-5",
+   "quote": "Preserved: all existing endpoints, CLI, weekly-report columns. \u2026 `list --raw` columns keep their positions.",
+   "missing": "Whether the weekly report counts absorbed tickets in its overall total and its closed-status count."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-2, R-3, R-5, Non-functional",
+   "quote": "Confirmed by store test. \u2026 decision 7. \u2026 one store call \u2026 Confirmed by store and persistence tests. \u2026 docs/api.md documents the endpoint and errors; CHANGELOG and version updated. \u2026 No new dependencies.",
+   "missing": "No atomicity test is specified. The reference to decision 7 leaves unclear whether a decision record must be created or updated."
+  }
+ ]
+}

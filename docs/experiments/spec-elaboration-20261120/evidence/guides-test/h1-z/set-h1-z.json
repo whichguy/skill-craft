@@ -1,0 +1,85 @@
+{
+ "set": "h1-z",
+ "cell": "medium",
+ "complete": true,
+ "round": "round-g-h1-z-3c31cc",
+ "made_of": "each named set's specification as first submitted to the stage's review",
+ "slots": {
+  "K4": {
+   "arm": "A",
+   "sample": "f1-p-A",
+   "of_set": "f1-p",
+   "spec_sha256": "e43b2e8442bde1821c5473d5125564385a419e8e2cf7fb223eb2a18730a2cd51",
+   "same_as_accepted": false
+  },
+  "K3": {
+   "arm": "A",
+   "sample": "f1-k-A",
+   "of_set": "f1-k",
+   "spec_sha256": "a1cac09b27cfc5aff6446b8566a5100430cb82a09d0418434d90fb87579d5f47",
+   "same_as_accepted": false
+  },
+  "K1": {
+   "arm": "A",
+   "sample": "f2-p-A",
+   "of_set": "f2-p",
+   "spec_sha256": "be5118030214e6cdcff85c18e972482c50b9453b1f51d6ee9e650c9faafb9198",
+   "same_as_accepted": false
+  },
+  "K5": {
+   "arm": "A",
+   "sample": "f2-k-A",
+   "of_set": "f2-k",
+   "spec_sha256": "89a27a7d0a2a54ec507238a8460aeecd1c069ef2eee6f57986770a5eacebae5a",
+   "same_as_accepted": true
+  },
+  "K6": {
+   "arm": "A",
+   "sample": "f3-p-A",
+   "of_set": "f3-p",
+   "spec_sha256": "8e6a81b5cc0727fafc0c24bf784b81ed84641385b4988e9ec5ab53d3a56b4909",
+   "same_as_accepted": false
+  },
+  "K2": {
+   "arm": "A",
+   "sample": "f3-k-A",
+   "of_set": "f3-k",
+   "spec_sha256": "bdca0673358d02649b6f74f69ce3cfb53c93e06eed2b6df9347f665a2ad7bd6c",
+   "same_as_accepted": true
+  }
+ },
+ "items": {
+  "applies": [
+   "N-1",
+   "N-2",
+   "N-3",
+   "N-5",
+   "N-6",
+   "N-7",
+   "N-8",
+   "N-9",
+   "N-10",
+   "N-11",
+   "N-12",
+   "N-14",
+   "N-15",
+   "N-16",
+   "N-18",
+   "N-19",
+   "N-20",
+   "N-21",
+   "N-22"
+  ],
+  "capability": [],
+  "other": [
+   "N-4",
+   "N-13",
+   "N-17"
+  ],
+  "label_files_sha256": {
+   "opus": "fcf7fa2e4d9d3c32c8c5572ff71349e99ffa9589fb6f3c6645683e449c6af1b8",
+   "astra": "acd33b7c08a11e7b808be1780f3001425a699f41ff928b663aa91670b12010a4"
+  },
+  "fixture_digest": "5652a97375d0"
+ }
+}

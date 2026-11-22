@@ -1,0 +1,153 @@
+{
+ "slot": "requester-reminders__K1__medium",
+ "case": "requester-reminders",
+ "judge": "gpt-6.2-astra",
+ "judge_effort": "high",
+ "tag": "gpt",
+ "cost_usd": null,
+ "missing_ids": [],
+ "unknown_states": [],
+ "verdicts": [
+  {
+   "id": "N-1",
+   "state": "covered",
+   "where": "R-1 (A-1.3, A-1.5)",
+   "quote": "A ticket is *waiting on its requester* while its status is `resolved`."
+  },
+  {
+   "id": "N-2",
+   "state": "covered",
+   "where": "R-1 (A-1.2, A-1.4) and R-4",
+   "quote": "It has waited *too long* when the clock's time is at least REMIND_AFTER_HOURS hours after the time it last became `resolved` (the `at` of its latest transition to resolved)."
+  },
+  {
+   "id": "N-3",
+   "state": "covered",
+   "where": "R-2",
+   "quote": "A requester is reminded at most once for each time the ticket became `resolved`."
+  },
+  {
+   "id": "N-4",
+   "state": "partial",
+   "where": "R-1 (A-1.3\u2013A-1.5) and Open gaps",
+   "quote": "a ticket reopened (resolved -> open) before 72 hours is not reminded",
+   "missing": "The status rule covers reopening, closure and edits that leave the ticket resolved. The spec leaves open how a requester\u2019s reply is recognized and whether it triggers reopening."
+  },
+  {
+   "id": "N-5",
+   "state": "partial",
+   "where": "R-1 (A-1.1), R-3 and Non-functional requirements",
+   "quote": "body naming the ticket and its title and saying it is resolved and that replying within the reopen window reopens it.",
+   "missing": "The builder must decide how to obtain a delivery address when the requester is free text and whether the body includes elapsed waiting time."
+  },
+  {
+   "id": "N-6",
+   "state": "covered",
+   "where": "R-3 and Open gaps",
+   "quote": "body naming the ticket and its title and saying it is resolved and that replying within the reopen window reopens it."
+  },
+  {
+   "id": "N-7",
+   "state": "covered",
+   "where": "R-4 (A-4.4, A-4.5) and Non-functional requirements",
+   "quote": "the job's work is a scan of the tickets once per worker tick; it runs off the request path"
+  },
+  {
+   "id": "N-8",
+   "state": "covered",
+   "where": "R-2 (A-2.1\u2013A-2.3) and Non-functional requirements",
+   "quote": "restart and at-least-once delivery; the relay drops a repeated line by `key` and `id`, decision 6"
+  },
+  {
+   "id": "N-9",
+   "state": "covered",
+   "where": "R-1 (A-1.3, A-1.5)",
+   "quote": "When that holds and the requester has not yet been reminded since that transition, the service enqueues one notification of type `ticket.reminder` for the requester"
+  },
+  {
+   "id": "N-10",
+   "state": "partial",
+   "where": "R-2, R-3 and Non-functional requirements",
+   "quote": "Without that template the delivery would go dead, so the template is required.",
+   "missing": "The spec requires a template for delivery and limits enqueueing to once per waiting period. It leaves open whether enqueueing itself must check for the template and reject the event if it is missing."
+  },
+  {
+   "id": "N-11",
+   "state": "covered",
+   "where": "R-2 (A-2.3) and Non-functional requirements",
+   "quote": "a data file written by the current version (without any reminder data) still loads, and its resolved tickets past the threshold are reminded once."
+  },
+  {
+   "id": "N-12",
+   "state": "partial",
+   "where": "R-1 (A-1.5) and R-2 (A-2.4)",
+   "quote": "T-0001 reminded, reopened, resolved again at a new time, then 72 hours later: exactly one further reminder (two in total).",
+   "missing": "The timer and count restart. The builder must decide how the outbox key distinguishes the new cycle, including when the previous reminder is still pending."
+  },
+  {
+   "id": "N-13",
+   "state": "covered",
+   "where": "R-1 (manual clock, A-1.2) and R-4 (A-4.5)",
+   "quote": "It has waited *too long* when the clock's time is at least REMIND_AFTER_HOURS hours after the time it last became `resolved` (the `at` of its latest transition to resolved)."
+  },
+  {
+   "id": "N-14",
+   "state": "partial",
+   "where": "R-1, R-2 (A-2.3) and R-3",
+   "quote": "it appends an audit entry for the ticket with action `ticket.reminded`, actor `system`, `at` the time of the change, and enqueues the event, saved together.",
+   "missing": "The spec identifies the transition timestamp and the saved audit entry. It leaves open whether those records alone track reminder eligibility or whether saving and loading require an additional named field."
+  },
+  {
+   "id": "N-15",
+   "state": "partial",
+   "where": "R-2 (A-2.3) and R-5",
+   "quote": "a data file written by the current version (without any reminder data) still loads, and its resolved tickets past the threshold are reminded once.",
+   "missing": "Old files behave as though no reminder has been issued. There is no rule for rejecting malformed reminder data on load or naming the offending field in the error."
+  },
+  {
+   "id": "N-16",
+   "state": "covered",
+   "where": "R-3 (A-3.1)",
+   "quote": "an entry whose action is `ticket.reminded` and actor `system`, and the ticket's `updated` is unchanged from the resolve time."
+  },
+  {
+   "id": "N-17",
+   "state": "partial",
+   "where": "R-3 (A-3.4) and R-4 (A-4.4)",
+   "quote": "with WORKER_INTERVAL_MS=0 a service created with a past-threshold resolved ticket enqueues no reminder until a job is run explicitly",
+   "missing": "The controls and explicit job invocation are described, but the spec assigns no authority to configure or disable reminders or to trigger a run by hand."
+  },
+  {
+   "id": "N-18",
+   "state": "covered",
+   "where": "R-4 (A-4.1\u2013A-4.4)",
+   "quote": "`REMIND_AFTER_HOURS` sets the threshold: whole hours, default 72, from 0 to 8760 (0 turns reminders off). An unusable value (`REMIND_AFTER_HOURS=soon`, `-1`, `9000`) stops the service at start with a message naming the variable"
+  },
+  {
+   "id": "N-19",
+   "state": "covered",
+   "where": "R-1 (A-1.1), R-2 (A-2.2), R-3 (A-3.1) and R-5",
+   "quote": "status pending. Confirmed by a store/service test reading `GET /admin/outbox` or `store.outboxReport()`."
+  },
+  {
+   "id": "N-20",
+   "state": "partial",
+   "where": "Non-functional requirements and R-4",
+   "quote": "the job's work is a scan of the tickets once per worker tick; it runs off the request path, so request latency does not change.",
+   "missing": "There is no maximum delivery delay or per-tick enqueue limit. The spec bounds the number of scans but leaves delivery delays during a large scan unspecified."
+  },
+  {
+   "id": "N-21",
+   "state": "covered",
+   "where": "Introduction, R-1 and R-5",
+   "quote": "Existing behaviour (tickets, lifecycle, audit log, outbox notifications, data file, CLI, weekly report) is described by README.md, docs/api.md, docs/operations.md and decisions 0001-0008, and is preserved unless a requirement below says otherwise."
+  },
+  {
+   "id": "N-22",
+   "state": "partial",
+   "where": "R-1 (acceptance setup) and R-4 (A-4.6)",
+   "quote": "README.md's table and docs/operations.md (and docs/api.md's list of audit actions and notification types) mention `REMIND_AFTER_HOURS`, `ticket.reminded` and `ticket.reminder`; confirmed by reading and by the release's CHANGELOG entry and version bump to 1.5.0.",
+   "missing": "The spec leaves open whether changing a rule that other code relies on requires a new decision record."
+  }
+ ]
+}
