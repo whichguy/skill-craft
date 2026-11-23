@@ -635,15 +635,20 @@ class RemovalTests(HomeFixture):
 
     def test_carry_forward_keeps_the_spec_as_written_and_routes_a_gap_in_both_forms_of_its_duty(self) -> None:
         """Its duty agrees with STAGE_FILES, which gives it architecture.md and environment.md only: whole, and in the one-step
-        one-item form, it keeps spec.md as the steps wrote it and sends an unmet clause to its work item or an open item.
+        one-item form, it keeps spec.md as the steps wrote it, except a requirement an owed owner note asks to change, and
+        sends an unmet clause to its work item or an open item.
 
         The duty once asked for each satisfied R-<n> in spec.md with no test IDs there, and carry-forward took the test IDs
         out of the lines the steps had written (24 of its 27 changed-line cases; section 3 of
         docs/shiploop-end-of-inner-loop-journal.md).
         """
-        keep = ("keep the spec and the steps' lines as written. Route an unmet R-<n> clause, or an unresolved state or data "
-                "change (State and data assessment), to its work item in duty 2, or to an open item due at the later outer "
-                "stage that can settle it; name the R-<n> and what would settle the gap.")
+        keep = ("keep the spec and the steps' lines as written, except a requirement that an owner note this stage owes asks "
+                "to change (rewrite that entry in place, as the owner notes block says). Route an unmet R-<n> clause, or an "
+                "unresolved state or data change (State and data assessment), to its work item in duty 2, or to an open item "
+                "due at the later outer stage that can settle it; name the R-<n> and what would settle the gap.")
+        # The exception is the one duty 2 and the owed-notes block already state (ShipLoop 2.7.0): it is still printed there.
+        self.assertIn("unless an owner note this stage owes asks for the requirement change",
+                      " ".join(prompts.DUTIES["carry-forward"].split()))
         one_step = prompts.duty("carry-forward", one_step_item="W1")  # as a packet prints it (_one_step_carry_forward)
         self.assertIn("No item follows W1", one_step)
         for form, text in (("whole", prompts.DUTIES["carry-forward"]), ("one step", one_step)):

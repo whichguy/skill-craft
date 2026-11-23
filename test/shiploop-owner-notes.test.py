@@ -1073,6 +1073,9 @@ class PageTests(NoteRun):
 
 EXCEPTION = ("unless an owner note this stage owes asks for the requirement change: then rewrite the requirement in "
              "place, queue the work and report done")
+# carry-forward's duty 1 keeps spec.md as the steps wrote it (2026-11-22); its one exception is the rewrite EXCEPTION allows.
+SPEC_EXCEPTION = ("except a requirement that an owner note this stage owes asks to change (rewrite that entry in place, as "
+                  "the owner notes block says)")
 # document's duty as released: six real deliveries of six that got a note during the build sent the step back to
 # step-plan; none finished the step as planned (accept brief, item H).
 DOCUMENT_SENTENCE = ("Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.")
@@ -1115,10 +1118,10 @@ class StandingTextTests(unittest.TestCase):
 
 class StandingTextPacketTests(NoteRun):
     """Fix brief item 3 and accept brief item H, as a run with no note prints it (the parity claim narrowed to these
-    clauses): the document packet names no owner note, the carry-forward packet names one only in its standing clause,
-    and the carry-forward loop's contract carries the rule.  The carry-forward of a run with one step in one item prints its queue duty in a short form with
-    no rule to block on a changed requirement, so no exception either; a run with items still to come prints the whole
-    duty."""
+    clauses): the document packet names no owner note, the carry-forward packet names one only in its two standing
+    clauses (duty 1's spec line and duty 2), and the carry-forward loop's contract carries the rule.  The carry-forward of
+    a run with one step in one item prints its queue duty in a short form with no rule to block on a changed requirement,
+    so no exception there either; a run with items still to come prints the whole duty."""
 
     def test_a_run_with_no_note_names_an_owner_note_only_in_the_standing_clauses(self) -> None:
         run, _head = self.new_run("prepare", results=THREE_ITEMS)
@@ -1136,7 +1139,8 @@ class StandingTextPacketTests(NoteRun):
         rule = json.loads((run / nav.loops.contract_path(action)).read_text(encoding="utf-8"))["repeat_condition"]
         self.assertIn(EXCEPTION, rule)
         self.assertIn("it is no queue edit, " + EXCEPTION, packet)
-        self.assertEqual(packet.lower().count("owner note"), packet.count(EXCEPTION))
+        self.assertEqual(packet.count(SPEC_EXCEPTION), 1)
+        self.assertEqual(packet.lower().count("owner note"), packet.count(EXCEPTION) + SPEC_EXCEPTION.count("owner note"))
         self.assertNotIn("Owner notes", packet)
         self.assertFalse((run / owner_notes.DIR).exists())
 

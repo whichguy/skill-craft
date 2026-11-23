@@ -29,8 +29,9 @@ CORE = fx.CORE
 PLAN_RECORD = " ".join((PACKAGE / "references/plan-record.md").read_text(encoding="utf-8").split())
 
 
-# The end-of-work review's one line about the living spec (END_REVIEW_FOCUS_HEAD).
-LEAVE_SPEC = "Leave spec.md as the steps wrote it; route a gap to the queue or an open item."
+# The end-of-work review's one sentence about the living spec (END_REVIEW_FOCUS_HEAD).
+LEAVE_SPEC = ("Leave spec.md as the steps and the owner-note rewrites left it; route a gap to\n"
+              "the queue or an open item.")
 
 
 class QualityLoopTests(fx.RunDriver):
@@ -53,7 +54,7 @@ class QualityLoopTests(fx.RunDriver):
         self.assertIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertIn("2. Fail at the door.", packet)
         self.assertIn("4. Spend tokens on information.", packet)
-        # carry-forward edits no spec line, so its review leaves the steps' lines too and routes a gap (2026-11-22).
+        # carry-forward edits no spec line but an owed note's, so its review leaves the spec too and routes a gap (2026-11-22).
         self.assertIn("\n" + LEAVE_SPEC + "\n", packet)
 
     def test_each_steps_review_carries_the_step_focus_with_the_full_rubric(self):
