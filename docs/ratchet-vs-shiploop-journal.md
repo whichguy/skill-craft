@@ -5,27 +5,50 @@ Apparatus: `docs/experiments/ratchet-vs-shiploop-20261121/`. Earlier work this b
 
 ## 0. Where it stands
 
-**As of 2026-11-22 10:20, after three rounds** (the first script measures on eight clean runs, sections 3 to 7; a
-deeper judge that runs every product and checks it item by item, sections 10 to 12; one look and one fix on
-ShipLoop's deliveries, first as repairs and then from clean runs, sections 11 and 13 to 15):
+**As of 2026-11-22 16:24, concluded for now at the owner's word** ("think critically about what would actually
+materially change a decision, and only wait for that part, and then conclude"). Six rounds: script measures on
+eight clean runs (sections 3 to 7); a deeper judge that runs every product item by item (10 to 12); one look and
+one fix on ShipLoop's deliveries, as repairs and then from clean runs (11, 13 to 15); both tools run fresh from one
+commit (16, 17); a look built into ShipLoop, two versions tried (18 to 20); the close (21).
 
-- **Nothing a request states was left unbuilt by either tool**, on any of 12 products last night and 12 audited
-  today.
-- **ShipLoop alone delivers in 15% to 31% of Ratchet's time and tells the customer less.** On two runs and two
-  ShipLoop versions (2.4.1, 2.6.0) it shipped no user page on the new service and no release record on the ticket
-  change. On three small cases that is the whole difference from Ratchet's final.
-- **On the large stateful case (Grokbot) Ratchet builds the better feature**, already at its first build, which
-  costs what ShipLoop's delivery costs: medium defects 6 against 2 against 1 (ShipLoop, Ratchet's first build,
-  Ratchet's final) last night, 8 against 3 on today's fresh ShipLoop run and re-audit.
-- **From clean runs, ShipLoop followed by one look (the builder's model, 2 to 8 minutes) and one fix (Opus at
-  xhigh) is level with Ratchet's final on shared expenses and tickets and ahead on chess, at 28% to 44% of Ratchet's
-  time.** On Grokbot the same sequence takes 38% of the time and closes about half the gap: Ratchet's final is still
-  the better feature there (medium defects 5 against 3, unsaid points handled 34 against 38 of 39).
-- **Limits that matter:** Ratchet's side is one run a case; the fixer is a stronger model than either builder; one
-  audit a product, and a look and an audit each find things the other does not, so every defect count is a floor.
+**The owner's question, which produces the better result:**
 
-The first round's registered result stands as recorded in section 7 ("no difference in results shown; ShipLoop
-costs 15% to 31% of Ratchet's time"); sections 12 and 15 say where that verdict was too coarse.
+- **Nothing a request states was left unbuilt by either tool**, in any audit of any round.
+- **ShipLoop alone delivers in 15% to 34% of Ratchet's time and is behind on what it tells the
+  customer**, on every round and both ShipLoop versions (told 0, 0, 10 and 1 to 2 unsaid points against Ratchet's
+  12, 1, 17 and 15 to 16 on expenses, chess, tickets and Grokbot, both tools fresh). On the three small cases that
+  is nearly the whole difference. On Grokbot it is also behind on behaviour (medium defects 6 against 3), mostly
+  in how failures are handled.
+- **ShipLoop followed by one look and one fix by a strong fixer (Opus at xhigh) is level with Ratchet, ahead,
+  level on the small cases at 36% to 43% of Ratchet's minutes, and on Grokbot level by the counts with a small
+  preference for Ratchet's by the blind judge, at 48%.** Both tools fresh, section 17.
+- **Ratchet's lead on Grokbot does not come from its closing looks**: a fresh Ratchet run that stopped before any
+  closing look read the same as one that ran three (17.3, 17.6). It comes from its specification, the build from
+  it and its heavy test pass. Ratchet's risks seen today: a run stuck on a clause the machine could not satisfy,
+  and a full run whose product fails a held-out check.
+
+**What a look built into ShipLoop is worth (sections 18 to 20):**
+
+- The session that built the product, asked to look at it, records that it works (two runs where the instruction
+  reached it; in two more it never saw the instruction).
+- A fresh worker started by that session does find real things. But the fix is then made by the building session
+  at medium effort, which does the least each finding needs: audited on chess and tickets, the candidate's
+  delivery was ahead of unchanged ShipLoop on nothing, at 1.4 and 2.0 times its minutes. **The gain of "look and
+  fix" was mostly the strong fixer and the document it wrote, not the look.**
+- On Codex the building session often reads only a slice of each stage's instructions, so a change to the long
+  duty text may never reach it; the result template and the refusal messages do.
+
+**Recommended next, not built:** aim at the steady gap directly. ShipLoop already lists the choices it made for the
+requester in its run report; have its existing `document` stage write them, and how to run and use the product,
+into a user document in the product. No worker, no extra stage. The look candidate (three versions on branch
+`shiploop-look-f586c6`) stays off `main` and is not proposed.
+
+**Limits that matter:** one or two runs of each tool a case; one Opus judge after the first round; two audits of
+one product differ by up to two medium defects on Grokbot and once by three "told" items, so small margins there
+are noise (17.2); the strong-fixer reading is mine, from two runs.
+
+The first round's registered result stands as recorded in section 7; sections 12, 15, 17 and 20 say where each
+later round sharpened it.
 
 ## 1. The question, in the owner's words (2026-11-21, late evening)
 
@@ -1631,3 +1654,42 @@ the telling came from the fixer.
   duty of the `document` stage to keep a user-facing document that states those choices would aim at that gap
   directly, with no worker and no extra stage. It is recorded here as the next thing to try if version three's
   round also shows no gain.
+
+## 21. The close (16:24): what was stopped, and why nothing pending would change a decision
+
+The owner, after asking for a time estimate (about 1 hour 45 minutes were left): "Do we really need to do all
+this, or have we actually already concluded pretty clearly what's going on?", and then: "think critically about
+what we really need to do and what would actually materially change a decision, and only wait for that part, and
+then conclude."
+
+| Still open at 16:20 | Would its result change a decision? | Done |
+|---|---|---|
+| Version three's trial (four runs, then judging) | No. Its best case is "ahead on chess, unknown elsewhere", which reads "maybe, more runs", not "adopt". What section 20 found missing is a stronger fixer, and version three does not add one. | Not run |
+| Roundtable's judging round | No. It would re-check a comparison that held in three rounds, on a new case. | Not run |
+| Grokbot's confirmation run for the candidate | No, for the same reason. | Not run |
+| The Ratchet run of roundtable (two thirds done) | No, but it is the Ratchet baseline for any later round on the middle case and costs nothing to let end. | Left to finish; measured by script when it ends |
+| Version three's code (its test tier at 117 of 135, all passing) | No, but uncommitted work in a worktree is lost work. | Committed on the candidate branch when the tier ends; no model run |
+
+**Recorded for whoever picks this up:**
+
+- **Version two on Grokbot, read by script only** (19.3): the instruction arrived, a worker was started, its look
+  took about five minutes and recorded 14 rows, one a medium shortfall (a failed reply loses its Retry when a new
+  message is sent, a defect section 17's auditors found on the unchanged delivery), one low, two untold choices;
+  one corrective item closed the medium one with a test and documented the two choices; 43.5 minutes (28.7
+  unchanged), every held-out check passes. Not audited.
+- **Roundtable is ready as the middle case** (19.4), in `~/e2e-runs/d20261122-cc457a/`: the apparatus runs it for
+  both tools; its inventory, written before any product of it existed, is 58 stated items and 31 unsaid points
+  that both Opus and Grok 4.7 rate as mattering (40 rated; the listers took 2 and 12 minutes, the raters under 1
+  and 6), audited in two shares a product; the unchanged ShipLoop 2.6.0 run took 19.3 minutes and passes the
+  harness's browser check and both case checks. No product of it has been audited.
+- **Version three** (branch `shiploop-look-f586c6`): the look's instruction is carried by the result template and
+  the refusal message; two guide rules from the chess record (a wrong or misleading answer is a shortfall, never
+  an untold choice; a `told` line must say what the product does). Built, its suites passing; never run with a
+  model.
+- **Costs of this study's instruments**, for planning a next round: a ShipLoop run 9 to 29 minutes, a Ratchet run
+  45 to 162; a judging round about 15 minutes and six Opus sessions for a small case, about 45 minutes and twelve
+  for Grokbot; a candidate build with its test tier about 80 to 120 minutes, of which the tier is 50.
+
+**What I would do differently:** check what the model was given before reading a trial of an instruction (19.2:
+the fault was on record the day before); register the cost bound against the right baseline the first time (16.3);
+ask "would this change a decision" before each round, not after the owner did.
