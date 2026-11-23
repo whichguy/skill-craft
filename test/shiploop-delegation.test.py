@@ -2,6 +2,7 @@
 """Run-level execution delegation: inline default for new runs, ask-agent opt-in."""
 
 from pathlib import Path
+import json
 import os
 import re
 import shlex
@@ -157,7 +158,7 @@ class DelegationStateTests(unittest.TestCase):
             nav.validate(unrecorded)
         self.assertIn("navigator state has no recorded delegation", str(caught.exception))
         self.assertIn("fresh --run-dir", str(caught.exception))
-        for value in ("inline", "ask-agent"):
+        for value in ("inline", "agents", "ask-agent"):
             with self.subTest(value=value):
                 state = self.state(value)
                 self.assertEqual(state["delegation"], value)
@@ -166,7 +167,7 @@ class DelegationStateTests(unittest.TestCase):
     def test_delegation_is_limited_to_known_values(self):
         for value in ("parallel", None):
             with self.subTest(value=value):
-                with self.assertRaisesRegex(nav.NavigatorError, "inline or ask-agent"):
+                with self.assertRaisesRegex(nav.NavigatorError, "inline, agents or ask-agent"):
                     self.state(value)
         bad = self.state()
         bad["delegation"] = "Inline"
@@ -252,7 +253,7 @@ class DelegationStateTests(unittest.TestCase):
         switched = nav.set_delegation(state, "ask-agent")
         self.assertEqual((switched["delegation"], switched["revision"]), ("ask-agent", state["revision"] + 1))
         self.assertEqual(nav.set_delegation(switched, "ask-agent"), switched)
-        with self.assertRaisesRegex(nav.NavigatorError, "inline or ask-agent"):
+        with self.assertRaisesRegex(nav.NavigatorError, "inline, agents or ask-agent"):
             nav.set_delegation(state, "serial")
 
     def test_switch_never_reroutes_the_pending_action_or_its_improve_checkpoint(self):
@@ -1379,6 +1380,169 @@ class DelegationCliTests(unittest.TestCase):
                              "--delegation", "ask-agent")
         self.assertEqual(delegated.returncode, 0, delegated.stderr)
         self.assertIn("Prefer a native fresh worker", delegated.stdout)
+        agents = self.cli("graph-dry-run", "--scenario", "delivery", "--format", "markdown",
+                          "--delegation", "agents", "--host", "codex")
+        self.assertEqual(agents.returncode, 0, agents.stderr)
+        self.assertIn("Delegation: agents: run this producer stage inline", agents.stdout)
+        self.assertIn("Optional read-only fan-out (`delegation: agents`)", agents.stdout)
+        self.assertIn("Host hint (codex):", agents.stdout)
+
+
+class AgentsHybridDelegationTests(unittest.TestCase):
+    """Direct native-agents hybrid mode (--delegation agents): inline producers, F17 read-only fan-out,
+    forked planning reviews / fresh code reviews via CHILD/worker-brief.md, emit-time host hints, and provenance."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-agents-delegation-")
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        self.repo = self.base / "repo"
+        self.repo.mkdir()
+        self.run = self.base / "run"
+        self.env = {k: v for k, v in os.environ.items()
+                    if not k.startswith(("CLAUDE", "CODEX", "GROK", "CURSOR", "__CURSOR", "OPENCODE", "SHIPLOOP_"))}
+        self.env.update(SHIPLOOP_KEEPALIVE="off", SHIPLOOP_PROGRESS="off", PYTHONDONTWRITEBYTECODE="1")
+
+    def cli(self, *args, extra_env=None):
+        env = dict(self.env, **(extra_env or {}))
+        return subprocess.run([sys.executable, "-B", str(CLI), *(str(a) for a in args)],
+                              capture_output=True, text=True, cwd=self.base, env=env, timeout=60)
+
+    def test_hybrid_review_context_splits_planning_fork_and_code_fresh(self):
+        for stage in ("spec", "test-strategy", "plan", "step-plan", "system-test-author", "release-plan"):
+            self.assertEqual(nav.improve_review_context(stage), "fork", stage)
+        for stage in ("document", "carry-forward"):
+            self.assertEqual(nav.improve_review_context(stage), "fresh", stage)
+
+    def test_agents_producers_stay_inline_and_fanout_only_on_read_only_stages(self):
+        state = nav.new_state(str(self.repo), "Agents delegation walk.", delegation="agents")
+        run = self.base / "walk-run"
+        run.mkdir()
+        seen = {}
+        while state["status"] == "active":
+            stage = nav.current_stage(state)
+            packet = nav.render(None, run, state, host="codex")
+            seen[stage] = packet
+            if stage in prompts.READ_ONLY_FANOUT_STAGES:
+                self.assertIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
+                self.assertIn("127.0.0.1:0", packet, stage)
+                self.assertIn("pkill -f", packet, stage)
+                self.assertIn("Host hint (codex):", packet, stage)
+            else:
+                self.assertNotIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
+                self.assertNotIn("Host hint (codex):", packet, stage)
+            for forbidden in DELEGATED_ROUTE_TEXT:
+                self.assertNotIn(forbidden, packet, (stage, forbidden))
+            res = {"outcome": "done", "summary": f"Synthetic {stage}."}
+            if stage == "plan":
+                res["work_items"] = [{"id": "W1", "title": "Item one"}]
+            state = nav.apply(state, nav.current_action(state)["id"], res)
+            if state.get("active_improve") is not None:
+                state = nav.finish_improve(state, state["active_improve"]["action_id"], {"summary": "Synthetic."})
+        self.assertIn("Delegation: agents: run this producer stage inline", seen["implement"])
+        self.assertIn("Bind no chain and dispatch no worker.", seen["implement"])
+
+    def test_agents_improve_packets_and_worker_brief_follow_hybrid_contract(self):
+        selected = standalone.resolve_skill(str(CARD))
+        state = nav.new_state(str(self.repo), "Hybrid Improve walk.", delegation="agents")
+        run = self.base / "imp-run"
+        run.mkdir()
+        improve_packets = {}
+        briefs = {}
+        handoffs = {}
+        while state["status"] == "active":
+            stage = nav.current_stage(state)
+            action = nav.current_action(state)["id"]
+            res = {"outcome": "done", "summary": f"Synthetic {stage}."}
+            if stage == "plan":
+                res["work_items"] = [{"id": "W1", "title": "Item one"}]
+            state = nav.apply(state, action, res)
+            child = state.get("active_improve")
+            if child is not None:
+                state["active_improve"] = standalone.binding(state, action, child["stage"],
+                                                             child["seed_result"], selected,
+                                                             improve_action=child["improve_action"])
+                receipt = standalone.receipt_path(state["active_improve"])
+                receipt.parent.mkdir(parents=True, exist_ok=True)
+                receipt.write_text("{}", encoding="utf-8")
+                improve_packets[stage] = nav.render(None, run, state, host="cursor")
+                briefs[stage] = nav.improve_worker_brief_text(None, run, state)
+                handoffs[stage] = nav.improve_handoff_text(None, run, state)
+                contract = nav.improve_start_contract(None, run, state, nav.improve_opening_text(None, run, state))
+                resource_locs = [r["locator"] for r in contract["context"]["resources"]]
+                self.assertTrue(any(loc.endswith("worker-brief.md") for loc in resource_locs), stage)
+                self.assertFalse(any(loc.endswith("host-owner.md") for loc in resource_locs), stage)
+                state["active_improve"] = child
+                state = nav.finish_improve(state, action, {"summary": "Synthetic."})
+        # Planning review (`spec`) requests a forked worker; code reviews (`document`, `carry-forward`) request fresh.
+        self.assertIn("Launch ONE forked coding-capable native subagent", improve_packets["spec"])
+        self.assertIn("Launch ONE fresh coding-capable native subagent with STRICTLY NO inherited parent conversation history",
+                      improve_packets["document"])
+        self.assertIn("Launch ONE fresh coding-capable native subagent with STRICTLY NO inherited parent conversation history",
+                      improve_packets["carry-forward"])
+        for stage, pkt in improve_packets.items():
+            self.assertLess(len(pkt), 3_000, f"agents Improve packet too large at {stage}: {len(pkt)}")
+            self.assertIn("worker-brief.md", pkt)
+            self.assertIn("Host hint (cursor, pilot-ide):", pkt)
+            self.assertIn("--review-mode inline-fallback", pkt)
+            self.assertNotIn("host-owner.md", pkt)
+            self.assertNotIn("improve-agent", pkt)
+            self.assertIn(" · Route: agents", handoffs[stage])
+            self.assertIn("#direct-review-workers-delegation-agents", handoffs[stage])
+            self.assertNotIn("Native owner record:", handoffs[stage])
+            self.assertIn("Worker brief:", handoffs[stage])
+        # Worker briefs enforce leaf anti-recursion, canonical realpath, and stage-accurate commit rules.
+        canon_repo = os.path.realpath(str(self.repo))
+        self.assertIn(canon_repo, briefs["spec"])
+        self.assertIn("Do NOT spawn subagents", briefs["spec"])
+        self.assertIn("improve-commit", briefs["spec"])
+        self.assertIn("commit NOTHING", briefs["document"])
+
+    def test_host_binding_cli_and_delegation_switch_and_review_mode_guard(self):
+        hb = self.cli("host-binding", extra_env={"CURSOR_AGENT": "1"})
+        self.assertEqual(hb.returncode, 0, hb.stderr)
+        data = json.loads(hb.stdout)
+        self.assertEqual((data["schema"], data["host"]), ("skill-craft/host-bindings/v2", "cursor"))
+
+        hb_override = self.cli("host-binding", "--host", "codex")
+        self.assertEqual(hb_override.returncode, 0, hb_override.stderr)
+        self.assertEqual(json.loads(hb_override.stdout)["binding"]["capacity"]["workers"], 3)
+
+        init = self.cli("init", "--repo", self.repo, "--run-dir", self.run, "--delegation", "agents",
+                        "--prompt", "Agents CLI check.", "--in-place")
+        self.assertEqual(init.returncode, 0, init.stderr)
+        self.assertEqual(store.read_record(self.run / "state.md")["delegation"], "agents")
+
+        switched = self.cli("delegation", "--run-dir", self.run, "--set", "inline")
+        self.assertEqual(switched.returncode, 0, switched.stderr)
+        self.assertEqual(store.read_record(self.run / "state.md")["delegation"], "inline")
+
+        # --review-mode is rejected on a producer stage's complete.
+        state = store.read_record(self.run / "state.md")
+        action = nav.current_action(state)["id"]
+        inbox = self.run / "inbox" / f"{action}.md"
+        store.write_record(inbox, {"outcome": "done", "summary": "S1: check."})
+        refused = self.cli("complete", "--run-dir", self.run, "--action", action,
+                           "--result", inbox, "--review-mode", "fork")
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("--review-mode is only for an Improve stage's complete", refused.stderr)
+
+    def test_passes_text_records_review_mode_and_delegation(self):
+        selected = standalone.resolve_skill(str(CARD))
+        state = nav.new_state(str(self.repo), "Passes metadata check.", delegation="agents")
+        run = self.base / "passes-run"
+        run.mkdir()
+        while nav.current_stage(state) != "spec":
+            state = nav.apply(state, nav.current_action(state)["id"], {"outcome": "done", "summary": "Synthetic."})
+        act = nav.current_action(state)["id"]
+        state = nav.apply(state, act, {"outcome": "done", "summary": "Synthetic spec."})
+        child = standalone.binding(state, act, "spec", state["active_improve"]["seed_result"], selected,
+                                   improve_action=state["active_improve"]["improve_action"])
+        state["active_improve"] = child
+        text_default = nav._passes_text(run, state, child, None)
+        self.assertIn("Review mode: fork (delegation: agents).", text_default)
+        text_fallback = nav._passes_text(run, state, child, None, review_mode="inline-fallback")
+        self.assertIn("Review mode: inline-fallback (delegation: agents).", text_fallback)
 
 
 if __name__ == "__main__":

@@ -194,7 +194,8 @@ route rather than generating a replacement workflow.
 
 Run options are the user's to set: pass one only when the user asks for it; otherwise pass none and the defaults
 apply. They are recorded at `workspace start` or `init` and refused on a saved run without them:
-`--delegation inline|ask-agent` (default `inline`: this conversation executes every assignment),
+`--delegation inline|agents|ask-agent` (default `inline`: this conversation executes every assignment; `agents` keeps
+the core build loop inline while delegating reviews via direct native workers and allowing in-stage read-only fan-out),
 `--lint fix|report|off` and `--planning-review stage|none` (default `stage`; pass `none` only when the user asks
 to run without planning reviews) ([run options](references/run-options.md)).
 

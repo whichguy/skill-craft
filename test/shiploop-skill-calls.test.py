@@ -368,9 +368,12 @@ class GateFixture(improve_tests.ImproveCliFixture):
             keepalive.run_hook("observe", "claude", json.dumps(payload))
             return keepalive.load_binding("claude", self.SESSION)
 
-    def call_skill(self, skill: str, args: str | None) -> None:
+    def call_skill(self, skill: str, args: str | None, *, agent_id: str | None = None) -> None:
+        payload = skill_payload(self.SESSION, skill, args)
+        if agent_id is not None:
+            payload["agent_id"] = agent_id
         with self.hook_environment():
-            reply = keepalive.run_hook("skill", "claude", json.dumps(skill_payload(self.SESSION, skill, args)))
+            reply = keepalive.run_hook("skill", "claude", json.dumps(payload))
         self.assertEqual(reply, "")
 
     def complete(self, status: int = 0):
@@ -633,6 +636,25 @@ class SkillCallGateAskAgentTests(GateFixture):
         self.assertTrue(self.bind()["skill_hook"])
         done = self.complete()
         self.assertIn("this review runs in a fresh worker, not in this session (delegation ask-agent)", done.stderr)
+
+
+class SkillCallGateAgentsTests(GateFixture):
+    """On delegation: agents, Claude Code PostToolUse(Skill) fires inside both fresh and forked depth-1 subagents
+    with the parent's exact session_id and agent_id, so the Skill-call gate stays enforced."""
+
+    delegation = "agents"
+
+    def test_agents_route_enforces_skill_call_gate_and_accepts_subagent_call_with_agent_id(self) -> None:
+        self.assertTrue(self.bind()["skill_hook"])
+        refused = self.complete(status=2)
+        self.assertIn("Run the improve skill on this " + self.bound["stage"] + " result first", refused.stderr)
+        self.call_skill("improve", self.argument(), agent_id="agent-sub-fork-1")
+        done = self.complete()
+        self.assertNotIn("not enforced", done.stderr)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(state["improve_results"][self.action]["review_mode"], "fork")
+        passes = (self.run / "improve" / self.action / "passes.md").read_text(encoding="utf-8")
+        self.assertIn("Review mode: fork (delegation: agents).", passes)
 
 
 if __name__ == "__main__":

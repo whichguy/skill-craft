@@ -177,7 +177,7 @@ class PacketLineTests(unittest.TestCase):
         for stage in prompts.DUTIES:
             for delegation in prompts.DELEGATIONS:
                 with self.subTest(stage=stage, delegation=delegation):
-                    no_paragraph = (stage in prompts.INLINE_AUDIT_STAGES and delegation == prompts.INLINE
+                    no_paragraph = (stage in prompts.INLINE_AUDIT_STAGES and prompts.is_inline_producer(delegation)
                                     or stage in prompts.AUDIT_LINE_STAGES)
                     # The spec and plan duties fold the Backchain item (packet re-cut, 2026-10-11): the check
                     # instruction is a duty item there, and prompt() prints no second copy of the route paragraph.
