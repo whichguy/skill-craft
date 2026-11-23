@@ -41,6 +41,19 @@ Costs the owner accepted by choosing removal: this repository is public and the 
 public after the release (0.1.0 and 0.1.1 stay in history and in the published release commits); Grok and Cursor have no route to
 the private plugin; hosts that do not refresh keep the old copy.
 
+Published the same day as skill-craft 4.4.2: the removal commit `ecd500ef472e3486edf803de712c92f2ad020057` and the output-only release
+`02233b2e7dae3b8ac3a4f9b82e2dbc55f83e526c` went out in one guarded push, a fast-forward over `2ddacc9ed7317a7576e2cfefd477bf63c3fa4862`,
+after four checks (plugin views, marketplace payload, release boundary against that base, test-groups: 78 tests, OK). The release dropped the
+11 payload files under `plugins/skill-craft/skills/pushpress`, the skill's row from the README inventory (25 skills to 24) and the keyword
+from three plugin manifests, and moved the plugin from 4.4.1 to 4.4.2. The private plugin was installed in the owner's Claude first, because
+the `whichguy` marketplace auto-updates there and a push first would have left no PushPress skill at all. Publishing was the session's routine
+decision (AGENTS.md, Decisions: a release once its checks pass on a commit that fast-forwards main), taken after the owner's decision to move
+the skill. Hosts: Claude and Grok went from 4.4.1 to 4.4.2 (the installed Claude copy equals the release payload and holds no `pushpress`);
+Codex was not refreshed because another session's `codex exec` runs were live, so it keeps 4.4.1 and this skill until its next refresh.
+Not done: the repository's quick tiers were not run locally (live E2E runs were on the machine, and the owner's rule leaves a heavy tier to
+CI), so the evidence is the four suites in the evidence file, the guard's four checks and CI on the release commit, which had not finished
+when this was written.
+
 ## Request and consumers
 
 On 2026-11-08 the owner asked whether a PushPress skill had been put in the skill-craft marketplace. It had not. A project skill
