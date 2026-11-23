@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import os
 from pathlib import Path
 import re
@@ -343,7 +344,7 @@ def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, wor
         return '"item" still holds the template placeholder'
     if stage == CARRY_FORWARD and item == workitem:
         return (f'"item" is {item}, the item this carry-forward closes: name a pending item of {where} that does the '
-                'work ({listed}), or say "already" when the run already does it')
+                f'work ({listed}), or say "already" when the run already does it')
     if stage == CARRY_FORWARD and item in (state.get("completed_work_items") or ()):
         return f'"item" is {item}, a finished item: name a pending item of {where} that does the work ({listed})'
     if item not in queue:
@@ -354,8 +355,10 @@ def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, wor
 def faults(found: Sequence[Mapping[str, Any]], state: Mapping[str, Any], stage: str, workitem: str | None,
            result: Any, *, folder: Path) -> list[dict[str, Any]]:
     """What keeps a submitted result from accounting for the notes ``found`` (the admission's one read): one entry per
-    fault, ``{"note", "kind", "text"}`` with kind ``missing``, ``row`` or ``extra``.  Only a done result owes rows; any
-    other outcome holds none (``notes`` is a done-only field) and leaves the notes owed."""
+    fault, ``{"note", "kind", "text"}``.  Kinds: ``shape`` (notes is not a list), ``missing`` (an owed note has no row),
+    ``row`` (an owed note's row is wrong), ``duplicate`` (two rows for one note), ``non-id`` (a row whose "note" is no
+    N<k>) and ``extra`` (a row for a note this stage does not owe).  Only a done result owes rows; any other outcome
+    holds none (``notes`` is a done-only field) and leaves the notes owed."""
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return []
     owing = [note["id"] for note in owed(state, found, stage, workitem)]
@@ -367,11 +370,13 @@ def faults(found: Sequence[Mapping[str, Any]], state: Mapping[str, Any], stage: 
     led, on_file = ledger(state), {note["id"] for note in found}
     seen: set[str] = set()
     for index, row in enumerate(rows):
-        note_id = row.get("note").strip() if isinstance(row, Mapping) and isinstance(row.get("note"), str) else None
-        if not isinstance(row, Mapping) or not note_id:
-            out.append({"note": None, "kind": "extra", "text": f'notes[{index}] names no owner note: give "note": "N<k>"'})
-        elif note_id in seen:
-            out.append({"note": note_id, "kind": "extra", "text": f"{note_id} has two rows; keep one"})
+        value = row.get("note") if isinstance(row, Mapping) else None
+        note_id = value.strip() if isinstance(value, str) else None
+        if not isinstance(row, Mapping) or not note_id or NOTE_ID.fullmatch(note_id) is None:
+            out.append({"note": None, "kind": "non-id", "shown": _shown(value),
+                        "text": f'notes[{index}] has "note" {_shown(value)}, which is not an owner note id (N<k>)'})
+        elif note_id in seen or any(fault["note"] == note_id and fault["kind"] == "extra" for fault in out):
+            out.append({"note": note_id, "kind": "duplicate", "text": f"{note_id} has two rows; keep exactly one"})
         elif note_id not in owing:
             history = led.get(note_id, ())
             why = (f"no owner note {note_id} is on file in {folder}/" if note_id not in on_file else
@@ -388,6 +393,15 @@ def faults(found: Sequence[Mapping[str, Any]], state: Mapping[str, Any], stage: 
     out.extend({"note": note_id, "kind": "missing", "text": f"{note_id} has no row"} for note_id in owing
                if note_id not in seen)
     return out
+
+
+def _shown(value: Any) -> str:
+    """A model-written value as a refusal quotes it: JSON, cut short."""
+    try:
+        text = json.dumps(value, ensure_ascii=False)
+    except (TypeError, ValueError):
+        text = repr(value)
+    return text if len(text) <= 40 else text[:39] + "\u2026"
 
 
 # ---------------------------------------------------------------------------------------------------------- texts
@@ -543,6 +557,38 @@ def accounted_lines(root: str | Path, state: Mapping[str, Any], waiting: Sequenc
              "result's \"notes\"; read one again when this stage's work touches it.")]
 
 
+def _first_line(folder: Path, result_path: str | Path, found_faults: Sequence[Mapping[str, Any]],
+                owing: Sequence[str]) -> str:
+    """A refusal's first line, which a host may show its model alone: what to do, the notes it is about and the file to
+    change.  A list given as something else comes first (it holds no row at all), then the owed notes without a good
+    row, then two rows for one note, a row that names no note id, and a row this stage does not owe."""
+    kinds = {fault["kind"] for fault in found_faults}
+    if "shape" in kinds:
+        return (f"\"notes\" is not a list: give it in {result_path} as a list with one row per owed note "
+                f"({_ids(owing)}), then run this again." if owing else
+                f"\"notes\" is not a list: give it in {result_path} as [] or leave it out, then run this again.")
+    ids = sorted({fault["note"] for fault in found_faults if fault["kind"] in ("missing", "row")}, key=_number)
+    if ids:
+        missing_only = all(fault["kind"] == "missing" for fault in found_faults if fault["note"] in ids)
+        one = len(ids) == 1
+        read_what = f"read {folder / (ids[0] + '.md')}" if one else f"read each in {folder}/"
+        verb = ("add its row to" if missing_only else "fix its row in") if one else \
+            ("add their rows to" if missing_only else "add or fix their rows in")
+        return (f"owner {'note' if one else 'notes'} {_ids(ids)} {'is' if one else 'are'} not accounted for: "
+                f"{read_what}, {verb} \"notes\" in {result_path}, then run this again.")
+    doubled = sorted({fault["note"] for fault in found_faults if fault["kind"] == "duplicate"}, key=_number)
+    if doubled:
+        return (f"\"notes\" has two rows for {_ids(doubled)}: keep exactly one" + ("" if len(doubled) == 1 else " each")
+                + f" in {result_path}, then run this again.")
+    strange = [fault for fault in found_faults if fault["kind"] == "non-id"]
+    if strange:
+        return (f"\"notes\" has a row whose \"note\" is {strange[0]['shown']}, which is not an owner note id (N<k>): fix "
+                f"or remove it in {result_path}, then run this again.")
+    named = sorted({fault["note"] for fault in found_faults if fault["kind"] == "extra"}, key=_number)
+    return (f"\"notes\" in {result_path} has a row this stage does not owe" + (f" ({_ids(named)})" if named else "")
+            + ": remove it, then run this again.")
+
+
 def refusal(root: str | Path, result_path: str | Path, found: Sequence[Mapping[str, Any]], state: Mapping[str, Any],
             stage: str, workitem: str | None, found_faults: Sequence[Mapping[str, Any]]) -> str:
     """The refusal of a result that does not account for its notes, without the command's prefix (``ShipLoop check:``
@@ -550,25 +596,8 @@ def refusal(root: str | Path, result_path: str | Path, found: Sequence[Mapping[s
     names the notes, the folder to read and the result file to change.  Then the row and the four meanings of ``did``,
     every fault, the owed notes' words within ``BLOCK_LIMIT``, and what to do when a note changes the stage's work."""
     root = Path(root)
-    folder = root / DIR
-    ids = sorted({fault["note"] for fault in found_faults if fault["kind"] in ("missing", "row") and fault["note"]},
-                 key=_number)
-    if ids:
-        missing_only = all(fault["kind"] == "missing" for fault in found_faults if fault["note"] in ids)
-        one = len(ids) == 1
-        read_what = f"read {folder / (ids[0] + '.md')}" if one else f"read each in {folder}/"
-        verb = ("add its row to" if missing_only else "fix its row in") if one else \
-            ("add their rows to" if missing_only else "add or fix their rows in")
-        first = (f"owner {'note' if one else 'notes'} {_ids(ids)} {'is' if one else 'are'} not accounted for: "
-                 f"{read_what}, {verb} \"notes\" in {result_path}, then run this again.")
-    elif any(fault["kind"] == "shape" for fault in found_faults):
-        first = (f"\"notes\" in {result_path} is not a list of rows: give it as [] or as one row per owed note, then "
-                 "run this again.")
-    else:
-        extra = [fault for fault in found_faults if fault["kind"] == "extra"]
-        named = sorted({fault["note"] for fault in extra if fault["note"]}, key=_number)
-        first = (f"\"notes\" in {result_path} has a row this stage does not owe"
-                 + (f" ({_ids(named)})" if named else "") + ": remove it, then run this again.")
+    first = _first_line(root / DIR, result_path, found_faults,
+                        [note["id"] for note in owed(state, found, stage, workitem)])
     shape = ('A row: {"note": "N<k>", "did": "' + '" | "'.join(did for did in DID if not (did == "carried" and stage in
                                                                                          SETTLE_ONLY))
              + '", "detail": "<text>"' + (', "item": "<work item>" (applied only)' if stage in ITEM_STAGES else "")

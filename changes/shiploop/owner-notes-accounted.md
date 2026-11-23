@@ -21,5 +21,7 @@ it reviews. Nothing asks and nothing waits.
 Gone: the callback held once for a note, the `check` notice, `owner-notes/shown.json`, the state key `owner_notes` and
 the line "Owner notes already delivered"; `trace` and `trace.html` show each note as open, carried or settled instead
 of shown or delivered. A run saved by the previous version with a note delivered cannot be resumed; start a new run.
-A run with no note prints and stores what it did before, except that the refusal of an unsupported result key lists
-`notes` among the allowed keys.
+A run with no note prints and stores what it did before, with two exceptions: the standing duties of `document` and
+`carry-forward` and the rule of `carry-forward`'s loop now say what an owner note that asks for a requirement change
+means, and the refusal of an unsupported result key lists `notes` among the allowed keys. `trace --json` is outside
+that claim: its note fields changed.

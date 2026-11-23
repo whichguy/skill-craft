@@ -1545,7 +1545,8 @@ preparatory commit); a mismatch there is a send-back.
    next steps' packets read it:
    - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
-     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
+     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>, unless an owner
+     note asks for the change: then the note is carried and this step is finished as planned.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
@@ -1591,7 +1592,8 @@ preparatory commit); a mismatch there is a send-back.
    - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
      transcript, invent no decision ledger; a context summary is not proof);
    - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
-     loop and report blocked; it is no queue edit.
+     loop and report blocked; it is no queue edit, unless an owner note this stage owes asks for the requirement
+     change: then rewrite the requirement in place, queue the work and report done.
    To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "follows", "context"}` in
    prerequisite order, no completed or current ID, keeping unrelated pending work and each primary requirement in
    some item's `follows` (a completed or current item counts). Explain each removal, merge or supersession in the summary. Omit `work_items` to keep the

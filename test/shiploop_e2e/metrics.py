@@ -140,7 +140,8 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # shiploop_owner_notes.refusal), so that a host that shows its model one line shows the fix.
 # v12 can refuse an absent authoritative run before workspace dispatch or trace creation.
 REFUSAL_LINE = re.compile(r"^(?:ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
-                          r"check: (?:the check says no\. |owner notes? N\d|\"notes\" in /|the owner notes folder ))|"
+                          r"check: (?:the check says no\. |owner notes? N\d|\"notes\" (?:in /|is not a list|has )|"
+                          r"the owner notes folder ))|"
                           r"error: no authoritative state\.md in [^\r\n]+)", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
                           r"Nothing was accepted or counted\. |"
@@ -173,6 +174,7 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     "owner_notes": re.compile(r"owner notes? N\d+(?:, N\d+)*(?: and N\d+)? (?:is|are) not accounted for: |"
                               r"owner notes? N\d+(?:, N\d+)*(?: and N\d+)? arrived while this handoff|"
                               r"\"notes\" in \S+ (?:has a row this stage does not owe|is not a list of rows)|"
+                              r"\"notes\" (?:is not a list: |has two rows for N\d|has a row whose \"note\" is )|"
                               r"the owner notes folder \S+ cannot be read|the owner note \S+ cannot be read|"
                               r"the reviewed result's owner notes rows are not kept|notes(?:\[\d+\])? must be "
                               r"(?:a list of rows|an object of text values)"),

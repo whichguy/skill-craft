@@ -21,6 +21,7 @@ import contextlib
 import importlib.machinery
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import re
@@ -290,7 +291,8 @@ class RefusalTests(NoteRun):
                 ("a missing row", [row()], "owner note N2 is not accounted for: read ", "- N2 has no row"),
                 ("an extra row", [row(), row("N2"), row("N9")], '"notes" in ',
                  "- this stage owes no row for N9: no owner note N9 is on file in"),
-                ("two rows for one note", [row(), row("N2"), row("N2")], '"notes" in ', "- N2 has two rows; keep one"),
+                ("two rows for one note", [row(), row("N2"), row("N2")], '"notes" has two rows for N2: keep exactly one',
+                 "- N2 has two rows; keep exactly one"),
                 ("an unknown did", [row(), row("N2", "noted")], "owner note N2 is not accounted for: read ",
                  "- N2's row \"did\" is 'noted', not one of applied, already, carried or declined"),
                 ("an empty detail", [row(), row("N2", detail=" ")], "owner note N2 is not accounted for: read ",
@@ -302,7 +304,7 @@ class RefusalTests(NoteRun):
                  '- N2\'s row "item" goes only on an applied row at plan or carry-forward: remove it'),
                 ("an unknown key", [row(), row("N2", why="x")], "owner note N2 is not accounted for: read ",
                  "- N2's row has the unknown 'why'"),
-                ("a list that is not one", "N1", "owner notes N1 and N2 are not accounted for: read each in ",
+                ("a list that is not one", "N1", '"notes" is not a list: give it in ',
                  '- "notes" is not a list of rows')):
             with self.subTest(label):
                 block = self.result(head)
@@ -1056,6 +1058,103 @@ class PageTests(NoteRun):
         self.assertIn("Ship it in English only.", html)
         self.assertNotIn("sk-live-abcdef1234567890abcdef", html)
         self.assertIn("account for the note with a row, and ShipLoop refuses it until it does.", html)
+
+
+
+# ---------------------------------------------------------------------------- the code review's fixes (fix brief)
+#
+# The outside review of the first build ("Fix first") and the fix brief's decisions; the owner's word of 17:00 keeps
+# this pass to items 3, 7 (a) to (c) and 13.  Each class names its item.
+
+EXCEPTION = ("unless an owner note this stage owes asks for the requirement change: then rewrite the requirement in "
+             "place, queue the work and report done")
+DOCUMENT_EXCEPTION = ("unless an owner note asks for the change: then the note is carried and this step is finished as "
+                      "planned")
+
+
+def flat(text: str) -> str:
+    return " ".join(text.split())
+
+
+class StandingTextTests(unittest.TestCase):
+    """Fix brief item 3: the document and carry-forward duties and the carry-forward loop's rule carry the owner-note
+    exception in their standing text, whatever notes are on file, so the owed-notes block and the duties never
+    disagree."""
+
+    def test_the_document_and_carry_forward_duties_and_the_loop_rule_carry_the_exception(self) -> None:
+        import shiploop_loops as loops
+        import shiploop_prompts as prompts
+        for route in (prompts.INLINE, prompts.ASK_AGENT):
+            with self.subTest(route=route):
+                self.assertIn("report send-back naming the R-<n>, " + DOCUMENT_EXCEPTION,
+                              flat(prompts.duty("document", delegation=route)))
+                self.assertIn("stop the loop and report blocked; it is no queue edit, " + EXCEPTION,
+                              flat(prompts.duty("carry-forward", delegation=route)))
+        self.assertIn("that is not a queue edit, " + EXCEPTION + ".", loops.REPEAT["carry-forward"])
+
+
+class StandingTextPacketTests(NoteRun):
+    """Fix brief item 3, as a run with no note prints it (the parity claim narrowed to these clauses): the document and
+    carry-forward packets name an owner note only in their standing clause, and the carry-forward loop's contract
+    carries the rule.  The carry-forward of a run with one step in one item prints its queue duty in a short form with
+    no rule to block on a changed requirement, so no exception either; a run with items still to come prints the whole
+    duty."""
+
+    def test_a_run_with_no_note_names_an_owner_note_only_in_the_standing_clauses(self) -> None:
+        run, _head = self.new_run("prepare", results=THREE_ITEMS)
+        self.walk(run, self.at("document", "W1"), results=THREE_ITEMS)
+        packet = flat(self.next(run))
+        self.assertIn(DOCUMENT_EXCEPTION, packet)
+        self.assertEqual(packet.lower().count("owner note"), packet.count(DOCUMENT_EXCEPTION))
+        self.assertNotIn("Owner notes", packet)
+        self.walk(run, self.at("carry-forward", "W1"), results=THREE_ITEMS)
+        packet = flat(self.next(run))
+        action = nav.current_action(self.state(run))["id"]
+        rule = json.loads((run / nav.loops.contract_path(action)).read_text(encoding="utf-8"))["repeat_condition"]
+        self.assertIn(EXCEPTION, rule)
+        self.assertIn("it is no queue edit, " + EXCEPTION, packet)
+        self.assertEqual(packet.lower().count("owner note"), packet.count(EXCEPTION))
+        self.assertNotIn("Owner notes", packet)
+        self.assertFalse((run / owner_notes.DIR).exists())
+
+
+class FirstLineTests(NoteRun):
+    """Fix brief item 7 (a) to (c): the first line for a row whose "note" is no id (no crash), for notes given as a
+    scalar and for two rows for one note says what to do, on both commands, and the check records its no."""
+
+    def test_a_non_id_row_a_scalar_and_a_duplicate_each_get_their_own_first_line(self) -> None:
+        run, _head = self.new_run("intake")
+        self.note(run)
+        head = self.next(run)
+        _command, path, action = contract.printed_callback(head)
+        for label, rows, first in (
+                ("a row that names no note id", [row(), row("typo")],
+                 (f'"notes" has a row whose "note" is "typo", which is not an owner note id (N<k>): fix or remove it '
+                  f"in {path}, then run this again.")),
+                ("a scalar", "N1", (f'"notes" is not a list: give it in {path} as a list with one row per owed note '
+                                    "(N1), then run this again.")),
+                ("two rows for one note", [row(), row()],
+                 f'"notes" has two rows for N1: keep exactly one in {path}, then run this again.')):
+            with self.subTest(label):
+                block = self.result(head)
+                block["notes"] = rows
+                for verb, prefix in (("check", "ShipLoop check: "), ("complete", "ShipLoop navigator: ")):
+                    self.assertEqual(self.first_line(self.refuse(run, head, block, verb=verb)), prefix + first)
+                self.assertEqual(store.read_record(run / "checks" / f"{action}.md")["answer"], "no")
+
+
+class CurrentItemMessageTests(NoteRun):
+    """Fix brief item 13: the refusal of an item that is the one this carry-forward closes lists the pending items."""
+
+    def test_the_current_item_refusal_lists_the_queue(self) -> None:
+        run, _head = self.new_run("prepare", results=THREE_ITEMS)
+        self.walk(run, self.at("carry-forward", "W2"), results=THREE_ITEMS)
+        self.note(run)
+        head = self.next(run)
+        refused = self.refuse(run, head, self.result(head, row(did="applied", detail="done here", item="W2")))
+        self.assertIn('"item" is W2, the item this carry-forward closes: name a pending item of the future queue this '
+                      'result leaves that does the work (W3), or say "already" when the run already does it', refused)
+        self.assertNotIn("{listed}", refused)
 
 
 if __name__ == "__main__":

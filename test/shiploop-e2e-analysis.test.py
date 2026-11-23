@@ -2578,7 +2578,9 @@ class GateCountsTest(unittest.TestCase):
             texts = [(owner_notes.refusal(run, result, found, state, "intake", None, owner_notes.faults(
                           found, state, "intake", None, dict(done, notes=rows), folder=run / "owner-notes")), both)
                      for rows in ([], [row], [row, dict(row, note="N2"), dict(row, note="N3")],
-                                  [dict(row, did="maybe"), dict(row, note="N2")], "N1")]
+                                  [dict(row, did="maybe"), dict(row, note="N2")], "N1",
+                                  [row, dict(row, note="N2"), dict(row, note="N2")],
+                                  [row, dict(row, note="N2"), dict(row, note="typo")])]
             texts += [(owner_notes.unreadable(owner_notes.NoteError("the owner notes folder /r/owner-notes cannot be "
                                                                     "read (Permission denied)"), result), both),
                       (owner_notes.arrived(run, result, found[1:]), complete)]

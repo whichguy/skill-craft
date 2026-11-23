@@ -135,7 +135,8 @@ REPEAT: Mapping[str, str] = {
     "carry-forward": (
         "Repeat while an exit condition fails after an iteration; " + _NO_LIMIT + " Stop blocked when a finding is "
         "incompatible with the approved work (a changed requirement, permission or invocation contract): that is "
-        "not a queue edit. " + _NEVER_CANCEL),
+        "not a queue edit, unless an owner note this stage owes asks for the requirement change: then rewrite the "
+        "requirement in place, queue the work and report done. " + _NEVER_CANCEL),
 }
 
 
