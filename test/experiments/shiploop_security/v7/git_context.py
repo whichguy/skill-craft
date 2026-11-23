@@ -800,7 +800,15 @@ def _rebuild(scratch, meta, work, receipt, end):
     _require(_index(_read(meta / "index", MAX_METADATA_BYTES)) == receipt["index"],
              "reconstructed Git index differs")
     status, omitted = _status(scratch, meta, work, end)
-    _require(status == receipt["status"] and not omitted, "reconstructed Git status differs")
+    if status != receipt["status"] or omitted:
+        expected = receipt["status"]
+        raise ContextError(
+            "reconstructed Git status differs: "
+            f"expected_sha256={expected.get('sha256')} observed_sha256={status.get('sha256')} "
+            f"expected_tracked={expected.get('tracked')} observed_tracked={status.get('tracked')} "
+            f"expected_untracked={expected.get('untracked')} observed_untracked={status.get('untracked')} "
+            f"omitted_untracked={omitted}"
+        )
     _require(_git(scratch, end, "rev-parse", "--verify", "HEAD", meta=meta, work=work,
                   limit=128) == receipt["head"]["oid"].encode("ascii") + b"\n", "reconstructed HEAD differs")
     for parent, dirs, files in os.walk(meta):

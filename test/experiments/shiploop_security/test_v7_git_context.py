@@ -243,6 +243,22 @@ class GitContextTests(unittest.TestCase):
             self.scan()
         self.assertFalse(self.output.exists())
 
+    def test_status_mismatch_names_digests_not_paths(self):
+        receipt = self.clean_context()
+        receipt["status"] = {
+            **receipt["status"],
+            "sha256": "0" * 64,
+            "tracked": receipt["status"]["tracked"] + 1,
+        }
+        self.rewrite_receipt(receipt)
+        with self.assertRaises(context.ContextError) as raised:
+            self.restore()
+        message = str(raised.exception)
+        self.assertIn("reconstructed Git status differs", message)
+        self.assertIn("expected_sha256=", message)
+        self.assertIn("observed_sha256=", message)
+        self.assertNotIn("keep", message)
+
     def test_truncation_malformed_index_and_limits_are_incomplete(self):
         receipt = self.clean_context()
         path = self.retained / "objects.pack"
