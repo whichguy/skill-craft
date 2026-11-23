@@ -1,0 +1,10 @@
+catalog_apps_instructions                under development  false
+command_sessions_world_state             under development  false
+deferred_tool_world_state                stable             true
+model_catalog_in_context                 under development  false
+omit_skill_descriptions                  under development  false
+skill_catalog_deltas                     under development  false
+skill_env_var_dependency_prompt          removed            false
+skill_mcp_dependency_install             stable             true
+skill_search                             stable             true
+skip_host_skill_discovery                under development  false

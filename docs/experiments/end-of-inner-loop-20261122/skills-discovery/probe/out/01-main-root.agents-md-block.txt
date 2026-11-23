@@ -1,0 +1,8 @@
+# AGENTS.md instructions for /Users/dadleet/src/skill-craft/docs/experiments/end-of-inner-loop-20261122/skills-discovery/probe/work/a
+
+<INSTRUCTIONS>
+# Probe repo
+
+Repository skills live in `shiploop-skills/` (index: shiploop-skills/INDEX.md). Read the index before planning.
+
+</INSTRUCTIONS>

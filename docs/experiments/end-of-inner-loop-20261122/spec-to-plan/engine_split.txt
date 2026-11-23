@@ -1,0 +1,8 @@
+candidate runs: 78
+   runs with a removed or changed spec line after the plan, by stage: {'carry-forward': 14, 'step-plan': 2, 'other': 6, 'prepare': 1}
+   ... where a removed line is not a traceability line, by stage: {'carry-forward': 4, 'step-plan': 2, 'other': 4, 'prepare': 1}
+   ... such runs: ['~/e2e-runs-pk/20261122-d/d02', '~/e2e-runs-pk/20261122-n/n04', '~/e2e-runs-pk/20261122-n/t03', '~/e2e-runs-pk/20261122-r/u03', '~/e2e-runs/r-20261122-5d2cbc/g2', '~/e2e-runs/r-20261122-5d2cbc/g3', '~/e2e-runs/r-20261122-5d2cbc/k1', '~/e2e-runs/r-20261122-72ca72/m1', '~/e2e-runs/r-20261122-72ca72/t1']
+main runs: 58
+   runs with a removed or changed spec line after the plan, by stage: {'release-verify': 1, 'carry-forward': 9, 'other': 3, 'handoff': 1}
+   ... where a removed line is not a traceability line, by stage: {'release-verify': 1, 'carry-forward': 3, 'other': 2, 'handoff': 1}
+   ... such runs: ['~/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2', '~/e2e-runs-sdlc12/20261121/sonnet-medium-due', '~/e2e-runs-sdlc13/20261121/assign-medium-1', '~/e2e-runs-sdlc14/r15c/20261121/sonnet-C-due-2', '~/e2e-runs-sdlc9/20261120/sonnet-high-due-L-2', '~/e2e-runs-sdlc9/20261120/sonnet-high-due-S-1']
