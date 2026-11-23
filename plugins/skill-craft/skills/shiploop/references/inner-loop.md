@@ -107,11 +107,11 @@ and on accept commits the skill's directory. When to create or update a skill:
 ## Send-back: back to the step plan
 
 A fixable problem is never `blocked`. When a work item's goal proves wrong or
-unachievable while it is being built, from `test-spec` through
-`document`, the stage reports `send-back`: the item goes back to
-`step-plan` with that result as evidence. No count of send-backs stops an item
-(state.md `revisions` counts them). A loop that stops blocked because the goal
-proved wrong reports `send-back`; a cancelled loop is refused (stop is `pause`).
+unachievable while it is being built, or a requirement must change, `test-spec`
+through `document` report `send-back`: the item goes back to `step-plan` with
+that result as evidence, and step-plan revises such a requirement and re-plans.
+No count of send-backs stops an item (state.md `revisions`). A loop that stops
+blocked for either reports `send-back`; a cancelled loop is refused (stop is `pause`).
 
 Fix forward: a step whose `document` was accepted is done and never reruns. The
 interrupted step's results drop; its edits stay. The redone step-plan packet

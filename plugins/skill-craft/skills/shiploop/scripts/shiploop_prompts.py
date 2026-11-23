@@ -711,6 +711,14 @@ _TEST_SPEC_PROCEDURE = textwrap.fill(
     "`oracle` or the open item's `settle`. A plan is not a run; a setup change makes an earlier observation stale.",
     width=117, subsequent_indent="   ", break_on_hyphens=False) + "\n"
 
+# The condition on a weakened requirement, and what the review of a step plan that was sent back prints after it: the
+# requirement change it was asked for is checked against its evidence, not undone (step-plan's duty 10).  No other review
+# prints it (``planning_review_focus``).
+_WEAKENED = ("a required requirement, test ID or case dropped or weakened compared with the\n"
+             "  prior accepted version")
+_ASKED_CHANGE = (",\n  except a requirement change the send-back or an owner note asks for: check that\n"
+                 "  change against its evidence instead")
+
 # The conditions the Improve review applies to a planning result (PLANNING_REVIEW_FOCUS, further down).  The spec and
 # test-strategy duties hold the ones that apply to them, so a producer reads in its own packet what its result must
 # meet (SPEC S-6).  One source: the child's list is the producers' list plus the condition on steps, which a spec or
@@ -723,8 +731,7 @@ _REVIEW_FOCUS_ITEMS = (
     "  value, a missing assertion, a title-only test, or an absent required name",
     "a documented command that does not run what it claims on the target runtime:\n"
     "  run it once and record the exit code and the cases it executes",
-    "a required requirement, test ID or case dropped or weakened compared with the\n"
-    "  prior accepted version",
+    _WEAKENED,
     "a claim about what the runtime, platform or a library can do that a decision\n"
     "  depends on, with no primary-documentation source or probe result: check it,\n"
     "  and correct the plan where it is wrong",
@@ -769,7 +776,8 @@ ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed nam
 _CARRY_FORWARD_ONE_STEP = """\
 2. **Queue** (Carry-forward mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
-   queue, rows `{"id", "title", "follows", "context"}`, and say why in the summary.
+   queue, rows `{"id", "title", "follows", "context"}`, and say why in the summary. A requirement this item's step plan
+   revised is accepted work, not the changed requirement that stops the loop blocked.
 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeated. Inspect
    the repository skill index (KNOWLEDGE/environment.md ## Skills) and your host's skills and list them in evidence_refs,
    then record `none`, or `reuse` naming the skill in `reason`. Record `update` or `create` only when an R-<n> says the
@@ -1395,6 +1403,12 @@ Change no product file in this stage.
     in KNOWLEDGE/, unless an owner note this stage owes asks for a requirement change: then rewrite that requirement in
     place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the old clause) and plan the step for the
     rewritten text.
+    Otherwise, when the send-back this plan answers says that an existing R-<n> must change, read that entry and the
+    evidence in the sending result, and rewrite the clause in place the same way: keep its ID and every clause the
+    send-back does not name, and never relax one to fit code or tests already written. Say in the entry what it is based
+    on and why it was revised; begin `summary` with "Revised R-<n>: <what changes for the requester>, because <the
+    fact>"; put the R-<n> in `follows` and change the steps still to run, their criteria and checks to the new text.
+    When a done step's accepted case proves the old clause, report blocked naming both: that case stays as accepted.
 """ + _STEP_PLAN_NO_GRAPH + """\
 12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
     used.
@@ -1547,7 +1561,8 @@ preparatory commit); a mismatch there is a send-back.
    next steps' packets read it:
    - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
-     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
+     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n> and what it must
+     say.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
@@ -1591,8 +1606,10 @@ preparatory commit); a mismatch there is a send-back.
    - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
      revalidation, ahead of its consumers;
    - needed research or preparation prerequisite: its own item ahead of every consumer;
-   - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
-     transcript, invent no decision ledger; a context summary is not proof);
+   - affected future item (one that follows a requirement this item's step plan revised included): its `context` carries
+     decision locator, rationale, revalidation condition and, for such a requirement, the changed behaviour and its R-<n>
+     in KNOWLEDGE/spec.md (copy no transcript, invent no decision ledger; a context summary is not proof). That revision,
+     accepted at step-plan, is not the incompatible finding below;
    - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
      loop and report blocked; it is no queue edit, unless an owner note this stage owes asks for the requirement
      change: then rewrite the requirement in place, queue the work and report done.
@@ -2332,6 +2349,12 @@ end. Look for these conditions and fix them within scope:
 Follow route and user/repo history rules. Reuse other history and green checks
 only with unchanged inputs and no finding or rule requiring a repeat. A finding-free pass is trivial.
 """
+_SENT_BACK_REVIEW_FOCUS = PLANNING_REVIEW_FOCUS.replace(_WEAKENED, _WEAKENED + _ASKED_CHANGE)
+
+
+def planning_review_focus(sent_back: bool) -> str:
+    """``PLANNING_REVIEW_FOCUS``; for the review of a step plan that was sent back, with ``_ASKED_CHANGE``."""
+    return _SENT_BACK_REVIEW_FOCUS if sent_back else PLANNING_REVIEW_FOCUS
 
 
 END_REVIEW_FOCUS_HEAD = """\
@@ -2741,6 +2764,7 @@ __all__ = (
     "INNER_GROUPS",
     "OUTER",
     "PLANNING_REVIEW_FOCUS",
+    "planning_review_focus",
     "PLANNING_REVIEW_STAGES",
     "PRELUDE",
     "PROGRESS_REPORTING",

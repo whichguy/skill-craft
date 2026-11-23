@@ -111,7 +111,8 @@ REPEAT_STEP = (
 REPEAT: Mapping[str, str] = {
     "step-plan": (
         "Repeat while the check says no or an exit condition above does not hold; " + _NO_LIMIT
-        + " Stop blocked only when the plan no longer requires the item. " + _NEVER_CANCEL),
+        + " Stop blocked only when the plan no longer requires the item, or when a done step's accepted case proves a "
+        "clause this plan must rewrite. " + _NEVER_CANCEL),
     "test-spec": (
         "Repeat while a criterion has no entry, an entry lacks a field, or the check refuses an id; " + _NO_LIMIT
         + " Stop blocked when a criterion cannot be tested as written (the stage then reports send-back). "
@@ -130,8 +131,8 @@ REPEAT: Mapping[str, str] = {
         "when a recorded command cannot run here. " + _NEVER_CANCEL),
     "document": (
         "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong "
-        "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it). "
-        + _NEVER_CANCEL),
+        "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it), or when a "
+        "requirement, the step plan or a criterion is wrong (the stage then reports send-back). " + _NEVER_CANCEL),
     "carry-forward": (
         "Repeat while an exit condition fails after an iteration; " + _NO_LIMIT + " Stop blocked when a finding is "
         "incompatible with the approved work (a changed requirement, permission or invocation contract): that is "
@@ -217,16 +218,17 @@ def terminal_path(action_id: str) -> str:
 
 
 def send_back_open_path(root: Path, action_id: str) -> Path:
-    """The marker a refused implement done leaves when its fix is a send-back (``open_send_back``)."""
+    """The marker a refused implement or document done leaves when its fix is a send-back (``open_send_back``)."""
     return Path(root) / LOOP_DIR / (action_id + "-send-back-open")
 
 
 def open_send_back(root: Path, action_id: str, reason: str) -> None:
-    """Record that a gate refused this implement action's done and named send-back as the fix.
+    """Record that a gate refused this implement or document action's done and named send-back as the fix.
 
-    The step's Until Loop has completed by the time a done is submitted, and a completed loop supports only done, so the
-    refusal's own exit was refused in turn (build plan S3.3's route test).  The marker lets that one action's send-back
-    through, as ``_remedy_open`` does for the test stage; it holds the refusal's first line, for the record.
+    The stage's Until Loop has completed by the time a done is submitted, and a completed loop supports only done, so the
+    refusal's own exit was refused in turn (build plan S3.3's route test for implement; document's until 2026-11-22).
+    The marker lets that one action's send-back through (``check_terminal``), as ``_remedy_open`` does for the test stage;
+    it holds the refusal's first line, for the record.
     """
     path = send_back_open_path(root, action_id)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -745,8 +747,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     evidence_refs once this check holds), and compares it with the contract rebuilt from state, never the contract
     file.  Refused: an outcome the stage does not accept, a missing
     receipt for any outcome but blocked, an active receipt, or a packet from another contract.  Returns the receipt
-    it checked, or None when the result is accepted without one (a blocked result before the loop started, a route
-    out of the test or document stage).
+    it checked, or None when the result is accepted without one (a blocked result before the loop started, the send-back
+    a gate's refusal named, a route out of the test or document stage).
     """
     found = cursor(state)
     _need(found is not None, "the run is not in an inner stage, so it has no stage loop")
@@ -757,7 +759,8 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
         return None  # The loop never started (for example, no runtime resolves); the summary and awaiting say why.
-    if outcome == "send-back" and stage == "implement" and send_back_open_path(root, action_id).is_file():
+    if (outcome == "send-back" and stage in ("implement", "document")
+            and send_back_open_path(root, action_id).is_file()):
         return None  # a gate refused this action's done and named send-back (open_send_back)
     if outcome in ("send-back", "blocked") and (
             (stage in ("test", "document") and _remedy_open(root, action_id))

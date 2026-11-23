@@ -685,7 +685,7 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
         ("outside an R-<n> entry the committed spec holds", outside))
         if lines]
     return ("Restore " + str(path) + " to what HEAD holds plus this step's requirement lines, then run the same "
-            "callback again; to change a requirement, report send-back naming it.\n"
+            "callback again; to change a requirement, report send-back naming it and what it must say.\n"
             "In a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending ("
             + marker + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
 

@@ -278,7 +278,9 @@ Required investigation must establish the facts needed to choose an executable
 plan. If an unknown is intentionally a future research producer, consumers must
 depend on its checked output. A plan to "figure out permissions later" is not
 resolution of an execution-blocking authority gap. Pause for incompatible scope,
-acceptance, writer or permission changes.
+writer or permission changes, and for an acceptance change no send-back or owner
+note asks for. A requirement that a step found must change is a `send-back`, and
+this step plan revises it with its evidence and re-plans.
 
 Plan checks exercise real plan properties: complete output/case mappings,
 ordered prerequisites, known interface names and example consistency. A file

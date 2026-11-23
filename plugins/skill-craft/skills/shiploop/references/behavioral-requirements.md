@@ -482,10 +482,11 @@ Carry this model through the existing stages:
 | `product-acceptance` | Reconcile end-to-end flows and state interactions across items with whole-product evidence; corrective work returns through `add-work` and new work items. |
 | `handoff` | Link the behavior model and case evidence, naming scope/exclusions and unresolved limitations honestly. Generic harness proposals stay separate. |
 
-If learning contradicts accepted scope/acceptance, stop and seek direction, not a
-silent spec edit. Future-queue revision cannot change accepted acceptance. Never
-invent a rewind command or directly modify authority files to bypass the
-protocol.
+If learning contradicts accepted scope/acceptance, make no silent spec edit: in a
+step, a requirement that must change is a `send-back`, and step-plan revises it
+with its evidence and re-plans; elsewhere, stop and seek direction. Future-queue
+revision cannot change accepted acceptance. Never invent a rewind command or
+directly modify authority files to bypass the protocol.
 During execution, preserve the observation in the
 [project knowledge checkpoint](carry-forward.md), including what it contradicts
 and which consumers are affected. The separate living ledger preserves learning
