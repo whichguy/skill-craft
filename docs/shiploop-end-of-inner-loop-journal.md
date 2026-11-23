@@ -482,8 +482,14 @@ far (about 19:15). Design, its outside review and the decisions: `docs/experimen
   the branch pass every verdict and every case check (Sol 6.2 medium ticket-assignment 3 of 3 and 18 of 18 held-out, 11.1
   minutes; Sonnet 5.5 medium csv-report 5 of 5, 14.6 minutes, $5.33; shared-expenses 6 of 6, 20.9 minutes, $6.20).
   carry-forward changed spec.md in 0 of 3 (0 of 2 on Sonnet, where the old rate was 19 of 50). That agrees with the fix and
-  does not prove it: two Sonnet runs without an edit would occur 38% of the time at the old rate. The fix then goes to main
-  and a release.
+  does not prove it: two Sonnet runs without an edit would occur 38% of the time at the old rate. Pushed to main as three
+  commits (cdd6dd2614d1f8fc828b9f0904d108dc0ab6fa87, 1a5526c9cfb830febb9dcf521b160fbab7fd1bc5,
+  455578475bd77766a4f117db35248ce1f288cd36; quick tier 40 suites, GitHub CI success).
+- **Released, 2026-11-22:** skill-craft 4.5.1 / ShipLoop 2.7.1 (c06157c947ce9646bbe7528110a12b68ed8fbca8). Four release checks
+  and the published-install smoke pass; Claude, Codex and Grok refreshed, each installed `skills/shiploop` byte-identical to
+  the release (the Codex refresh removed the 4.4.2 and 4.5.0 folders; both were restored from their release commits).
+- **Open with the owner:** defect 2's no-note half. **Not proven by the round:** a multi-item Sonnet delivery, an owner
+  note at carry-forward, the end-of-work review's new line, any Grok run.
 - **Defect 3, decided by a census, nothing built** (`open-items/`; details in the design): 255 runs, 313 open rows, 312
   settled, 1 not due yet, 0 dropped; the approved guard by item ID would have refused 42 of 68 due-stage results with no
   right catch, because IDs are local to one result. Recorded as a real code gap with no cost on record; the owner can
