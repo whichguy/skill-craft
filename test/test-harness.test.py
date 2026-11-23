@@ -73,6 +73,14 @@ def scan(paths):
     return findings, files_read, bytes_read
 
 
+def barrier_failure_detail(barrier, leftovers, elapsed, stderr):
+    sizes = [(row["name"], len(row.get("text", ""))) for row in leftovers]
+    return (
+        f"operation barrier was not reached; elapsed={elapsed:.3f}s; "
+        f"staging_sizes={sizes}; stderr_tail={stderr[-400:]!r}"
+    )
+
+
 def self_test_detail(output):
     """Named FAIL lines / fail-index first, then the last 1500 characters."""
     indexed = re.search(
@@ -232,7 +240,10 @@ while True:
                                   "exit": proc.returncode, "elapsed": elapsed, "barrier": barrier,
                                   "final": artifact, "staging_leftovers": leftovers, "pids": pids,
                                   "stdout": stdout, "stderr": stderr}), flush=True)
-                self.assertIsNotNone(barrier, "operation barrier was not reached")
+                self.assertIsNotNone(
+                    barrier,
+                    barrier_failure_detail(barrier, leftovers, elapsed, stderr),
+                )
                 self.assertEqual(barrier["scenario"], name)
                 self.assertEqual(proc.returncode, 124, stderr)
                 self.assertLess(elapsed, timeout_secs + 1.5)
@@ -270,6 +281,11 @@ while True:
                         except ProcessLookupError:
                             pass
                 proc.communicate()
+
+    def test_barrier_failure_detail_names_empty_staging(self):
+        msg = barrier_failure_detail(None, [{"name": "x.tmp", "text": ""}], 1.02, "hard timeout\n")
+        self.assertIn("staging_sizes=[('x.tmp', 0)]", msg)
+        self.assertIn("elapsed=1.020s", msg)
 
     def test_evidence_precedes_deadline_consuming_cleanup(self):
         # Only this scenario gets a larger cap. At a 1s cap the supervisor has the
