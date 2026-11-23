@@ -524,3 +524,6 @@ registration: `docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite-des
 - **Limits kept on record:** a rewrite the plan does not announce is not listed; a requirement the spec lacks has no new route (the
   `follows` refusal still says its entry may be added, against duty 10); carry-forward still blocks on a requirement change first
   found there with no owner note; the inline test packet of the two-item fixture passes 20,000 characters (Grok).
+- **Released, 2026-11-22 (23:45):** skill-craft 4.6.0 / ShipLoop 2.8.0
+  (4d805b0842f642d1e4b15e3c5a0e72f37c69ecb2, on 1c3a6996b47907bd241f42c71a2b63f221e4aded: guarded push 49 suites, GitHub CI
+  success); four release checks and the published-install smoke pass; Claude, Codex and Grok refreshed.
