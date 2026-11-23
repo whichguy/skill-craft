@@ -12,13 +12,42 @@ this journal or the evidence may contain a member's name, email, phone, birthday
 or a fact that identifies one gym. This journal names what was removed by category, never by value, and names the source by
 commit hash and path, not by repository.
 
+## Update 2026-11-22 - the skill left this repository
+
+The `pushpress` skill, its test files and its fixture folder were removed from skill-craft on 2026-11-22 by the owner's decision. Its one
+source is now a private repository: the one the `sport80` skill moved to (removed here by `4ef10ecc7dd65341c77020905df6a48393cd2181`),
+where the skill continued from this copy (0.1.1, byte for byte) and is at 0.1.2. skill-craft keeps no copy, shim, pointer skill or alias,
+and no catalog pin (a pin would show that repository's name, path and commit in this public catalog).
+
+Why: the two copies had diverged on safety. The private one's 0.1.2 adds a rule that a new document text needs its own yes before it is
+published (publishing makes hidden assignments visible and signable), a rule that signing is never done, two new action classes and
+changed rows for writes, outbound messages and deletes. This copy has none of it, and it was the copy that loaded in every project outside
+the private repository. Porting the rules here would have kept two sources, so the drift could recur; the owner chose removal.
+
+Checked before removing, by exporting both trees at their `origin/main` and diffing them: in the five files that differ (`SKILL.md` and
+four references), every line that exists only in this copy is wording that 0.1.2 replaced (9 lines in `SKILL.md` against 20 replacing
+them; in the four references 1 against 3, 3 against 11, 7 against 66 and 3 against 5); the extractor script and the five other
+references are identical. The one file that
+exists only here, `test/fixtures/pushpress-extractor/browser-tools.cjs` (848 lines, a copy of a ShipLoop E2E browser helper that the
+real-browser privacy fixture used; added by `2cd119d1238896e6ea2394018450328ff50f5b9c` on 2026-11-19), leaves with the skill, and
+when this was checked the private copy's fixture still pointed at the helper's old path (a gap in that copy, not in this one).
+Evidence: `docs/evidence/pushpress-removal-20261122/README.md`.
+
+What stays: this journal and `docs/evidence/pushpress-*` as the record of rounds 0 to 13, and the whole history of the skill
+(`git log -- skills/pushpress`, last changed by `2e96482d9c53cd27c471c0278358d23dc537a284`, skill-craft 2.37.3, pushpress 0.1.1).
+Everything below describes the skill as it was published here (0.1.0 and 0.1.1); later rounds are in the private repository's journal.
+
+Costs the owner accepted by choosing removal: this repository is public and the destination is private, so the card is no longer
+public after the release (0.1.0 and 0.1.1 stay in history and in the published release commits); Grok and Cursor have no route to
+the private plugin; hosts that do not refresh keep the old copy.
+
 ## Request and consumers
 
 On 2026-11-08 the owner asked whether a PushPress skill had been put in the skill-craft marketplace. It had not. A project skill
 for one gym had been built and surveyed read-only the same day, and the request was a generic copy of it. The marketplace is this
 repository: a skill ships as `skills/<leaf>/` inside the one `skill-craft` plugin with a pending note, as `sport80` did.
 
-Consumers: any gym that runs PushPress Core and works with an agent that has a browser tool, installed as `skill-craft:pushpress`.
+Consumers: any gym that runs PushPress Core and works with an agent that has a browser tool, installed as `skill-craft:pushpress` (`superseded` 2026-11-22: the skill is no longer published here; see the update above).
 The gym the source skill was written for keeps its own private overlay (`references/<tenant>.md`) and its own project skill; neither is
 here. Maintainers: a change to a route, label or claim needs a re-check against the live page first (the skill's drift procedure).
 
