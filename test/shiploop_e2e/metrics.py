@@ -136,9 +136,12 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # The routed verbs lint, red-check and backchain-check refuse with "ShipLoop <verb> could not run: " (exit 3) instead;
 # until 2026-10-28 no prefix here matched it, so each was recorded with an empty line (7 lint refusals, bf-ds-*-09c33b).
 # A failed `shiploop check` opens with "ShipLoop check: the check says no. " (phase B) and trails "Nothing was accepted or counted."
+# A check refused for its owner notes opens with them instead ("ShipLoop check: owner note N1 is not accounted for: ...",
+# shiploop_owner_notes.refusal), so that a host that shows its model one line shows the fix.
 # v12 can refuse an absent authoritative run before workspace dispatch or trace creation.
 REFUSAL_LINE = re.compile(r"^(?:ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
-                          r"check: the check says no\. )|error: no authoritative state\.md in [^\r\n]+)", re.M)
+                          r"check: (?:the check says no\. |owner notes? N\d|\"notes\" in /|the owner notes folder ))|"
+                          r"error: no authoritative state\.md in [^\r\n]+)", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
                           r"Nothing was accepted or counted\. |"
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
@@ -165,6 +168,14 @@ KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes 
 # with no other reader to update; a gate not yet seeded (its refusal text not read here) stays a commented
 # placeholder below rather than an empty or guessed pattern.
 GATE_SIGNATURES: dict[str, re.Pattern] = {
+    # A done result that does not account for the owner notes it owes (shiploop_owner_notes.refusal, unreadable, arrived;
+    # the review import's refusal in shiploop_navigator._import_notes_gate).  First: its first line names the notes.
+    "owner_notes": re.compile(r"owner notes? N\d+(?:, N\d+)*(?: and N\d+)? (?:is|are) not accounted for: |"
+                              r"owner notes? N\d+(?:, N\d+)*(?: and N\d+)? arrived while this handoff|"
+                              r"\"notes\" in \S+ (?:has a row this stage does not owe|is not a list of rows)|"
+                              r"the owner notes folder \S+ cannot be read|the owner note \S+ cannot be read|"
+                              r"the reviewed result's owner notes rows are not kept|notes(?:\[\d+\])? must be "
+                              r"(?:a list of rows|an object of text values)"),
     # Consumer hand-off faults (_handoff_fault / _Fault, shiploop_navigator.py ~3151-3219): a done result's
     # follows, assumptions, test_cases, step notes or lessons the next stage cannot use.
     "handoff_placeholders": re.compile(r"Replace placeholders in |that has real values,"),

@@ -305,7 +305,7 @@ class TracedRun(unittest.TestCase):
         prints = sum(len(sends) for sends in run_trace.read(self.run_dir)["packets"].values())
         self.assertGreater(prints, 2)  # every print is checked, not only the two reprints
         self.assertEqual(found["packet_copies"]["evidence"], f"{prints} prints (2 reprints), each with its kept copy")
-        self.assertEqual(self.metrics["run_trace"]["notes"], {"written": 0, "held": 0, "delivered": 0, "cited": 0})
+        self.assertEqual(self.metrics["run_trace"]["notes"], {"written": 0, "settled": 0, "carried": 0, "open": 0})
         line = run_trace.checks_line(found)
         self.assertTrue(line.startswith("keepalive text pass ("), line)
         self.assertTrue(line.endswith("owner note not exercised; session end not exercised"), line)
@@ -571,10 +571,10 @@ class TracedRun(unittest.TestCase):
 
 class OwnerNoteMidStep(unittest.TestCase):
     """--owner-note-at: the harness writes one note once the step's packet has printed, with the run's own CLI; the next
-    complete is held to show it, a packet that quotes it is read, the step accepted after delivers it, and the owner_note
-    check follows it to the end."""
+    complete is refused until its result has a row for the note, the packet read after quotes it, and the owner_note check
+    follows it to the row that settles it."""
 
-    def test_the_watcher_writes_mid_step_and_the_check_follows_the_note_to_delivery(self):
+    def test_the_watcher_writes_mid_step_and_the_check_follows_the_note_to_its_row(self):
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-owner-note-") as temp:
             base = Path(temp).resolve()
             out, repo = base / "out", base / "repo"
@@ -607,23 +607,27 @@ class OwnerNoteMidStep(unittest.TestCase):
             record = json.loads((out / owner_note.FILE).read_text())
             self.assertEqual((record["exit"], record["id"], record["stage"], record["action"]), (0, "N1", "intake", intake),
                              record)
-            self.assertEqual(run_trace.checks(run_trace.read(run))["owner_note"]["verdict"], "open")  # active, not delivered
+            self.assertEqual(run_trace.checks(run_trace.read(run))["owner_note"]["verdict"], "open")  # active, no row yet
             # A resume finds the record and starts no second watcher.
             self.assertFalse(owner_note.Watcher(out, CLI, "intake", lambda: str(run)).start().thread.is_alive())
             (run / "inbox" / f"{intake}.md").write_text(INTAKE.replace("(fact).", "(fact). Read owner note N1."),
                                                         encoding="utf-8")
-            held = cli("complete", "--run-dir", str(run), f"--action={intake}")
-            self.assertNotEqual(held.returncode, 0, held.stdout + held.stderr)
-            self.assertIn(owner_note.TEXT[:40], held.stdout + held.stderr)
-            # A held callback shows the note but never delivers it: the packet the model reads next quotes it again.
+            refused = cli("complete", "--run-dir", str(run), f"--action={intake}")
+            self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+            self.assertTrue(refused.stderr.startswith("ShipLoop navigator: owner note N1 is not accounted for: read "),
+                            refused.stderr)
+            self.assertIn(owner_note.TEXT[:40], refused.stderr)
+            # The packet read next quotes it with the duty, as every packet does until a row settles it.
             self.assertIn(owner_note.TEXT[:40], cli("next", "--run-dir", str(run)).stdout)
+            row = '"notes": [{"note": "N1", "did": "applied", "detail": "The summary cites N1."}], "evidence_refs"'
+            (run / "inbox" / f"{intake}.md").write_text(INTAKE.replace("(fact).", "(fact). Read owner note N1.")
+                                                        .replace('"evidence_refs"', row), encoding="utf-8")
             accepted = cli("complete", "--run-dir", str(run), f"--action={intake}")
             self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
             found = run_trace.checks(run_trace.read(run))["owner_note"]
-            self.assertEqual((found["verdict"], found["evidence"]),
-                             ("pass", f"N1 delivered by {intake}, held once in {intake}, cited"))
+            self.assertEqual((found["verdict"], found["evidence"]), ("pass", "N1 settled (applied at intake #1)"))
             self.assertEqual(run_trace.summary(run_trace.read(run))["notes"],
-                             {"written": 1, "held": 1, "delivered": 1, "cited": 1})
+                             {"written": 1, "settled": 1, "carried": 0, "open": 0})
 
 
 def _log(out: Path) -> metrics.ToolLog:

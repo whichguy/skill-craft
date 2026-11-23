@@ -2551,6 +2551,51 @@ class GateCountsTest(unittest.TestCase):
                 self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "defaults",
                                  str(caught.exception))
 
+    def test_each_owner_notes_refusal_is_a_refusal_line_and_classifies_under_its_own_gate(self) -> None:
+        """The owner-notes refusals, built by the gate's own functions, never typed (shiploop_owner_notes): for both
+        commands their first line is a refusal line, and it names the notes gate."""
+        import sys
+        import tempfile
+        from pathlib import Path
+        metrics = _support.metrics
+        scripts = str(_support.ROOT / "skills/shiploop/scripts")
+        sys.path.append(scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        import shiploop_navigator as navigator
+        import shiploop_owner_notes as owner_notes
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp)
+            state = navigator.new_state(str(run), "Add hello.", lint_option="off")
+            for text in ("one", "two"):
+                owner_notes.write(run, text)
+            found, result = owner_notes.read(run), run / "inbox" / "nav-a.md"
+            done = {"outcome": "done", "summary": "s"}
+            row = {"note": "N1", "did": "already", "detail": "d"}
+            # Each text with the prefixes the CLI prints before it (shiploop_protocol): a NotesOwed refusal leads a
+            # check's line too; the end read and the review import are complete's; a shape fault is an ordinary refusal.
+            both, complete = ("ShipLoop navigator: ", "ShipLoop check: "), ("ShipLoop navigator: ",)
+            shape = ("ShipLoop navigator: ", "ShipLoop check: the check says no. ")
+            texts = [(owner_notes.refusal(run, result, found, state, "intake", None, owner_notes.faults(
+                          found, state, "intake", None, dict(done, notes=rows), folder=run / "owner-notes")), both)
+                     for rows in ([], [row], [row, dict(row, note="N2"), dict(row, note="N3")],
+                                  [dict(row, did="maybe"), dict(row, note="N2")], "N1")]
+            texts += [(owner_notes.unreadable(owner_notes.NoteError("the owner notes folder /r/owner-notes cannot be "
+                                                                    "read (Permission denied)"), result), both),
+                      (owner_notes.arrived(run, result, found[1:]), complete)]
+            for call in (lambda: owner_notes.canonical("N1"), lambda: owner_notes.canonical([["N1"]])):
+                with self.assertRaises(ValueError) as caught:
+                    call()
+                texts.append((str(caught.exception), shape))
+            with self.assertRaises(navigator.NotesOwed) as caught:
+                child = {"seed_result": dict(done, notes=[row]), "stage": "spec"}
+                navigator._import_notes_gate(run, state, child, done, str(result))
+            texts.append((str(caught.exception), complete))
+            for text, prefixes in texts:
+                first = text.splitlines()[0]
+                for prefix in prefixes:
+                    self.assertRegex(prefix + first, metrics.REFUSAL_LINE)
+                    self.assertEqual(metrics.refusal_gate(prefix + first), "owner_notes", first)
+
     def test_the_restate_and_small_pass_refusals_classify_under_their_gates(self) -> None:
         """The unverified restatement's refusals and the Improve convergence gate's, built by their gates, never typed."""
         scripts = str(ROOT / "skills/shiploop/scripts")

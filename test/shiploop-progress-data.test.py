@@ -705,7 +705,6 @@ class StoryObservationTests(unittest.TestCase):
             {"kind": "command", "verb": "complete", "exit": 0},
             {"kind": "command", "verb": "complete", "exit": 2, "error": "stage refused"},
             {"kind": "command", "verb": "check", "exit": 1},
-            {"kind": "command", "verb": "check", "exit": 3, "held": ["note-1"]},
             {"kind": "command", "verb": "next", "exit": 130, "crashed": "KeyboardInterrupt"},
             {"kind": "command", "verb": "next", "exit": 1, "crashed": "ValueError"},
             {"kind": "command", "verb": "next"},
@@ -727,7 +726,7 @@ class StoryObservationTests(unittest.TestCase):
         got = [(e["kind"], e["status"], e["exit"]) for e in self.trace_events(story)]
         self.assertEqual(got, [
             ("command", "ok", 0), ("command", "refused (exit 2)", 2), ("command", "not passed (exit 1)", 1),
-            ("command", "held (exit 3)", 3), ("command", "interrupted (exit 130)", 130),
+            ("command", "interrupted (exit 130)", 130),
             ("command", "crashed (exit 1)", 1), ("command", None, None), ("command", None, None),
             ("packet", "sent", None), ("packet", "sent again (same text)", None),
             ("hook", "allow", None), ("hook", None, None), ("hook", None, None),

@@ -454,7 +454,8 @@ def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
         stage = row.get("stage") if isinstance(row.get("stage"), list) and len(row["stage"]) == 2 else None
         if row.get("kind") != "command" or row.get("verb") not in ("complete", "check") or not stage:
             continue
-        if row.get("held") or row.get("crashed"):  # a hold for owner notes or an interrupt moves nothing and refuses nothing
+        # A hold for owner notes (a trace an older engine wrote) or an interrupt moves nothing and refuses nothing.
+        if row.get("held") or row.get("crashed"):
             continue
         at = round(row["ts"], 1)
         # A check is the verb `check` (phase B) or, in a run before it, `complete` with check_only: it moves nothing.

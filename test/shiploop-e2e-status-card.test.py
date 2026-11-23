@@ -408,7 +408,7 @@ class Builders(unittest.TestCase):
         self.assertEqual({name: (t["value"], t["tone"]) for name, t in checks.items()},
                          {"keepalive_text": ("pass", "ok"), "packet_copies": ("pass", "ok"), "owner_note": ("open", "warn"),
                           "session_end": ("not exercised", "")})
-        self.assertEqual(checks["owner_note"]["sub"], "N1 waiting")
+        self.assertEqual(checks["owner_note"]["sub"], "N1 open, for the next stage")
         # A session end that freed the run, then the next session's continued turn: the session-end tile passes.
         ended = {"kind": "hook", "hook": "session-end", "decision": "release", "released": True, "host": "claude",
                  "session": "aaaaaaaaaaaa", "reason": "other", "ts": 1404.0}

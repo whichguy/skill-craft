@@ -40,6 +40,11 @@ improve_cli = importlib.util.module_from_spec(_IMPROVE)
 sys.modules[_IMPROVE.name] = improve_cli
 _IMPROVE.loader.exec_module(improve_cli)
 
+_NOTES = importlib.util.spec_from_file_location("shiploop_owner_notes_suite", ROOT / "test" / "shiploop-owner-notes.test.py")
+notes_suite = importlib.util.module_from_spec(_NOTES)
+sys.modules[_NOTES.name] = notes_suite
+_NOTES.loader.exec_module(notes_suite)
+
 FOCUSED = contract.FOCUSED
 # A test-strategy target that keeps state between runs (F3), named by the rows that need one.
 STATEFUL = {"target": "the shared service", "keeps_state": "yes", "base_state_route": "a clean namespace per run"}
@@ -224,6 +229,121 @@ class CommitDodgeTests(improve_cli.ImproveCliFixture):
         self.run_named(refusal)
         self.assertNotEqual(before, self.git("rev-parse", "HEAD").strip())
         self.assertIn(exit_message.rsplit("\n", 2)[-2], self.head_message())
+
+
+# The known ways round the owner-notes gate (its design, section 3): each passes, and the fixture shows what passes and
+# where the requester can still see it.  (label, the design's row, the fixture's method.)
+NOTE_WAYS_ROUND = [
+    ("a row says applied or already and the work does not do it",
+     "Passes. The stage's review, where it has one, and the report, which shows the words beside the row, are the checks",
+     "row_the_work_does_not_bear_out"),
+    ("a row says declined for a poor reason", "Passes. The requester reads the reason", "declined_for_a_poor_reason"),
+    ("carry-forward names an item that does something else, or a later carry-forward drops or rewrites the item",
+     "Passes. The report says whether the item was completed, queued or dropped", "item_dropped_later"),
+    ("a rewind reruns the stage that applied a note and the rerun undoes it", "Passes. The row stands",
+     "rewind_after_applied"),
+    ("the host never records what the user said as a note", "Nothing happens", "never_recorded"),
+    ("a note is written in the instant between the last read at handoff and the save",
+     "The note command has already said \"written\"; the report does not hold it", "note_after_the_last_read"),
+]
+SAID = "Name the output file out.txt, not built.txt."
+
+
+class NoteWaysRoundTests(notes_suite.NoteRun):
+    """Each known way round the owner-notes gate passes; the fixture pins what passes and what the requester is shown."""
+
+    def test_the_table_has_one_row_for_each_way_round_the_design_names(self) -> None:
+        design = (ROOT / "docs/experiments/ratchet-pilot-20261120/shiploop-notes/DESIGN.md").read_text(encoding="utf-8")
+        section = design.split("## 3. Known ways round", 1)[1].split("\n## 4.", 1)[0]
+        named = [line.split("|")[2].strip() for line in section.splitlines()
+                 if line.startswith("| ") and not line.startswith("| Way round") and not line.startswith("| ---")]
+        self.assertEqual([row[1] for row in NOTE_WAYS_ROUND], named)
+
+    def report(self, run) -> str:
+        done = self.cli("report", "--run-dir", str(run))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return done.stdout
+
+    def row_the_work_does_not_bear_out(self) -> None:
+        run, _head = self.new_run("research")
+        self.note(run, SAID)
+        head = self.next(run)
+        untrue = notes_suite.row(did="already", detail="The research already names the output file.")
+        self.accept(head, self.result(head, untrue))   # the run still builds built.txt: nothing checks the product
+        report = self.report(run)
+        self.assertIn("<pre>" + SAID + "</pre>", report)
+        self.assertIn("The research already names the output file.", report)
+
+    def declined_for_a_poor_reason(self) -> None:
+        run, _head = self.new_run("discovery")
+        self.note(run, SAID)
+        head = self.next(run)
+        self.accept(head, self.result(head, notes_suite.row(did="declined", detail="Not now.")))
+        self.assertIn("<td>declined</td><td>Not now.</td>", self.report(run))
+
+    def item_dropped_later(self) -> None:
+        run, _head = self.new_run("prepare", results=notes_suite.THREE_ITEMS)
+        self.walk(run, self.at("carry-forward", "W1"), results=notes_suite.THREE_ITEMS)
+        self.note(run, SAID)
+        head = self.next(run)
+        # W3 is an item that does something else entirely: the row passes, as the design says.
+        self.accept(head, self.result(head, notes_suite.row(did="applied", detail="W3 renames the file", item="W3")))
+        self.walk(run, self.at("carry-forward", "W2"), results=notes_suite.THREE_ITEMS)
+        state = self.state(run)
+        action = contract.nav.current_action(state)["id"]
+        state = contract.nav.apply(state, action, {**contract.DONE, **contract.RESULTS["carry-forward"],
+                                                   "work_items": []})   # the later carry-forward drops W3
+        if state.get("active_improve") is not None:     # W2 is now the last item: its review, synthetic here
+            state = contract.nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        contract.nav.save(run, state)
+        self.assertIn("<td>W3 (no longer in the queue)</td>", self.report(run))
+
+    def rewind_after_applied(self) -> None:
+        run, _head = self.new_run("step-plan")
+        self.note(run, SAID)
+        head = self.next(run)
+        self.walk(run, self.at("test"), rows={"step-plan": [notes_suite.row(did="applied", detail="S1 writes out.txt")]})
+        state = self.state(run)
+        contract.nav.save(run, contract.nav.apply(state, contract.nav.current_action(state)["id"], {
+            "outcome": "send-back", "summary": "The step plan's command is wrong."}))
+        head = self.next(run)
+        self.assertEqual(self.owes(head), [])          # the rerun owes no row: the applied row stands
+        rerun = self.result(head)                      # built.txt exists now: the rerun's plan says it works
+        rerun["expectations"] = [dict(contract.STEP_PLAN["expectations"][0], state="works", statement="built.txt exists.",
+                                      check="test -f built.txt")]
+        self.accept(head, rerun)
+        ledger = contract.nav.owner_notes.ledger(self.state(run))
+        self.assertEqual([entry["did"] for entry in ledger["N1"]], ["applied"])
+
+    def never_recorded(self) -> None:
+        run, head = self.new_run("spec")
+        self.assertNotIn("Owner notes", head)
+        self.accept(head, self.result(head))
+        self.assertFalse((run / contract.nav.owner_notes.DIR).exists())
+
+    def note_after_the_last_read(self) -> None:
+        run, head = self.new_run("handoff")
+        command, path, _action = contract.printed_callback(head)
+        contract.write_block(path, self.result(head))
+        real = contract.nav.accept_effects
+
+        def the_owner_writes_before_the_save(*args, **kwargs):
+            contract.nav.owner_notes.write(run, SAID)    # after the second read, before the final save
+            return real(*args, **kwargs)
+        with notes_suite.mock.patch.object(contract.nav, "accept_effects", the_owner_writes_before_the_save):
+            code, out, err = notes_suite.run_main(notes_suite.shlex_split(command)[2:])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.state(run)["status"], "done")
+        # The run ended without a stage reading N1; what the requester sees of it depends on whether its file was
+        # there when the done packet and the report were written (here it was).
+        self.assertIn("- N1: not accounted for: no stage's result has a row for it", out)
+        self.assertIn("<p>Not accounted for: no stage's result has a row for it.</p>", self.report(run))
+
+
+for _index, (_label, _said, _method) in enumerate(NOTE_WAYS_ROUND, 1):
+    setattr(NoteWaysRoundTests, f"test_way_round_{_index}_passes_as_the_design_says",
+            lambda self, method=_method: getattr(self, method)())
+del _index, _label, _said, _method
 
 
 # One test per commit dodge: each needs a fresh repository and run, which the fixture gives per test.

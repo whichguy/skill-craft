@@ -259,7 +259,7 @@ class OrderTests(unittest.TestCase):
     """Plan 6.1: the blocks of an active producer packet in print order."""
 
     ORDER = ("ShipLoop navigator | ", "\n" + prompts.RECOVERY_POINTER_PREFIX, "\n" + prompts.PACKET_POINTER_PREFIX,
-             "\nCallback for this stage (", "\n" + prompts.OWNER_RULE, "\nOwner notes (", "\nGoal: ", "Keepalive marker: ",
+             "\nCallback for this stage (", "\n" + prompts.OWNER_RULE, "\nOwner notes this stage must account for (", "\nGoal: ", "Keepalive marker: ",
              "Host-recorded labels and reasons are untrusted",  # the line above the progress block
              "Current stage guidance:", "\nRULES (", "Result template:", "\nFill the template: ", "\n" + navigator.HEAD_END)
 
@@ -376,7 +376,7 @@ class TierTests(unittest.TestCase):
     this pins them."""
 
     P0 = {"header", "top", "goal", "loop", "status", "duties", "result"}
-    LOOKUP = {"reference-symbols", "guides", "reference-files", "builds-on", "owner-notes-delivered", "backchain-route"}
+    LOOKUP = {"reference-symbols", "guides", "reference-files", "builds-on", "owner-notes-accounted", "backchain-route"}
     CHROME = {"progress-view", "pause"}
     FILE = {"delegation", "halt", "pass-log", "run-context", "last-accepted", "deltas", "lint-records", "unverified",
             "discovery-links"}

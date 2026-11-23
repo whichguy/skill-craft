@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """``--owner-note-at STAGE``: the harness writes one owner note to the run in the middle of a STAGE step, as its owner would.
 
-``shiploop note`` (skills/shiploop/scripts/shiploop_owner_notes.py) leaves a note the model must see at its next print: a
-``complete`` for the current action is held once to show a waiting note, and a step accepted after its packet quoted the
-note delivers it (a held callback shows a note but never delivers it, so the next packet quotes it again).
+``shiploop note`` (skills/shiploop/scripts/shiploop_owner_notes.py) leaves a note the run's next done result must account
+for with a row in its ``notes`` (applied, already, carried or declined): ShipLoop refuses that result until the row is
+there, and the note is settled by its latest row.
 The trace fixtures prove that path; this option makes an E2E run exercise it on a real model. A watcher thread polls the run
 every POLL_SECONDS. The first time the run is active, its current action is at STAGE and that action's packet has been
 printed (a ``packet`` line for it in RUN/trace.jsonl), it runs ``shiploop note`` with the CLI the run itself uses and records
@@ -29,8 +29,8 @@ import shiploop_trace  # noqa: E402
 
 FILE = "owner-note.json"
 POLL_SECONDS = 1.0
-# Asks for nothing the step does not already do except one citation, so the run's work is the case's own and the trace's
-# `cited` says whether the model acted on the note.
+# Asks for nothing the step does not already do, so the run's work is the case's own and the note's row (``already``, or
+# ``applied`` for the citation) says whether the model accounted for it.
 TEXT = ("E2E owner note: when you complete this step, cite this note's id in the step's summary and say in one clause that "
         "you read it. Nothing else about the step changes.")
 WRITTEN = re.compile(r"^Owner note (N\d+) written", re.M)

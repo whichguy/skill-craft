@@ -617,7 +617,7 @@ and it is the highest-risk combination. See [run options](references/run-options
 | You want to | Do this | What it does |
 |---|---|---|
 | See where it is | `status`, `progress.html`, `view --serve` | Read-only; `--serve` shows the pages in a browser at `127.0.0.1` |
-| Tell it something | `note --text` | The next packet quotes it; delivered once a step that showed it is accepted |
+| Tell it something | `note --text` | The next done result must account for it with a row (applied, already, carried or declined); the report lists what each stage did |
 | Stop for now | `pause --reason` | Keeps the pending action; `resume` continues |
 | Answer a question | `resume --answer` | Only your own words count |
 | Stop for good | `halt --reason` | Terminal |

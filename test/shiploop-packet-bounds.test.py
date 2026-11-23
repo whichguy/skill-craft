@@ -340,6 +340,7 @@ LIMIT_KINDS = {
     "shiploop_navigator._CONTENTS_LINES": "display cut",
     "shiploop_owner_notes.NOTE_LIMIT": "display cut",
     "shiploop_owner_notes.BLOCK_LIMIT": "display cut",
+    "shiploop_owner_notes.DETAIL_SHOWN": "display cut",
     "shiploop_protocol.OUTPUT_LIMIT": "display cut",
     "shiploop_skill_calls.ARGS_LIMIT": "display cut",
     "shiploop_test_counts.INSIDE_CHARS": "display cut",

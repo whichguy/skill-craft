@@ -10,11 +10,12 @@ gives the harness's readers one shape:
 - ``failures``: every traced command that exited non-zero, in order (a failed check included and flagged: ``shiploop check``, or ``complete --check-only`` before it; as the
   host stream counted them), with the stage the run was in, the action, the refusal text and its first line;
 - ``completes``: non-check-only ``complete`` commands with their existing accepted bit and the accepted action/stage/item/outcome
-  rows they recorded; ``complete_attempts`` also includes check-only, held and crashed ``complete`` commands, for provenance checks
-  that must reject any callback on a script-accepted action;
+  rows they recorded; ``complete_attempts`` also includes check-only, held (a trace saved before owner notes were
+  accounted for by rows: an older engine held a callback once for a note) and crashed ``complete`` commands, for
+  provenance checks that must reject any callback on a script-accepted action;
 - ``packets``: per action, every print, with its text as sent, its size as printed and whether it repeated an earlier one;
 - ``hooks``: every keepalive stop decision with its text, and every session end the host reported (``hook=session-end``);
-- ``notes``: every owner note and where it stands (waiting, shown, delivered), as ``shiploop trace`` reads it.
+- ``notes``: every owner note, where it stands (open, carried, settled) and its rows, as ``shiploop trace`` reads it.
 
 ``checks`` reads four live behaviours from them (keepalive text, packet copies, owner notes, session end) into
 metrics.json.
@@ -97,8 +98,8 @@ def read(run_dir: Path | str | None) -> dict | None:
                                   for row in event.get("accepted") or [] if isinstance(row, dict)]
                 completes.append({"i": event["i"], "action": action, "accepted": event.get("exit") == 0,
                                   "accepted_steps": accepted_steps})
-        # A callback held once for owner notes refused nothing, and a command interrupted or crashed before it answered
-        # (``crashed``) is not ShipLoop's answer: neither is a failure here, as neither is a refusal to shiploop_trace.
+        # A callback held once for owner notes (in a trace an older engine wrote) refused nothing, and a command interrupted
+        # or crashed before it answered (``crashed``) is not ShipLoop's answer: neither is a failure here.
         if (event["kind"] == "command" and event.get("exit") not in (0, None) and event.get("verb") not in ROUTED_VERBS
                 and not event.get("held") and not event.get("crashed")):
             before = (event.get("stage") or [None])[0]
@@ -178,14 +179,15 @@ def _check(verdict: str, evidence: str, lines: list | None = None) -> dict:
 
 def checks(traced: dict | None) -> dict | None:
     """Four live behaviours the trace's fixtures prove (docs/shiploop-run-trace-journal.md, 2026-10-28), each read from
-    the trace as {verdict, evidence, lines}: ``pass``, ``fail``, ``open`` (a note the run had not delivered when it
+    the trace as {verdict, evidence, lines}: ``pass``, ``fail``, ``open`` (a note the run had not settled when it
     stopped short of done) or ``not exercised`` (the run never did the thing, which is not a pass).
 
     - ``keepalive_text``: every keepalive stop decision that continued a turn recorded the text it put into the turn;
     - ``packet_copies``: every printed packet names a kept copy (``packets/sent/<sha>.md``) whose text has that hash, the
       copy the Run Review page reads; reprints are counted (``lines``). Until 2026-10-28 this was ``packet_reprint`` and
       read identical reprints only, which a fresh session's ``next`` reprint never is;
-    - ``owner_note``: every owner note was delivered (a step accepted with it shown); ``--owner-note-at`` writes one mid-step;
+    - ``owner_note``: every owner note was settled by a row (applied, already or declined); ``--owner-note-at`` writes one
+      mid-step;
     - ``session_end``: the host's session-end hook freed the run and the next session took it at once (``session_end`` below);
       ``slice.py --host-ends-session`` makes a clear exercise it.
     """
@@ -216,12 +218,16 @@ def checks(traced: dict | None) -> dict | None:
                                             f"reprint{'s' if len(repeats) != 1 else ''}), each with its kept copy",
                                     lines(repeats)))
     notes = traced.get("notes") or []
-    undelivered = [note for note in notes if note.get("state") != "delivered"]
-    told = "; ".join(f"{note['id']} {note.get('state')}" + (f" by {note['delivered_by']}" if note.get("delivered_by") else "")
-                     + (f", held once in {', '.join(map(str, note['held_in']))}" if note.get("held_in") else "")
-                     + ("" if note.get("cited") is None else ", cited" if note["cited"] else ", not cited") for note in notes)
+    unsettled = [note for note in notes if note.get("state") != "settled"]
+
+    def told_one(note: dict) -> str:
+        last = (note.get("rows") or [None])[-1]
+        return (f"{note['id']} {note.get('state')}"
+                + (f" ({last.get('did')} at {last.get('where')} #{last.get('step')})" if last else "")
+                + (f", for {note['owed_by']}" if note.get("owed_by") else ""))
+    told = "; ".join(told_one(note) for note in notes)
     note = (_check("not exercised", "no owner note was written to the run") if not notes else
-            _check("pass", told) if not undelivered else
+            _check("pass", told) if not unsettled else
             _check("fail" if traced.get("status") == "done" else "open", told))
     return {"keepalive_text": keepalive, "packet_copies": copies, "owner_note": note, "session_end": session_end(traced)}
 
@@ -303,6 +309,7 @@ def summary(traced: dict | None, stream_failures: int | None = None) -> dict | N
             "crashed": counts.get("crashed"),
             "packets": counts.get("packets"), "reprints": counts.get("reprints"),
             "continuations": counts.get("continuations"), "stops": counts.get("stops"),
-            "notes": {"written": len(notes), "held": sum(bool(n.get("held_in")) for n in notes),
-                      "delivered": sum(n.get("state") == "delivered" for n in notes), "cited": sum(bool(n.get("cited")) for n in notes)},
+            "notes": {"written": len(notes), "settled": sum(n.get("state") == "settled" for n in notes),
+                      "carried": sum(n.get("state") == "carried" for n in notes),
+                      "open": sum(n.get("state") == "open" for n in notes)},
             "stream_failures": stream_failures, "checks": checks(traced)}

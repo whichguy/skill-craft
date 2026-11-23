@@ -42,7 +42,7 @@ CORE = types.SimpleNamespace(PACKAGE_ROOT=ROOT / "skills/shiploop", REF_DIR=ROOT
 FOCUS_STAGES = ("spec", "test-strategy")
 
 
-def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> dict:
+def packets(planning_review: str = "stage", state_out: "dict | None" = None, note: str = "") -> dict:
     """{(stage, 'producer' | 'improve' | 'improve-handoff'): the packet text a cleared model would read; (stage,
     'improve-ids'): the (reviewed action id, Improve stage id) pair}.
 
@@ -51,7 +51,8 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
     names is read back under 'improve-handoff'.
 
     ``state_out``, when given, receives the run's final state, whose ``repo``, ``prompt`` and ``run_id`` name the paths
-    the packets print (the repository itself is gone when this returns).
+    the packets print (the repository itself is gone when this returns).  ``note``, when given, is an owner note written
+    before the first packet, which no synthetic result accounts for, so every producer stage owes its row.
     """
     with tempfile.TemporaryDirectory(prefix="shiploop-packet-completeness-") as temp:
         repo = Path(temp)
@@ -60,6 +61,8 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
         state = navigator.new_state(str(repo), "Build a thing.", delegation="inline", planning_review=planning_review,
                                     improve_skill=str((ROOT / "skills/improve/SKILL.md").resolve()))
         found = {}
+        if note:
+            navigator.owner_notes.write(run, note)
 
         def cold(current):
             store.write_record(run / "state.md", current)
@@ -743,6 +746,51 @@ def offline_slice_packets() -> list:
     import packets as slice_packets
     cases = json.loads((ROOT / "test/shiploop_e2e/step_cases.json").read_text())
     return list(slice_packets.offline_packets(cases["node-fix-bug"]).values())
+
+
+class OwnerNotePacketTests(unittest.TestCase):
+    """An owner note no result accounts for is owed by every producer stage (shiploop_owner_notes): each producer packet
+    quotes it with its stage's duty, gives the result template its row, names the gate first in its Checked-by line and
+    writes the notes folder as RUN/owner-notes/; the Improve packets carry none of it, nor does any packet of a run
+    without a note."""
+
+    NOTE = "Keep the greeting to one line."
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.found = packets(note=cls.NOTE)
+        cls.plain = packets()
+
+    @staticmethod
+    def checked(packet: str) -> str:
+        return next(line for line in packet.splitlines() if line.startswith("Checked by: "))
+
+    def test_every_producer_packet_quotes_the_note_with_its_stages_duty_template_row_and_gate(self) -> None:
+        notes = navigator.owner_notes
+        for (stage, kind), packet in sorted(self.found.items()):
+            if kind != "producer":
+                continue
+            with self.subTest(stage):
+                self.assertIn(notes.HEADER.format(folder="RUN/owner-notes") + "\n    N1 ", packet)
+                self.assertIn("Z  " + self.NOTE + "\n" + notes.duty(stage) + "\n", packet)
+                self.assertEqual('"carried" (' in notes.duty(stage), stage not in notes.SETTLE_ONLY)
+                self.assertEqual('name in "item"' in notes.duty(stage), stage in notes.ITEM_STAGES)
+                self.assertIn("refuses " + notes.gate_words(stage) + "; ", self.checked(packet))
+                self.assertNotIn('"notes" row', self.checked(self.plain[(stage, kind)]))
+                template = store.loads(packet.split("Result template:\n", 1)[1].split("\n```\n", 1)[0] + "\n```\n")
+                self.assertEqual([row["note"] for row in template["notes"]], ["N1"])
+                self.assertEqual(literal_prose_paths(packet), [])
+
+    def test_no_improve_packet_and_no_packet_of_a_run_without_a_note_carries_any_of_it(self) -> None:
+        for found, kinds in ((self.found, ("improve", "improve-handoff")), (self.plain, ("producer", "improve",
+                                                                                         "improve-handoff"))):
+            for (stage, kind), packet in sorted(found.items()):
+                if kind not in kinds:
+                    continue
+                with self.subTest(stage=stage, kind=kind):
+                    self.assertNotIn("Owner notes this stage must account for", packet)
+                    self.assertNotIn("Owner notes accounted for", packet)
+                    self.assertNotIn('"notes":', packet)
 
 
 class ProseLineGuardTests(unittest.TestCase):

@@ -594,7 +594,6 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     outermost = not _DEPTH[0]
     if outermost:
         _TRACE.clear()
-        shiploop_trace.SHOWN.clear()
     _DEPTH[0] += 1
     started = time.monotonic()
     code = 2
@@ -634,8 +633,7 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
     after = _TRACE.get("after", _TRACE.get("before"))
     trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
                          after=after if isinstance(after, dict) else None, error=_TRACE.get("error"),
-                         note=_TRACE.get("note"), held=_TRACE.get("held"), shown=list(trace.SHOWN),
-                         crashed=_TRACE.get("crashed"))
+                         note=_TRACE.get("note"), crashed=_TRACE.get("crashed"))
 
 
 def _saved_state(root: Path) -> Optional[dict]:
@@ -932,15 +930,13 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             navigator.emit(core, root, state)
             progress_ready = True
             return 0
-    except navigator.NotesHeld as exc:
-        # Not a refusal of the result: the callback waits once for the owner's notes, which it prints.
-        _TRACE["error"], _TRACE["held"] = str(exc), exc.held
-        print(str(exc), file=sys.stderr)
-        return 2
     except navigator.NavigatorError as exc:
         _TRACE["error"] = str(exc)
         if args.command == "check":
-            print(f"ShipLoop check: the check says no. {exc}", file=sys.stderr)
+            # A result refused for its owner notes leads with them (``navigator.NotesOwed``): its first line names the
+            # notes, their folder and the result file, so a host that shows only that line still says what to do.
+            print(f"ShipLoop check: {exc}" if isinstance(exc, navigator.NotesOwed) else
+                  f"ShipLoop check: the check says no. {exc}", file=sys.stderr)
             print("Nothing was accepted or counted. Fix the cause and run the check again in this turn.",
                   file=sys.stderr)
             return 2

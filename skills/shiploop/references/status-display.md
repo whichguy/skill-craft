@@ -279,8 +279,8 @@ splits lines at `\n` only) with `v` (1), `ts` (epoch seconds), `at` (UTC) and
 
 | `kind` | Fields |
 |---|---|
-| `command` | `verb`, `action` (its `--action`), `exit`, `ms`, `rev`, `stage` and `cursor` (each `[before, after]`), `status`; `accepted` (`action`, `stage`, `item`, `outcome` per step it accepted), `error` (refusal text, cut at 4,000 characters), `note` (the owner note a `note` command wrote), `held` (notes a held callback printed), `shown` (notes a `shiploop check` printed in place of that hold), `delivered` (notes the step delivered), `crashed` (the exception that ended the command before it answered: `KeyboardInterrupt` for an interrupt, exit 130; any other, exit 1) |
-| `packet` | `action`, `stage`, `item`, `reviewed` (at an Improve stage, the stage it reviews), `status`, `rev`, `chars`, `printed`, `whole`, `sha`, `file` and `head_file` (the kept copies), `notes` (owner notes it quoted whole) |
+| `command` | `verb`, `action` (its `--action`), `exit`, `ms`, `rev`, `stage` and `cursor` (each `[before, after]`), `status`; `accepted` (`action`, `stage`, `item`, `outcome` per step it accepted), `error` (refusal text, cut at 4,000 characters), `note` (the owner note a `note` command wrote), `crashed` (the exception that ended the command before it answered: `KeyboardInterrupt` for an interrupt, exit 130; any other, exit 1) |
+| `packet` | `action`, `stage`, `item`, `reviewed` (at an Improve stage, the stage it reviews), `status`, `rev`, `chars`, `printed`, `whole`, `sha`, `file` and `head_file` (the kept copies) |
 | `hook` | `hook` (`stop` or `session-end`), `host`, `session`, `decision`, `why`, `text` (what a stop decision put into the turn); a session end adds `released` and the host's `reason` |
 
 A run made before ShipLoop 1.21.0 may hold `complete` lines with `check_only`
@@ -305,14 +305,15 @@ change the live progress observer's locking or current-state requirements.
 The digest prints its own legend. An event belongs to its own `--action`, else to
 the action of the last packet before it. That fallback is contextual attribution,
 not proof of a causal link. A failed `shiploop check` is a check, not
-a refusal, and so are neither a callback held once for owner notes nor a command
-interrupted or crashed before it answered. A run saved before the trace reads from `state.md` and `timeline.json`,
+a refusal, and so is a command interrupted or crashed before it answered. A
+result refused for its owner notes is a refusal like any other. A run saved before the trace reads from `state.md` and `timeline.json`,
 and what it never recorded shows as "not recorded", not zero.
 
 ## Owner notes
 
-The run's owner can write to a running run, and the model sees the note at its
-next step (owner, 2026-10-26):
+The run's owner can write to a running run, and the stage that next submits a
+done result must account for the note (owner, 2026-10-26; accounted for by a
+row since the design of 2026-11-22):
 
 ```sh
 python3 "$CLI" note --run-dir "$RUN_DIR" --text "Reuse the date helper; do not add a library."
@@ -320,22 +321,38 @@ python3 "$CLI" note --run-dir "$RUN_DIR" --file note.md
 ```
 
 Each note is `<run>/owner-notes/N<k>.md`, written once. `note` takes no run lock,
-so it never waits for a command the model is running.
+so it never waits for a command the model is running, and its reply says which
+stage's result will account for the note. A note written as the run ends is
+reported as read by no stage.
 
-- **Quoted.** The next packet quotes every note no accepted step has delivered,
-  right after the reply to a resumed question. A head with little room quotes
-  what fits and names the rest by file; the plan stage's head prints one line.
-- **Held.** If the model runs its callback while a note its packet did not print
-  whole is waiting, ShipLoop holds that callback once and prints the note. The
-  same callback then goes through.
-- **Delivered.** A note is delivered when ShipLoop accepts a step whose packet
-  showed it. Only the script marks that (`owner_notes` in `state.md`); later
-  packets list delivered notes in one line.
+- **Accounted for.** A done result of any producer stage carries `notes`: one
+  row per note it owes, `{"note", "did", "detail"}`, where `did` is `applied`
+  (this stage did it), `already` (the run already does it), `carried` (it needs
+  something this stage may not change) or `declined` (it cannot be done in this
+  run). At `plan` and `carry-forward` an applied row also names in `item` the
+  work item that does the work. ShipLoop refuses `done` while a row is missing,
+  extra or malformed; the refusal's first line names the notes, their folder and
+  the result file.
+- **Where a note stands** is read from the rows of every accepted done result in
+  the order they were accepted: **open** (no row yet), **carried** (its latest
+  row is `carried`) or **settled** (its latest row is `applied`, `already` or
+  `declined`; a settled note stays settled, a rewind included).
+- **Who owes a row.** A done result owes one for every open note and every
+  carried one, except that a note a work item's step carried (step-plan to
+  document) is owed by that item's carry-forward. `carry-forward` and `handoff`
+  settle every note they owe, and `handoff` owes every note not settled. A
+  blocked, send-back or add-work result holds no rows; a stage the script
+  records owes none. An Improve review keeps the rows of the result it reviews.
+- **Quoted.** The packet of a stage that owes rows quotes those notes (a carried
+  one with who carried it) right after its top lines, with what to do with each,
+  and gives the template its `notes` rows. Other packets list the notes accounted
+  for in one line.
 
 A note may hold 2,000 characters, and no `SHIPLOOP-RUN` or `=== ShipLoop`
-marker. A done or halted run refuses one. `trace` shows where each note stands,
-and `trace.html` builds the `note` command to copy, because the page cannot write
-to the run.
+marker. A done or halted run refuses one. The done packet lists every note with
+how it ended, the report has a section "Your notes" with each note's words and
+every row, `trace` shows where each note stands, and `trace.html` builds the
+`note` command to copy, because the page cannot write to the run.
 
 The **request view** sets the request, sentence by sentence (`S1..Sn`, joined
 they are the verbatim `request.md`), beside its expansion from the current

@@ -381,7 +381,6 @@ class PacketAndTrace(Base):
         {"kind": "command", "verb": "complete", "exit": 1},
         {"kind": "command", "verb": "next", "exit": 0},
         {"kind": "command", "verb": "check", "exit": 1},  # a check reports and never refuses
-        {"kind": "command", "verb": "complete", "exit": 2, "held": True},  # held once for owner notes
         {"kind": "command", "verb": "complete", "exit": None},
         {"kind": "packet", "exit": 5},
         {"kind": "hook", "exit": 5},

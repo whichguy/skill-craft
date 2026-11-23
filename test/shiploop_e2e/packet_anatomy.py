@@ -153,6 +153,12 @@ RULES: tuple[Rule, ...] = (
     _r("unverified-and-deltas", r"^Defaults the spec recorded:"),
     _r("unverified-and-deltas", r"^\d+\. R-\d+ .* Decided: "),
     _r("unverified-and-deltas", r"^Defaults list: final_result\.defaults"),
+    # The owner notes a stage owes a row for, quoted, with the duty that ends their block; a compact head's one-line form
+    # and its duty; and the lookup line of the notes accounted for (shiploop_owner_notes).
+    _r("unverified-and-deltas", r"^Owner notes this stage must account for \(", "until",
+       r"^Each is the run owner's instruction for this run\."),
+    _r("unverified-and-deltas", r"^(Owner notes? N\d+[ ,]|Each is the run owner's instruction for this run\.)"),
+    _r("unverified-and-deltas", r"^Owner notes accounted for: "),
     # --- state / locator lines and recovery (_run_rules)
     _r("state-locators", r"^(State|Result records|Result inbox|Accepted history|Repository locator|CLI locator|"
        r"ShipLoop skill card|Run directory locator|Keepalive marker|Owner):"),
