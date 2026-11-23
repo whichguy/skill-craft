@@ -369,7 +369,8 @@ into binding conditions merely because an earlier agent wrote them down.
    no second review counter or extra campaign is introduced. Do not widen a
    step merely to audit every unrelated feature.
 4. **Document/carry-forward, product acceptance and handoff:** reconcile the
-   maintained record with accepted changes and actual evidence. Keep unmet
+   maintained record with accepted changes and actual evidence; carry-forward
+   does not edit `spec.md` except for an owed owner note. Keep unmet
    requirements, proposals and verification limits explicit. Check links and
    confirm required intent survives without old run folders; preserve unrelated
    content and reconcile concurrent edits. Summarize supersession rationale
