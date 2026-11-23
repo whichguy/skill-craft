@@ -141,7 +141,7 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # v12 can refuse an absent authoritative run before workspace dispatch or trace creation.
 REFUSAL_LINE = re.compile(r"^(?:ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
                           r"check: (?:the check says no\. |owner notes? N\d|\"notes\" (?:in /|is not a list|has )|"
-                          r"the owner notes folder ))|"
+                          r"the owner notes folder |an owner note ))|"
                           r"error: no authoritative state\.md in [^\r\n]+)", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
                           r"Nothing was accepted or counted\. |"
@@ -169,14 +169,17 @@ KEPT_REPLY = re.compile(r"ShipLoop navigator \||Committed this review's changes 
 # with no other reader to update; a gate not yet seeded (its refusal text not read here) stays a commented
 # placeholder below rather than an empty or guessed pattern.
 GATE_SIGNATURES: dict[str, re.Pattern] = {
-    # A done result that does not account for the owner notes it owes (shiploop_owner_notes.refusal, unreadable, arrived;
-    # the review import's refusal in shiploop_navigator._import_notes_gate).  First: its first line names the notes.
+    # A done result that does not account for the owner notes it owes (shiploop_owner_notes.refusal, unreadable, arrived,
+    # import_refusal).  First: its first line names the notes.  The words come before any path, but for the extra-row
+    # line ('"notes" in <result file> has a row ...'), whose path may hold spaces and fill the harness's 200-character
+    # cut: that line is found by its absolute path's first slash.
     "owner_notes": re.compile(r"owner notes? N\d+(?:, N\d+)*(?: and N\d+)? (?:is|are) not accounted for: |"
                               r"owner notes? N\d+(?:, N\d+)*(?: and N\d+)? arrived while this handoff|"
-                              r"\"notes\" in \S+ (?:has a row this stage does not owe|is not a list of rows)|"
+                              r"^(?:ShipLoop (?:navigator|check): )?\"notes\" in /|"
                               r"\"notes\" (?:is not a list: |has two rows for N\d|has a row whose \"note\" is )|"
-                              r"the owner notes folder \S+ cannot be read|the owner note \S+ cannot be read|"
-                              r"the reviewed result's owner notes rows are not kept|notes(?:\[\d+\])? must be "
+                              r"the owner notes folder cannot be read \(|an owner note (?:cannot be read|is not a note "
+                              r"record) \(|the review's result (?:does not keep the owner notes rows|gives \"notes\" that "
+                              r"is not a list|has two rows for N\d|has a row in \"notes\" )|notes(?:\[\d+\])? must be "
                               r"(?:a list of rows|an object of text values)"),
     # Consumer hand-off faults (_handoff_fault / _Fault, shiploop_navigator.py ~3151-3219): a done result's
     # follows, assumptions, test_cases, step notes or lessons the next stage cannot use.

@@ -569,6 +569,43 @@ class TracedRun(unittest.TestCase):
         self.assertIn("From the host stream's refusal lines", old)
 
 
+class OlderEngineNoteEvidence(unittest.TestCase):
+    """A saved run of an engine that delivered notes by print (a delivery record in its state, held and delivered events
+    in its trace) keeps the grading it had: its note is "not applicable" here, never a new fail, and a held callback is
+    no refusal (accept brief item F)."""
+
+    def test_a_delivery_record_and_held_events_are_graded_as_an_engine_without_rows(self):
+        with tempfile.TemporaryDirectory(prefix="shiploop-e2e-legacy-note-") as temp:
+            base = Path(temp).resolve()
+            repo, run = base / "repo", base / "run"
+            repo.mkdir()
+            started = subprocess.run([sys.executable, "-B", str(CLI), "init", "--run-dir", str(run), "--repo", str(repo),
+                                      "--prompt", "Add a greeting script.", "--in-place"], env=ENV, text=True,
+                                     capture_output=True, timeout=60, check=False)
+            self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+            state = store.read_record(run / "state.md")
+            intake = navigator.current_action(state)["id"]
+            (run / "owner-notes").mkdir()
+            (run / "owner-notes" / "N1.md").write_text("# ShipLoop owner note\n\n```shiploop-state\n" + json.dumps(
+                {"id": "N1", "written_at": "2026-10-28T18:00:00Z", "text": "cite me"}) + "\n```\n", encoding="utf-8")
+            state = navigator.apply(state, intake, {"outcome": "done", "summary": "S1 outcome: hello (fact). N1 read.",
+                                                    "evidence_refs": []})
+            state["owner_notes"] = {"N1": intake}           # what the older engine saved
+            store.write_record(run / "state.md", state)
+            with (run / shiploop_trace.TRACE_FILE).open("a", encoding="utf-8") as handle:
+                for row in ({"v": 1, "ts": 9e9, "kind": "command", "verb": "complete", "action": intake, "exit": 2,
+                             "held": ["N1"], "error": "held for N1"},
+                            {"v": 1, "ts": 9e9 + 1, "kind": "command", "verb": "complete", "action": intake, "exit": 0,
+                             "delivered": ["N1"]}):
+                    handle.write(json.dumps(row) + "\n")
+            traced = run_trace.read(run)
+            found = run_trace.checks(traced)["owner_note"]
+            self.assertEqual(found["verdict"], "not applicable", found)
+            self.assertTrue(found["evidence"].startswith("an engine without rows"), found)
+            self.assertEqual([failure["verb"] for failure in traced["failures"]], [])
+            self.assertEqual(run_trace.summary(traced)["refusals"], 0)
+
+
 class OwnerNoteMidStep(unittest.TestCase):
     """--owner-note-at: the harness writes one note once the step's packet has printed, with the run's own CLI; the next
     complete is refused until its result has a row for the note, the packet read after quotes it, and the owner_note check

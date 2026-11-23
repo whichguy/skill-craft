@@ -176,7 +176,7 @@
     "test/shiploop-navigator-dry-run.test.py": 39.823,
     "test/shiploop-navigator-v4.test.py": 7.681,
     "test/shiploop-no-model-launch.test.py": 19.347,
-    "test/shiploop-owner-notes.test.py": 28.247,
+    "test/shiploop-owner-notes.test.py": 108,
     "test/shiploop-package-integrity.test.py": 0.769,
     "test/shiploop-packet-bounds.test.py": 4.132,
     "test/shiploop-packet-completeness.test.py": 13.425,
@@ -260,6 +260,12 @@
       "source_snapshot": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205/improve-sol-high-01/recovery-green-1/result.json",
       "receipt_sha256": "5a10d80d9dec0b70991f2dbe0db388c7f86b71f021acc18f5291b1aba409c99d",
       "evidence": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205/improve-sol-high-01/recovery-green-1"
+    },
+    "test/shiploop-owner-notes.test.py": {
+      "method": "One local macOS command observation, rounded up for scheduling after owner notes became rows (61 tests); run one suite at a time, other sessions on the machine may have been busy. Not observed Linux CI time.",
+      "local_seconds": 107.195,
+      "profile_tests": 61,
+      "base_commit": "31cd4326ecaa57459c7ac0b1739083a13c84abc1"
     }
   }
 }

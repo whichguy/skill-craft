@@ -117,60 +117,100 @@ def _number(note_id: str) -> int:
     return int(note_id[1:])
 
 
-def read(root: str | Path) -> list[dict[str, Any]]:
-    """Every note on file, in the order written; the one read a result's admission makes.
-
-    A folder that does not exist holds no note.  A folder or a note file that exists and cannot be read raises
-    NoteError: the result is then refused, never judged against an empty list.  A file that is not a note (a name that
-    is not N<k>.md, a record that does not parse) is left out; a note is linked into place whole, so none is half
-    written."""
+def _scan(root: str | Path, *, strict: bool) -> list[dict[str, Any]]:
+    """The notes on file, oldest first.  ``strict`` (an admission's read): a folder or a note file that exists and
+    cannot be read, decoded or parsed as a note raises NoteError naming it; otherwise (a display) such a file is left
+    out and an unreadable folder holds none.  A name that is not N<k>.md is never a note."""
     folder = Path(root) / DIR
     try:
         names = [entry.name for entry in os.scandir(folder) if entry.is_file(follow_symlinks=False)]
     except FileNotFoundError:
         return []
     except OSError as exc:
-        raise NoteError(f"the owner notes folder {folder} cannot be read ({exc.strerror or exc})") from exc
+        if strict:
+            raise NoteError(f"the owner notes folder cannot be read ({exc.strerror or exc}): {folder}") from exc
+        return []
     found = []
     for name in names:
         match = _FILE.fullmatch(name)
         if not match:
             continue
         try:
-            record = store.read_record(folder / name)
-        except OSError as exc:
-            raise NoteError(f"the owner note {folder / name} cannot be read ({exc.strerror or exc})") from exc
-        except (KeyError, TypeError, ValueError, store.StorageError):
-            continue
-        try:
-            text = clean(record["text"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        note_id = "N" + match.group(1)
-        if record.get("id") != note_id or not isinstance(record.get("written_at"), str):
-            continue
-        found.append({"id": note_id, "written_at": record["written_at"], "text": text, "file": f"{DIR}/{name}"})
+            found.append(_note("N" + match.group(1), folder / name))
+        except NoteError:
+            if strict:
+                raise
     return sorted(found, key=lambda note: _number(note["id"]))
 
 
-def notes(root: str | Path) -> list[dict[str, Any]]:
-    """Every note that reads as one, for a display (a packet, the done packet, the report): ``read``, with a folder that
-    cannot be read shown as holding none (the admission that follows refuses it)."""
+def _note(note_id: str, path: Path) -> dict[str, Any]:
+    """One note file as a note, or NoteError saying why it is none: it cannot be read, or its record is not a note's.
+    The words that tell the two apart come first and the file last, so a cut line still names the fault."""
     try:
-        return read(root)
+        raw = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise NoteError(f"an owner note is not a note record (it is not UTF-8 text): {path}") from exc
+    except OSError as exc:
+        raise NoteError(f"an owner note cannot be read ({exc.strerror or exc}): {path}") from exc
+    try:
+        record = store.loads(raw)
+    except (ValueError, store.StorageError) as exc:
+        raise NoteError(f"an owner note is not a note record ({exc}): {path}") from exc
+    if not isinstance(record, Mapping) or record.get("id") != note_id or not isinstance(record.get("written_at"), str):
+        raise NoteError(f"an owner note is not a note record (it needs the id {note_id} and a written_at time): {path}")
+    try:
+        text = clean(record.get("text", ""))
+    except NoteError as exc:
+        raise NoteError(f"an owner note is not a note record (its text: {exc}): {path}") from exc
+    return {"id": note_id, "written_at": record["written_at"], "text": text, "file": f"{DIR}/{path.name}"}
+
+
+def read(root: str | Path) -> list[dict[str, Any]]:
+    """Every note on file, in the order written; the one read a result's admission makes.
+
+    A folder that does not exist holds no note.  A folder or an N<k>.md file that exists and cannot be read, decoded or
+    parsed as a note raises NoteError naming it: the result is then refused, never judged against an empty or partial
+    list.  A note is linked into place whole, so none is half written."""
+    return _scan(root, strict=True)
+
+
+def notes(root: str | Path) -> list[dict[str, Any]]:
+    """Every note that reads as one, for a display (a packet, the done packet, the report): a file that does not read
+    as a note is left out and an unreadable folder shows none (the admission that follows refuses either)."""
+    return _scan(root, strict=False)
+
+
+def text_of(root: str | Path, note_id: str) -> tuple[str | None, str]:
+    """A display's one note by id: (its text, or None) and, when it has none, why: "is no longer in the run folder"
+    or "cannot be read now"."""
+    path = Path(root) / DIR / f"{note_id}.md"
+    if not os.path.lexists(path):
+        return None, "is no longer in the run folder"
+    try:
+        return _note(note_id, path)["text"], ""
     except NoteError:
-        return []
+        return None, "cannot be read now"
 
 
-def write(root: str | Path, text: str, *, now: float | None = None) -> dict[str, Any]:
+def reserved(state: Mapping[str, Any]) -> list[str]:
+    """The ids a new note may not take: every id in the ledger and in the rows of a result a review holds parked, so a
+    note whose file is gone never hands its rows to a new note."""
+    ids = set(ledger(state))
+    ids.update(ident.strip() for ident in parked_ids((state.get("active_improve") or {}).get("seed_result") or {}))
+    return sorted((ident for ident in ids if NOTE_ID.fullmatch(ident)), key=_number)
+
+
+def write(root: str | Path, text: str, *, now: float | None = None, taken: Sequence[str] = ()) -> dict[str, Any]:
     """Write one note as the next ``N<k>.md``, created whole or not at all (a temporary file linked into place, so two
-    writers never take one number and a reader never sees half a note).  Returns the note."""
+    writers never take one number and a reader never sees half a note).  The number is above every note on file and
+    every id in ``taken`` (``reserved``).  Returns the note."""
     body = clean(text)
     folder = Path(root) / DIR
     folder.mkdir(mode=0o700, exist_ok=True)
     stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() if now is None else now))
     temporary = folder / f".write-{os.getpid()}-{secrets.token_hex(4)}"
     numbers = [int(match.group(1)) for match in (_FILE.fullmatch(name) for name in os.listdir(folder)) if match]
+    numbers += [_number(ident) for ident in taken if NOTE_ID.fullmatch(ident)]
     number = max(numbers, default=0) + 1
     try:
         while True:
@@ -309,6 +349,24 @@ def _did_list(stage: str) -> str:
     return ", ".join(allowed[:-1]) + " or " + allowed[-1]
 
 
+# The placeholder forms the packet names ("every placeholder (<...> and "...") replaced"): a text of dots or an ellipsis
+# alone, and a text wholly in one pair of angle brackets.  A text that only starts and ends with brackets ("<details>
+# opens on a click on its <summary>") is none.
+_DOTS = re.compile(r"[.\u2026\s]+")
+_BRACKETED = re.compile(r"<[^<>]*>")
+
+
+def _text_fault(name: str, text: str) -> str | None:
+    """Why a row's free text cannot stand: a placeholder left in, or a character the store cannot write."""
+    if _SURROGATE.search(text):
+        return f'"{name}" holds a character that is not UTF-8 text: write plain text'
+    folded = " ".join(text.split())
+    if folded in _PLACEHOLDERS or _DOTS.fullmatch(folded) or _BRACKETED.fullmatch(folded):
+        return (f'"{name}" still holds a placeholder ("...", a text in angle brackets or the template\'s own): write '
+                + ("what this stage did with the note" if name == "detail" else "the work item that does it"))
+    return None
+
+
 def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, workitem: str | None,
                result: Mapping[str, Any]) -> str | None:
     """What is wrong with one owed note's row, or None."""
@@ -326,8 +384,9 @@ def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, wor
     detail = row.get("detail")
     if not isinstance(detail, str) or not detail.strip():
         return '"detail" is empty: say what changed, where the run already does it, what it needs or why it cannot be done'
-    if " ".join(detail.split()) in _PLACEHOLDERS:
-        return '"detail" still holds the template placeholder'
+    fault = _text_fault("detail", detail)
+    if fault:
+        return fault
     item = row.get("item")
     if "item" in row and (stage not in ITEM_STAGES or did != "applied"):
         return ('"item" goes only on an applied row at plan or carry-forward' if stage not in ITEM_STAGES else
@@ -339,9 +398,10 @@ def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, wor
     where = "the queue this result leaves" if stage == PLAN else "the future queue this result leaves"
     if not isinstance(item, str) or not item.strip():
         return f'"item" is missing: an applied row at {stage} names the work item of {where} that does it ({listed})'
+    fault = _text_fault("item", item)
+    if fault:
+        return fault
     item = item.strip()
-    if " ".join(item.split()) in _PLACEHOLDERS:
-        return '"item" still holds the template placeholder'
     if stage == CARRY_FORWARD and item == workitem:
         return (f'"item" is {item}, the item this carry-forward closes: name a pending item of {where} that does the '
                 f'work ({listed}), or say "already" when the run already does it')
@@ -435,8 +495,8 @@ def _named_line(root: Path, rest: Sequence[Mapping[str, Any]]) -> str:
 
 def duty(stage: str) -> str:
     """What the block tells the stage to do with each note it owes (design 2.6): the row and the four meanings of
-    ``did``; carry-forward and handoff leave out ``carried``, plan and carry-forward add the ``item``; carry-forward and
-    document say what a note that changes a requirement is."""
+    ``did``; carry-forward and handoff leave out ``carried``, plan and carry-forward add the ``item``; carry-forward,
+    which cannot send back, says what a note that changes a requirement is."""
     applied = "this stage did what it asks, within what this stage may change; say what changed"
     if stage == PLAN:
         applied += ', and name in "item" the work item of this result\'s queue that does it'
@@ -456,9 +516,6 @@ def duty(stage: str) -> str:
                  "requirement waits for: when one changes a requirement, revise that requirement's entry in "
                  "KNOWLEDGE/spec.md in place (the ID stays; say the owner note revised it; keep no copy of the old "
                  "clause), queue the item that follows it, and report done, not blocked.")
-    elif stage == "document":
-        text += (' A note that changes a requirement is "carried" (this work item\'s carry-forward revises the '
-                 "requirement and queues its work), not a send-back.")
     return text
 
 
@@ -589,15 +646,10 @@ def _first_line(folder: Path, result_path: str | Path, found_faults: Sequence[Ma
             + ": remove it, then run this again.")
 
 
-def refusal(root: str | Path, result_path: str | Path, found: Sequence[Mapping[str, Any]], state: Mapping[str, Any],
-            stage: str, workitem: str | None, found_faults: Sequence[Mapping[str, Any]]) -> str:
-    """The refusal of a result that does not account for its notes, without the command's prefix (``ShipLoop check:``
-    or ``ShipLoop navigator:``).  Its first line can be acted on alone (a host may show its model only that much): it
-    names the notes, the folder to read and the result file to change.  Then the row and the four meanings of ``did``,
-    every fault, the owed notes' words within ``BLOCK_LIMIT``, and what to do when a note changes the stage's work."""
-    root = Path(root)
-    first = _first_line(root / DIR, result_path, found_faults,
-                        [note["id"] for note in owed(state, found, stage, workitem)])
+def _body(root: Path, stage: str, found_faults: Sequence[Mapping[str, Any]], quoted_notes: Sequence[Mapping[str, Any]],
+          rows: Mapping[str, Sequence[Any]], heading: str) -> list[str]:
+    """What a notes refusal says after its first line: the row and the four meanings of ``did``, each fault, and the
+    notes' words within ``BLOCK_LIMIT`` (the rest named by file)."""
     shape = ('A row: {"note": "N<k>", "did": "' + '" | "'.join(did for did in DID if not (did == "carried" and stage in
                                                                                          SETTLE_ONLY))
              + '", "detail": "<text>"' + (', "item": "<work item>" (applied only)' if stage in ITEM_STAGES else "")
@@ -611,26 +663,75 @@ def refusal(root: str | Path, result_path: str | Path, found: Sequence[Mapping[s
                  f"  carried: it needs something this stage may not change; detail says what; {_who_next(stage)} must "
                  "then account for it"),
                 "  declined: it cannot be done in this run; detail says why"]
-    lines = [first, shape, *meanings, "What is wrong:", *("- " + fault["text"] for fault in found_faults)]
-    waiting = owed(state, found, stage, workitem)
-    if waiting:
-        rows = ledger(state)
-        quoted = _quoted_count(waiting, rows)
-        lines.append("The notes this stage owes (verbatim, oldest first):")
-        for note in waiting[:quoted]:
+    lines = [shape, *meanings, "What is wrong:", *("- " + fault["text"] for fault in found_faults)]
+    if quoted_notes:
+        quoted = _quoted_count(quoted_notes, rows)
+        lines.append(heading)
+        for note in quoted_notes[:quoted]:
             lines.extend(_quote_with_carry(note, rows.get(note["id"], ())))
-        if waiting[quoted:]:
-            lines.append(_named_line(root, waiting[quoted:]))
-    lines.append("If a note changes this stage's work, do that work first and run this stage's checks again; then give "
-                 "its row and complete. If it does not, add the row and run this same command again; nothing else needs "
-                 "to run again.")
-    return "\n".join(lines)
+        if quoted_notes[quoted:]:
+            lines.append(_named_line(root, quoted_notes[quoted:]))
+    return lines
+
+
+REDO = ("If a note changes this stage's work, do that work first and run this stage's checks again; then give its row "
+        "and complete. If it does not, add the row and run this same command again; nothing else needs to run again.")
+
+
+def refusal(root: str | Path, result_path: str | Path, found: Sequence[Mapping[str, Any]], state: Mapping[str, Any],
+            stage: str, workitem: str | None, found_faults: Sequence[Mapping[str, Any]]) -> str:
+    """The refusal of a result that does not account for its notes, without the command's prefix (``ShipLoop check:``
+    or ``ShipLoop navigator:``).  Its first line can be acted on alone (a host may show its model only that much): it
+    names the notes, the folder to read and the result file to change.  Then the row and the four meanings of ``did``,
+    every fault, the owed notes' words within ``BLOCK_LIMIT``, and what to do when a note changes the stage's work."""
+    root = Path(root)
+    waiting = owed(state, found, stage, workitem)
+    first = _first_line(root / DIR, result_path, found_faults, [note["id"] for note in waiting])
+    return "\n".join([first, *_body(root, stage, found_faults, waiting, ledger(state),
+                                    "The notes this stage owes (verbatim, oldest first):"), REDO])
+
+
+def import_refusal(root: str | Path, final_path: Any, parked: Sequence[str], stage: str,
+                   found_faults: Sequence[Mapping[str, Any]]) -> str:
+    """The refusal of a review whose result does not keep the reviewed result's rows (``import_faults``), without the
+    command's prefix.  Its first line names the notes and their folder, the file to change and the review's own repair
+    route (``--final-result``); then what every notes refusal says, the parked notes' words within ``BLOCK_LIMIT``."""
+    root = Path(root)
+    folder = root / DIR
+    where = str(final_path) if final_path else "the review's final_result"
+    route = "then run the same callback again with --final-result set to that file."
+    kinds = {fault["kind"] for fault in found_faults}
+    lost = sorted({fault["note"] for fault in found_faults if fault["kind"] in ("missing", "row")}, key=_number)
+    doubled = sorted({fault["note"] for fault in found_faults if fault["kind"] == "duplicate"}, key=_number)
+    strange = [fault for fault in found_faults if fault["kind"] == "non-id"]
+    added = sorted({fault["note"] for fault in found_faults if fault["kind"] == "extra" and fault["note"]}, key=_number)
+    if "shape" in kinds:
+        first = ("the review's result gives \"notes\" that is not a list: give it in " + where
+                 + (f" as a list with one row for each of {_ids(list(parked))} (the notes the reviewed result accounted "
+                    f"for, each in {folder}/), " if parked else
+                    " as [] or leave it out (the reviewed result accounted for no note), ") + route)
+    elif lost:
+        reading = f"read {folder / (lost[0] + '.md')}" if len(lost) == 1 else f"read each in {folder}/"
+        first = (f"the review's result does not keep the owner notes rows of the reviewed result ({_ids(lost)}): "
+                 f"{reading}, fix \"notes\" in {where}, " + route)
+    elif doubled:
+        first = (f"the review's result has two rows for {_ids(doubled)} in \"notes\" (each note is in {folder}/): keep "
+                 f"exactly one in {where}, " + route)
+    elif strange:
+        first = (f"the review's result has a row in \"notes\" whose \"note\" is {strange[0]['shown']}, which is not an "
+                 f"owner note id (N<k>, a file in {folder}/): fix or remove it in {where}, " + route)
+    else:
+        first = (f"the review's result has a row in \"notes\" the reviewed result did not have ({_ids(added)}; a note in "
+                 f"{folder}/ that arrived during the review is the next stage's): remove it from {where}, " + route)
+    quoted = [note for note in notes(root) if note["id"] in set(parked)]
+    return "\n".join([first, *_body(root, stage, found_faults, quoted, {},
+                                    "The notes the reviewed result accounted for (verbatim, oldest first):")])
 
 
 def unreadable(error: NoteError, result_path: str | Path) -> str:
     """The refusal when the notes cannot be read: the result is never judged against an empty list."""
-    return (f"{error}, so ShipLoop cannot tell which owner notes this result must account for: make it readable, then "
-            f"run this again (the result file {result_path} needs no change for this).")
+    return (f"{error}, so ShipLoop cannot tell which owner notes this result must account for: make it readable as the "
+            f"note command wrote it, then run this again (the result file {result_path} needs no change for this).")
 
 
 def arrived(root: str | Path, result_path: str | Path, late: Sequence[Mapping[str, Any]]) -> str:
@@ -670,23 +771,39 @@ def _ending(state: Mapping[str, Any], rows: Sequence[Mapping[str, Any]]) -> str:
     return f"{last['did']} at {_where(last)}{item}: {_cut(last['detail'])}"
 
 
+def displayed(root: str | Path | None, state: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """The notes a display lists: every note on file and every id in the ledger, oldest first.  A ledger id whose file
+    is gone or unreadable has ``text`` None and ``gone`` saying why ("is no longer in the run folder")."""
+    found = notes(root) if root is not None else []
+    on_file = {note["id"] for note in found}
+    out = [dict(note, gone="") for note in found]
+    for note_id in ledger(state):
+        if note_id in on_file or not NOTE_ID.fullmatch(note_id):
+            continue
+        text, why = text_of(root, note_id) if root is not None else (None, "is no longer in the run folder")
+        out.append({"id": note_id, "written_at": "", "text": text, "file": f"{DIR}/{note_id}.md",
+                    "gone": why if text is None else ""})
+    return sorted(out, key=lambda note: _number(note["id"]))
+
+
 def done_lines(root: str | Path, state: Mapping[str, Any]) -> list[str]:
     """The done packet's short summary (design 2.7): each note's id and how it ended, and that the host's last message
     says what happened to each; the report holds the words and every row.  Nothing when no note was written."""
-    found = notes(root)
-    if not found:
+    shown = displayed(root, state)
+    if not shown:
         return []
     rows = ledger(state)
-    count = f"{len(found)} owner note" + ("" if len(found) == 1 else "s")
+    count = f"{len(shown)} owner note" + ("" if len(shown) == 1 else "s")
     return [(f"Your notes: {count}. In your last message tell the user what happened to each; the report's section "
              "\"Your notes\" has each note's words and every row:"),
-            *(f"- {note['id']}: {_ending(state, rows.get(note['id'], ()))}" for note in found)]
+            *(f"- {note['id']}: {_ending(state, rows.get(note['id'], ()))}"
+              + (f" (its file {note['gone']})" if note["gone"] else "") for note in shown)]
 
 
 def open_lines(root: str | Path, state: Mapping[str, Any]) -> list[str]:
     """A halted run's notes that no stage settled, as not accounted for; nothing when every note is settled."""
     rows = ledger(state)
-    left = [note["id"] for note in notes(root) if standing(rows.get(note["id"], ())) != "settled"]
+    left = [note["id"] for note in displayed(root, state) if standing(rows.get(note["id"], ())) != "settled"]
     if not left:
         return []
     one = len(left) == 1
@@ -698,23 +815,19 @@ def open_lines(root: str | Path, state: Mapping[str, Any]) -> list[str]:
 def html_section(root: str | Path | None, state: Mapping[str, Any]) -> list[str]:
     """The report's section "Your notes": each note's words and every row (step, stage, what it did, the detail, and
     for a row that names an item what became of it).  Nothing when no note was written.  Every value is escaped."""
-    found = notes(root) if root is not None else []
+    shown = displayed(root, state)
     rows = ledger(state)
-    on_file = {note["id"] for note in found}
-    listed = [*found, *({"id": note_id, "written_at": "", "text": None, "file": f"{DIR}/{note_id}.md"}
-                        for note_id in sorted((key for key in rows if key not in on_file and NOTE_ID.fullmatch(key)),
-                                              key=_number))]
-    if not listed:
+    if not shown:
         return []
     out = ["<h2>Your notes</h2>",
            ("<p>What you wrote to the run while it ran, and what each stage's result said it did with it. ShipLoop "
             "checks that each note has a row; it does not check that the work does what the row says.</p>")]
-    for note in listed:
+    for note in shown:
         history = rows.get(note["id"], [])
         when = f", written {note['written_at']}" if note["written_at"] else ""
         out.append(f"<h3>{html.escape(note['id'])}{html.escape(when)}: {html.escape(standing(history))}</h3>")
         out.append(f"<pre>{html.escape(note['text'])}</pre>" if note["text"] is not None else
-                   f"<p>Its file ({html.escape(note['file'])}) cannot be read now.</p>")
+                   f"<p>Its file ({html.escape(note['file'])}) {html.escape(note['gone'])}.</p>")
         if not history:
             out.append("<p>Not accounted for: no stage's result has a row for it.</p>")
             continue
@@ -747,6 +860,13 @@ def review_lines(root: str | Path, seed: Mapping[str, Any]) -> list[str]:
               + (f" (item {row['item']})" if row.get("item") else "") for row in rows), ""]
 
 
+def parked_ids(seed: Mapping[str, Any]) -> list[str]:
+    """The notes a parked done result accounted for: the ids of its rows."""
+    if seed.get("outcome") != "done":
+        return []
+    return [row["note"] for row in seed.get(FIELD) or () if isinstance(row, Mapping) and isinstance(row.get("note"), str)]
+
+
 def import_faults(seed: Mapping[str, Any], effective: Any, state: Mapping[str, Any], stage: str,
                   workitem: str | None, *, folder: Path) -> list[dict[str, Any]]:
     """What keeps a review's result from taking effect for the notes (design 2.4): a done result that takes effect holds
@@ -754,10 +874,7 @@ def import_faults(seed: Mapping[str, Any], effective: Any, state: Mapping[str, A
     none and leaves the notes owed."""
     if not isinstance(effective, Mapping) or effective.get("outcome") != "done":
         return []
-    parked = [row["note"] for row in seed.get(FIELD) or () if isinstance(row, Mapping) and isinstance(row.get("note"), str)] \
-        if seed.get("outcome") == "done" else []
-    if not parked and not effective.get(FIELD):
-        return []
+    parked = parked_ids(seed)
     pretend = [{"id": note_id, "written_at": "", "text": "", "file": f"{DIR}/{note_id}.md"} for note_id in parked]
     # The parked notes are the ones owed here, whatever the folder now holds: no note that arrived during the review
     # is taken in.  The ledger is left out because these notes were open when the producer's result was admitted.
@@ -810,7 +927,7 @@ def main(argv: Sequence[str] | None = None, *, trace_record: dict[str, Any] | No
               file=sys.stderr)
         return 2
     try:
-        note = write(root, body)
+        note = write(root, body, taken=reserved(state))
     except (NoteError, OSError, store.StorageError) as exc:
         print(f"ShipLoop note: {exc}; nothing was written.", file=sys.stderr)
         return 2

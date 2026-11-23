@@ -1392,7 +1392,9 @@ Change no product file in this stage.
      topic, opening only its matching section.
 10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
-    in KNOWLEDGE/.
+    in KNOWLEDGE/, unless an owner note this stage owes asks for a requirement change: then rewrite that requirement in
+    place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the old clause) and plan the step for the
+    rewritten text.
 """ + _STEP_PLAN_NO_GRAPH + """\
 12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
     used.
@@ -1545,8 +1547,7 @@ preparatory commit); a mismatch there is a send-back.
    next steps' packets read it:
    - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
-     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>, unless an owner
-     note asks for the change: then the note is carried and this step is finished as planned.
+     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.

@@ -486,18 +486,27 @@ def refused(event: Mapping[str, Any]) -> bool:
 
 def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
                 accepted_at: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Every owner note: its text (screened), when it was written, where it stands (open: no row; carried: its latest
-    row is carried; settled) and every row a result gave it, read from the accepted results (``owner_notes.ledger``).
-    ``owed_by`` says who accounts for a note that is not settled.  ``events`` is kept for the reader's signature."""
+    """Every owner note on file and every note id in the ledger: its text (screened; None when its file is gone or does
+    not read, with ``file_gone`` true when the file is no longer in the run folder), when it was written, where it
+    stands (open: no row; carried: its latest row is carried; settled) and every row a result gave it, read from the
+    accepted results (``owner_notes.ledger``).  ``owed_by`` says who accounts for a note that is not settled.
+    ``events`` is kept for the reader's signature."""
     import shiploop_owner_notes as owner_notes
 
     ledger = owner_notes.ledger(state)
+    found = _safe_notes(run)
+    on_file = {note["id"] for note in found}
+    found += [{"id": note_id, "written_at": None, "text": None, "file": f"owner-notes/{note_id}.md"}
+              for note_id in ledger if note_id not in on_file and owner_notes.NOTE_ID.fullmatch(note_id)]
     notes = []
-    for note in _safe_notes(run):
+    for note in sorted(found, key=lambda note: int(note["id"][1:])):
         rows = ledger.get(note["id"], [])
+        text = note["text"]
         notes.append({
-            "id": note["id"], "at": note["written_at"], "text": _screened(note["text"]), "chars": len(note["text"]),
-            "file": note["file"], "state": owner_notes.standing(rows),
+            "id": note["id"], "at": note["written_at"], "text": None if text is None else _screened(text),
+            "chars": 0 if text is None else len(text), "file": note["file"],
+            "file_gone": text is None and not os.path.lexists(Path(run) / note["file"]),
+            "state": owner_notes.standing(rows),
             "owed_by": None if owner_notes.standing(rows) == "settled" else owner_notes.owed_by(rows),
             "rows": [{"step": row["step"], "action": row["action"], "stage": row["stage"], "item": row.get("workitem"),
                       "where": f"{(row['workitem'] + ' ') if row.get('workitem') else ''}{row['stage']}",

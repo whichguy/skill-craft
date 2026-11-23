@@ -134,7 +134,19 @@ def read(run_dir: Path | str | None) -> dict | None:
         "failures": failures, "completes": completes, "complete_attempts": complete_attempts,
         "packets": packets, "hooks": hooks, "counts": model["counts"],
         "run_dir": str(run), "status": facts.get("status"), "notes": model.get("notes") or [],
+        "older_notes": _older_notes(state, events),
     }
+
+
+def _older_notes(state: dict, events: list) -> str | None:
+    """What shows that an engine from before rows (ShipLoop 2.6 and earlier, which delivered a note by print) wrote this
+    run: its state's delivery record (``owner_notes``) or a held or delivered event in its trace; None when nothing does.
+    The engine's own trace reader reads rows only, so such a run's notes are never graded by rows here."""
+    if isinstance(state, dict) and "owner_notes" in state:
+        return "a delivery record in its state (owner_notes)"
+    if any(event.get("kind") == "command" and (event.get("held") or event.get("delivered")) for event in events):
+        return "held or delivered events in its trace"
+    return None
 
 
 def covers(traced: dict | None) -> bool:
@@ -180,7 +192,9 @@ def _check(verdict: str, evidence: str, lines: list | None = None) -> dict:
 def checks(traced: dict | None) -> dict | None:
     """Four live behaviours the trace's fixtures prove (docs/shiploop-run-trace-journal.md, 2026-10-28), each read from
     the trace as {verdict, evidence, lines}: ``pass``, ``fail``, ``open`` (a note the run had not settled when it
-    stopped short of done) or ``not exercised`` (the run never did the thing, which is not a pass).
+    stopped short of done), ``not exercised`` (the run never did the thing, which is not a pass) or, for the owner note
+    of a run an engine from before rows wrote, ``not applicable`` (that engine delivered notes by print: no row can
+    settle them, so this check never fails such a run).
 
     - ``keepalive_text``: every keepalive stop decision that continued a turn recorded the text it put into the turn;
     - ``packet_copies``: every printed packet names a kept copy (``packets/sent/<sha>.md``) whose text has that hash, the
@@ -226,7 +240,10 @@ def checks(traced: dict | None) -> dict | None:
                 + (f" ({last.get('did')} at {last.get('where')} #{last.get('step')})" if last else "")
                 + (f", for {note['owed_by']}" if note.get("owed_by") else ""))
     told = "; ".join(told_one(note) for note in notes)
+    older = traced.get("older_notes")
     note = (_check("not exercised", "no owner note was written to the run") if not notes else
+            _check("not applicable", f"an engine without rows wrote this run ({older}): it delivered owner notes by "
+                                     f"print, so no row settles them; {told}") if older else
             _check("pass", told) if not unsettled else
             _check("fail" if traced.get("status") == "done" else "open", told))
     return {"keepalive_text": keepalive, "packet_copies": copies, "owner_note": note, "session_end": session_end(traced)}

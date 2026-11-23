@@ -868,7 +868,10 @@ def _stand_in(check: dict, bundle: Bundle) -> str:
 def _trace(check: dict, bundle: Bundle) -> str:
     if not isinstance(bundle.trace, list):
         raise Fail("the bundle has no trace")
-    refusals = sum(1 for row in bundle.trace if isinstance(row, Mapping) and shiploop_trace.refused(row))
+    # A callback an engine from before rows held once for owner notes (``held``) refused nothing it was given: the harness
+    # leaves it out, as it did when the engine's own reader did; the engine's reader now reads rows only.
+    refusals = sum(1 for row in bundle.trace if isinstance(row, Mapping) and shiploop_trace.refused(row)
+                   and not row.get("held"))
     if refusals > check["value"]:
         raise Fail(f"{refusals} refusals, at most {check['value']} allowed")
     return f"{refusals} refusals, at most {check['value']} allowed"

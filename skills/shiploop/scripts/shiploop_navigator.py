@@ -10089,11 +10089,8 @@ def _import_notes_gate(root: Path, state: Mapping[str, Any], child: Mapping[str,
     problems = owner_notes.import_faults(child["seed_result"], effective, state, child["stage"],
                                          _current_work_item(state), folder=root / owner_notes.DIR)
     if problems:
-        where = str(final_path) if final_path else "the review's final_result"
-        raise NotesOwed(f"the reviewed result's owner notes rows are not kept: \"notes\" in {where} keeps one row for "
-                        "exactly the notes the reviewed result accounted for; fix it there, then run the same callback "
-                        "again with --final-result set to that file.\n"
-                        + "\n".join("- " + problem["text"] for problem in problems))
+        raise NotesOwed(owner_notes.import_refusal(root, final_path, owner_notes.parked_ids(child["seed_result"]),
+                                                   child["stage"], problems))
 
 
 def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str | None,

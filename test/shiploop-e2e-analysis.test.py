@@ -2581,8 +2581,8 @@ class GateCountsTest(unittest.TestCase):
                                   [dict(row, did="maybe"), dict(row, note="N2")], "N1",
                                   [row, dict(row, note="N2"), dict(row, note="N2")],
                                   [row, dict(row, note="N2"), dict(row, note="typo")])]
-            texts += [(owner_notes.unreadable(owner_notes.NoteError("the owner notes folder /r/owner-notes cannot be "
-                                                                    "read (Permission denied)"), result), both),
+            texts += [(owner_notes.unreadable(owner_notes.NoteError("the owner notes folder cannot be read (Permission "
+                                                                    "denied): /r/owner-notes"), result), both),
                       (owner_notes.arrived(run, result, found[1:]), complete)]
             for call in (lambda: owner_notes.canonical("N1"), lambda: owner_notes.canonical([["N1"]])):
                 with self.assertRaises(ValueError) as caught:
@@ -2597,6 +2597,47 @@ class GateCountsTest(unittest.TestCase):
                 for prefix in prefixes:
                     self.assertRegex(prefix + first, metrics.REFUSAL_LINE)
                     self.assertEqual(metrics.refusal_gate(prefix + first), "owner_notes", first)
+
+    def test_the_owner_notes_first_lines_survive_a_path_with_spaces_and_the_harness_line_cut(self) -> None:
+        """Every owner-notes first line, built by the gate's own functions for a run folder whose path is long and holds
+        spaces (the unreadable-file and unreadable-folder ones by the admission's own read), is found as the refusal line
+        and names the gate within the 200 characters the harness keeps (accept brief item F)."""
+        import sys
+        import tempfile
+        from pathlib import Path
+        metrics = _support.metrics
+        scripts = str(_support.ROOT / "skills/shiploop/scripts")
+        sys.path.append(scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        import shiploop_navigator as navigator
+        import shiploop_owner_notes as owner_notes
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp) / ("a folder with spaces " * 4).strip() / "run dir"
+            run.mkdir(parents=True)
+            state = navigator.new_state(str(run), "Add hello.", lint_option="off")
+            owner_notes.write(run, "one")
+            found, result = owner_notes.read(run), run / "inbox" / ("nav-" + "a" * 32 + ".md")
+            done = {"outcome": "done", "summary": "s"}
+            row = {"note": "N1", "did": "already", "detail": "d"}
+            refusals = [owner_notes.refusal(run, result, found, state, "intake", None, owner_notes.faults(
+                            found, state, "intake", None, dict(done, notes=rows), folder=run / "owner-notes"))
+                        for rows in ([], [dict(row, did="maybe")], "N1", [row, row], [row, dict(row, note="typo")],
+                                     [row, dict(row, note="N7")])]
+            # The admission's own read of a note file, then of the folder, that cannot be read.
+            for unreadable in (run / "owner-notes" / "N1.md", run / "owner-notes"):
+                unreadable.chmod(0o000)
+                try:
+                    with self.assertRaises(owner_notes.NoteError) as caught:
+                        owner_notes.read(run)
+                finally:
+                    unreadable.chmod(0o700)
+                refusals.append(owner_notes.unreadable(caught.exception, result))
+            for text in refusals:
+                for prefix in ("ShipLoop navigator: ", "ShipLoop check: "):
+                    shown = prefix + text + "\nNothing was accepted or counted. Fix the cause and run the check again."
+                    line = metrics.failure_line(shown)
+                    self.assertTrue(line.startswith(prefix), (line, text))
+                    self.assertEqual(metrics.refusal_gate(line), "owner_notes", line)
 
     def test_the_restate_and_small_pass_refusals_classify_under_their_gates(self) -> None:
         """The unverified restatement's refusals and the Improve convergence gate's, built by their gates, never typed."""

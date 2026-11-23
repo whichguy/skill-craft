@@ -342,8 +342,8 @@ Leave an instruction for the next step without stopping anything:
 python3 "$SKILL_ROOT/scripts/shiploop" note --run-dir "$RUN" --text "Reuse the existing date helper; do not add a library."
 ```
 
-The next packet quotes the note until a step that showed it is accepted. `note` takes no lock, so it never waits for a command the
-model is running.
+The next done result must account for the note with a row in its `notes` (applied, already, carried or declined), and ShipLoop
+refuses that result until it does. `note` takes no lock, so it never waits for a command the model is running.
 
 ### 6. Pause for the night, resume in the morning
 

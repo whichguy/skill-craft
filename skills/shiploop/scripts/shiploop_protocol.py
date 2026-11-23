@@ -684,8 +684,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     subs.add_parser("view", help="portable HTML progress snapshot and read-only background observer")
     subs.add_parser("trace", help="read the run trace: every stage done, current or pending, the steps run, each packet "
                                   "as sent, refusals and hook continuations (--action, --json, --html)")
-    subs.add_parser("note", help="the run's owner: leave a note the next packet quotes until a step it was shown in is "
-                                 "accepted (--text or --file)")
+    subs.add_parser("note", help="the run's owner: leave a note the next done result must account for with a row "
+                                 "(applied, already, carried or declined; --text or --file)")
     subs.add_parser("workspace", help="isolated start, return-plan review, and guarded return")
     subs.add_parser("lint", help="advisory lint rerun for the current action, or show a stored record part (never gates)")
     subs.add_parser("red-check", help="the test stage's base run without completing: does any new test pass "

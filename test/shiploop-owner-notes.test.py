@@ -28,6 +28,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import types
+import typing
 import unittest
 from unittest import mock
 
@@ -298,7 +300,9 @@ class RefusalTests(NoteRun):
                 ("an empty detail", [row(), row("N2", detail=" ")], "owner note N2 is not accounted for: read ",
                  '- N2\'s row "detail" is empty'),
                 ("the template's detail", [row(), row("N2", detail=owner_notes.DETAIL_PLACEHOLDER)],
-                 "owner note N2 is not accounted for: read ", '- N2\'s row "detail" still holds the template placeholder'),
+                 "owner note N2 is not accounted for: read ",
+                 ('- N2\'s row "detail" still holds a placeholder ("...", a text in angle brackets or the template\'s '
+                  "own): write what this stage did with the note")),
                 ("an item outside plan and carry-forward", [row(), row("N2", "applied", item="W1")],
                  "owner note N2 is not accounted for: read ",
                  '- N2\'s row "item" goes only on an applied row at plan or carry-forward: remove it'),
@@ -574,10 +578,9 @@ class ReviewTests(improve_cli.ImproveCliFixture):
         seed = self.parked()
         dropped = {key: value for key, value in seed.items() if key != "notes"}
         refused = self.import_review(dropped, status=2).stderr
-        self.assertEqual(lines(refused)[0], "ShipLoop navigator: the reviewed result's owner notes rows are not kept: "
-                         f"\"notes\" in {self.final_path} keeps one row for exactly the notes the reviewed result "
-                         "accounted for; fix it there, then run the same callback again with --final-result set to "
-                         "that file.")
+        self.assertEqual(lines(refused)[0], "ShipLoop navigator: the review's result does not keep the owner notes rows "
+                         f"of the reviewed result (N1): read {self.run}/owner-notes/N1.md, fix \"notes\" in "
+                         f"{self.final_path}, then run the same callback again with --final-result set to that file.")
         self.assertIn("- N1 has no row, though the reviewed result had one: keep a row for it", refused)
         changed = dict(seed, notes=[row(did="applied", detail="The spec now names src/dates.py.")])
         completion, _receipt = self.completion_receipt(final_result=changed)
@@ -834,7 +837,7 @@ class NoNoteTests(NoteRun):
         report = self.cli("report", "--run-dir", str(run))
         self.assertEqual(report.returncode, 0, report.stderr)
         self.assertIn("<h3>N1: settled</h3>", report.stdout)
-        self.assertIn("Its file (owner-notes/N1.md) cannot be read now.", report.stdout)
+        self.assertIn("Its file (owner-notes/N1.md) is no longer in the run folder.", report.stdout)
 
     def test_a_run_saved_with_a_delivery_record_is_not_resumed(self) -> None:
         run, _head = self.new_run("intake")
@@ -1003,8 +1006,9 @@ class NoteCommandTests(NoteRun):
         folder.chmod(0o000)
         self.addCleanup(folder.chmod, 0o700)
         refused = self.refuse(run, head, self.result(head, row()))
-        self.assertTrue(self.first_line(refused).startswith(f"ShipLoop navigator: the owner notes folder {folder} cannot "
-                                                            "be read ("), refused)
+        self.assertTrue(self.first_line(refused).startswith("ShipLoop navigator: the owner notes folder cannot be read ("),
+                        refused)
+        self.assertIn(f"): {folder}, so ShipLoop cannot tell", self.first_line(refused))
         self.assertIn("so ShipLoop cannot tell which owner notes this result must account for", refused)
 
 
@@ -1063,13 +1067,22 @@ class PageTests(NoteRun):
 
 # ---------------------------------------------------------------------------- the code review's fixes (fix brief)
 #
-# The outside review of the first build ("Fix first") and the fix brief's decisions; the owner's word of 17:00 keeps
-# this pass to items 3, 7 (a) to (c) and 13.  Each class names its item.
+# The outside review of the first build ("Fix first") and the fix brief's decisions; the owner's word of 17:00 kept
+# the first pass to items 3, 7 (a) to (c) and 13, and the accepted candidate's brief (A to J) adds the rest that main
+# needs.  Each class names its item.
 
 EXCEPTION = ("unless an owner note this stage owes asks for the requirement change: then rewrite the requirement in "
              "place, queue the work and report done")
-DOCUMENT_EXCEPTION = ("unless an owner note asks for the change: then the note is carried and this step is finished as "
-                      "planned")
+# document's duty as released: six real deliveries of six that got a note during the build sent the step back to
+# step-plan; none finished the step as planned (accept brief, item H).
+DOCUMENT_SENTENCE = ("Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.")
+# step-plan's knowledge duty with the clause every delivery's route needs (coordinator's item K): the four sessions that
+# got a note during the build sent the step back and rewrote the requirement at step-plan, against the released "write
+# nothing else in KNOWLEDGE/".
+STEP_PLAN_EXCEPTION = ("Keep every R-<n> and AD-<n>; write nothing else in KNOWLEDGE/, unless an owner note this stage "
+                       "owes asks for a requirement change: then rewrite that requirement in place in KNOWLEDGE/spec.md "
+                       "(the ID stays; its entry keeps no copy of the old clause) and plan the step for the rewritten "
+                       "text.")
 
 
 def flat(text: str) -> str:
@@ -1077,36 +1090,46 @@ def flat(text: str) -> str:
 
 
 class StandingTextTests(unittest.TestCase):
-    """Fix brief item 3: the document and carry-forward duties and the carry-forward loop's rule carry the owner-note
-    exception in their standing text, whatever notes are on file, so the owed-notes block and the duties never
-    disagree."""
+    """Fix brief item 3, accept brief item H and item K: the carry-forward duty and the carry-forward loop's rule carry
+    the owner-note exception in their standing text, whatever notes are on file (that stage cannot send back); document's
+    duty is the released sentence, so a stage of a work item whose step a note changes may send it back; and step-plan's
+    knowledge duty lets it rewrite the requirement such a note changes, which is where every such delivery did it."""
 
-    def test_the_document_and_carry_forward_duties_and_the_loop_rule_carry_the_exception(self) -> None:
+    def test_carry_forward_carries_the_exception_and_document_its_released_sentence(self) -> None:
         import shiploop_loops as loops
         import shiploop_prompts as prompts
         for route in (prompts.INLINE, prompts.ASK_AGENT):
             with self.subTest(route=route):
-                self.assertIn("report send-back naming the R-<n>, " + DOCUMENT_EXCEPTION,
-                              flat(prompts.duty("document", delegation=route)))
+                document = flat(prompts.duty("document", delegation=route))
+                self.assertIn(DOCUMENT_SENTENCE + " ", document)
+                self.assertNotIn("owner note", document.lower())
                 self.assertIn("stop the loop and report blocked; it is no queue edit, " + EXCEPTION,
                               flat(prompts.duty("carry-forward", delegation=route)))
+                self.assertIn(STEP_PLAN_EXCEPTION, flat(prompts.duty("step-plan", delegation=route)))
         self.assertIn("that is not a queue edit, " + EXCEPTION + ".", loops.REPEAT["carry-forward"])
+        for stage in ("step-plan", "test-spec", "validate-existing", "implement", "test", "document"):
+            with self.subTest(stage=stage):
+                self.assertNotIn("finished as planned", flat(owner_notes.duty(stage)))
+                self.assertNotIn("not a send-back", flat(owner_notes.duty(stage)))
 
 
 class StandingTextPacketTests(NoteRun):
-    """Fix brief item 3, as a run with no note prints it (the parity claim narrowed to these clauses): the document and
-    carry-forward packets name an owner note only in their standing clause, and the carry-forward loop's contract
-    carries the rule.  The carry-forward of a run with one step in one item prints its queue duty in a short form with
+    """Fix brief item 3 and accept brief item H, as a run with no note prints it (the parity claim narrowed to these
+    clauses): the document packet names no owner note, the carry-forward packet names one only in its standing clause,
+    and the carry-forward loop's contract carries the rule.  The carry-forward of a run with one step in one item prints its queue duty in a short form with
     no rule to block on a changed requirement, so no exception either; a run with items still to come prints the whole
     duty."""
 
     def test_a_run_with_no_note_names_an_owner_note_only_in_the_standing_clauses(self) -> None:
         run, _head = self.new_run("prepare", results=THREE_ITEMS)
+        self.walk(run, self.at("step-plan", "W1"), results=THREE_ITEMS)
+        packet = flat(self.next(run))
+        self.assertIn(STEP_PLAN_EXCEPTION, packet)
+        self.assertEqual(packet.lower().count("owner note"), 1)
         self.walk(run, self.at("document", "W1"), results=THREE_ITEMS)
         packet = flat(self.next(run))
-        self.assertIn(DOCUMENT_EXCEPTION, packet)
-        self.assertEqual(packet.lower().count("owner note"), packet.count(DOCUMENT_EXCEPTION))
-        self.assertNotIn("Owner notes", packet)
+        self.assertIn(DOCUMENT_SENTENCE, packet)
+        self.assertNotIn("owner note", packet.lower())
         self.walk(run, self.at("carry-forward", "W1"), results=THREE_ITEMS)
         packet = flat(self.next(run))
         action = nav.current_action(self.state(run))["id"]
@@ -1155,6 +1178,333 @@ class CurrentItemMessageTests(NoteRun):
         self.assertIn('"item" is W2, the item this carry-forward closes: name a pending item of the future queue this '
                       'result leaves that does the work (W3), or say "already" when the run already does it', refused)
         self.assertNotIn("{listed}", refused)
+
+
+# ---------------------------------------------------------------------------- the accepted candidate (accept brief)
+
+
+class UnreadableNoteTests(NoteRun):
+    """Accept brief item A: a note file that cannot be read, or whose record cannot be parsed, refuses the admission
+    with a first line that names the file and says what to do; only names that are not N<k>.md are left out."""
+
+    def test_an_unreadable_or_broken_note_file_refuses_check_and_complete_and_names_the_file(self) -> None:
+        run, _head = self.new_run("discovery")
+        self.note(run)
+        self.note(run, SECOND)
+        head = self.next(run)
+        _command, path, _action = contract.printed_callback(head)
+        block = self.result(head, row(), row("N2"))
+        first = run / owner_notes.DIR / "N1.md"
+        first.chmod(0o000)
+        self.addCleanup(first.chmod, 0o600)
+        for verb, prefix in (("check", "ShipLoop check: "), ("complete", "ShipLoop navigator: ")):
+            refused = self.refuse(run, head, block, verb=verb)
+            self.assertEqual(self.first_line(refused),
+                             f"{prefix}an owner note cannot be read (Permission denied): {first}, so ShipLoop cannot tell "
+                             "which owner notes this result must account for: make it readable as the note command "
+                             f"wrote it, then run this again (the result file {path} needs no change for this).")
+        first.chmod(0o600)
+        second = run / owner_notes.DIR / "N2.md"
+        second.write_text("not a note record\n", encoding="utf-8")
+        refused = self.refuse(run, head, block)
+        self.assertTrue(self.first_line(refused).startswith("ShipLoop navigator: an owner note is not a note record ("),
+                        refused)
+        self.assertIn(f"): {second}, so ShipLoop cannot tell", self.first_line(refused))
+        # The packet still shows the notes that read as notes.
+        self.assertEqual(self.owes(self.next(run)), ["N1"])
+        # A file whose name is not N<k>.md is no note: it is left out.
+        second.unlink()
+        (run / owner_notes.DIR / "N2.md.bak").write_text("anything\n", encoding="utf-8")
+        self.accept(head, self.result(head, row()))
+
+
+class NoteIdTests(NoteRun):
+    """Accept brief item B: a new note's id is above every id on file and in the ledger, and the done packet, the
+    report and the trace list the ids on file with the ids in the ledger."""
+
+    def test_a_new_note_never_takes_the_id_of_a_settled_note_whose_file_is_gone(self) -> None:
+        run, head = self.new_run("discovery")
+        self.note(run)
+        self.accept(head, self.result(head, row()))
+        (run / owner_notes.DIR / "N1.md").unlink()
+        wrote = self.note(run, SECOND)
+        self.assertTrue(wrote.stdout.startswith(f"Owner note N2 written: {run}/owner-notes/N2.md."), wrote.stdout)
+        head = self.next(run)
+        self.assertEqual(self.owes(head), ["N2"])
+        self.accept(head, self.result(head, row("N2", detail="research already prints the date")))
+        report = self.cli("report", "--run-dir", str(run)).stdout
+        self.assertIn("<h3>N1: settled</h3>", report)
+        self.assertIn("<p>Its file (owner-notes/N1.md) is no longer in the run folder.</p>", report)
+        notes = trace.build(run)["notes"]
+        self.assertEqual([(note["id"], note["state"], note.get("file_gone")) for note in notes],
+                         [("N1", "settled", True), ("N2", "settled", False)])
+        self.walk(run, self.at("handoff"))
+        head = self.next(run)
+        done = self.accept(head, self.result(head))
+        self.assertIn("- N1: already at discovery: src/dates.py is already the only date code. (its file is no longer "
+                      "in the run folder)\n- N2: already at research: research already prints the date\n", done)
+
+    def test_a_new_note_never_takes_the_id_of_a_parked_rows_note(self) -> None:
+        run, head = self.new_run("spec")
+        self.note(run)
+        self.accept(head, self.result(head, row()))            # spec parks its result for the review
+        self.assertEqual(self.state(run)["active_improve"]["seed_result"]["notes"], [row()])
+        (run / owner_notes.DIR / "N1.md").unlink()
+        self.assertTrue(self.note(run, SECOND).stdout.startswith(f"Owner note N2 written: {run}/owner-notes/N2.md."))
+
+
+class RowTextTests(NoteRun):
+    """Accept brief item C: detail and item refuse the placeholder forms the packet names and a lone surrogate."""
+
+    def test_placeholder_forms_and_a_lone_surrogate_are_refused(self) -> None:
+        run, _head = self.new_run("intake")
+        self.note(run)
+        head = self.next(run)
+        for label, detail in (("an ellipsis", "..."), ("an ellipsis character", "…"), ("a text in angle brackets",
+                                                                                            "<text>"),
+                              ("the template's detail", owner_notes.DETAIL_PLACEHOLDER)):
+            with self.subTest(label):
+                refused = self.refuse(run, head, self.result(head, row(detail=detail)))
+                self.assertIn('- N1\'s row "detail" still holds a placeholder ("...", a text in angle brackets or the '
+                              "template's own): write what this stage did with the note", refused)
+        _command, path, _action = contract.printed_callback(head)
+        block = self.result(head, row(detail="SURROGATE"))
+        before = (run / "state.md").read_bytes()
+        path.write_text("```shiploop-state\n" + json.dumps(block).replace("SURROGATE", "\\ud800") + "\n```\n",
+                        encoding="utf-8")
+        done = self.run_printed(contract.printed_callback(head)[0])
+        self.assertEqual(done.returncode, 2, done.stdout + done.stderr)
+        self.assertIn('- N1\'s row "detail" holds a character that is not UTF-8 text: write plain text', done.stderr)
+        self.assertNotIn("Traceback", done.stderr)
+        self.assertEqual((run / "state.md").read_bytes(), before)
+        # A text that only starts and ends with angle brackets is no placeholder.
+        self.accept(head, self.result(head, row(detail="<details> already opens on a click on its <summary>")))
+
+    def test_an_item_in_angle_brackets_is_refused_at_plan(self) -> None:
+        run, _head = self.new_run("plan")
+        self.note(run)
+        head = self.next(run)
+        refused = self.refuse(run, head, self.result(head, row(did="applied", detail="W1 does it", item="<W1>")))
+        self.assertIn('- N1\'s row "item" still holds a placeholder ("...", a text in angle brackets or the template\'s '
+                      "own): write the work item that does it", refused)
+
+
+class ImportRefusalTests(improve_cli.ImproveCliFixture):
+    """Accept brief items D and E: the import's refusal names the notes and their folder in its first line and keeps its
+    own repair route, and a malformed notes field is refused there when the parked result had no row."""
+
+    writing = True
+
+    def _write_producer(self, stage):
+        if stage == "spec" and self.writing:
+            self.invoke(improve_cli.CLI, "note", "--run-dir", self.run, "--text", WORDS)
+            self.producer["notes"] = [row()]
+        super()._write_producer(stage)
+
+    def import_with(self, final: dict, status: int) -> str:
+        self.finish_ephemeral()
+        completion, _receipt = self.completion_receipt(final_result=final)
+        done = self.invoke(improve_cli.CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion,
+                           status=status)
+        self.assertEqual(done.stdout, "")
+        return done.stderr
+
+    def test_a_dropped_row_is_refused_with_the_note_and_its_folder_in_the_first_line(self) -> None:
+        self._start_parent_at_stage("spec", [str(self.product_contract)])
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        refused = self.import_with({key: value for key, value in seed.items() if key != "notes"}, 2)
+        self.assertEqual(lines(refused)[0],
+                         "ShipLoop navigator: the review's result does not keep the owner notes rows of the reviewed "
+                         f"result (N1): read {self.run}/owner-notes/N1.md, fix \"notes\" in {self.final_path}, then run "
+                         "the same callback again with --final-result set to that file.")
+        self.assertIn('\nA row: {"note": "N<k>", "did": ', refused)
+        self.assertIn("\n- N1 has no row, though the reviewed result had one: keep a row for it\n", refused)
+        self.assertIn(f"Z  {WORDS}\n", refused)
+
+    def test_a_malformed_notes_field_is_refused_at_import_when_the_parked_result_had_no_row(self) -> None:
+        self.writing = False
+        self._start_parent_at_stage("spec", [str(self.product_contract)])
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        self.assertNotIn("notes", seed)
+        refused = self.import_with(dict(seed, notes=None), 2)
+        self.assertEqual(lines(refused)[0],
+                         "ShipLoop navigator: the review's result gives \"notes\" that is not a list: give it in "
+                         f"{self.final_path} as [] or leave it out (the reviewed result accounted for no note), then run "
+                         "the same callback again with --final-result set to that file.")
+
+
+class HelpTextTests(NoteRun):
+    """Accept brief item G: the CLI's help and the README's steering section say the row rule."""
+
+    def test_the_help_and_the_readme_say_the_note_is_accounted_for_by_a_row(self) -> None:
+        shown = self.cli("--help").stdout
+        self.assertIn("the run's owner: leave a note the next done result must account for with a row (applied, "
+                      "already, carried or declined; --text or --file)", flat(shown))
+        readme = (ROOT / "skills/shiploop/README.md").read_text(encoding="utf-8")
+        section = readme.split("### 5. Steer a run in flight", 1)[1].split("### 6.", 1)[0]
+        self.assertIn("The next done result must account for the note with a row in its `notes` (applied, already, "
+                      "carried or declined), and ShipLoop refuses that result until it does.", flat(section))
+        self.assertNotIn("until a step that showed it is accepted", section)
+
+
+class SecondStepTests(NoteRun):
+    """A guard of the ledger itself (the review: a ledger that kept only the latest implement result would pass a
+    fixture that stops at S2's packet): S2's result with no row for a note S1 settled is accepted, through the CLI."""
+
+    TWO_STEPS: typing.ClassVar[dict] = {"step-plan": dict(
+        contract.STEP_PLAN, follows=[], paths=["built.txt", "more.txt"],
+        steps=[dict(contract.STEP_PLAN["steps"][0]),
+               {"id": "S2", "task": "Create more.txt", "deps": ["S1"], "criteria": ["C1"],
+                "proof": "test -f more.txt", "skills": []}],
+        expectations=[*contract.STEP_PLAN["expectations"],
+                      {"id": "E2", "state": "absent", "statement": "more.txt does not exist yet.", "steps": ["S2"],
+                       "paths": ["more.txt"], "check": "test ! -e more.txt"}])}
+
+    def test_the_second_steps_result_owes_no_row_for_a_note_the_first_step_settled(self) -> None:
+        run, _head = self.new_run("implement", results=self.TWO_STEPS)
+        self.note(run)
+        self.walk(run, lambda state: nav.current_stage(state) == "implement"
+                  and (nav.loops.current_step(state, "W1") or {}).get("id") == "S2",
+                  results=self.TWO_STEPS, rows={"implement": [row()]})
+        head = self.next(run)
+        self.assertEqual(self.owes(head), [])
+        (self.repo_of(run) / "more.txt").write_text("more\n")
+        self.accept(head, self.result(head))
+        state = self.state(run)
+        self.assertEqual([entry["did"] for entry in owner_notes.ledger(state)["N1"]], ["already"])
+        self.assertEqual(sum(1 for entry in state["history"] if entry["stage"] == "implement"), 2)
+
+
+class ReconcileTakesOutTheSettlingResultTests(NoteRun):
+    """A guard of the ledger itself (the review: a ledger of the current view would pass a reconcile that keeps the
+    settling result): the note is settled at research, the real improve-reconcile route (the navigator-v4 suite's
+    helpers) rewinds to discovery, before it, and the fresh results after the rewind owe no row."""
+
+    for _name in ("stopped_packet", "reconciliation_input", "cli_reconcile"):
+        locals()[_name] = v4.NavigatorV4Tests.__dict__[_name]
+    del _name
+
+    def test_the_fresh_results_after_the_rewind_owe_no_row(self) -> None:
+        run, head = self.new_run("research")
+        self.note(run)
+        self.accept(head, self.result(head, row(detail="research picks src/dates.py")))
+        state = self.walk(run, self.at("plan"))
+        action = nav.current_action(state)["id"]
+        waiting = nav.apply(state, action, {**contract.DONE, "work_items": [dict(ITEMS[0])]})
+        self.skill = bridge.resolve_skill(str(contract.CARD))
+        child = bridge.binding(waiting, action, "plan", waiting["active_improve"]["seed_result"], self.skill,
+                               improve_action=waiting["active_improve"]["improve_action"])
+        nav.save(run, dict(waiting, active_improve=child))
+        self.run = run
+        self.stopped_packet(child)
+        _receipt, path, _evidence = self.reconciliation_input(action, target="discovery")
+        reconciled = self.cli_reconcile(child["improve_action"], path)   # the command names the Improve stage
+        self.assertEqual(reconciled.returncode, 0, reconciled.stdout + reconciled.stderr)
+        for stage in ("discovery", "research"):
+            with self.subTest(stage):
+                head = self.next(run)
+                self.assertIn(f"ShipLoop navigator | {stage} |", head)
+                self.assertEqual(self.owes(head), [])
+                self.accept(head, self.result(head))
+        self.assertEqual([entry["stage"] for entry in owner_notes.ledger(self.state(run))["N1"]], ["research"])
+
+
+class RouteTests(NoteRun):
+    """The route every real delivery took (accept brief, "Tests"), pinned through the CLI: a note written while
+    implement is open is refused there; the step goes back to step-plan with a send-back that holds no row; step-plan
+    owes the row and is accepted with applied; the item's later stages and its carry-forward owe nothing.  And the
+    other shape seen: carried at step-plan, then already at that item's carry-forward."""
+
+    OLD_R1 = "- R-1: built.txt exists."
+    NEW_R1 = "- R-1: built.txt exists and holds the greeting the owner's note N1 asks for."
+
+    def finish_review(self, run: Path) -> str:
+        """Finish a parked review with the pure API and run what its import runs after the gates (the save, the
+        transition, the knowledge commit: ``accept_effects``), so a home the reviewed stage changed is committed."""
+        state = self.state(run)
+        if state.get("active_improve") is not None:
+            action = state["active_improve"]["action_id"]
+            finished = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+            nav.accept_effects(types.SimpleNamespace(PACKAGE_ROOT=SCRIPTS.parent), run, state, finished,
+                               action_id=action)
+        return self.next(run)
+
+    def spec_of(self, run: Path, ref: str | None = None) -> str:
+        """The living spec in the working tree, or as commit ``ref`` holds it."""
+        repo = self.repo_of(run)
+        if ref is None:
+            return (repo / nav.knowledge.HOME / "spec.md").read_text(encoding="utf-8")
+        return subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{nav.knowledge.HOME}/spec.md"],
+                              capture_output=True, text=True, check=True).stdout
+
+    def rewrite_r1(self, run: Path) -> None:
+        path = self.repo_of(run) / nav.knowledge.HOME / "spec.md"
+        path.write_text(self.spec_of(run).replace(self.OLD_R1, self.NEW_R1), encoding="utf-8")
+
+    def test_a_note_during_implement_goes_back_to_step_plan_and_is_settled_there(self) -> None:
+        run, head = self.new_run("implement")
+        # R-1's entry as the spec stage's knowledge commit leaves it (the positioning records results without commits).
+        living = self.repo_of(run) / nav.knowledge.HOME / "spec.md"
+        living.parent.mkdir(parents=True, exist_ok=True)
+        living.write_text(contract.LIVING_SPEC, encoding="utf-8")
+        self.assertTrue(nav.knowledge.commit(self.state(run), "spec").commit)
+        self.note(run)
+        refused = self.refuse(run, head, self.result(head), verb="check", loop=False)   # a check runs inside the loop
+        self.assertTrue(self.first_line(refused).startswith("ShipLoop check: owner note N1 is not accounted for: read "),
+                        refused)
+        # The rewrite the note asks for is refused here, at implement (step_spec_refusal names the send-back).
+        self.rewrite_r1(run)
+        (self.repo_of(run) / "built.txt").write_text("hello\n")
+        refused = self.refuse(run, head, self.result(head, row(did="applied", detail="R-1 now says what N1 asks")))
+        self.assertIn("; to change a requirement, report send-back naming it.", refused)
+        self.assertIn("Found: changed or removed: " + self.OLD_R1, refused)
+        living.write_text(contract.LIVING_SPEC, encoding="utf-8")       # the tree as the step began, for the send-back
+        (self.repo_of(run) / "built.txt").unlink()
+        sent = {"outcome": "send-back", "summary": "The owner's note changes R-1; the step plan must follow it.",
+                "headline": "Back to the step plan for N1.", "evidence_refs": [str(self.evidence)]}
+        # The step's loop stops blocked for the send-back; the result is then sent again without the row.
+        self.assertIn("a send-back result does not carry notes", self.refuse(run, head, dict(sent, notes=[row()])))
+        head = self.accept(head, sent, loop=False)
+        self.assertIn("ShipLoop navigator | step-plan |", head)
+        self.assertEqual(self.owes(head), ["N1"])
+        self.refuse(run, head, self.result(head))
+        # step-plan rewrites the requirement in place (the ID stays, no copy of the old clause) and is accepted; the
+        # import of its review commits the home, so the steps after it start from the rewritten spec.
+        self.rewrite_r1(run)
+        head = self.accept(head, self.result(head, row(did="applied", detail="R-1 and the step plan now say what N1 "
+                                                                              "asks")))
+        head = self.finish_review(run)
+        self.assertIn(self.NEW_R1, self.spec_of(run, "HEAD"))
+        self.assertNotIn(self.OLD_R1, self.spec_of(run, "HEAD"))
+        for stage in ("test-spec", "implement", "test", "document", "carry-forward"):
+            with self.subTest(stage):
+                if "ShipLoop navigator | improve |" in head:
+                    head = self.finish_review(run)
+                self.assertIn(f"ShipLoop navigator | {stage} |", head)
+                self.assertEqual(self.owes(head), [])
+                if stage == "implement":
+                    (self.repo_of(run) / "built.txt").write_text("hello\n")
+                done = self.accept(head, self.result(head))
+                head = done if "ShipLoop navigator |" in done else self.next(run)
+        self.finish_review(run)                   # the last item's carry-forward waits for its review
+        ledger = owner_notes.ledger(self.state(run))
+        self.assertEqual([(entry["stage"], entry["did"]) for entry in ledger["N1"]], [("step-plan", "applied")])
+
+    def test_a_note_carried_at_step_plan_is_settled_at_that_items_carry_forward(self) -> None:
+        run, _head = self.new_run("step-plan")
+        self.note(run)
+        head = self.next(run)
+        self.accept(head, self.result(head, row(did="carried", detail="the requirement is the item's to change")))
+        self.finish_review(run)
+        self.walk(run, self.at("carry-forward"))
+        head = self.next(run)
+        self.assertEqual(self.owes(head), ["N1"])
+        self.assertIn("      Carried here by step-plan of W1 (step ", head)
+        self.accept(head, self.result(head, row(detail="the item already does what N1 asks")))
+        self.finish_review(run)                   # the last item's carry-forward waits for its review
+        ledger = owner_notes.ledger(self.state(run))
+        self.assertEqual([(entry["stage"], entry["did"]) for entry in ledger["N1"]],
+                         [("step-plan", "carried"), ("carry-forward", "already")])
 
 
 if __name__ == "__main__":

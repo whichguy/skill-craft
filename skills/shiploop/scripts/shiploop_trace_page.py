@@ -452,9 +452,13 @@ function bootTrace(TRACE) {
       const owed = note.owed_by ? el("div", {class: "meta"}, (note.state === "open" ? "No row yet; " : "")
         + note.owed_by + " accounts for it") : null;
       return el("div", {class: "card note-card"},
-        el("div", {class: "meta"}, el("strong", {}, note.id), el("span", {title: note.at}, "written " + when(note.at)),
+        el("div", {class: "meta"}, el("strong", {}, note.id),
+          note.at ? el("span", {title: note.at}, "written " + when(note.at)) : null,
           el("span", {class: "tag " + tone}, label), el("span", {class: "mono"}, "RUN/" + note.file)),
-        el("pre", {class: "verbatim"}, note.text), ...rows, owed);
+        note.text === null || note.text === undefined
+          ? el("p", {class: "note"}, "Its file (RUN/" + note.file + ") "
+            + (note.file_gone ? "is no longer in the run folder." : "cannot be read now."))
+          : el("pre", {class: "verbatim"}, note.text), ...rows, owed);
     });
     return el("section", {}, el("h2", {}, "Owner notes"),
       el("div", {class: "notes"}, cards.length ? cards : el("p", {class: "note"}, "No notes yet."), open ? composer() : null));
