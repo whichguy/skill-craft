@@ -319,6 +319,17 @@ error text did.
 **Still not done.** Sessions already running on Claude Code keep the previous copy until it is restarted. No host has run the
 skill; the byte comparison is all that was read.
 
+## Round 9 - 2.8.0 full/core flakes and diagnostics (2026-11-23)
+
+Firm: release commit 4d805b084 failed full/core twice then passed (run 45134262405).
+Failures: security-harness reconstructed Git status (same-size keep edit); TimeoutEvidence
+cleanup barrier missed with empty staging; SelfTest PASS=278 FAIL=1 with the failing line
+cut off by a 1500-character tail.
+
+Decisions: fix fixtures (different-length keep; cleanup scenario 4s cap only); add FAIL index
+and status-digest ContextError text; do not split smoke/long suites; do not retry-until-pass;
+do not widen every cap (162d8b6e1, b64b17160).
+
 ## Findings register
 
 | ID | Finding | Status | Evidence |
