@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Ask Agent's host command and binding data: detection from exact environment names, the data's shape, and its agreement with the card,
-the host capabilities prose and ShipLoop's own detector.
+"""Ask Agent & ShipLoop shared host-bindings/v2: detection from exact environment names,
+schema shape, parity between packages, prose alignment, and ShipLoop emit-time host hints.
 
-Hermetic: the command runs against made-up environments; no native agent runs.
+Hermetic: runs against made-up environments; no native agent runs.
 """
 
 from __future__ import annotations
@@ -26,7 +26,10 @@ SCRIPT = SKILL / "scripts" / "ask_agent_host.py"
 DATA = SKILL / "references" / "host-bindings.json"
 PROSE = SKILL / "references" / "host-capabilities.md"
 CARD = SKILL / "SKILL.md"
-SHIPLOOP_GRANTS = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_grants.py"
+SHIPLOOP_SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
+SHIPLOOP_DATA = ROOT / "skills" / "shiploop" / "references" / "host-bindings.json"
+SHIPLOOP_BINDINGS = SHIPLOOP_SCRIPTS / "shiploop_host_bindings.py"
+SHIPLOOP_GRANTS = SHIPLOOP_SCRIPTS / "shiploop_grants.py"
 
 
 def load_module(path: Path, name: str):
@@ -50,7 +53,11 @@ def sections(text: str) -> dict[str, str]:
 class HostCommandTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        if str(SHIPLOOP_SCRIPTS) not in sys.path:
+            sys.path.insert(0, str(SHIPLOOP_SCRIPTS))
         cls.host = load_module(SCRIPT, "ask_agent_host_under_test")
+        cls.sl_bindings = load_module(SHIPLOOP_BINDINGS, "shiploop_host_bindings_under_test")
+        cls.sl_grants = load_module(SHIPLOOP_GRANTS, "shiploop_grants_under_test")
         cls.data = cls.host.load()
 
     def report(self, **environ: str) -> dict:
@@ -66,10 +73,17 @@ class HostCommandTests(unittest.TestCase):
                     self.assertEqual(found["section"], self.data["hosts"][host]["section"])
 
     def test_innermost_host_wins_and_the_others_are_reported(self) -> None:
-        cases = [({"CLAUDECODE": "1", "CODEX_THREAD_ID": "t"}, "codex", ["CLAUDECODE"]),
-                 ({"CLAUDECODE": "1", "GROK_SESSION_ID": "s"}, "grok", ["CLAUDECODE"]),
-                 ({"GROK_AGENT": "1", "CODEX_SANDBOX": "seatbelt"}, "codex", ["GROK_AGENT"]),
-                 ({"CLAUDECODE": "1", "GROK_AGENT": "1", "CODEX_THREAD_ID": "t"}, "codex", ["CLAUDECODE", "GROK_AGENT"])]
+        cases = [
+            ({"CLAUDECODE": "1", "CODEX_THREAD_ID": "t"}, "codex", ["CLAUDECODE"]),
+            ({"CLAUDECODE": "1", "GROK_SESSION_ID": "s"}, "grok", ["CLAUDECODE"]),
+            ({"GROK_AGENT": "1", "CODEX_SANDBOX": "seatbelt"}, "codex", ["GROK_AGENT"]),
+            ({"CLAUDECODE": "1", "GROK_AGENT": "1", "CODEX_THREAD_ID": "t"}, "codex", ["CLAUDECODE", "GROK_AGENT"]),
+            ({"CURSOR_AGENT": "1", "CLAUDECODE": "1"}, "claude", ["CURSOR_AGENT"]),
+            ({"CURSOR_AGENT": "1", "CODEX_THREAD_ID": "t"}, "codex", ["CURSOR_AGENT"]),
+            ({"CURSOR_CONVERSATION_ID": "c1", "GROK_AGENT": "1"}, "grok", ["CURSOR_CONVERSATION_ID"]),
+            ({"CURSOR_AGENT": "1", "OPENCODE": "1"}, "opencode", ["CURSOR_AGENT"]),
+            ({"CLAUDECODE": "1", "OPENCODE": "1"}, "opencode", ["CLAUDECODE"]),
+        ]
         for environ, host, others in cases:
             with self.subTest(environ=environ):
                 found = self.report(**environ)
@@ -77,28 +91,68 @@ class HostCommandTests(unittest.TestCase):
 
     def test_prefixes_and_empty_values_are_not_markers(self) -> None:
         # Codex plugin variables are set in Claude Code and Grok sessions (journal E10): a CODEX_ prefix match would call both Codex.
-        leak = {"CODEX_COMPANION_SESSION_ID": "x", "CODEX_COMPANION_TRANSCRIPT_PATH": "/tmp/t"}
+        leak = {"CODEX_COMPANION_SESSION_ID": "x", "CODEX_COMPANION_TRANSCRIPT_PATH": "/tmp/t", "CURSOR_TRACE_ID": "y"}
         self.assertEqual(self.report(**leak)["host"], "unknown")
         self.assertEqual(self.report(CLAUDECODE="1", **leak)["host"], "claude")
         self.assertEqual(self.report(GROK_AGENT="1", **leak)["host"], "grok")
+        self.assertEqual(self.report(CURSOR_AGENT="1", **leak)["host"], "cursor")
         self.assertEqual(self.report(CODEX_THREAD_ID="")["host"], "unknown")
         self.assertEqual(self.report(GROK_AGENT="", CLAUDECODE="1")["host"], "claude")
+        self.assertEqual(self.report(CURSOR_AGENT="", CURSOR_CONVERSATION_ID="")["host"], "unknown")
 
     def test_unknown_host_has_no_binding_and_points_to_the_prose(self) -> None:
         found = self.report(PATH="/usr/bin", TERM="xterm")
         self.assertEqual((found["host"], found["binding"], found["section"]), ("unknown", None, "references/host-capabilities.md"))
-        self.assertIn("live native schema", found["next"])
+        self.assertIn("live native tool schema", found["next"])
         self.assertIn("live native tool schema wins", found["authority"])
 
-    def test_agrees_with_shiploop_detect_host_for_every_marker_combination(self) -> None:
-        # Two copies of the same eight lines must stay in step: ShipLoop's grant check names the host with its own.
-        shiploop = load_module(SHIPLOOP_GRANTS, "shiploop_grants_under_test")
+    def test_shiploop_and_ask_agent_bindings_files_are_byte_identical(self) -> None:
+        self.assertTrue(SHIPLOOP_DATA.is_file())
+        self.assertEqual(DATA.read_bytes(), SHIPLOOP_DATA.read_bytes(),
+                         "skills/shiploop/references/host-bindings.json must stay byte-identical to skills/ask-agent/references/host-bindings.json")
+
+    def test_agrees_with_shiploop_detect_host_and_host_bindings_for_every_marker_combination(self) -> None:
         names = sorted(name for group in self.data["detect"]["markers"].values() for name in group)
         for size in range(len(names) + 1):
             for subset in itertools.combinations(names, size):
                 environ = {name: "1" for name in subset}
+                expected = self.host.report(environ, self.data)["host"]
                 with self.subTest(markers=subset):
-                    self.assertEqual(self.host.report(environ, self.data)["host"], shiploop.detect_host(environ))
+                    self.assertEqual(expected, self.sl_grants.detect_host(environ))
+                    self.assertEqual(expected, self.sl_bindings.detect_host(environ))
+
+    def test_shiploop_host_bindings_helpers_and_hints(self) -> None:
+        self.assertTrue(self.sl_bindings.supports_fork("claude"))
+        self.assertTrue(self.sl_bindings.supports_fork("codex"))
+        self.assertTrue(self.sl_bindings.supports_fork("cursor"))
+        self.assertFalse(self.sl_bindings.supports_fork("grok"))
+        self.assertFalse(self.sl_bindings.supports_fork("opencode"))
+        self.assertFalse(self.sl_bindings.supports_fork("unknown"))
+        self.assertEqual(self.sl_bindings.worker_capacity("codex"), 3)
+        self.assertEqual(self.sl_bindings.worker_capacity("claude"), 4)
+        self.assertEqual(self.sl_bindings.worker_capacity("cursor"), 4)
+
+        codex_hint = self.sl_bindings.host_hint({"CODEX_THREAD_ID": "t1"}, worktree="/tmp/wt")
+        self.assertIn("Host hint (codex):", codex_hint)
+        self.assertIn('fork_turns="none"', codex_hint)
+        self.assertIn("120000", codex_hint)
+        self.assertIn("live native tool schema wins", codex_hint)
+
+        cursor_hint = self.sl_bindings.host_hint({"CURSOR_AGENT": "1"}, worktree="/tmp/wt")
+        self.assertIn("Host hint (cursor, pilot-ide):", cursor_hint)
+        self.assertIn('subagent_type="generalPurpose"', cursor_hint)
+        self.assertIn('resume="self"', cursor_hint)
+
+        grok_hint = self.sl_bindings.host_hint({"GROK_AGENT": "1"}, worktree="/tmp/wt")
+        self.assertIn('cwd="/tmp/wt"', grok_hint)
+        self.assertIn('isolation="worktree"', grok_hint)
+
+        override_hint = self.sl_bindings.host_hint({"CODEX_THREAD_ID": "t1"}, host_override="claude", worktree="/tmp/wt")
+        self.assertIn("Host hint (claude):", override_hint)
+        self.assertIn('cd "/tmp/wt" &&', override_hint)
+
+        unknown_hint = self.sl_bindings.host_hint({})
+        self.assertIn("Host hint (unknown):", unknown_hint)
 
     def test_command_prints_one_compact_json_line_from_a_path_with_spaces(self) -> None:
         with tempfile.TemporaryDirectory(prefix="ask agent 'host' ") as temp:
@@ -137,7 +191,7 @@ class BindingDataTests(unittest.TestCase):
         cls.prose = sections(PROSE.read_text())
 
     def test_every_host_has_the_fields_the_command_and_the_prose_rely_on(self) -> None:
-        self.assertEqual(self.data["schema"], "ask-agent/host-bindings/v1")
+        self.assertEqual(self.data["schema"], "skill-craft/host-bindings/v2")
         markers, order = self.data["detect"]["markers"], self.data["detect"]["order"]
         self.assertEqual(sorted(order), sorted(markers))
         names = [name for group in markers.values() for name in group]
@@ -148,10 +202,22 @@ class BindingDataTests(unittest.TestCase):
                 path, _, anchor = binding["section"].partition("#")
                 self.assertEqual(path, "references/host-capabilities.md")
                 self.assertIn(anchor, self.prose, "the section anchor must be a heading of the host capabilities")
-                self.assertTrue(binding["name"] and binding["collect"])
-                self.assertTrue(binding["tested"] and all(re.fullmatch(r"\d+\.\d+\.\d+", v) for v in binding["tested"]))
+                self.assertTrue(binding["name"] and binding["collect"] and binding["hint"])
+                self.assertIn(binding["status"], ("qualified", "pilot-ide", "unqualified"))
+                if binding["status"] == "qualified":
+                    self.assertTrue(binding["tested"] and all(re.fullmatch(r"\d+\.\d+\.\d+", v) for v in binding["tested"]))
+                elif binding["status"] == "pilot-ide":
+                    self.assertTrue(binding["tested"])
                 self.assertTrue(binding["tools"]["spawn"] and all(isinstance(t, str) and t for group in binding["tools"].values() for t in group))
+                self.assertIn(binding["serial_mode"], ("foreground", "async-wait"))
+                self.assertIn(binding["parallel_mode"], ("foreground", "async-wait"))
+                self.assertIsInstance(binding["cwd_on_spawn"], bool)
                 self.assertIsInstance(binding["spawn_arguments"], dict)
+                self.assertIsInstance(binding["fresh_args"], dict)
+                self.assertIsInstance(binding["background_args"], dict)
+                self.assertIsInstance(binding["forbidden_fresh_args"], list)
+                if binding["fork_args"] is not None:
+                    self.assertIsInstance(binding["fork_args"], dict)
                 capacity = binding["capacity"]
                 if capacity is not None:
                     self.assertEqual(capacity["workers"], capacity["slots"] - capacity["parent_holds"])
@@ -165,7 +231,10 @@ class BindingDataTests(unittest.TestCase):
             for tool in (t for group in binding["tools"].values() for t in group):
                 with self.subTest(host=host, tool=tool):
                     self.assertRegex(text, rf"\b{re.escape(tool)}\b")
-            for argument in binding["spawn_arguments"]:
+            all_args = set(binding["spawn_arguments"]) | set(binding["fresh_args"]) | set(binding["background_args"]) | set(binding["forbidden_fresh_args"])
+            if binding["fork_args"]:
+                all_args |= set(binding["fork_args"])
+            for argument in sorted(all_args):
                 with self.subTest(host=host, argument=argument):
                     self.assertRegex(text, rf"`?{re.escape(argument)}[`=:]")
 

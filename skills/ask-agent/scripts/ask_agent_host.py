@@ -4,7 +4,7 @@
     ask_agent_host.py
 
 Prints one compact JSON line and exits 0. The host comes from exact environment variable names, innermost host first (a nested host
-inherits its launcher's variables). A host with no measured binding is reported as ``unknown``, which is an answer, not an error. The binding
+inherits its launcher's variables). A host with no binding is reported as ``unknown``, which is an answer, not an error. The binding
 is data from references/host-bindings.json; the live native tool schema is authoritative and wins where they differ. The script launches
 nothing, writes nothing and reads only the environment and that one file.
 """
@@ -20,12 +20,13 @@ from typing import Any, Mapping, Sequence
 
 DATA = Path(__file__).resolve().parent.parent / "references" / "host-bindings.json"
 PROSE = "references/host-capabilities.md"
+SCHEMA = "skill-craft/host-bindings/v2"
 
 
 def load(path: Path = DATA) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
-    if data.get("schema") != "ask-agent/host-bindings/v1":
-        raise ValueError(f"{path}: not an ask-agent/host-bindings/v1 file")
+    if data.get("schema") != SCHEMA:
+        raise ValueError(f"{path}: not a {SCHEMA} file")
     return data
 
 
@@ -43,11 +44,17 @@ def detect(environ: Mapping[str, str], data: Mapping[str, Any]) -> dict[str, Any
 def report(environ: Mapping[str, str], data: Mapping[str, Any]) -> dict[str, Any]:
     found = detect(environ, data)
     binding = data["hosts"].get(found["host"])
+    if binding:
+        status = binding.get("status", "unqualified")
+        if status == "unqualified":
+            next_step = (f"Binding for {binding['name']} is unqualified: check the live native tool schema "
+                         f"and follow {binding['section']}.")
+        else:
+            next_step = "Check the binding's tool names against the live native schema, then follow the named section of the host capabilities."
+    else:
+        next_step = f"No binding for this host: read {PROSE} and use the live native tool schema."
     return {"schema": data["schema"], **found, "binding": binding, "section": binding["section"] if binding else PROSE,
-            "authority": data["measured"]["authority"],
-            "next": ("Check the binding's tool names against the live native schema, then follow the named section of the host capabilities."
-                     if binding else
-                     f"No measured binding for this host (Cursor and OpenCode are described in {PROSE} without one): read it and the live native schema.")}
+            "authority": data["measured"]["authority"], "next": next_step}
 
 
 def main(argv: Sequence[str] | None = None) -> int:

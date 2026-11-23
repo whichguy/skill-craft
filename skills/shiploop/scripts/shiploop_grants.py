@@ -19,6 +19,8 @@ import shlex
 from pathlib import Path
 from typing import List, Mapping, Optional, Sequence, Tuple
 
+import shiploop_host_bindings as host_bindings
+
 EXIT_GRANT_NEEDED = 3
 MARKER = "SHIPLOOP-GRANT-NEEDED"
 
@@ -76,13 +78,7 @@ def require(targets: Sequence[Tuple[Path, str, Path]]) -> None:
 
 def detect_host(environ: Mapping[str, str] = os.environ) -> str:
     """Innermost host first: a nested host inherits its launcher's variables."""
-    if environ.get("CODEX_SANDBOX") or environ.get("CODEX_THREAD_ID"):
-        return "codex"
-    if environ.get("GROK_AGENT") or environ.get("GROK_SESSION_ID") or environ.get("GROK_SANDBOX"):
-        return "grok"
-    if environ.get("CLAUDECODE"):
-        return "claude"
-    return "unknown"
+    return host_bindings.detect_host(environ)
 
 
 def _fixes(grants: Sequence[Path]) -> List[Tuple[str, str]]:
@@ -103,6 +99,9 @@ def _fixes(grants: Sequence[Path]) -> List[Tuple[str, str]]:
         ("grok", "Grok - restart required (a sandbox cannot be relaxed mid-session): in"
          f" ~/.grok/sandbox.toml add [profiles.shiploop] extends = \"workspace\" read_write = {toml},"
          " then relaunch with --sandbox shiploop (or --sandbox off)."),
+        ("cursor", "Cursor - in cursor-agent CLI pass "
+         + " ".join(f"--add-dir {quoted_dir}" for quoted_dir in quoted)
+         + " (or --sandbox disabled when permitted); in Cursor IDE allow write access to those directories and rerun."),
     ]
 
 
