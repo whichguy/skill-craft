@@ -1,6 +1,8 @@
 # A candidate ShipLoop change: an owner note is settled by a row in a result, never by a print
 
-Status: a candidate on its own branch. Not on `main`, not released. The owner decides whether it is accepted.
+Status: accepted by the owner on 2026-11-22 at about 18:48 ("Yes, accept", to "Accept the owner-note fix into
+main?"), after the six deliveries of section 7. Sections 2.3, 2.8, 3 and 6 were then corrected to what was accepted;
+each correction is dated where it stands, and the text as registered before the deliveries is in the history.
 
 Owner's word, 2026-11-22 about 14:27, to "Design the owner-note fix as the next candidate?": "Yes, design it". The
 answer route (`../shiploop-answers/`) stays out of `main`; this is what its tests led to.
@@ -117,12 +119,20 @@ it. If the notes folder cannot be read the result is refused; it is never taken 
 - At an outer stage, a note that needs product work is the existing `add-work`. That result is not `done` and holds
   no row; the note stays owed and the first stage of the corrective item accounts for it.
 
-The texts that tell `carry-forward` to block on a changed requirement (its reference and its packet duty) gain the
-exception: an owner note carried to the stage is that direction. `document`'s duty says a note that changes a
-requirement is carried, not sent back.
+The texts that tell `carry-forward` to block on a changed requirement (its reference, its packet duty and the rule
+of its loop) carry the exception: an owner note this stage owes that asks for the change is that direction.
+`carry-forward` cannot send back, so without the exception a note that changes a requirement there could only be
+blocked or declined. No delivery met this clause (section 7); on Sol it is untested.
 
-The item in hand is finished as planned while a carried note waits for `carry-forward`. That is the price of
-having no way back from a work item's steps to the specification (2.8).
+**Inside a work item (corrected 2026-11-22, after the deliveries).** The text registered before them said that
+`document` carries a note that changes a requirement and that the item in hand is finished as planned while the
+note waits for `carry-forward`, "the price of having no way back from a work item's steps to the specification".
+Both were wrong about the engine. A stage whose step a note changes sends the step back to `step-plan`, the inner
+route the engine already has; `step-plan` rewrites the requirement the note changes (the engine does not guard a
+rewrite there), replans the step and writes the row; the wish is built inside the item in hand. Every delivery that
+got a note during the build went this way, unprompted (4 of 4). So `document`'s duty is the released one again: a
+requirement whose intent moved is a send-back. A stage that cannot do what a note asks within the item still
+writes `carried`, and that item's `carry-forward` owes it.
 
 ### 2.4 The gate
 
@@ -209,7 +219,8 @@ is read from the ledger. A run saved by 2.6.0 with a delivery record in its stat
 - **Reopening a settled note after a rewind.** A reconcile or a send-back that reruns the stage which applied a note
   can undo the change. The row stands; the review of the rerun stage and the report are the checks.
 - **A gate on a later queue that drops a note's item.** The report says what became of the item.
-- **A way back from a work item's steps to the specification**, and with it stopping an item half-way.
+- **A new way back from a work item's steps to the specification.** None is needed: the send-back to `step-plan`
+  is one, and the deliveries used it (2.3; corrected 2026-11-22, the earlier text said there was none).
 - **The selector and binding of the answer route.** An answer to a listed default is a note like any other. No
   sentence is added to the list of defaults: how a host learns to record what a user says is not changed here.
 - **Waiting for a note.** Nothing waits.
@@ -224,6 +235,15 @@ is read from the ledger. A run saved by 2.6.0 with a delivery record in its stat
 | A rewind reruns the stage that applied a note and the rerun undoes it | Passes. The row stands |
 | The host never records what the user said as a note | Nothing happens |
 | A note is written in the instant between the last read at `handoff` and the save | The note command has already said "written"; the report does not hold it |
+
+Recorded beside the table, each with no fixture because nothing is built for it (added 2026-11-22 after the code review and the deliveries):
+
+- The saved report is rendered before that last read: a note written in the instant between can be in the done packet and not in the saved report, and the note command can say "no stage read it" of a note `handoff` settled in the same instant; a yes reused for that completion is not turned into a no. Recorded, not built (the code review's finding 4): a race at the instant a run ends.
+- A producer changes its parked draft: `check` says yes and `complete` refuses the same draft. Recorded, not built (finding 5).
+- A notice (a hook installing itself, the recovery of an interrupted iteration, the knowledge-return line) prints before a refusal on three rare paths; the refusal for a note that arrives during `handoff` keeps its own shorter wording. Recorded, not built (finding 7).
+- About a hundred notes owed at once overflow the minimal result template of a head. Recorded, not built (finding 9); no run on file has had more than one note.
+- A session puts its row on a `send-back` result. Refused as a done-only key; the session sends the result again without the row (3 deliveries of 3, 3 to 9 seconds each). The stage that then submits a done result writes the row.
+- The host's last message does not mention the note. On Sol the done packet's lines about notes do not reach the model (0 deliveries of 3 checked); the report holds them. On Sonnet the last message says it (1 of 1).
 
 ## 4. The review, and what it changed
 

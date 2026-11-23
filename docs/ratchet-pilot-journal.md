@@ -5335,3 +5335,38 @@ one. The opposite-wish note was sent in five of six, because five specifications
 `main`: the review findings `main` needs (the design's section 6), the `document` clause taken back out (F81), the
 design's 2.3 and 2.8 corrected to the route the deliveries took, the wide tests once, and one delivery on the final
 commit.
+
+### The owner-notes candidate accepted, and what was changed for `main` (2026-11-22, 18:48 to 19:27)
+
+**The owner's word, about 18:48:** "Yes, accept", to "Accept the owner-note fix into main?". The message that asked
+it listed what would be done before `main` and what would not be built.
+
+- **Current `main` merged into the branch** (ShipLoop 2.6.1; one merge commit, no conflict).
+- **Fixed, from the code review:** a note file that cannot be read, decoded or parsed refuses the result and is named
+  (finding 1); a new note's number is above every note on file, every id in the ledger and every id in a parked
+  result, and the done packet, the report and `trace` list a note whose file is gone (2); a placeholder or a
+  character that cannot be stored is no `detail` or `item` (6); the refusal of a review's import has a first line that
+  names the notes, the folder and the `--final-result` route (7, that part only); a review's malformed `notes` is
+  seen when the parked result had none (8); the harness grades a saved run of an engine from before rows as before,
+  its note verdict "not applicable", never a new fail (10); `--help` and the README say the row rule (11).
+- **Taken back out:** the clause the first fix pass put into `document`'s duty, and the same sentence in the owed-notes
+  block (F81: every delivery sent the step back instead).
+- **Added, found by another session** ("Inner loop plan iteration stage", 19:00): `step-plan`'s duty said "Keep every
+  R-<n> and AD-<n>; write nothing else in KNOWLEDGE/", which forbade the route all four deliveries took. It now ends
+  with the exception: unless an owner note this stage owes asks for a requirement change, then rewrite that
+  requirement in place and plan the step for the rewritten text. What a run with no note does when a requirement must
+  change after the plan is the other half of that session's finding and stays with it and the owner; it lands its own
+  change on `main` after this release.
+- **Not built, recorded as ways round** (the design's section 3): findings 4, 5 and 9, the wording of one refusal, and
+  three notices that can print first.
+
+**What this cost in time, and what was cut.** At 19:15 the owner: "Can you check on the status? It seems like this is
+going on for a long time." Nothing was stuck. The fix brief had the worker run about twenty suites one by one, and
+the wide tests run every one of them again: the duplicate pass was mine, and it was cut at 19:17.
+
+**Checks on the tree as committed.** The notes suite passes 61 tests; run_trace, stage_oracle and analysis 29, 117 and
+304. With no note, a scripted run on main's engine and this one differs in the step-plan packet (the clause above),
+carry-forward's loop rule and the list of allowed keys. A reviewer of the other session's fix design (Sol at max)
+noted that the short form of carry-forward's duty, the usual one since 2.4.0, has no owner-note exception; left as it
+is, because that form has no rule to report blocked, and the owed-notes block in the same packet says the rule
+whenever a note is owed there.
