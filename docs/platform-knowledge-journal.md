@@ -1933,3 +1933,199 @@ and the reason has to be found before anything is concluded.
 
 **Limits known before the runs.** Three deliveries; one service; the same three shared entries.
 
+## 46. The owner's direction since section 38, as the copy relayed it (2026-11-22, said between 16:05 and 16:22; written 16:24)
+
+Said to the copy session, which sent each statement to me word for word; I did not hear them myself.
+
+1. *What the copy is for* (about 16:05): "Something really substantially went wrong here. I just simply want to do
+   the research to figure out how I can have two repos separated in Shiploop: 1. A Wiki that basically is defaulted
+   by Shiploop 2. The local repo, which could be modified and added to by the Shiploop operations."
+2. *Where the default wiki lives.* Asked "Should the default wiki live inside ShipLoop's own package, or in a
+   separate repository?": "Inside ShipLoop".
+3. *How it is used* (about 16:20, unprompted): "To be clear, the idea is that these wikis would sit with scripts
+   inside of ShipLoop. The scripts would be called by the ShipLoop operations skill-wise to be able to look up wiki
+   information during the planning sequences (whatever is either initial planning, part of the planning inside of
+   Interloop, test planning, or the review cycle)." ("Interloop" is the inner loop.)
+4. *Who runs the lookup.* Asked "Who runs the wiki lookup: ShipLoop's own script when it prepares a stage, or the
+   model with a command?": "ShipLoop's script".
+
+With "Read live" (section 38) these are the owner's decisions on the design: two stores kept apart, a default one
+inside ShipLoop and a local one in the product's repository that ShipLoop's operations add to; shared facts read
+live, not copied; ShipLoop's script looks the entries up and hands them to the session at four kinds of planning
+(the first plan, step planning in the inner loop, test planning, the review cycle). It is a direction, not the
+acceptance of anything built. The design itself is the copy session's to write for him; this journal supplies the
+measurements. Two of them follow from his third statement at once: where a Sol session receives what the script
+prints (section 47), and whether a store that is only named gets read without the script (rungs 11 and 12).
+
+## 47. A free reading: how much of each stage's packet a Sol session gives itself, in this study's own deliveries (2026-11-22, 16:21; no model called)
+
+`docs/experiments/spec-elaboration-20261120/packet_shown.py` (on main) over the 12 Sol whole deliveries that had
+finished in `~/e2e-runs-pk/20261122-n` and `-r` (n01, n03, n05, n06, k11, k12, q01, q02, r01, r02, r04, r05).
+Output: `familiar/readings/packet-shown-rungs6-to-10.txt` on the candidate branch. For each stage, of the packet's
+instruction lines (the part before "Result template:"), how many stand in an output the model was given between
+the packet's printing and the stage's submission:
+
+| Stage | Packets | Every line given | Four fifths or more | Under a third | Of the lines no earlier packet printed: four fifths or more | under a third |
+|---|---|---|---|---|---|---|
+| intake | 12 | 12 | 12 | 0 | 12 | 0 |
+| discovery | 12 | 10 | 12 | 0 | 12 | 0 |
+| research | 12 | 5 | 8 | 0 | 10 | 0 |
+| spec | 12 | 3 | 7 | 4 | 7 | 4 |
+| test-strategy | 12 | 0 | 3 | 7 | 5 | 7 |
+| plan | 12 | 0 | 6 | 2 | 6 | 3 |
+| prepare | 12 | 0 | 1 | 7 | 1 | 7 |
+| step-plan | 13 | 0 | 4 | 2 | 7 | 0 |
+| test-spec | 13 | 0 | 1 | 7 | 2 | 8 |
+| implement | 13 | 0 | 2 | 8 | 4 | 8 |
+| test | 12 | 0 | 1 | 7 | 1 | 8 |
+| document | 12 | 0 | 0 | 6 | 1 | 6 |
+| system-test-author | 12 | 0 | 5 | 2 | 6 | 3 |
+| system-test | 12 | 0 | 1 | 10 | 1 | 10 |
+| product-acceptance | 12 | 0 | 1 | 8 | 3 | 8 |
+
+The reference lines printed after "Result template:" were given at a median of 100% at intake, 89% at discovery,
+14% at research, 16% at spec and plan, and 9% to 29% at the later stages. No review stage ran in these
+deliveries, so the review cycle is not measured.
+
+**What it says for a script that hands entries over at planning.** On Sol, text the script prints into a packet is
+reliably received at intake and discovery, usually at research, in about 7 of 12 at spec and 6 of 12 at plan, and
+poorly at test planning (under a third of the instructions in 7 of 12 at test-strategy and 7 of 13 at test-spec).
+At step-plan the lines new to that packet are mostly received (four fifths or more in 7 of 13, never under a
+third). So "the script prints it at the planning stage" is not yet "the session received it", and least of all at
+test planning. In rung 10 the spec block was given in 4 of 4 Sol sessions, and those four are all sessions that
+printed most of the spec packet; four of these twelve printed under a third of it. Two more samples come with rung
+12.
+
+**How a Sol session reads a packet, seen in its own scripts** (q01, section 36's run): it stores the command's
+output, prints the lines that start with Goal:, Done when, Checked by:, Allowed outcomes, a heading or Callback,
+and then prints slices between markers it chooses (from "Done when" to "RULES (", for one). The copy's map of the
+packet (its message of 16:24, from `_producer_blocks` on main) adds that every reference look-up ShipLoop prints
+today lands after the template, the part read least, and that two things are printed by value before it: the
+concern rows at step-plan and the stage's own duties. Two carriers this suggests and nothing here tests: a line in
+"Done when", and a check the script itself runs when the stage's work is returned.
+
+**Limits.** Twelve deliveries of one small request on one service; Sol at medium only (a Claude session is given
+the whole tool result). "Given" is not "used".
+
+## 48. The owner's idea of a key directive; his existing wiki setups; how public wikis of this kind get a model to consult them (2026-11-22, 16:26 to 16:33)
+
+**Owner, 16:26, to this session, word for word:** "I think probably some of this, if I'm not mistaken, is more
+about making a key indicator in the prompts to basically say: give it a directive saying, 'Make sure to check the
+wiki for items.' Again, look up how the Carpathy-style algorithm exposes this in order to solicit the LM to use the
+skill to call into the wiki setup for searches and so forth. I may have actually set up one of these wiki setups in
+one of my repositories already. We've been searching around for it, but if there's something newer that's on
+GitHub, we should investigate that as well."
+
+**His existing setups, found on this machine (read-only).**
+
+- *The plugin:* `~/src/claude-craft/plugins/wiki-suite`, version 0.3.1, turned off in his Claude settings
+  (`"wiki-suite@claude-craft": false`). Seven skills (wiki-load, wiki-query, wiki-ingest, wiki-lint, wiki-init,
+  wiki-process, proactive-research) and sixteen hook handlers.
+- *How it gets the model to consult the wiki:* three hooks, each a directive and never page content.
+  1. At session start (`wiki-detect.sh`), when the repository has a wiki, one standing directive: where the wiki
+     is, `/wiki-load <topic>` and `/wiki-query <question>`, when to consult it and when to skip it.
+  2. On every prompt (`wiki-notify.sh`), a script matches the prompt's words against a cached index of page names
+     and their key words and, on two hits or more, injects "Possible wiki matches: <pages>. If relevant to the
+     prompt, /wiki-load to retrieve." Its own comment gives the lesson behind it: "Directive only — no page content
+     injected. Partial previews cause the LLM to skip /wiki-load (context poison). Force skill invocation instead."
+  3. Before a file is read (`wiki-read-gate.sh`), a hint of at most 200 characters when a wiki page documents that
+     file.
+- *Wikis laid out in that form:* `~/.hermes/wiki` (304 pages, the newest of 2026-10-27; `SCHEMA.md`, `index.md`,
+  `log.md`), with the Hermes skill `~/.hermes/skills/research/llm-wiki` 2.1.0, which says "always orient yourself
+  before doing anything" (read `SCHEMA.md`, then `index.md`) and starts a query with a `qmd` search; and in project
+  repositories under `~/src`: nbq-gated-eval (171 pages), c-thru (60), mcp-gas-deploy (35), sheets-chat (33),
+  claude-craft (an index).
+
+**Public sources** (an Opus subagent, web only; each file was fetched through a summarising reader, so its wording
+is second-hand; none of this is run here):
+
+| Source | Last change | How the model is made to consult the wiki | Check afterwards |
+|---|---|---|---|
+| Karpathy's gist (gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) | 2026-04-04 | a schema file describes the layout and the operations; at a query the model reads `index.md` (one line a page) first, then the pages; search optional (qmd). It has no rule that says to consult the wiki first. | lint for stale claims, orphans, contradictions |
+| Astro-Han/karpathy-llm-wiki | 2026-07-23 | skill description with trigger phrases; index, then a full-text search; prefer the wiki to the model's own knowledge | may say "not in the wiki" only after both came up empty, and must say it searched |
+| toolboxmd/karpathy-wiki (archived) | 2026-10-18 | a session-start hook pastes the whole loader skill; no answer before orienting; it lists the excuses for skipping with a reply to each | every claim cited; an uncited claim flagged as from training |
+| praneybehl/llm-wiki-plugin | 2026-10-29 | a short stanza in the always-loaded memory file: read the index before answering what depends on project knowledge; index split past about 300 lines | lint; sources on every claim |
+| lewislulu/llm-wiki-skill | 2026-04-16 | skill text: every session starts by reading the schema and the index | citations; a lint script |
+| kfchou/wiki-skills | 2026-11-03 | query skill: do not answer from general knowledge; index regenerated before each read | a pre-commit gate; cite every claim |
+| tobi/qmd | 2026-11-20 | search tools (CLI or MCP) returning hits with document ids and line anchors; whole text fetched on request | cite id and lines |
+
+**The pattern across them.** The instruction is always words, never page content: read the index before
+answering, then read the pages whole. The stronger ones forbid "the wiki has nothing" until a search was run, or
+forbid answering before orienting, and tell the model to prefer the wiki to what it believes. They disagree on
+where the rule sits (in the skill's text alone; a short pointer in the always-loaded memory file; a session-start
+hook). None matches the prompt against the index in a script and names the pages, which the owner's plugin does.
+All ask for citations; none checks mechanically that the wiki was read.
+
+**What this study already has on a directive in ShipLoop.** Rung 4L (section 24) is one: a single line the script
+places inside the plan duty, naming the card's file and the line range of its section, with a sentence saying what
+to do with what is found. In plan-stage slices the section was read in 8 of 8 and the fact reached the plan in 6
+of 8 (printed by value: 7 of 8; the card only named in the project's file: 1 of 8). Rung 11 is the opposite end, a
+standing pointer and nothing at the point of work: one of two Sol sessions opened the page, and it refused the
+entry. So the owner's idea fits the measurements, with three conditions that the working directive met and the
+standing pointer did not: the script places it in the duty of the stage at hand, it names the exact page (the
+script holds the key, the platform), and it says what to do with what is found.
+
+**What is not known,** and what rung 13 (section 49) asks: whether such a directive holds through a whole delivery
+on Sol, where it has to sit in a part of the packet the session gives itself (section 47). Not asked yet: a
+directive that names no page and leaves the finding to an index or a search command, which is the public pattern.
+
+## 49. Amendment 12, rung 13, registered before its runs: a directive that points, in the place of the printed entries (2026-11-22, 16:32)
+
+**Rung 13.** The starting repository of rungs 11 and 12 (`prior-nodeplain-named`), with a build that differs from
+rung 12's in one constant: at the spec stage the script prints, where rung 12 prints the three entries, one line
+that names the card's file and the line range of its planning section, followed by the same lead ("read from
+ShipLoop's guide at this run [...] the project's own facts win [...] write a requirement with the check that
+proves it [...] copy none"). The session has to go and read the section. An Opus subagent builds the arm
+(`arm-live-spec-lookup`) and renders its spec packet to check the line and its place before any run. Two
+deliveries on Sol medium and one on Sonnet medium: `familiar/runs/rung13.tsv`, v01 to v03, in
+`~/e2e-runs-pk/20261122-r/`.
+
+**Readings.** The tightened product check, as in rungs 11 and 12. Beside it, from each session's own record:
+whether the directive line was given to the model at the spec stage; whether the section was then read (the
+entry's lines given) before the spec was accepted; and the characters of the card given, against the 15 lines the
+printed block costs.
+
+**Rules.** The directive **holds on Sol** when both Sol products pass. A directive is **enough** when it holds on
+Sol and the Sonnet product passes too. **Prediction:** the directive line is given in 3 of 3, the section is read
+in at least 2 of 3, and at least 2 of 3 products pass.
+
+**What each outcome would mean.** Enough: the script need not carry the wiki's text; a pointer placed in the duty
+is a sufficient hand-over at this stage, and what a pointer costs in context is the section a session chooses to
+read. Holds on neither driver while rung 12 holds: at this stage the text has to be printed. Given but not read:
+the wording or the place of the directive is the next thing to change (a line in "Done when", section 47).
+
+**Limits known before the runs.** Three deliveries; one service; the page is one file of 77 lines, so "read the
+section" and "read the page" cost nearly the same here.
+
+## 50. Rung 11: a shared page that the project's file only names is not delivered: 0 of 3 products, opened by 1 of 3 sessions (2026-11-22, 16:11 to 16:35; read 16:35)
+
+Three whole deliveries, `~/e2e-runs-pk/20261122-n/t01` to `t03`, released behaviour (`arm-off`), from
+`prior-nodeplain-named` (the project's `environment.md` says "Platform guide: GUIDES/platforms/node-express.md" and
+nothing about the gateway). Apparatus at candidate commit f202a2a19760db61cff6aacc409c479b41af00d9. Readings on
+the candidate branch: `familiar/readings/contract-rung11.txt` and `rung11-product-token.txt`.
+
+| Run | Driver | ShipLoop | Minutes | Header on the valid call, with no id sent, on the 400 path | The 18 existing answers unchanged | Card opened | What the session made of it |
+|---|---|---|---|---|---|---|---|
+| t01 | Sol | done | 10.5 | no, no, no | pass | never | nothing: the header's name is in no file of the product |
+| t02 | Sol | done | 10.6 | no, no, no | pass | once, 65 seconds in (the first 70 of its 77 lines, the entry among them) | declined in writing. Discovery note: "No evidence binds this service to the gateway described by the generic Node/Express card." Research note: "The platform guide's gateway premise has no binding to this project in its repository, service contract or accessible connected context." |
+| t03 | Sonnet | done | 24.0 ($9.92) | no, no, no | pass | never | nothing |
+
+**Rule ("the named route holds on Sol when both Sol products pass"): it does not hold, 0 of 2; 0 of 3 in all.
+Predictions: "at most 1 of 3 products passes" right (0); "the card is opened before the spec in at least 2 of 3"
+wrong (1).** I expected rung 10's T2 to carry over, where all three sessions went to the card; there the local
+bullet itself spoke of "the shared platform notes", and here nothing does.
+
+**Two different failures.** In two of three sessions the page was never opened, on both drivers, although the
+project's own file names it: a standing pointer is not followed on a platform the model knows. In the third the
+page was read and its entry refused for want of evidence that it applies to this project.
+
+**What the refusal is worth.** It is a sound judgment of this canary: a claim about one deployment's gateway,
+standing in a general card. It says a shared entry that is read by choice is weighed like any reading (sections 21
+and 23 saw the same at the plan stage), which is what one wants for a claim of that kind and what a default wiki
+of general platform facts would meet less often. It does not rescue the route: two of three never opened the
+page.
+
+**Limits.** Three deliveries, one service, one request. The Node card has no "## Testing" section, so the released
+script's own link to a named card (the testing look-up at four later stages) never printed here; a card that has
+one gets that push.
+
