@@ -1695,3 +1695,117 @@ project's record. If deliveries copy anyway, the duties that fill the knowledge 
 and keeping scope apart needs the script: a check when the work is returned, or a marked place for "from the shared
 guide" that is not the project's own facts.
 
+## 42. Rung 10: shared facts read live at the spec stage reach the product (3 of 3), the local fact wins (3 of 3), and no shared text is copied into the project (2026-11-22, 15:38 to 16:00; read 16:02)
+
+Six whole deliveries, `~/e2e-runs-pk/20261122-r/r01` to `r06`, built and launched by the copy at candidate commit
+67ddd34853f8b3aa5c051c42f52ead223cd2ec8d; read by me. The arm prints the selected card's three planning entries at
+the spec stage only, after the duty item that writes the requirements, with the lead of section 38. Readings on the
+candidate branch: `familiar/readings/contract-rung10.txt`, `rung10-t1-product-token.txt`,
+`rung10-t2-product-token.txt`, `rung10-scope-leak.txt`.
+
+**T1, delivery: a brand-new repository, nothing local** (the released route scored 0 of 2 here, rung 6):
+
+| Run | Driver | ShipLoop | Minutes | Output tokens | Sent id echoed, id generated, 400 path | The 18 existing answers unchanged | Existing routes carrying the header | The requirement's stated basis, in `spec.md` |
+|---|---|---|---|---|---|---|---|---|
+| r01 | Sol | done | 10.6 | 21,377 | pass, pass, pass | pass | none | "ShipLoop Node platform guidance N-GATEWAY specifies that every stock response carries X-Org-Request-Id [...] Observing the actual gateway remains open" |
+| r02 | Sol | done | 10.6 | 21,357 | pass, pass, pass | pass | none | "Basis: Node platform planning criterion N-GATEWAY. [...] Confirm gateway behavior separately once the catalog release owner identifies the production target." |
+| r03 | Sonnet | done | 22.5 | 169,324 ($7.70) | pass, pass, pass | pass | all 18 | "Basis: platform fact N-GATEWAY (this deployment's gateway drops a response without it)." |
+
+**Rule ("reading live at the spec stage holds on Sol when both Sol products pass"): it holds. Prediction ("at least
+2 of 3"): right, 3 of 3.**
+
+**T2, precedence: the project's own facts say the gateway was replaced and wants `X-Corp-Trace`, against the shared
+entry's `X-Org-Request-Id`** (the check run for the local header; the shared header reported beside it):
+
+| Run | Driver | ShipLoop | Minutes | Local header: echoed, generated, 400 path | Shared header also set | Existing routes carrying the local header | What it wrote about the two |
+|---|---|---|---|---|---|---|---|
+| r04 | Sol | done | 15.8 | pass, pass, pass | no | none | spec: "Basis: gateway replacement documented in docs/shiploop/environment.md, Platform facts (N-GATEWAY applies with the service-specific header)." |
+| r05 | Sol | done | 10.0 | pass, pass, pass | no | none | spec: "Stock lookup responses include X-Corp-Trace [...]"; the shared entry is not mentioned |
+| r06 | Sonnet | done | 21.5 ($8.02) | pass, pass, pass | no | all 18 | spec: "N-GATEWAY is R-6"; added to the project's own facts: "The platform guide GUIDES/platforms/node-express.md (N-GATEWAY) still names the old `X-Org-Request-Id`; this repository's observed fact (`X-Corp-Trace`) governs." |
+
+**Rule ("the local fact wins on a driver when every product of that driver passes with the local header"): it wins
+on Sol (2 of 2) and on Sonnet (1 of 1). Prediction ("at least 2 of 3"): right, 3 of 3.** No product sets the shared
+header.
+
+**Were the sessions given the block?** Read in each session's own record: the lead ("read from ShipLoop's guide at
+this run") was given at the spec stage in 6 of 6, between 57 and 127 seconds after the start (for the four Sol
+sessions in the rows the model prints to itself, not in the event stream). This is the step that failed in section
+26, where the same entries printed at the plan stage were never given to the Sol session. In the three T2 sessions
+the project's own fact had been read before the block arrived (r06 at 9 seconds, r05 at 49, r04 at 65).
+
+**The scope reading registered in section 41** (is the project's `environment.md` copied into):
+
+| Run | Driver | Entry id in the file | Whole printed line in the file | Longest run of an entry's words, start to delivered | The shared header's name, start to delivered |
+|---|---|---|---|---|---|
+| r01, r02 | Sol | none | 0 | 0 to 2 | 0 to 0 |
+| r04, r05 | Sol | none | 0 | 13 to 13 (the local bullet's own words) | 1 to 1 |
+| r03 | Sonnet | N-INSTANCES, N-AUTHZ | 0 | 0 to 3 | 0 to 4 |
+| r06 | Sonnet | N-GATEWAY | 0 | 13 to 13 | 1 to 2 |
+
+**As registered:** 2 of 6 files are "copied into" (an entry id counts), so by the rule the scopes do not stay
+apart, and my prediction ("at most 1 of 6") is **wrong**. **By hand the rule is too strict:** no file holds a line
+or a sentence of a shared entry (0 lines in 6 of 6; no run of an entry's words grew past 3). What the two Sonnet
+files hold is the entry's id used as a handle in the project's own notes ("N-INSTANCES, N-AUTHZ are reasons
+recorded in the spec, no check"; the precedence sentence quoted in the table above). The four Sol files do not
+mention the shared entries at all. So no shared text was copied in 6 of 6, and Sonnet cites shared entries by id in
+2 of 2. An id reference keeps scope apart and makes the link traceable; I should have registered the rule on text
+and reported ids beside it.
+
+**Other readings.** Five of the six sessions opened the card's file (r03 did not), and the arm asks for nothing of
+the kind. In T1 the two Sol sessions opened it within half a minute after the block named it. In T2, where the
+project's own file names the card, all three opened it before the block arrived (r06 five times), so they had the
+shared entry from the card itself as well; section 43 follows this up. Sol put the header on the new route, Sonnet
+on every route, as in every earlier rung. Time and cost are those of the other arms (Sol 10.0 to 15.8 minutes; Sonnet 21.5 and 22.5 minutes, $7.70 and
+$8.02).
+
+**The whole chain on this service, every route run today** (products that pass, of deliveries run):
+
+| Where the fact is, and who delivers it | Sol | Sonnet |
+|---|---|---|
+| Only in the card shipped with ShipLoop, released (n01, n04) | 0 of 1 | 0 of 1 |
+| The card's entries printed at the plan stage (n03, n02) | 0 of 1 | 1 of 1 |
+| Printed at discovery, recorded in the project's file, and at plan (n05, n06, n07) | 2 of 2 | 1 of 1 |
+| In the project's own knowledge file, released (k11, k12, k13) | 2 of 2 | 1 of 1 |
+| A starter copy in a brand-new project, released (q01, q02, q03) | 2 of 2 | 1 of 1 |
+| Read live: printed at the spec stage, nothing copied, brand-new project (r01, r02, r03) | 2 of 2 | 1 of 1 |
+| Read live, with a local fact that contradicts the shared one: the local header (r04, r05, r06) | 2 of 2 | 1 of 1 |
+
+**Limits.** One service, one request, three shared entries, six deliveries, one Sonnet sample a test. The card was
+selected by a file pattern (`package.json`), which picks the Express card for a service that does not use Express.
+The hidden fact is a fact about a deployment written into a general card. Forty entries printed in a packet were
+not run (rung 8 was forty in a file). No host that clears context between stages. A wrong shared entry was not
+run: sections 23 and 29 say a printed entry is obeyed.
+
+## 43. Amendment 10, rung 11, registered before its runs: the control rung 10 lacks (2026-11-22, 16:04)
+
+**Why.** T2 shows something I did not expect: where the project's own file names the shared card, all three
+sessions opened the card by themselves before the script printed anything from it. Every earlier count for a card
+that is only named comes from plan-stage slices started cold (section 23: opened in 3 of 8, the fact in the plan
+in 1 of 8), and the released route was run end to end only where nothing names the card (rung 6, 0 of 2). So one
+cell is missing, and it is the one a design with two repositories turns on: the local repository names the shared
+set, the build is the released one, and nothing is printed. If a whole delivery reads the named card and follows
+its entry, reading live needs no change to ShipLoop at all, only one line in the project's file.
+
+**Rung 11.** The Node service with a knowledge home whose `environment.md` names the card ("Platform guide:
+GUIDES/platforms/node-express.md") and says nothing about the gateway: the fixture of rung 7b with that line
+changed and the gateway bullet removed. The released build (`arm-off`) and the request of rung 6. Two deliveries on
+Sol medium and one on Sonnet medium: `familiar/runs/rung11.tsv`, t01 to t03, in `~/e2e-runs-pk/20261122-n/`. An
+Opus subagent lays the starting repository.
+
+**Readings.** The tightened product check, as in rung 10's T1. Beside it, from each session's own record: whether
+and when it opened the card, whether the entry's lines were given to it, and what its spec says of the header.
+
+**Rule.** The named route **holds on Sol** when both Sol products pass. **Prediction:** the card is opened before
+the spec is accepted in at least 2 of 3, and at most 1 of 3 products passes (a card that is merely read is weighed
+as general guidance: sections 21 and 23).
+
+**What each outcome would mean.** If it holds, the two-repository design needs no printing: the local repository
+names the shared sets it uses, ShipLoop as released reads them live, and what is left is who writes that line in a
+new project. If it fails with the card opened, reading is not enough: the printed lead at the spec stage ("write a
+requirement with the check that proves it") is what turns a shared entry into a requirement, and rung 10's arm
+earns its place. If it fails with the card unopened, T2's reads were prompted by something else in that arm, to be
+found before anything is concluded from them.
+
+**Limits known before the runs.** Three deliveries on one service. The released build on this branch differs from
+main in the card's experiment-only sections, as in every rung.
+
