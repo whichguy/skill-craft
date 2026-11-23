@@ -26,6 +26,12 @@ HANG_CAP_SECS="${TEST_HARNESS_TEST_HANG_CAP_SECS:-10}"
 
 PASS=0
 FAIL=0
+FAIL_INDEX="$TMP/fail-index.txt"
+: > "$FAIL_INDEX"
+record_fail() {
+  local name="$1"
+  printf '%s\n' "$name" >> "$FAIL_INDEX"
+}
 # assert <name> <command...>: PASS when the command succeeds. Many checks below are Python heredocs that abort the whole
 # script (set -e) when they fail; the `assert "<name>" true` lines after them only record that the heredoc ran to the end.
 assert() {
@@ -35,6 +41,7 @@ assert() {
     PASS=$((PASS + 1))
   else
     echo "  FAIL  $name"
+    record_fail "$name"
     FAIL=$((FAIL + 1))
   fi
 }
@@ -45,6 +52,7 @@ assert_eq() {
     PASS=$((PASS + 1))
   else
     echo "  FAIL  $name (got='$got' want='$want')"
+    record_fail "$name"
     FAIL=$((FAIL + 1))
   fi
 }
@@ -68,6 +76,7 @@ assert_pid_file_dead() {
     PASS=$((PASS + 1))
   else
     echo "  FAIL  $name (pid_file='$pid_file' pid='${pid:-missing}' still alive)"
+    record_fail "$name"
     FAIL=$((FAIL + 1))
     [[ -z "$pid" ]] || kill -KILL "$pid" 2>/dev/null || true
   fi
@@ -2829,6 +2838,13 @@ assert_eq "hard supervisor default run root follows XDG_STATE_HOME, else ~/.loca
 # ---------------------------------------------------------------------------
 echo "=== summary: PASS=$PASS FAIL=$FAIL ==="
 if [[ "$FAIL" -ne 0 ]]; then
+  echo "=== fail-index ==="
+  if [[ -s "$FAIL_INDEX" ]]; then
+    cat "$FAIL_INDEX"
+  else
+    echo "(no recorded FAIL names; likely a set -e heredoc abort before assert helpers)"
+  fi
+  echo "=== end fail-index ==="
   exit 1
 fi
 exit 0

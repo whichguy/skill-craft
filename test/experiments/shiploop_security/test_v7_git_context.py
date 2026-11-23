@@ -108,7 +108,10 @@ class GitContextTests(unittest.TestCase):
         staged = self.git("rev-parse", ":sub/staged", root=linked).stdout.strip()
         self.assertNotIn(staged, self.git("rev-list", "--objects", "--all", root=linked).stdout)
         self.git("rm", "-q", "--", "deleted", root=linked)
-        self.put("keep", b"unstaged\n", root=linked, mode=0o600)
+        # A different length from the committed b"original\n": a same-size edit made within the
+        # same second as the index can be racily clean to Git, so the native and replayed status
+        # would disagree for a timing reason rather than a content one (CI 45134262405 attempt 1).
+        self.put("keep", b"unstaged change\n", root=linked, mode=0o600)
         self.put("sub/untracked", b"untracked\n", root=linked, mode=0o640)
         self.put("ignored", b"ignored content\n", root=linked)
         self.put(".shiploop-runs/private", b"omitted evidence\n", root=linked)
@@ -239,6 +242,22 @@ class GitContextTests(unittest.TestCase):
         with self.assertRaises(context.ContextError):
             self.scan()
         self.assertFalse(self.output.exists())
+
+    def test_status_mismatch_names_digests_not_paths(self):
+        receipt = self.clean_context()
+        receipt["status"] = {
+            **receipt["status"],
+            "sha256": "0" * 64,
+            "tracked": receipt["status"]["tracked"] + 1,
+        }
+        self.rewrite_receipt(receipt)
+        with self.assertRaises(context.ContextError) as raised:
+            self.restore()
+        message = str(raised.exception)
+        self.assertIn("reconstructed Git status differs", message)
+        self.assertIn("expected_sha256=", message)
+        self.assertIn("observed_sha256=", message)
+        self.assertNotIn("keep", message)
 
     def test_truncation_malformed_index_and_limits_are_incomplete(self):
         receipt = self.clean_context()
