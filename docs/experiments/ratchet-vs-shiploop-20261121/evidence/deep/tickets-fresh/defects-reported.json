@@ -1,0 +1,70 @@
+{
+ "recheck": [
+  {
+   "id": "U-2",
+   "kind": "unstated",
+   "text": "What the endpoint answers for a malformed request: no `assignee` field, a non-string non-null value (a number, an object, an array), extra unknown fields, a body that is not a JSON object, a body that is not valid JSON or not valid UTF-8, and an unknown ticket id.",
+   "audits_said": {
+    "p4c8106": "poor",
+    "p5ffd4c": "acceptable",
+    "p10059e": "sound"
+   }
+  },
+  {
+   "id": "U-22",
+   "kind": "unstated",
+   "text": "Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.",
+   "audits_said": {
+    "p4c8106": "sound",
+    "p5ffd4c": "poor",
+    "p10059e": "acceptable"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p4c8106",
+   "n": "p4c8106#1",
+   "title": "An agent name holding invalid UTF-8 is accepted and stored altered",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"Printer jam\",\"priority\":\"low\",\"requester\":\"ann@example.com\"}; send PUT /tickets/T-0001/assignee with Content-Type application/json and the raw body bytes 7B 22 61 73 73 69 67 6E 65 65 22 3A 22 64 61 FF 6E 61 22 7D ({\"assignee\":\"da<0xFF>na\"}); GET /tickets/T-0001.",
+   "observed": "200; assignee is \"da�na\" (U+FFFD replacing the byte); an audit entry and a notification to that altered name are queued.",
+   "expected": "400 invalid (the body is not valid UTF-8), the ticket, audit and outbox unchanged.",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "p5ffd4c",
+   "n": "p5ffd4c#1",
+   "title": "No CHANGELOG.md section and no version bump for the assignment feature",
+   "severity": "low",
+   "repro": "Compare CHANGELOG.md and package.json of the delivered tree with the starting files",
+   "observed": "both identical to the starting files: top changelog section is 1.4.0 (2025-09-15), version 1.4.0",
+   "expected": "a new changelog section describing assignment and a bumped version (inventory U-22)",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "from": "p5ffd4c",
+   "n": "p5ffd4c#2",
+   "title": "An agent named '-' is indistinguishable from an unassigned ticket in the command line",
+   "severity": "low",
+   "repro": "POST /tickets {...}; PUT /tickets/T-0001/assignee {\"assignee\":\"-\"} -> 200; stop; node bin/tickets.js --data FILE list and show T-0001",
+   "observed": "ASSIGNEE column and show's assignee line print '-', the same marker used for unassigned tickets",
+   "expected": "either refuse '-' as a name or show unassigned with a marker no accepted name can take, so the two are distinguishable",
+   "basis": "unstated",
+   "item": "U-17"
+  },
+  {
+   "from": "p5ffd4c",
+   "n": "p5ffd4c#3",
+   "title": "Assignee with an invalid UTF-8 byte is accepted and stored with a replacement character",
+   "severity": "low",
+   "repro": "printf '{\"assignee\":\"da\\xffna\"}' > b.json; curl -X PUT -H 'content-type: application/json' --data-binary @b.json http://HOST/tickets/T-0001/assignee",
+   "observed": "200, assignee 'da\\ufffdna', audit entry and a notification to that name (inherited body parsing: titles behave the same)",
+   "expected": "400 invalid, ticket unchanged (inventory U-2)",
+   "basis": "unstated",
+   "item": "U-2"
+  }
+ ]
+}

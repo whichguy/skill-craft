@@ -1,0 +1,593 @@
+id | host | case | fixture | token_in_plan | bullet_given | facts_section_chars given/total | pages named | pages chars given/total | knowledge_chars given/total | card reads (chars also in card)
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+m01 | codex | pk-sf-plan-facts-long | pk-sf-facts-long | no | all | 6336/6336 | - | - | 6336/6336 | 0 (602)
+m02 | claude | pk-sf-plan-facts-long | pk-sf-facts-long | yes | all | 6336/6336 | - | - | 6336/6336 | 0 (602)
+m03 | codex | pk-sf-plan-facts-index | pk-sf-facts-index | yes | all | 1460/1460 | - (0 of 7) | 6131/6131 | 7591/7591 | 0 (602)
+m04 | claude | pk-sf-plan-facts-index | pk-sf-facts-index | yes | all | 1460/1460 | access,code,data-model,deploy,naming,tabs-and-apps,testing (7 of 7) | 6131/6131 | 7591/7591 | 0 (602)
+m05 | claude | pk-sf-plan-facts-long | pk-sf-facts-long | yes | all | 6336/6336 | - | - | 6336/6336 | 0 (602)
+m06 | codex | pk-sf-plan-facts-index | pk-sf-facts-index | yes | all | 1460/1460 | - (0 of 7) | 6131/6131 | 7591/7591 | 0 (602)
+m07 | claude | pk-sf-plan-facts-index | pk-sf-facts-index | yes | all | 1460/1460 | access,code,naming,tabs-and-apps,testing (5 of 7) | 6131/6131 | 7591/7591 | 0 (602)
+m08 | codex | pk-sf-plan-facts-long | pk-sf-facts-long | no | all | 6336/6336 | - | - | 6336/6336 | 0 (602)
+
+[
+  {
+    "id": "m01",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m01",
+    "host": "codex",
+    "model": "gpt-6.2-sol",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-long",
+    "fixture": "pk-sf-facts-long",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m01/work at its start_head 19137a0255a54aa686033a3e153d7ecd888071e5",
+    "fixture_matches_checkout": true,
+    "token_in_plan": false,
+    "token_in_plan_parts": {
+      "accepted_plan": false,
+      "architecture.md": false,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/environment.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-6d9662661d0842cd92347c1a709287d4",
+        "printed_at": "2026-11-22T23:08:34Z",
+        "printed_ts": 1795388914.763
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:09:43Z",
+        "ts": 1795388983.712,
+        "seconds_after_packet": 68.9
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 6336,
+    "facts_section_chars_total": 6336,
+    "pages_folder_calls": 0,
+    "pages": {},
+    "knowledge_chars_given": 6336,
+    "knowledge_chars_total": 6336,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  },
+  {
+    "id": "m02",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m02",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-long",
+    "fixture": "pk-sf-facts-long",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m02/work at its start_head 19137a0255a54aa686033a3e153d7ecd888071e5",
+    "fixture_matches_checkout": true,
+    "token_in_plan": true,
+    "token_in_plan_parts": {
+      "accepted_plan": true,
+      "architecture.md": true,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/environment.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-da8d6f0494e443398d09b0396d367fa7",
+        "printed_at": "2026-11-22T23:08:30Z",
+        "printed_ts": 1795388910.6
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:09:21Z",
+        "ts": 1795388961.507,
+        "seconds_after_packet": 50.9
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 6336,
+    "facts_section_chars_total": 6336,
+    "pages_folder_calls": 0,
+    "pages": {},
+    "knowledge_chars_given": 6336,
+    "knowledge_chars_total": 6336,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  },
+  {
+    "id": "m03",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m03",
+    "host": "codex",
+    "model": "gpt-6.2-sol",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-index",
+    "fixture": "pk-sf-facts-index",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m03/work at its start_head e363f119131a7cc924ef1cc22e5d5e221dc12313",
+    "fixture_matches_checkout": true,
+    "token_in_plan": true,
+    "token_in_plan_parts": {
+      "accepted_plan": true,
+      "architecture.md": true,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/platform/access.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-8c607175f94c4bc6833e2ff97912c525",
+        "printed_at": "2026-11-22T23:08:34Z",
+        "printed_ts": 1795388914.928
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:10:15Z",
+        "ts": 1795389015.642,
+        "seconds_after_packet": 100.7
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 1460,
+    "facts_section_chars_total": 1460,
+    "pages_folder_calls": 2,
+    "pages": {
+      "docs/shiploop/platform/access.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 1805,
+        "chars_total": 1805
+      },
+      "docs/shiploop/platform/code.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 933,
+        "chars_total": 933
+      },
+      "docs/shiploop/platform/data-model.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 609,
+        "chars_total": 609
+      },
+      "docs/shiploop/platform/deploy.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 755,
+        "chars_total": 755
+      },
+      "docs/shiploop/platform/naming.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 495,
+        "chars_total": 495
+      },
+      "docs/shiploop/platform/tabs-and-apps.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 859,
+        "chars_total": 859
+      },
+      "docs/shiploop/platform/testing.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 675,
+        "chars_total": 675
+      }
+    },
+    "knowledge_chars_given": 7591,
+    "knowledge_chars_total": 7591,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  },
+  {
+    "id": "m04",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m04",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-index",
+    "fixture": "pk-sf-facts-index",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m04/work at its start_head e363f119131a7cc924ef1cc22e5d5e221dc12313",
+    "fixture_matches_checkout": true,
+    "token_in_plan": true,
+    "token_in_plan_parts": {
+      "accepted_plan": true,
+      "architecture.md": true,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/platform/access.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-4c342a658af941dc89643efad1da5907",
+        "printed_at": "2026-11-22T23:08:30Z",
+        "printed_ts": 1795388910.812
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:09:33Z",
+        "ts": 1795388973.193,
+        "seconds_after_packet": 62.4
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 1460,
+    "facts_section_chars_total": 1460,
+    "pages_folder_calls": 2,
+    "pages": {
+      "docs/shiploop/platform/access.md": {
+        "named": true,
+        "calls_naming_it": 2,
+        "chars_given": 1805,
+        "chars_total": 1805
+      },
+      "docs/shiploop/platform/code.md": {
+        "named": true,
+        "calls_naming_it": 2,
+        "chars_given": 933,
+        "chars_total": 933
+      },
+      "docs/shiploop/platform/data-model.md": {
+        "named": true,
+        "calls_naming_it": 1,
+        "chars_given": 609,
+        "chars_total": 609
+      },
+      "docs/shiploop/platform/deploy.md": {
+        "named": true,
+        "calls_naming_it": 2,
+        "chars_given": 755,
+        "chars_total": 755
+      },
+      "docs/shiploop/platform/naming.md": {
+        "named": true,
+        "calls_naming_it": 2,
+        "chars_given": 495,
+        "chars_total": 495
+      },
+      "docs/shiploop/platform/tabs-and-apps.md": {
+        "named": true,
+        "calls_naming_it": 2,
+        "chars_given": 859,
+        "chars_total": 859
+      },
+      "docs/shiploop/platform/testing.md": {
+        "named": true,
+        "calls_naming_it": 2,
+        "chars_given": 675,
+        "chars_total": 675
+      }
+    },
+    "knowledge_chars_given": 7591,
+    "knowledge_chars_total": 7591,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  },
+  {
+    "id": "m05",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m05",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-long",
+    "fixture": "pk-sf-facts-long",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m05/work at its start_head 2903833fa41e6addd7502337ee8fa3549287c469",
+    "fixture_matches_checkout": true,
+    "token_in_plan": true,
+    "token_in_plan_parts": {
+      "accepted_plan": true,
+      "architecture.md": true,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/environment.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-5018d7fa30b34f31ad3d790d73055ef1",
+        "printed_at": "2026-11-22T23:14:51Z",
+        "printed_ts": 1795389291.581
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:15:33Z",
+        "ts": 1795389333.91,
+        "seconds_after_packet": 42.3
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 6336,
+    "facts_section_chars_total": 6336,
+    "pages_folder_calls": 0,
+    "pages": {},
+    "knowledge_chars_given": 6336,
+    "knowledge_chars_total": 6336,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  },
+  {
+    "id": "m06",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m06",
+    "host": "codex",
+    "model": "gpt-6.2-sol",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-index",
+    "fixture": "pk-sf-facts-index",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m06/work at its start_head e0a67523b895987911fd555b162097109161d333",
+    "fixture_matches_checkout": true,
+    "token_in_plan": true,
+    "token_in_plan_parts": {
+      "accepted_plan": true,
+      "architecture.md": true,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/platform/access.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-43e9bce6fe574693b985dd3a3093d45a",
+        "printed_at": "2026-11-22T23:14:55Z",
+        "printed_ts": 1795389295.071
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:16:34Z",
+        "ts": 1795389394.837,
+        "seconds_after_packet": 99.8
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 1460,
+    "facts_section_chars_total": 1460,
+    "pages_folder_calls": 2,
+    "pages": {
+      "docs/shiploop/platform/access.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 1805,
+        "chars_total": 1805
+      },
+      "docs/shiploop/platform/code.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 933,
+        "chars_total": 933
+      },
+      "docs/shiploop/platform/data-model.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 609,
+        "chars_total": 609
+      },
+      "docs/shiploop/platform/deploy.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 755,
+        "chars_total": 755
+      },
+      "docs/shiploop/platform/naming.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 495,
+        "chars_total": 495
+      },
+      "docs/shiploop/platform/tabs-and-apps.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 859,
+        "chars_total": 859
+      },
+      "docs/shiploop/platform/testing.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 675,
+        "chars_total": 675
+      }
+    },
+    "knowledge_chars_given": 7591,
+    "knowledge_chars_total": 7591,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  },
+  {
+    "id": "m07",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m07",
+    "host": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-index",
+    "fixture": "pk-sf-facts-index",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m07/work at its start_head e0a67523b895987911fd555b162097109161d333",
+    "fixture_matches_checkout": true,
+    "token_in_plan": true,
+    "token_in_plan_parts": {
+      "accepted_plan": true,
+      "architecture.md": true,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/platform/access.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-ab3a60901ce449268986a4f0a53b8b66",
+        "printed_at": "2026-11-22T23:14:51Z",
+        "printed_ts": 1795389291.581
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:16:03Z",
+        "ts": 1795389363.337,
+        "seconds_after_packet": 71.8
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 1460,
+    "facts_section_chars_total": 1460,
+    "pages_folder_calls": 1,
+    "pages": {
+      "docs/shiploop/platform/access.md": {
+        "named": true,
+        "calls_naming_it": 2,
+        "chars_given": 1805,
+        "chars_total": 1805
+      },
+      "docs/shiploop/platform/code.md": {
+        "named": true,
+        "calls_naming_it": 1,
+        "chars_given": 933,
+        "chars_total": 933
+      },
+      "docs/shiploop/platform/data-model.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 609,
+        "chars_total": 609
+      },
+      "docs/shiploop/platform/deploy.md": {
+        "named": false,
+        "calls_naming_it": 0,
+        "chars_given": 755,
+        "chars_total": 755
+      },
+      "docs/shiploop/platform/naming.md": {
+        "named": true,
+        "calls_naming_it": 1,
+        "chars_given": 495,
+        "chars_total": 495
+      },
+      "docs/shiploop/platform/tabs-and-apps.md": {
+        "named": true,
+        "calls_naming_it": 1,
+        "chars_given": 859,
+        "chars_total": 859
+      },
+      "docs/shiploop/platform/testing.md": {
+        "named": true,
+        "calls_naming_it": 1,
+        "chars_given": 675,
+        "chars_total": 675
+      }
+    },
+    "knowledge_chars_given": 7591,
+    "knowledge_chars_total": 7591,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  },
+  {
+    "id": "m08",
+    "out": "/Users/dadleet/e2e-runs-pk/20261122-m/m08",
+    "host": "codex",
+    "model": "gpt-6.2-sol",
+    "effort": "medium",
+    "case": "pk-sf-plan-facts-long",
+    "fixture": "pk-sf-facts-long",
+    "fixture_from": "test/shiploop_e2e/step_cases.json at the run's local_head 91724bbcbe30f1386f44a608d83655207908f16f",
+    "fixture_files_from": "the run's seed repository /Users/dadleet/e2e-runs-pk/20261122-m/m08/work at its start_head 2903833fa41e6addd7502337ee8fa3549287c469",
+    "fixture_matches_checkout": true,
+    "token_in_plan": false,
+    "token_in_plan_parts": {
+      "accepted_plan": false,
+      "architecture.md": false,
+      "spec.md": false
+    },
+    "token_in_seed_home": false,
+    "hidden_bullet": {
+      "file": "docs/shiploop/environment.md",
+      "bullets_with_token": 1,
+      "lines": 4,
+      "lines_given": 4
+    },
+    "plan_window": {
+      "plan_packet": {
+        "action": "nav-6863635b77e3429b85c79b2d8b4cd9d8",
+        "printed_at": "2026-11-22T23:14:55Z",
+        "printed_ts": 1795389295.338
+      },
+      "plan_submitted": {
+        "at": "2026-11-22T23:16:08Z",
+        "ts": 1795389368.747,
+        "seconds_after_packet": 73.4
+      },
+      "read_from": "the host's own session record or Claude's tool results"
+    },
+    "bullet_given": "all",
+    "window_agrees_with_fact_reading": true,
+    "facts_section_chars_given": 6336,
+    "facts_section_chars_total": 6336,
+    "pages_folder_calls": 0,
+    "pages": {},
+    "knowledge_chars_given": 6336,
+    "knowledge_chars_total": 6336,
+    "card": {
+      "path": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/salesforce.md",
+      "reads_in_window": 0,
+      "knowledge_chars_given_also_in_card": 602
+    }
+  }
+]

@@ -1,0 +1,51 @@
+{
+ "label": "roundtable-1",
+ "arm": "shiploop",
+ "case": "roundtable",
+ "base": null,
+ "points": {
+  "final": "3615a0b8b7aba69072a7ac143570469093f98c74"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 19.3,
+  "seconds": 1159.2,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.6.0"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 9777453,
+  "cached": 9627392,
+  "output": 31278,
+  "reasoning": 2070,
+  "total": 9808731,
+  "uncached_input": 150061
+ },
+ "measured_points": {
+  "final": "3615a0b8b7aba69072a7ac143570469093f98c74"
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "roundtable": {
+     "observed": true,
+     "passed": 1,
+     "failed": [],
+     "of": 1
+    },
+    "roundtable-checks": {
+     "observed": true,
+     "passed": 2,
+     "failed": [],
+     "of": 2
+    }
+   }
+  }
+ }
+}

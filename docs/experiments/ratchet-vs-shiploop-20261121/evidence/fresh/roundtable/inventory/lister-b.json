@@ -1,0 +1,276 @@
+{
+ "stated": [
+  {
+   "text": "The app is a small local project-room app titled \"Roundtable\"."
+  },
+  {
+   "text": "The app is served by server.js."
+  },
+  {
+   "text": "The app is served using Node.js."
+  },
+  {
+   "text": "The app has no npm dependencies."
+  },
+  {
+   "text": "The server listens on PORT."
+  },
+  {
+   "text": "The default port is 3000."
+  },
+  {
+   "text": "GET / serves the app."
+  },
+  {
+   "text": "The app has a light, Gemini-like look and feel."
+  },
+  {
+   "text": "The app starts with one room named Launch plan."
+  },
+  {
+   "text": "That room is seeded with a realistic conversation."
+  },
+  {
+   "text": "The seeded conversation contains at least one message from Maya, a person."
+  },
+  {
+   "text": "The seeded conversation contains at least one message from Theo, a person."
+  },
+  {
+   "text": "The seeded conversation contains at least one message from Scribe, a clearly identified demonstration agent."
+  },
+  {
+   "text": "The current user is Maya."
+  },
+  {
+   "text": "A region named Conversation contains the messages."
+  },
+  {
+   "text": "Those messages are articles."
+  },
+  {
+   "text": "Each message article shows its author."
+  },
+  {
+   "text": "Each message article shows person/agent identity."
+  },
+  {
+   "text": "Each message article shows a time."
+  },
+  {
+   "text": "Each message article is accessibly named Message from Maya, Message from Theo or Message from Scribe using its actual author."
+  },
+  {
+   "text": "A textbox named Message composes a message."
+  },
+  {
+   "text": "A Send button composes a message."
+  },
+  {
+   "text": "Enter sends."
+  },
+  {
+   "text": "Shift+Enter inserts a newline."
+  },
+  {
+   "text": "Whitespace-only text is ignored."
+  },
+  {
+   "text": "Sending preserves multiline text."
+  },
+  {
+   "text": "Sending clears that draft."
+  },
+  {
+   "text": "Sending a message containing @Scribe calls the local POST /api/agent endpoint."
+  },
+  {
+   "text": "That call sends JSON {\"text\": the complete sent text}."
+  },
+  {
+   "text": "The deterministic endpoint returns exactly {\"text\": \"Demo reply: \" followed by that text}."
+  },
+  {
+   "text": "The endpoint rejects whitespace-only text with HTTP 400."
+  },
+  {
+   "text": "The endpoint uses no external service."
+  },
+  {
+   "text": "While awaiting a reply, the app shows a working state with role status."
+  },
+  {
+   "text": "On a failed response, the app shows an alert."
+  },
+  {
+   "text": "On a failed response, the app shows a Retry Scribe button."
+  },
+  {
+   "text": "Retry Scribe retries the agent reply."
+  },
+  {
+   "text": "That retry does not duplicate the person message."
+  },
+  {
+   "text": "The URL /?empty=1 starts an empty conversation."
+  },
+  {
+   "text": "That empty conversation shows useful guidance."
+  },
+  {
+   "text": "Sending still works on /?empty=1."
+  },
+  {
+   "text": "The /?empty=1 fixture control is not a normal UI feature."
+  },
+  {
+   "text": "A visible Use dark appearance button switches the appearance and becomes Use light appearance."
+  },
+  {
+   "text": "Use light appearance switches the appearance back."
+  },
+  {
+   "text": "Reading and composing are usable at a 320px narrow browser width without page-level horizontal scrolling."
+  },
+  {
+   "text": "Reading and composing are usable at a 390px narrow browser width without page-level horizontal scrolling."
+  },
+  {
+   "text": "Reading and composing are usable at a 1440px wide browser width without page-level horizontal scrolling."
+  },
+  {
+   "text": "State can live in the current browser session."
+  },
+  {
+   "text": "The state rules are covered in a module the app uses."
+  },
+  {
+   "text": "node:test tests under test/ cover those state rules."
+  },
+  {
+   "text": "Those tests run with node --test."
+  },
+  {
+   "text": "This first delivery is one room."
+  },
+  {
+   "text": "This first delivery is one local agent."
+  },
+  {
+   "text": "This first delivery has no accounts."
+  },
+  {
+   "text": "This first delivery has no file sharing."
+  },
+  {
+   "text": "This first delivery has no canvases."
+  },
+  {
+   "text": "This first delivery has no external services."
+  }
+ ],
+ "unstated": [
+  {
+   "text": "Whether Shift+Enter only inserts a newline, or also sends the draft.",
+   "why": "The composer is how Maya writes a multiline message. Someone using Shift+Enter to keep typing needs to know the draft stays unsent until Enter or Send.",
+   "probe": "Focus the Message textbox, type line one, press Shift+Enter, type line two, and stop. Record whether a message article was added, whether POST /api/agent was called, and whether the textbox still holds both lines. Then press Enter and record whether one message contains both lines.",
+   "fine_answers": "Shift+Enter inserts a newline and does not send. The draft stays in the textbox until Enter or Send. That is the range that fits beside Enter sends. Inserting a newline and sending on the same keystroke would collapse the two actions the request separates."
+  },
+  {
+   "text": "What a send that does not contain @Scribe does: whether the message is kept as Maya's, and whether POST /api/agent is exclusive to text containing @Scribe.",
+   "why": "Maya and Theo's seeded conversation is ordinary project talk. Most new messages will not mention Scribe, and the person operating the room needs those messages to appear without an agent call.",
+   "probe": "On GET /, count the Conversation articles. Type I will bring the agenda in Message with no @Scribe. Click Send. Record the new article's author, person/agent identity, time, and accessible name, and whether any POST /api/agent fired. Repeat the same text with Enter on a fresh draft.",
+   "fine_answers": "One new article from Maya, a person, and no POST /api/agent. Calling the endpoint for every send is outside the condition containing @Scribe. Dropping the message is outside composing a message. There is not a wide set of fine answers."
+  },
+  {
+   "text": "Where the successful agent result goes, and how it relates to the person message that contained @Scribe. The endpoint body is specified. The request does not say the returned text is shown, or that it becomes a Conversation article from Scribe with an author, agent identity, time, and accessible name.",
+   "why": "The customer triggers Scribe to get a reply. Without a settled place for {\"text\": \"Demo reply: \" followed by the sent text}, a working POST can still leave the operator with no visible answer. Maintainer tests also need to know what success looks like beside the single person message.",
+   "probe": "From /, type Please summarize this\\n@Scribe and press Enter. Record the POST /api/agent response body. After the wait ends, record every new article: its full text, author, person/agent identity, time, and accessible name. Compare the reply surface with the exact response text, including the prefix Demo reply: and the newline. Count articles whose author is Maya for that send.",
+   "fine_answers": "The sent multiline text is kept once as Maya's message. The exact response text is shown once and attributed to Scribe. Presenting that reply as a Conversation article (agent identity, time, accessible name Message from Scribe) fits the message rules. Another visible Scribe reply surface that shows the exact response text is also compatible because the request never says the reply is inserted as an article. Hiding the response, or replacing Maya's message with the demo reply, is outside that range."
+  },
+  {
+   "text": "Which character sequences count as containing @Scribe: case, punctuation, substrings such as @Scribes or a@Scribe, and more than one occurrence.",
+   "why": "Mentions are easy to mistype. Maya needs to know when a message will call the local agent, and a maintainer needs a stable rule for the POST body, which is the complete sent text rather than a sliced mention.",
+   "probe": "Start from a fresh session. Send each string on its own and record whether POST /api/agent fires and, if it does, the JSON text value: hello @Scribe; hello @scribe; hello @SCRIBE; @Scribe; ping @Scribe now; see @Scribes; a@Scribe; (@Scribe); line1 then a newline then @Scribe then a newline then line2; @@Scribe; and @Scribe twice in one message.",
+   "fine_answers": "A case-sensitive check for the substring @Scribe matches the written condition, including a match in the middle of the text, and one POST whose text is the complete sent text. A case-insensitive match is also a reasonable mention rule. Treating @Scribes or a@Scribe as a mention, or requiring a token boundary so those do not match, are both fine. Several answers are fine. More than one occurrence still posts the complete sent text once."
+  },
+  {
+   "text": "Which characters count as whitespace-only, and whether an ignored draft stays in the Message textbox.",
+   "why": "Enter on a blank line is a normal slip. The operator needs to know whether anything was added, whether the agent was called, and whether the typed spaces are still there to edit. The endpoint's HTTP 400 case depends on the same undefined set of characters.",
+   "probe": "In Message, enter three spaces and press Enter. Then submit a draft that is only a newline, then only a tab. Then submit a draft that is only a non-breaking space. For each, record articles added, any POST /api/agent, and whether the textbox still contains the draft. Separately POST /api/agent with JSON text set to three spaces, a newline, a tab, space-newline-space, an empty string, and a non-breaking space, and record each HTTP status and body.",
+   "fine_answers": "Spaces, tabs, and newlines are whitespace, so those drafts add no message and do not call the agent, and the endpoint returns HTTP 400 for them. Leaving the ignored draft in the textbox, or clearing it, are both fine. Treating a non-breaking space as whitespace, or as real text that is sent, are both fine. An empty string may be HTTP 400 or another client error."
+  },
+  {
+   "text": "Whether a real message keeps leading and trailing whitespace and internal blank lines exactly, in the article, in the POST body, and after the Demo reply: prefix.",
+   "why": "The request says sending preserves multiline text and that the endpoint echoes that text. It does not say whether the ends of the draft are trimmed before that happens. Minutes and pasted notes often carry indent or a trailing newline.",
+   "probe": "Send a message whose characters are two spaces, hello, newline, newline, world, two spaces, with no @Scribe. Compare the article text with that sequence. Then send two spaces, hello @Scribe, newline, next, two spaces. Compare the Maya article, the POST JSON text, and the characters after Demo reply: in the response with that same sequence.",
+   "fine_answers": "Keeping every character, or trimming only the outer ends while keeping the internal blank line, are both fine. The POST text and the Demo reply: suffix should use the same string the product treats as the sent text. Dropping an internal blank line is a poor fit with preserves multiline text."
+  },
+  {
+   "text": "Which agent outcomes are a failed response, and what an alert is besides the Retry Scribe button.",
+   "why": "The operator only sees Retry Scribe when a reply fails. Network loss, HTTP 400, and HTTP 500 are different events, and alert can mean a page message or a browser dialog. Those choices change whether the button can be used while the alert is up.",
+   "probe": "Load the app, then cause POST /api/agent to fail with a dropped connection and send status @Scribe. Record whether the alert is an in-page element or a browser dialog, its text, whether Retry Scribe is visible and activatable before the alert is dismissed, and how many Maya articles exist for that send. Repeat with an HTTP 500 and, if a way exists, an HTTP 400 from the endpoint.",
+   "fine_answers": "A dropped connection and a non-2xx response may both count as failure, or the product may limit the alert to network failure and server errors. Both scopes are fine. Whitespace-only remains HTTP 400 at the endpoint. The alert may be an in-page alert or a browser alert dialog. Any wording that says the reply failed is fine. Retry Scribe must be shown and must be usable to retry; if the alert is modal, using the button after dismissing the dialog is fine."
+  },
+  {
+   "text": "What the working state says, where it appears, and whether it remains after success, after failure, and during Retry Scribe.",
+   "why": "role status is what a waiting person, including someone using a screen reader, has while Scribe has not answered. The request does not settle the words, the placement, or whether the state clears when an alert replaces the wait.",
+   "probe": "Slow POST /api/agent enough to observe it. Send draft the note @Scribe. While the request is open, record the role status element's text and where it sits relative to Conversation. After a successful reply, record whether that status is still present. Provoke a failure, record the status during the wait and after the alert appears, click Retry Scribe, and record the status during the second wait and after the second result.",
+   "fine_answers": "Any short visible status text is fine, including on retry. Placement inside Conversation or next to it is fine. The useful range is that the status is present for the whole wait and is gone once a reply is shown or the failure alert is shown. Leaving the working state up after the outcome is outside that range. Skipping the status when the response is too fast to see is a narrow edge; showing it for every wait, however brief, is the stricter reading and both can be argued for an instant response."
+  },
+  {
+   "text": "What Retry Scribe resends, what happens to the alert and the button after success or a second failure, and what a second send does while a reply is already awaiting.",
+   "why": "The person message must stay single, but the request does not say the retry body is the original complete text, whether the error UI clears, or what a double click or a second Enter does during the wait. Those are the actions an operator performs when the first reply fails or the button feels unresponsive.",
+   "probe": "Fail the reply to once @Scribe. Count Maya articles and note the Message textbox. Type a different unsent draft, click Retry Scribe, and record the new POST JSON text. Let that retry succeed. Count Maya articles and Scribe replies, and record whether the alert and Retry Scribe remain. Fail another send, click Retry Scribe, and fail again. Count Maya articles and record the alert and button. On a slow endpoint, double-click Send for twice @Scribe, and also press Enter on a new draft while the first reply is still awaiting. Count person articles and agent calls.",
+   "fine_answers": "Retry posts the original complete sent text, not the current unsent draft, and still leaves one person message. After success, one corresponding reply and no further need for the alert is the coherent result; removing Retry Scribe after success is the fine reading, and a second successful reply for the same person message is outside it. A second failure keeps one person message and shows the alert and Retry Scribe again. While a reply is awaiting, ignoring the extra activation, disabling Send, or accepting a distinct new message are all fine. A double activation of one draft that adds two person messages or two identical posts is outside the fine range."
+  },
+  {
+   "text": "Whether a send updates the current page in place or navigates or reloads it.",
+   "why": "A reload can drop a session-only transcript, repeat the seeded conversation, or abandon an in-flight POST /api/agent. The request never says the page stays where it is.",
+   "probe": "Type stay put and click Send. Watch for a document reload, a flash of the original seed, or a scroll reset, and record the resulting articles. Repeat with Enter. Then send stay @Scribe and record whether the page reloads before the working state and the reply finish.",
+   "fine_answers": "Updating Conversation in place is the fine answer that keeps the session and the awaiting reply. A reload that still shows the sent message once and completes one agent reply is also fine. A reload that loses the send or duplicates the seed is outside that range."
+  },
+  {
+   "text": "What /?empty=1 shows besides an empty conversation and useful guidance: the room name, whether guidance remains after a send, whether @Scribe still calls the agent, and how this load relates to session messages and to a later GET /.",
+   "why": "The fixture is how someone checks the empty room, but it is not a normal control. A tester needs to know whether Launch plan and the seed are gone only for that load, and whether a message sent there survives into the ordinary room.",
+   "probe": "Open /?empty=1. Record the guidance text, any articles, any Launch plan text, and every control's label. Confirm none of those controls navigates to empty=1. Send hello from empty and record the result. Send hello @Scribe and record whether POST /api/agent runs and the reply appears. Reload GET / with no query and record whether the seeded Launch plan conversation is present and whether the empty-fixture messages are present. From a session that already has a new message on /, open /?empty=1 again and record what remains.",
+   "fine_answers": "The seed messages are absent, sending works, and @Scribe still uses the same local endpoint. Guidance may be any copy that makes the empty conversation usable, and it may stay or go after the first send. The room may still be named Launch plan or that name may be absent on this URL. The fixture may apply only to that load, or it may clear session messages; both are fine. A later fresh session that opens GET / still starts from the seeded Launch plan room. No normal UI feature turns the fixture on. The current user is still Maya because the URL does not say otherwise."
+  },
+  {
+   "text": "Which state survives a reload, a new tab, and a new browser session: messages, appearance, and an unsent draft. The request says state can live in the current browser session and does not say it must.",
+   "why": "Someone who refreshes after writing, or who toggles dark appearance and comes back, needs to know what is kept. The next maintainer needs to know the product is not required to store the room on the server.",
+   "probe": "On GET /, send persist check, activate Use dark appearance, and leave not sent yet in Message without sending. Reload the same tab and record messages, appearance, button label, and draft. Quit and open a new browser session to GET / and record the same. Open a second tab on the same session, send a message in the first, and record whether the second shows it without its own reload.",
+   "fine_answers": "Keeping state only in page memory, in the current browser session, or still being there after a new browser session are all fine, because the request permits session state and does not require it. Losing the unsent draft on reload is fine. Sharing live updates between two open tabs is fine and so is leaving them independent. A server account or a stored user profile is outside this delivery."
+  },
+  {
+   "text": "How time is written, and the order of seed messages and newly sent messages.",
+   "why": "Each article must show a time, but the operator cannot tell reading order from that until format and sort are known. Launch plan's seed is the first thing they read.",
+   "probe": "Read Conversation from start to end and record each seed article's author and time text. Send first marker, then second marker. Record where each new article appears relative to the seed and to each other, and write down the time text next to the clock time when it was sent.",
+   "fine_answers": "A clock time, a date plus time, or a relative time are all fine if a time is visible on each article. Newest at the bottom or newest at the top are both fine. Identical times on seed messages are fine. The seed may stay in its original order above or below new messages."
+  },
+  {
+   "text": "How author and person/agent identity are shown, and how the product shows that the current user is Maya rather than Theo.",
+   "why": "The room has two people and one demonstration agent. The customer needs Scribe to stay clearly a demonstration agent, and needs new typing to be Maya's, but the request does not settle badges, phrases, or a separate you-are control.",
+   "probe": "For each seed article, record the visible author, the visible person or agent identity, and the accessible name. Send identity check and record those three fields on the new article. If a Scribe reply is shown after a message containing @Scribe, record the same three fields. Look for any control that would post as Theo or switch user.",
+   "fine_answers": "Visible text or a badge is fine. Maya and Theo read as people. Scribe's seed message clearly identifies a demonstration agent; wording that says demonstration agent, or an equally clear demo-agent phrase, is fine, and a bare bot label is a weak match for that stated identification. New messages from the composer are from Maya. A visible posting-as Maya label is optional. There is no account switcher in this delivery."
+  },
+  {
+   "text": "How a long unbroken line or a long multiline message stays within the page at 320px, 390px, and 1440px. The request forbids page-level horizontal scrolling and does not say whether the message wraps or scrolls inside Conversation.",
+   "why": "Pasted links and long tokens are ordinary message text. At the required narrow widths they are what would push the page sideways even when short messages fit.",
+   "probe": "Set the viewport to 320px wide. Paste a 200-character string with no spaces into Message, send it, and compare the page scroll width with the viewport. Repeat with a multiline message of several long lines. Repeat both at 390px and at 1440px. Record whether Conversation wraps the token or scrolls inside itself, and whether the Message textbox and Send stay usable.",
+   "fine_answers": "Wrapping the text, or a horizontal scroll inside the message or Conversation region, are both fine. The page itself has no horizontal scrolling at those three widths. Clipping the text so it cannot be read is outside the range, because reading must stay usable."
+  },
+  {
+   "text": "The HTTP status and response headers for a successful POST /api/agent, and the status and body for requests other than the stated JSON text and the whitespace-only HTTP 400.",
+   "why": "The app and the node:test module both depend on this local contract. The request fixes the success body and one rejection, and leaves status codes, content type, and bad requests unsettled for the next person who calls the endpoint.",
+   "probe": "POST /api/agent with a JSON object whose text is Hi @Scribe. Record status, Content-Type, and body, then repeat the same POST and compare the two bodies. POST a whitespace-only text and record status and body. POST an empty object, a JSON number for text, a non-JSON body, and GET /api/agent. Record each status and body. Confirm none of these calls leaves the machine for an external service.",
+   "fine_answers": "Success may be HTTP 200 or HTTP 201 with a body that is exactly {\"text\": \"Demo reply: \" followed by that text} and the same body every time. Application/json or another JSON content type is fine. Whitespace-only text stays HTTP 400; the 400 body may be empty, plain text, or JSON. Missing text, a non-string text, and non-JSON may be HTTP 400 or another 4xx. GET /api/agent may be 404 or 405. Extra request fields may be ignored. Several answers are fine for everything except the exact success text and the whitespace-only HTTP 400."
+  },
+  {
+   "text": "After Use light appearance switches the appearance back, what the button is labelled, and whether that light appearance is the one the app started with. Also whether that control stays visible and usable at 320px, 390px, and 1440px.",
+   "why": "The operator toggles more than once and uses the same button at the widths the request requires. The request says the button becomes Use light appearance and switches the appearance back, and does not say the label returns or that the control remains on screen when the viewport is narrow.",
+   "probe": "Load GET / at 1440px. Record the starting appearance and the button label. Activate Use dark appearance. Record the appearance and the label. Activate the button again. Record the appearance and the label. Activate it once more. Repeat the same three activations at 390px and at 320px, and record whether the button is visible and activatable without page-level horizontal scrolling.",
+   "fine_answers": "The same button reading Use dark appearance again, with the starting light appearance restored, is the range that makes the stated control repeatable. Exact colors are not specified beyond a light look and a switched appearance. Keeping the button visible and activatable at 320px, 390px, and 1440px, including when it wraps to another line, is the fine range. A second always-visible button was not asked for."
+  }
+ ]
+}

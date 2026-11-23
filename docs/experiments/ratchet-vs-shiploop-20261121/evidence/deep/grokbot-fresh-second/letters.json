@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "p51b1ee": "X",
+   "p23866a": "Y",
+   "pa8edb8": "Z"
+  },
+  "pairs": [
+   "X-Z",
+   "X-Y",
+   "Y-Z"
+  ],
+  "characters": 317817
+ },
+ "b": {
+  "letters": {
+   "p23866a": "X",
+   "p51b1ee": "Y",
+   "pa8edb8": "Z"
+  },
+  "pairs": [
+   "Y-Z",
+   "Y-X",
+   "X-Z"
+  ],
+  "characters": 317817
+ }
+}

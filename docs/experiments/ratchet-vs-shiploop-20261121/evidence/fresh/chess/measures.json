@@ -1,0 +1,73 @@
+{
+ "label": "chess-2",
+ "arm": "ratchet",
+ "case": "node-chess-engine",
+ "base": "30582bab6fe876b02aafc5095b4433026640e93a",
+ "points": {
+  "first-build": "ead1f4190dfe386762e568ea316ef588a443099b",
+  "final": "68d2e1bbbfa5ca32136a1ca5d757268eb296dd27"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 45.5,
+  "seconds": 2729.8,
+  "first_build_minutes": 10.1,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 13,
+  "final_pass": true,
+  "clauses": 59,
+  "seconds_by_role": {
+   "spec": 241.2,
+   "plan": 422.2,
+   "build": 468.0,
+   "tests": 1078.0,
+   "delta": 381.6
+  },
+  "finished": "2026-11-22T11:29:35-0800"
+ },
+ "tokens": {
+  "rollouts": 13,
+  "counted": 13,
+  "input": 7127545,
+  "cached": 6462208,
+  "output": 108955,
+  "reasoning": 21340,
+  "total": 7236500,
+  "uncached_input": 665337,
+  "first_build": {
+   "input": 1009221,
+   "cached": 891008,
+   "output": 27302,
+   "reasoning": 1999
+  }
+ },
+ "measured_points": {
+  "first-build": "ead1f4190dfe386762e568ea316ef588a443099b",
+  "final": "68d2e1bbbfa5ca32136a1ca5d757268eb296dd27"
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "chess": {
+     "observed": true,
+     "passed": 10,
+     "failed": [],
+     "of": 10
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "chess": {
+     "observed": true,
+     "passed": 10,
+     "failed": [],
+     "of": 10
+    }
+   }
+  }
+ }
+}

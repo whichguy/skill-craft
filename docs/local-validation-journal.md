@@ -776,3 +776,118 @@ It is made in this commit.
   delivery that saved at open would leave its second start a file it had already migrated, which is the `restart` case. The two `ruff --select E9,F,B` findings the probe had before (F401 `time` unused, F541 an f-string without a placeholder)
   are left. A retried start leaves one stderr line, kept in the check's output (`run.run_checks` stores the last 2000 characters of stdout plus stderr), and no trace in a verdict.
 - F26 (firm for the route with a held port, none for a natural collision of the probe's own start): the `ticket-due-times` probe's servers have serve.py's retry, and a taken port no longer decides its verdict (the README's evening follow-up has the table).
+
+## Round 7 (2026-11-22): the "suite cleanup" line in the push check, and the repeated kill behind it (F27 to F30)
+
+**Question.** The guarded push (`scripts/release-push.py`) runs `test/test-groups.test.py` as one of its checks. On 2026-11-22 at 07:51 that run printed
+`suite cleanup: failure or uncertainty during bounded cleanup` once, after 40 dots, and passed (78 tests, 20.8 s); the push before it, eight minutes earlier, printed
+nothing. `88cfb703` (2026-11-15), which wrote that line and the cleanup behind it, saw the same line at the same place (after 40 dots) and recorded its cause as
+unconfirmed. The owner asked for it to be looked into. What prints it, how often, is anything left running when it prints, and can the same thing fail a real suite?
+
+**What was run** (`docs/experiments/suite-cleanup-diagnostic-20261122/`, whose README has the commands; macOS, Darwin 27.2.0, Python 3.15.1, load average 5 to 8 from
+other sessions' work, their live E2E runs on the machine for part of it).
+- *The place.* Forty dots is the 41st test in run order, `SuiteGroupOwnershipTest.test_timeout_grace_interrupt_finishes_owned_group_before_escape`. The classes and
+  tests were the same, in the same order, at the commit that push was made from. The dots and the line go to the same stream, so the order is exact.
+- *The cleanup, step by step* (`double_kill.py`). The runner's own `_SuiteProcess._signal_group(SIGKILL)` called twice on a real group (a leader and a child, both
+  ignoring SIGTERM, in their own session), a chosen time apart, with the exit probe's and `killpg`'s answers recorded each time, then the runner's own reap: 1,000
+  trials back to back and 250 at each of eight requested delays from 20 microseconds to 5 ms (3,000 trials).
+- *The test itself* (`run_test41.sh`). The one test run 150 times before the change and 150 times after it, counting the runs that print the line.
+- *Earlier sightings* (`results/record-search.txt`). Every Claude session record on this machine (13 GB, all projects) and every Codex session record (3.1 GB)
+  searched for the text a real run prints when the runner records this; the one run that has it was read, with its log, by a read-only Opus agent, and its counts
+  were checked against the log.
+
+**Results.**
+- *What prints it.* `_abort_process` (the cleanup for an exception that escapes while a suite runs) sent the group SIGKILL twice within microseconds: once as the last
+  step of `_terminate_process_group` (SIGTERM, a 1 s wait, SIGKILL) and once more as its own "final owned KILL attempt". When the first one reaches live processes, which
+  is the case for a leader that outlives the SIGTERM wait, macOS refuses the second with `EPERM` while the group it reached is still exiting: no member can be signalled
+  any more, and the leader cannot be waited for yet. `_signal_group` accepts `EPERM` as harmless only when its exit probe, taken just before the signal, said the leader
+  had exited and `ps` then shows nothing but zombies in the group. In that window the probe still says "not exited", so it records `signal 9: PermissionError; group
+  cleanup unconfirmed`, and `_abort_process` prints the line. The 41st test is the one whose leader ignores SIGTERM and whose cleanup goes through `_abort_process`.
+- *The window, measured* (`results/double-kill.txt`). Trials in which the second kill was refused while the probe still said "not exited" (the warning recorded):
+
+  | time asked for between the two kills | warned | the rest |
+  | --- | --- | --- |
+  | none (back to back) | 36 of 1,000 | 964: the second kill was accepted |
+  | 20 microseconds | 246 of 250 | 4 accepted |
+  | 50 microseconds | 249 of 250 | 1 accepted |
+  | 100 and 200 microseconds | 250 of 250 each | |
+  | 500 microseconds | 24 of 250 | 226: the probe said "exited", the kill was refused, the `ps` check passed |
+  | 1, 2 and 5 ms | 0 of 250 each | the same: exited, refused, checked, quiet |
+
+  So the group stops accepting signals some tens of microseconds after the kill, and the leader becomes waitable between about half a millisecond and a millisecond
+  after it. The times are the ones asked of `time.sleep`; the real gap is longer by the sleep's overshoot, which was not measured.
+- *Nothing was left running.* In all 3,000 trials the reap that followed (probe "exited", `killpg` refused, `ps` check) recorded nothing more, and `ps`, taken right
+  after each warned trial, showed the leader as a zombie and no other member of the group. The test asserts the same of its own two processes before any fallback, and
+  passed every time.
+- *How often in the test.* Before the change the line printed in 19 of 150 runs of the test (12.7%), and the test passed in 150 of 150 (`results/test41-before.txt`).
+  About one push check in eight, which fits one sighting in this session's pushes of the day and one in the banks of `88cfb703`.
+- *Earlier sightings.* No Claude session record but this session's own holds the runner's record as a run's output. The Codex records hold it for one run. On
+  2026-11-18 a quick tier (82 suites selected, release 3.1.0) was started by a `codex exec --sandbox workspace-write` worker, so inside a sandbox in which `/bin/ps` could
+  not be started (`PermissionError: [Errno 1] Operation not permitted: 'ps'`), a loopback bind was refused and keychains could not be made. All 23 suites that had
+  reported when that session stopped the run carry `cleanup: signal 9: PermissionError; group cleanup unconfirmed` and `FAIL`: 18 of them after their own tests had
+  passed (`shiploop-no-model-launch`: "Ran 10 tests in 8.806s", "OK", then the cleanup line and `FAIL`). The session called the environment unusable ("the sandbox
+  cannot inspect or signal test processes"), and ran the tier outside it three times: 79 of 82 passed (three failures of other kinds), then 82 of 82 twice, with no
+  cleanup line. Its commit `ed1b57ab` says so in one sentence and does not name the line. The diagnostic of this round's question is a run's output once more in those
+  records: `88cfb703`'s own sighting, in `test/test-groups.test.py` on stock Python 3.9.6.
+- *What that run shows.* On macOS the group of a suite that has ended holds only its leader, a zombie until the runner reaps it, and `killpg` answers `EPERM` for such
+  a group. So every normal reap takes the route "refused, ask `ps`": all 3,000 reaps of the probe did, and were quiet. A suite's verdict on macOS therefore depends on
+  `/bin/ps` starting and answering within the observer's 2 s; where it cannot start, every suite is reported failed, whatever its tests did.
+- *Six processes that run left behind.* A `node --test` worker (56210, stopped this morning at the owner's word: `docs/shiploop-sdlc-structure-journal.md`, R173) and
+  five Python workers that ignore SIGTERM (56247, 56264, 56352, 56737 and 56752, still there at this writing) all started on 2026-11-18 between 03:12:39 and 03:12:42
+  local time, while that tier was running, each in a group whose leader is gone and in a temporary folder that has since been deleted. They match one for one the six
+  workers that `BaseTestsProcessOwnershipTest` in `test/shiploop-e2e-brownfield-tickets.test.py` starts through `owned_fixture`: one under `node --test`, five in Python
+  that ignore SIGTERM, one of the five keeping its pipes. What ends such a worker is `fixture_process.stop_group`, which looks at the group with `ps` before it sends
+  anything (`live_members`) and raises when it cannot look. So in that sandbox they were never sent a signal. The attribution rests on the time, on where the tier had
+  got to in the catalog and on the exact match; no record names that suite as running at that second. By the reading agent's account, that session's own check for
+  survivors searched by the clone's path and by its own process tree, and these had neither. They were in groups of their own, not in a suite's, so the runner's record was
+  not about them.
+- *The change.* `_abort_process` now sends its final SIGKILL only when `_terminate_process_group` raised, which is the case its comment always named ("a failed
+  TERM/wait must not prevent the final owned KILL attempt"). A termination that completed has just sent that SIGKILL. A member the first kill missed is still covered:
+  the runner signals the group once more when it finds the leader exited, before it reaps it (`_internal_poll`), and `_abort_process` reaches that through
+  `communicate` or its last `wait`. Nothing else in the runner moved: not `_signal_group`'s rule, not the diagnostics, not a time bound.
+- *The test.* The 41st test's own `killpg` wrapper now also notes a group SIGKILL sent to the suite's group after an earlier one was delivered and while a read-only
+  exit probe still says the leader has not exited, and asserts there was none. It does not assert on the warning list or on stderr: those depend on how fast the
+  machine is, the repeat does not. *Fail first:* with only the test changed it failed 5 of 5 times, on the new assertion and nothing else (`results/fail-first.txt`);
+  the line itself printed in 2 of those 5. *After:* with the runner changed too, 0 of 150 runs printed the line and 150 passed (`results/test41-after.txt`, load
+  average 7 to 8), and the whole file passed, 78 tests in 37.0 s, with no cleanup line (`results/test-groups-after.txt`).
+- *Lint.* `ruff check` (0.17.2 with its defaults; the repository configures none) reports the same 92 findings on the two changed files before and after, none added;
+  the two scripts of the evidence folder are clean under `ruff` and `shellcheck` (`results/lint.txt`).
+- *Tier.* The quick tier for the change, started when no live run of any session was on the machine: 21 of 21 suites passed in 214.1 s at 8 jobs, and no suite's
+  log holds a cleanup record.
+
+**Findings**
+- F27 (firm): the line in the push check came from the second, redundant group SIGKILL of `_abort_process` landing in the window in which macOS refuses to signal a
+  group that is already dying. No process was left behind in any of the 3,000 trials or the 150 runs; the line was a false alarm. With the second kill sent only after
+  a failed termination, the test printed it in 0 of 150 runs (19 of 150 before).
+- F28 (firm, one run on record): on macOS every suite's verdict passes through `ps`, because the group of a suite that ended and left nothing running always answers
+  `EPERM`, and `_darwin_zombie_only_group` asks `/bin/ps` to confirm that only zombies are left. Where `ps` cannot be started, every suite is reported failed with
+  `cleanup: signal 9: PermissionError; group cleanup unconfirmed`, passing or not. That is the one real run on record with the text: the sandboxed tier of 2026-11-18, 23
+  of 23 suites, 18 of them with passing tests. A `ps` slower than the observer's 2 s would fail the one suite being reaped; that is not on record. Left as it is: that
+  sandbox also refused the ports and keychains the suites need, so the tier has no use there, and outside it no run on record shows the text. If the line is on every
+  suite, look at whether `ps` can run, and run the tier outside the sandbox.
+- F29 (firm for the mechanism, no case on record): `_signal_group`'s rule is unchanged, so it still records `EPERM` as unconfirmed when a group signal lands while
+  the leader is exiting and not yet waitable. Outside `_abort_process` that takes a coincidence: a suite that ends at the moment its timeout fires or its run is
+  cancelled, or a leader that takes about the 1 s grace to die from SIGTERM. All of those are on paths that already report a timeout or a cancellation, and the text is
+  added to that report. On the passing path the runner signals the group only after its probe says the leader exited; a member of the group still exiting when `ps`
+  looks would fail the check and the suite with it. Not seen: 3,000 of 3,000 reaps in the probe were quiet, and no run outside the sandbox has the text. Not built,
+  and why: a rule that waits for the leader's exit before judging `EPERM` puts a time bound into the code that decides which processes the runner may signal, and a
+  rule that lets the reap's positive check clear an earlier record needs three call sites that read the records before the reap to change with it; no run on record
+  needs either.
+- F30 (firm for the code path, very likely for the attribution): where `ps` cannot start, `fixture_process.stop_group` raises before it sends a signal, so a worker
+  that an owned fixture leaves in its group outlives the test. Six such processes of `BaseTestsProcessOwnershipTest` lived from the sandboxed tier of 2026-11-18 until
+  2026-11-22; one was stopped at the owner's word that morning, and the five others are left as they are for the owner to decide. Not changed: the rule that nothing is
+  signalled without a look at the group is the module's own, and the one case on record is that sandbox.
+
+**Decision (routine, this session's, 2026-11-22).** Remove the repeated kill instead of only writing down what the line means. The line had cost three looks (its
+author's on 2026-11-15, this session's report of it, the owner's question), and a diagnostic that fires on one push in eight for no fault is one nobody will believe on
+the day it fires for one. Removing an action was chosen over adding a rule to `_signal_group` for the reason in F29. Not built, and offered to the owner instead: a
+check at the start of a tier that refuses to run where `ps` cannot start. It would have ended the sandboxed run of 2026-11-18 before it failed 23 suites and left six
+processes; there is that one run on record, and its session saw the cause within six minutes.
+
+**Not done, and unknown.** Linux was not run in this round: the change removes a call, the test's new assertion holds wherever the reap's kill follows the probe, and
+CI's Linux runners run `test-groups` on the push. No test was found that reaches the branch that still sends the final SIGKILL (a termination that itself raises
+inside `_abort_process`); that branch behaves as before. The gap between the two kills inside the real `_abort_process` was not timed, only its effect (12.7% in the test
+against 3.6% back to back in the probe). Why macOS answers `EPERM` and not success for a group that is dying was not read from the kernel's source; that a group
+holding only a zombie answers `EPERM` to `killpg` on macOS was measured before (`docs/shiploop-batch-1011-integration-journal-2026-10-09.md`). Whether the `EPERM` of
+the sandboxed run was that ordinary answer or the sandbox's own refusal cannot be told from its log; with `ps` unable to start the runner could confirm neither. The two
+probe scripts were written for this round and are run by no suite.

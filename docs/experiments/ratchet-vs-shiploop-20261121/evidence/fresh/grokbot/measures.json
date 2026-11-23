@@ -1,0 +1,101 @@
+{
+ "label": "grokbot-2",
+ "arm": "ratchet",
+ "case": "grokbot-local",
+ "base": "395bc0952a7f3284c33c098efb627c6c0399e669",
+ "points": {
+  "first-build": "4de6202d0c8f8a0c2b5bccb5806b5895dcf49052",
+  "final": "ad2750bdeb035bb7add39dca5fc9fc3f7877d14e"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 85.1,
+  "seconds": 5107.9,
+  "first_build_minutes": 21.6,
+  "stop": "stuck",
+  "cycles": 1,
+  "sessions": 7,
+  "final_pass": false,
+  "clauses": 96,
+  "seconds_by_role": {
+   "spec": 185.7,
+   "plan": 251.7,
+   "build": 855.4,
+   "tests": 1206.4,
+   "fix": 1088.7
+  },
+  "finished": "2026-11-22T12:09:13-0800"
+ },
+ "tokens": {
+  "rollouts": 7,
+  "counted": 7,
+  "input": 10607954,
+  "cached": 10107520,
+  "output": 122201,
+  "reasoning": 22765,
+  "total": 10730155,
+  "uncached_input": 500434,
+  "first_build": {
+   "input": 3004434,
+   "cached": 2802560,
+   "output": 59566,
+   "reasoning": 6979
+  }
+ },
+ "measured_points": {
+  "first-build": "4de6202d0c8f8a0c2b5bccb5806b5895dcf49052",
+  "final": "ad2750bdeb035bb7add39dca5fc9fc3f7877d14e"
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 49,
+     "failed": [],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 49,
+     "failed": [],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   }
+  }
+ }
+}

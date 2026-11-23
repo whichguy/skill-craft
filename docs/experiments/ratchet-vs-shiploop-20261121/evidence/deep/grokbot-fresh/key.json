@@ -1,0 +1,18 @@
+{
+ "p51b1ee": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/grokbot/work",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p23866a": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/grokbot",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "pa8edb8": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-ac4afc/grokbot-2/work",
+  "commit": "ad2750bdeb035bb7add39dca5fc9fc3f7877d14e",
+  "spec": "ratchet/spec.md"
+ }
+}

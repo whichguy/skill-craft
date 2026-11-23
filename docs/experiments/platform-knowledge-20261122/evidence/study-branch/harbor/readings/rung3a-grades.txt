@@ -1,0 +1,21 @@
+id | host | route | prior | ShipLoop | P-JOB | P-RUN | P-BLOB | P-SCAN | P-SLOT | P-CONFIG | G-TESTS | score | job found by | card at end | wall min | output tokens | cost $
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+d01 | codex | off | prior-card | done | pass | pass | pass | pass | pass | pass | pass | 6/6 | the run of [jobs.low_stock_report] | yes | 9.3 | 20958 | -
+d02 | claude | off | prior-card | done | pass | pass | pass | pass | pass | pass | pass | 6/6 | the run of [jobs.low_stock_report] | yes | 25.9 | 203977 | 9.4835
+d03 | codex | off | prior-fresh | done | pass | pass | pass | pass | pass | pass | pass | 6/6 | the run of [jobs.low_stock_report] | no | 9.9 | 20370 | -
+d04 | claude | off | prior-fresh | done | pass | pass | pass | pass | pass | pass | pass | 6/6 | the run of [jobs.low_stock_report] | yes | 21.4 | 164760 | 7.7404
+d05 | codex | off | prior-fresh | done | pass | pass | pass | pass | pass | pass | pass | 6/6 | the run of [jobs.low_stock_report] | no | 7.9 | 16805 | -
+d06 | claude | off | prior-fresh | done | pass | pass | pass | pass | pass | pass | pass | 6/6 | the run of [jobs.low_stock_report] | no | 16.6 | 125537 | 5.8512
+
+d01: product work, returned (ShipLoop done)
+d01: card in environment.md: named from c260d9ea (base: harbor-stockroom)
+d02: product work, returned (ShipLoop done)
+d02: card in environment.md: named from c260d9ea (base: harbor-stockroom)
+d03: product work, returned (ShipLoop done)
+d03: card in environment.md: named from c260d9ea (base: harbor-stockroom); absent from 4cb4456d (stockroom service (no project knowledge files)); not named from 4ecb87c6 (docs(shiploop): record skill-craft-shiploop-add-a-nightly-56d629 knowledge after discovery)
+d04: product work, returned (ShipLoop done)
+d04: card in environment.md: named from c260d9ea (base: harbor-stockroom); absent from 4cb4456d (stockroom service (no project knowledge files)); named from 7704e4fa (docs(shiploop): record add-a-nightly-low-stock-report-741d10 knowledge after discovery)
+d05: product work, returned (ShipLoop done)
+d05: card in environment.md: named from c260d9ea (base: harbor-stockroom); absent from 4cb4456d (stockroom service (no project knowledge files)); not named from 1f9bf62a (docs(shiploop): record skill-craft-shiploop-add-a-nightly-be0105 knowledge after discovery)
+d06: product work, returned (ShipLoop done)
+d06: card in environment.md: named from c260d9ea (base: harbor-stockroom); absent from 4cb4456d (stockroom service (no project knowledge files)); not named from 10060755 (docs(shiploop): record add-a-nightly-low-stock-report-fd0de5 knowledge after discovery)

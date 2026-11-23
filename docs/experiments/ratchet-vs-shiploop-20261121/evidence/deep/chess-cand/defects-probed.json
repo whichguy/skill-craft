@@ -1,0 +1,126 @@
+{
+ "rechecks": [
+  {
+   "id": "U-1",
+   "results": {
+    "p246486": {
+     "grade": "poor",
+     "observed": "Ran the inventory probe (13 inputs x legalMoves/status/applyMove(f,'e2e4'), each in its own node process with a 5 s timeout; no hangs). Missing/undefined/null/42 -> TypeError 'Cannot read properties of undefined (reading 'trim')' / 'fen.trim is not a function' (applyMove() with no args -> IllegalMoveError 'Expected a UCI move string'); '' and 'not-a-fen' -> internal TypeError \"Cannot read properties of undefined (reading '1')\". Confident wrong answers: 7-rank FEN -> legalMoves 16 moves, status 'ongoing', applyMove 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/8 b KQkq e3 0 1'; side 'x' -> [] and 'stalemate'; no kings -> [] and 'stalemate'. startFen()+'\\n' tolerated (normal results). Two white kings, pawn on 8th, side-not-to-move-in-check -> values returned (compatible)."
+    },
+    "pb83679": {
+     "grade": "poor",
+     "observed": "Same probe. Missing/undefined/null/42 -> TypeError on .trim (applyMove() -> IllegalMoveError 'Expected a legal UCI move string'); '', 'not-a-fen' and the 7-rank FEN -> internal TypeError 'ranks[rank] is not iterable' (a throw, not descriptive). Confident wrong answers: side 'x' -> legalMoves [] and status 'stalemate'; no kings -> [] and 'stalemate'. startFen()+'\\n' tolerated. Two white kings, pawn on 8th, side-not-to-move-in-check -> values returned (compatible). No hangs."
+    },
+    "pdc6d39": {
+     "grade": "sound",
+     "observed": "Same probe. Missing/undefined/null/42 -> TypeError 'Expected a FEN string' from all three functions; '', 'not-a-fen', side 'x' -> Error 'Invalid FEN fields'; 7 ranks -> Error 'Invalid FEN placement'; no kings and two white kings -> Error 'FEN must contain one king per color'; consistent across legalMoves/status/applyMove. startFen()+'\\n' tolerated (normal results). Pawn on 8th rank and side-not-to-move-in-check return values (h1g1,h1g2,h1h2/'ongoing'; 16 moves/'ongoing'), which the inventory calls compatible. No hangs, no confident wrong answer for a malformed FEN."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "FEN with the wrong number of ranks is accepted and answered as if valid",
+   "severity": "medium",
+   "merged_from": [
+    "p246486#1",
+    "pb83679#2"
+   ],
+   "repro": "f7='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP w KQkq - 0 1' (7 ranks) and f9='rnbqkbnr/pppppppp/8/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' (9 ranks): call legalMoves(f), status(f), applyMove(f,'e2e4') for each.",
+   "expected": "A thrown descriptive error from all three functions for both FENs.",
+   "note": "pb83679#2 bundled the 9-rank case with the placement/castling echo; its 9-rank part is merged here and the rest into D-3.",
+   "results": {
+    "p246486": {
+     "result": "present",
+     "observed": "7 ranks: legalMoves 16 moves, status 'ongoing', applyMove 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/8 b KQkq e3 0 1'. 9 ranks: legalMoves ['a1a2',...,'h1h2'], status 'ongoing', applyMove IllegalMoveError."
+    },
+    "pb83679": {
+     "result": "present",
+     "observed": "9 ranks: legalMoves ['a1a2','b1b2',...,'h1h2'], status 'ongoing', applyMove IllegalMoveError 'Illegal move: e2e4'. 7 ranks: all three throw TypeError 'ranks[rank] is not iterable' (rejected, though not descriptively)."
+    },
+    "pdc6d39": {
+     "result": "absent",
+     "observed": "Both FENs: all three throw Error 'Invalid FEN placement'."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "Invalid side-to-move field reported as stalemate",
+   "severity": "medium",
+   "merged_from": [
+    "p246486#2",
+    "pb83679#1"
+   ],
+   "repro": "f='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1', and the same with 'W': status(f), legalMoves(f), applyMove(f,'e2e4').",
+   "expected": "A thrown error for the invalid side field (or 'W' read case-insensitively), not a game result.",
+   "note": "",
+   "results": {
+    "p246486": {
+     "result": "present",
+     "observed": "'x' and 'W': status 'stalemate', legalMoves [], applyMove IllegalMoveError 'Illegal move: e2e4'."
+    },
+    "pb83679": {
+     "result": "present",
+     "observed": "'x' and 'W': status 'stalemate', legalMoves [], applyMove IllegalMoveError 'Illegal move: e2e4'."
+    },
+    "pdc6d39": {
+     "result": "absent",
+     "observed": "'x' and 'W': all three throw Error 'Invalid FEN fields'."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "Unknown piece letters, over-long or short ranks and bad castling fields are accepted and echoed into the returned FEN",
+   "severity": "medium",
+   "merged_from": [
+    "p246486#3",
+    "pb83679#2"
+   ],
+   "repro": "For 'rnbqkbnr/ppppxppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'rnbqkbnr/ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' and 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w XYZ - 0 1': legalMoves(f), status(f), applyMove(f,'e2e4').",
+   "expected": "A consistent thrown error for each malformed FEN.",
+   "note": "",
+   "results": {
+    "p246486": {
+     "result": "present",
+     "observed": "applyMove returns 'rnbqkbnr/ppppxppp/8/8/4P3/...', '.../97/8/4P3/...', '.../ppppppp1/...' and '... b XYZ e3 0 1'; legalMoves/status give 20 moves/'ongoing' for x, short rank and XYZ; for the '9' rank legalMoves throws TypeError 'PIECE_STEPS[type] is not iterable' while status says 'ongoing' (inconsistent)."
+    },
+    "pb83679": {
+     "result": "present",
+     "observed": "applyMove returns '.../ppppxppp/...', '.../97/...', '.../ppppppp1/...' and '... b XYZ e3 0 1'; legalMoves gives the 20 start moves and status 'ongoing' for all four FENs."
+    },
+    "pdc6d39": {
+     "result": "absent",
+     "observed": "All three functions throw: 'Invalid FEN rank' (x, 9), 'Invalid FEN rank width' (short rank), 'Invalid FEN fields' (XYZ)."
+    }
+   }
+  },
+  {
+   "id": "D-4",
+   "title": "Missing or garbled FEN fails with internal TypeErrors, inconsistent across functions",
+   "severity": "low",
+   "merged_from": [
+    "pb83679#3"
+   ],
+   "repro": "legalMoves(''), legalMoves('not-a-fen') (and status/applyMove of both), FEN missing its last two fields 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -' on all three, status(undefined), legalMoves(), applyMove().",
+   "expected": "A descriptive invalid-FEN error, the same kind from all three functions.",
+   "note": "p246486 shows the same internal-error behaviour though it was not reported for it.",
+   "results": {
+    "p246486": {
+     "result": "present",
+     "observed": "'' and 'not-a-fen' -> TypeError \"Cannot read properties of undefined (reading '1')\"; truncated FEN -> TypeError 'Cannot convert undefined to a BigInt'; status(undefined)/legalMoves() -> TypeError on 'trim'; applyMove() -> IllegalMoveError 'Expected a UCI move string'."
+    },
+    "pb83679": {
+     "result": "present",
+     "observed": "'' and 'not-a-fen' -> TypeError 'ranks[rank] is not iterable'; truncated FEN -> TypeError 'Cannot convert undefined to a BigInt'; status(undefined)/legalMoves() -> TypeError on 'trim'; applyMove() -> IllegalMoveError 'Expected a legal UCI move string'."
+    },
+    "pdc6d39": {
+     "result": "absent",
+     "observed": "'', 'not-a-fen', truncated FEN -> Error 'Invalid FEN fields' from all three; status(undefined), legalMoves(), applyMove() -> TypeError 'Expected a FEN string'."
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,545 @@
+{
+ "rechecks": [
+  {
+   "id": "U-9",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "Script tools/u9_d4.cjs (log work/probe/logs/u9_d4.log), as Ana. Empty Bot name + Save bot name: native required-field message 'Please fill out this field.', no bot made; three spaces: alert 'Bot name must contain between 1 and 80 characters.'. New bot named Assistant was accepted with no notice; each Assistant got a different discussion; the Bots navigation then has two buttons with accessible name 'Assistant' (same text and title, only aria-current differs; screenshot shots/p51b1ee-u9-bots.png) and the first one opened the second bot's discussion, so they cannot be told apart before selecting. 300-character name: refused with alert 'Bot name has 300 characters. The limit is 80, so remove 220 characters to continue.'"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. Empty name: native 'Please fill out this field.'; blank name: alert 'Bot name must contain between 1 and 80 characters.'. Duplicate 'Assistant' accepted silently: two buttons named 'Assistant' (identical text and title; shots/p23866a-u9-bots.png), not distinguishable before selecting. 300-character name: the Bot name box holds only 80 characters (maxlength) and an 80-character bot was created without a message."
+    },
+    "pa8edb8": {
+     "grade": "acceptable",
+     "observed": "Same script. Empty name: native 'Please fill out this field.'; blank name: alert 'Enter a bot name (up to 80 characters).'. Duplicate 'Assistant' refused with alert 'That name is already in use. Choose a different name.'; Bots navigation keeps one 'Assistant'. 300-character name: the box keeps the first 80 characters (maxlength) and an 80-character bot is created without a message (shortened at input, not only for display)."
+    }
+   }
+  },
+  {
+   "id": "U-15",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "Script tools/u15_d11.cjs (log work/probe/logs/u15_d11.log). Save instruction A='x', then A='y' without Edit: alert '“A” is already saved. Choose Edit A to change it, or use another name.'; one Use A button; after Use A, 'who are you' replies 'I am Assistant. My instructions: x'. Empty name or text: native 'Please fill out this field.'; blank name: 'Name must contain between 1 and 80 characters.'; blank text: 'Text must contain between 1 and 6000 characters.'. Saved tasks behave the same (second Save task A refused with the same alert, Run A sends 'first request'). Minor: after a native-validation refusal the previous field's alert text stays visible."
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. Save instruction A='x', then A='y' without Edit: no alert or notice; one entry A; after Use A, 'who are you' replies 'I am Assistant. My instructions: y' (x silently replaced). Saved task A='first request' then A='second request': no notice, one Run A, which sends 'second request'. Empty fields refused (native 'Please fill out this field.'; blank name/text alerts 'Name must contain between 1 and 80 characters.' / 'Text must contain between 1 and 6000 characters.')."
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Same script. Second Save instruction A refused with alert 'That name is already in use. Choose a different name.'; one Use A; 'who are you' after Use A replies 'My instructions: x'. Same for Save task (Run A sends 'first request'). Empty fields: native 'Please fill out this field.'; blank name 'Enter a name (up to 80 characters).'; blank text 'Enter some text (up to 16000 characters).'."
+    }
+   }
+  },
+  {
+   "id": "U-21",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "Script tools/u21_d9.cjs (log work/probe/logs/u21_d9.log). 'hello [fail once]' gives alert 'The reply could not finish. Retry to try the same message again.' with Retry; after reload the alert and Retry remain and Retry answers once ('You said: \"hello\"', 1 message). After a server restart Retry is still offered and succeeds. Sending 'next' at the alert: 'next' is answered and the failed message keeps its alert and Retry (also after reload); Retry later answers it (no duplicate person message). 'fourth [slow]' with the server stopped (SIGTERM) mid-reply: after restart and reopen, alert 'The server restarted before this reply finished. You can retry.' with Retry, which succeeds; not retried automatically."
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. Retry after reload and after a server restart both offered and succeed. Sending 'next' at the alert: transcript shows 'third [fail once]', 'next', reply to next; the alert and Retry disappear (also after reload), so the failed message has no failure mark and no way to resend it (tools/d9_api.cjs: a retry call for it returns 200 and it stays failed with no reply). Server stopped during 'fourth [slow]': after restart alert 'The server restarted before this reply finished. You can retry.' with a working Retry."
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Same script. Alert 'The reply failed. Retry to answer the same message.' with Retry; Retry after reload and after a restart both succeed. Sending 'next' at the alert is refused with alert 'Wait for the pending reply or retry the failed reply before sending another message.'; the failed message keeps Retry, which then succeeds. Server stopped during 'fourth [slow]': after restart alert 'The server stopped before the reply was saved. Retry to answer the same message.' with a working Retry."
+    }
+   }
+  },
+  {
+   "id": "U-39",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "Script tools/u39_d6.cjs (log work/probe/logs/u39_d6.log), STANDIN_STEP_MS=1500. 'add step: double-check' with no task: bot reply 'I'll add \"double-check\" to the task that is running.' followed by note '“double-check” was not added: no task was running in this conversation.'. Two running 'long task: same [long]' then 'add step: extra': note 'Not added yet: more than one task is running here. Choose the task for “extra”.' with two buttons both named 'Add to same' and 'Don’t add'; after choosing the first, note 'Added “extra” to the end of same.'; both Task: same articles look the same until the step runs ('Done: extra' appeared only at the end of the first task). The choice and feedback do not identify the task."
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. With no task: status 'There is no running task in this conversation to add to.'. With two 'Task: same' running: the step goes to the newer task; bot text says only 'the task that is running'; that article shows 'Added a step to the end of the task.' which is replaced by 'Working in the background.' within one step (2 s later both articles identical); 'Done: extra' appears only when the step finishes."
+    },
+    "pa8edb8": {
+     "grade": "acceptable",
+     "observed": "Same script. With no task: status 'There was no running task in this conversation to add the step to.'. With two 'Task: same' running: status 'Added “extra” to same.' (does not say which), but the receiving (newer) task article lists 'extra Queued' in its step list at once and keeps it until 'Done: extra', so the task that got the step can be identified."
+    }
+   }
+  },
+  {
+   "id": "U-44",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "Script tools/u44_d12.cjs (log work/probe/logs/u44_d12.log). Task finished while open: 'Finished during this visit first · Completed'; after a reload 'Nothing has changed since you were last here.'. Tab closed while crates [fail step 2] and alpha ran: on reopen 'Finished while you were away alpha · Completed / Needs attention crates · Failed'; after reload only 'Needs attention crates · Failed' remains (unchanged after a send and while a proposal waits; proposals not listed). As Ana: region hidden, 'Nothing has changed since you were last here.'."
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. After the first task and every reload: 'Finished first · Completed'. After reopening: 'Finished alpha · Completed first · Completed / Needs attention crates · Failed', identical after two further reloads, after a send and while a proposal waits (proposal not listed); nothing is ever dismissed and tasks seen before leaving are still listed. Ana sees an empty hidden region."
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Same script. Task finished while open: region hidden; after reload 'No new background activity.' with Dismiss. On reopen: 'Finished alpha / Needs attention crates' with Dismiss; after reload only 'Needs attention crates' remains (same after a send and while a proposal waits). Ana: region hidden."
+    }
+   }
+  },
+  {
+   "id": "U-46",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "Script tools/u46_d7.cjs (log work/probe/logs/u46_d7.log). Missing DATA_DIR (nested): created, workspace.json written, app serves and replies. Folder mode 555: exit 1 with raw 'Error: EACCES: permission denied, open .../.workspace-<uuid>' stack trace, no advice. '{not json' in workspace.json: exit 1, raw 'SyntaxError: Expected property name or '}' in JSON at position 1' stack, file not named, no recovery step (file kept). '{\"version\":1}': exit 1, raw TypeError stack in allThreads. '[]': exit 1, 'Error: Unsupported workspace version.' stack. '{\"version\":1,\"users\":{},\"sessions\":{}}': starts, Continue works, but every reply fails with 'The reply could not finish. Retry...' and log 'Workspace operation failed: Cannot read properties of undefined (reading 'filter')'. records/ files unchanged; damaged files kept."
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. Missing DATA_DIR created and served. Mode 555: exit 1 with raw EACCES stack. '{not json': exit 1 with raw SyntaxError stack, file not named (kept). '{\"version\":1}': exit 1 with TypeError stack. '[]': exit 1 'Unsupported workspace version.' stack. '{\"version\":1,\"users\":{},\"sessions\":{}}': starts but every reply fails with 'The reply could not finish. Retry...' and the log says only 'Workspace operation failed.'. records/ unchanged; damaged files kept."
+    },
+    "pa8edb8": {
+     "grade": "acceptable",
+     "observed": "Same script. Missing DATA_DIR created and served. Mode 555, '{not json', '{\"version\":1}', '{\"version\":1,\"users\":{},\"sessions\":{}}' and '[]' in state.json: each refuses to start (exit 1) with one line 'Could not open the local workspace. Check PORT and the DATA_DIR snapshot and permissions. <EACCES|SyntaxError|Error>'; no stack trace; the damaged state.json is kept unchanged; records/ unchanged. The message does not name the file or say what is wrong with it."
+    }
+   }
+  },
+  {
+   "id": "U-54",
+   "results": {
+    "p51b1ee": {
+     "grade": "poor",
+     "observed": "Script tools/storage.cjs (logs work/probe/logs/storage-u54.log, storage-d2.log). DATA_DIR made 555 with the app open: Save instruction, Send and Confirm changes each show alert 'The workspace could not complete this action. Try again.' and nothing is shown as saved; after restoring access and restarting, none of the three happened and the proposal is still waiting (truthful). But 'hello [slow]' with the folder made read-only 0.7 s into the reply: 'Assistant is preparing a reply…' stays for 8+ s after write access is restored and after reload; a new message cannot be sent; only a server restart turns it into 'The server restarted before this reply finished. You can retry.'. A reply is left pending."
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. Save instruction, Send and Confirm while read-only: alert 'The workspace could not complete this action. Try again.', nothing saved, truthful after restart. 'hello [slow]' with the folder made read-only mid-reply: 'Assistant is preparing a reply…' indefinitely (still after write access restored, reload and 8 s more); a new message cannot be sent until a server restart, which marks it failed with Retry."
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Same script. Save instruction and Confirm while read-only: alert 'The server could not complete this request. Refresh to check what was saved.'; Send: status 'The send outcome is unknown. Check again before sending another message.'; after restore and restart none was saved and the proposal still waits. 'hello [slow]' with the folder made read-only mid-reply: alert 'The server cannot save progress right now. It will retry saving automatically.'; 3 s after write access returned the reply appeared and 'another' was answered normally."
+    }
+   }
+  },
+  {
+   "id": "U-57",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "Script tools/storage.cjs PART=u57 (log work/probe/logs/storage-u57.log). 'long task: crates [fail step 2]' ends Failed with Retry task; sending a message still works; server stays up. 'long task: rotest [long]' with DATA_DIR made 555 after 1 s: after access restored the task reads Interrupted, 'Progress could not be saved, so the task stopped. Retry to continue from the last finished step.' with Retry task; messages and a new task ('other', Completed) work; server never exited; log names the task and the EACCES error."
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. Failed task reported with Retry task and the rest usable; server stays up. But 'rotest' whose step could not be saved shows Running, 1 finished step and Cancel task 3 s and 15 s after storage returned and after reload, never advancing; it became Interrupted only after a server restart. Sending messages and a new task work after restore."
+    },
+    "pa8edb8": {
+     "grade": "sound",
+     "observed": "Same script. Failed task reported with Retry task; rest usable. 'rotest' during the read-only period: alert 'The server cannot save progress right now. It will retry saving automatically.'; after access returned it continued and Completed; messages and a new task worked; server stayed up."
+    }
+   }
+  },
+  {
+   "id": "U-60",
+   "results": {
+    "p51b1ee": {
+     "grade": "sound",
+     "observed": "Script tools/u60_d13.cjs (log work/probe/logs/u60_d13.log). Malformed body '{bad' to /api/action: 400 'Send a valid JSON object.'; wrong types: 404 'That item is no longer available.' / 400 'Message must contain between 1 and 12000 characters.'; nothing logged (handled errors). Unexpected storage error (DATA_DIR 555) on Save instruction: page alert 'The workspace could not complete this action. Try again.'; server output 'Workspace operation failed: EACCES: permission denied, open '<path>'' ; token not in output. (Writing '{not json' to workspace.json while running is overwritten from memory on the next save, no error.)"
+    },
+    "p23866a": {
+     "grade": "poor",
+     "observed": "Same script. Malformed and wrongly typed bodies answered with 400/404 messages. Unexpected storage error on Save instruction: page alert 'The workspace could not complete this action. Try again.'; server output only 'Workspace operation failed.' with no error, code or operation, so the operator cannot tell what failed; token not in output."
+    },
+    "pa8edb8": {
+     "grade": "acceptable",
+     "observed": "Same script. '{bad' to /api/send: 400 'This request could not be read.'; wrong types: 404/400 messages. Unexpected storage error on Save instruction: page alert 'The server could not complete this request. Refresh to check what was saved.'; server output 'Request could not be completed. EACCES' (error code only, no path or action); token not in output."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "Conversations with similar openings, and empty ones, cannot be told apart in the Conversations navigation",
+   "severity": "medium",
+   "merged_from": [
+    "p51b1ee#1",
+    "p23866a#4",
+    "pa8edb8#4"
+   ],
+   "repro": "As Maya: send 'Please prepare the quarterly summary of all open orders for the customer named Northwind Traders'; New conversation; send the same with 'Southwind Partners'; New conversation; send 'Please look up the order details for the customer named Northwind Traders'; New conversation; same with 'Southwind Partners'; click New conversation twice. Read the Conversations navigation by accessible name and visually (tools/d1.cjs).",
+   "expected": "Each conversation identifiable before opening it (distinct title keeping the distinguishing words, a time, or a generated label), and no entry sharing the New conversation control's name.",
+   "note": "On pa8edb8 the names are unique (a ' (2)' suffix) but still drop the distinguishing words, and an empty conversation is named exactly 'New conversation' like the action button; less than on the other two, still present.",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Two buttons named 'Please prepare the quarterly summary of all open orders', two named 'Please look up the order details for the customer named', two named 'Untitled conversation'; visually truncated further ('Please look up the ord...'; shots/p51b1ee-d1-b.png); no detail line."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same as p51b1ee: pairs of identical buttons 'Please prepare the quarterly summary of all open orders', 'Please look up the order details for the customer named', 'Untitled conversation' (shots/p23866a-d1-b.png)."
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Buttons 'Please prepare the quarterly summary of all… (2)' and '…all…', 'Please look up the order details for the cu… (2)' and '…cu…', 'New conversation (2)' and 'New conversation'; two buttons on the page have the exact name 'New conversation'. Northwind and Southwind cannot be told apart before opening."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "A reply that cannot be saved stays pending forever and blocks the conversation after storage recovers",
+   "severity": "medium",
+   "merged_from": [
+    "p51b1ee#2",
+    "p23866a#2"
+   ],
+   "repro": "Start with a fresh DATA_DIR and a token; Continue as Maya; send 'hello [slow]'; 0.7 s later chmod 555 DATA_DIR; 5 s later chmod 755 DATA_DIR; wait 3 s; read the conversation, reload, send 'another', wait 8 s (tools/storage.cjs PART=d2).",
+   "expected": "The reply is marked failed with Retry (or saved once storage returns) and the conversation stays usable.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "'Assistant is preparing a reply…' after access restored, after reload and 8 s later; 'another' could not be sent (no new message); log shows two EACCES failures. Only after a server restart: 'The server restarted before this reply finished. You can retry.'."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same: 'Assistant is preparing a reply…' indefinitely, 'another' not sent, log 'Workspace operation failed.' twice; after restart the message shows the restart alert with Retry."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "During read-only: alert 'The server cannot save progress right now. It will retry saving automatically.'; 3 s after access returned the reply 'You said: \"hello\"' was shown and 'another' was answered normally."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "A lookup of a nonexistent id with a valid prefix (ORD-1001A) is answered with ORD-1001's value",
+   "severity": "medium",
+   "merged_from": [
+    "p51b1ee#3",
+    "p23866a#12",
+    "pa8edb8#3"
+   ],
+   "repro": "Fresh data, token, Continue as Maya. Send 'what is the status of ORD-1001A'; then 'set the status of ORD-1001A to closed'; then 'what is the status of ORD-1001' (tools/d3_d5.cjs).",
+   "expected": "A reply that ORD-1001A cannot be found or used and how to correct it; ORD-1001 itself still answers.",
+   "note": "The reply text comes from the stand-in, which matches the prefix; none of the apps adds a check or notice. The set request is not matched by the stand-in on any product (plain 'You said: ...' echo, no proposal).",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Reply 'The status of ORD-1001 is open.' with no notice; set request echoed 'You said: \"set the status of ORD-1001A to closed\"...'; ORD-1001 answers 'open'."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Reply 'The status of ORD-1001 is open.' with no notice; same echo for the set request."
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Reply 'The status of ORD-1001 is open.' with no notice; same echo for the set request."
+    }
+   }
+  },
+  {
+   "id": "D-4",
+   "title": "Bots with the same name are indistinguishable",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#4",
+    "p23866a#5"
+   ],
+   "repro": "As Ana: send a message in Assistant; New bot, Bot name 'Assistant', Save bot name; send a message; read the Bots navigation by accessible name and visually (tools/u9_d4.cjs).",
+   "expected": "Duplicate refused, or each bot distinguishable before selecting it.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Accepted silently; two buttons with accessible name, text and title 'Assistant' (shots/p51b1ee-u9-bots.png)."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Accepted silently; two buttons named 'Assistant' with identical text and title."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Refused with alert 'That name is already in use. Choose a different name.'; one Assistant remains."
+    }
+   }
+  },
+  {
+   "id": "D-5",
+   "title": "A forget that matches no remembered fact is reported as done",
+   "severity": "medium",
+   "merged_from": [
+    "p51b1ee#5",
+    "p23866a#6",
+    "pa8edb8#2"
+   ],
+   "repro": "Fresh data, token, Continue as Maya. Send 'remember that likes tea', then 'forget tea', then 'forget coffee'; read each reply and the Memory region; then 'forget that likes tea' (tools/d3_d5.cjs).",
+   "expected": "A non-matching forget is flagged (or matched loosely and the removal shown); the person is not told a fact was forgotten while it is kept.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Replies 'I've forgotten \"tea\".' and 'I've forgotten \"coffee\".' with no notice; Memory still lists 'likes tea'. 'forget that likes tea' removes it."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same replies, no notice; Memory still lists 'likes tea'."
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "Same replies, no notice or status; Memory still lists 'likes tea'."
+    }
+   }
+  },
+  {
+   "id": "D-6",
+   "title": "add step with two running tasks of the same title does not identify which task gets the step",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#6",
+    "p23866a#8"
+   ],
+   "repro": "STANDIN_STEP_MS=1500. In one conversation send 'long task: same [long]' twice, then 'add step: extra'; read any choice buttons, the feedback and both Task: same articles right after and 2 s later (tools/u39_d6.cjs).",
+   "expected": "The choices and the feedback name or mark the task that gets the step.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Two buttons both named 'Add to same' plus 'Don’t add'; after choosing, note 'Added “extra” to the end of same.'; the two articles do not show which got it until 'Done: extra' appears at the end."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "No choice; bot says 'the task that is running'; the receiving article's 'Added a step to the end of the task.' is replaced by 'Working in the background.' within one step, after which both articles are identical."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Status 'Added “extra” to same.'; the receiving (newer) article lists 'extra Queued' in its step list immediately and keeps it, which marks the task."
+    }
+   }
+  },
+  {
+   "id": "D-7",
+   "title": "A damaged or unwritable data folder stops the server with a raw stack trace and no recovery step",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#7",
+    "p23866a#10"
+   ],
+   "repro": "Write '{not json' (separately '{\"version\":1}', '[]') to the app's data file in DATA_DIR and run node server.js; separately point DATA_DIR at an empty folder with mode 555; separately write '{\"version\":1,\"users\":{},\"sessions\":{}}' and send a message (tools/u46_d7.cjs).",
+   "expected": "A clear message naming the problem file or folder and a recovery step; damaged data kept.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "Exit 1 with raw stacks: SyntaxError 'Expected property name or '}' in JSON at position 1' (file not named), TypeError in allThreads, 'Unsupported workspace version.', EACCES on '.workspace-<uuid>'; the users/sessions-only file starts but every reply fails with log 'Cannot read properties of undefined (reading 'filter')'. Damaged files kept."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same raw stacks and exit 1; the users/sessions-only file starts and every reply fails with log 'Workspace operation failed.'. Damaged files kept."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Every case exits 1 with one line 'Could not open the local workspace. Check PORT and the DATA_DIR snapshot and permissions. <EACCES|SyntaxError|Error>', no stack; damaged file kept. It does not name the file."
+    }
+   }
+  },
+  {
+   "id": "D-8",
+   "title": "Keyboard focus is lost to the page body after Save memory",
+   "severity": "low",
+   "merged_from": [
+    "p51b1ee#8",
+    "p23866a#13"
+   ],
+   "repro": "Send 'remember that likes tea'; click Edit memory; in Memory text select all and type 'likes green tea'; press Tab (focus on Save memory) and Enter; read document.activeElement (tools/d8_d15.cjs).",
+   "expected": "Focus on the edited item, its Edit memory button or another nearby control.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "activeElement BODY after Save memory; memory updated to 'likes green tea'."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "activeElement BODY after Save memory; memory updated."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "activeElement is the item's 'Edit memory' button; memory updated."
+    }
+   }
+  },
+  {
+   "id": "D-9",
+   "title": "Sending a new message after a failed reply hides the failure and leaves no way to retry it",
+   "severity": "medium",
+   "merged_from": [
+    "p23866a#1"
+   ],
+   "repro": "Fresh data, token, Continue as Maya. Send 'hello [fail once]' (alert and Retry appear); instead of Retry send 'next'; read the conversation, reload; for the shared JSON API also POST the retry action for the failed message (tools/u21_d9.cjs, tools/d9_api.cjs).",
+   "expected": "The failed message stays marked failed with a way to resend it, or the person is told to retry first.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "'next' is answered and the failed message keeps its alert and Retry (also after reload); Retry then answers it; the retry API call returned 200 and produced the reply."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "After 'next': no alert, no Retry, the failed message looks like any other (also after reload); POST retry for it returned 200 and it stayed failed with no reply."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "'next' refused with alert 'Wait for the pending reply or retry the failed reply before sending another message.'; Retry stays and succeeds."
+    }
+   }
+  },
+  {
+   "id": "D-10",
+   "title": "A background task whose step cannot be saved keeps showing Running forever",
+   "severity": "medium",
+   "merged_from": [
+    "p23866a#3"
+   ],
+   "repro": "STANDIN_STEP_MS=1500. Send 'long task: rotest [long]'; after 1 s chmod 555 DATA_DIR; after 4 s more chmod 755 DATA_DIR; read Task status after 3 s and 15 s and after reload (tools/storage.cjs PART=u57).",
+   "expected": "The task is marked Failed or Interrupted with Retry task, or resumes once storage works.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "Task status Interrupted with 'Progress could not be saved, so the task stopped. Retry to continue from the last finished step.' and Retry task."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Task status Running with 1 finished step and Cancel task at 3 s, 15 s and after reload, never advancing; Interrupted only after a server restart."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Alert 'The server cannot save progress right now. It will retry saving automatically.'; the task continued after access returned and reached Completed."
+    }
+   }
+  },
+  {
+   "id": "D-11",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "severity": "low",
+   "merged_from": [
+    "p23866a#7"
+   ],
+   "repro": "Save instruction A='x'; without Edit save instruction A='y'; Use A and send 'who are you'. Same for Save task A (tools/u15_d11.cjs).",
+   "expected": "Overwrite with a notice, refuse, or ask.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "Refused with alert '“A” is already saved. Choose Edit A to change it, or use another name.'; text stays x."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "No notice; one entry A; 'who are you' after Use A replies 'My instructions: y'; task A silently becomes 'second request'."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Refused with alert 'That name is already in use. Choose a different name.'."
+    }
+   }
+  },
+  {
+   "id": "D-12",
+   "title": "Since you were away never changes after the person returns",
+   "severity": "low",
+   "merged_from": [
+    "p23866a#9"
+   ],
+   "repro": "Start and finish 'long task: first', reload twice; start 'long task: crates [fail step 2]' and 'long task: alpha', close the tab until both end, reopen; reload twice (tools/u44_d12.cjs).",
+   "expected": "Reports what changed since the last visit; reported items stop appearing after being read or a reload.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "After reload only 'Needs attention crates · Failed' remains; finished items drop off; 'Nothing has changed since you were last here.' when nothing changed."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "'Finished alpha · Completed first · Completed / Needs attention crates · Failed' identical after every reload, including 'first' seen before leaving; never dismissed."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "After reload only 'Needs attention crates' remains, with a Dismiss button."
+    }
+   }
+  },
+  {
+   "id": "D-13",
+   "title": "Unexpected server errors are logged without any detail",
+   "severity": "low",
+   "merged_from": [
+    "p23866a#11"
+   ],
+   "repro": "With the app open, chmod 555 DATA_DIR and click Save instruction; read the page and the server output (tools/u60_d13.cjs).",
+   "expected": "Server output records the error (without the token); the page says what to try.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "Server output 'Workspace operation failed: EACCES: permission denied, open '<path>''; page 'The workspace could not complete this action. Try again.'."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Server output only 'Workspace operation failed.'; page 'The workspace could not complete this action. Try again.'."
+    },
+    "pa8edb8": {
+     "result": "absent",
+     "observed": "Server output 'Request could not be completed. EACCES' (error code only, terse); page 'The server could not complete this request. Refresh to check what was saved.'."
+    }
+   }
+  },
+  {
+   "id": "D-14",
+   "title": "A message sent while the conversation is scrolled up is not brought into view",
+   "severity": "low",
+   "merged_from": [
+    "pa8edb8#1"
+   ],
+   "repro": "Continue as a person with a token, send 8 messages, scroll the Conversation to the top, type a message in Message and press Enter; read the scroll position and whether the last article is visible, at 375x812 and 1440x900 (tools/d14.cjs).",
+   "expected": "The sent message and its reply are shown, or a new reply below is indicated.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "present",
+     "observed": "#chat-scroll scrollTop stays 0; last article at y=2020 (375 wide, view ends 726) and y=1588 (1440 wide, view ends 788); no indicator."
+    },
+    "p23866a": {
+     "result": "present",
+     "observed": "Same: scrollTop 0, last article at y=2020 / 1588 below the view; no indicator."
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "#reading scrollTop stays 0; last article at y=2156 (375 wide, view ends 720) and y=1759 (1440 wide); no indicator."
+    }
+   }
+  },
+  {
+   "id": "D-15",
+   "title": "Keyboard focus is lost to the page body after activating Send",
+   "severity": "low",
+   "merged_from": [
+    "pa8edb8#5"
+   ],
+   "repro": "Continue as Maya with a token. Type 'kbd send' in Message, press Tab (focus on Send), press Enter; wait for the reply; read document.activeElement (tools/d8_d15.cjs).",
+   "expected": "Focus stays on Send or returns to Message.",
+   "note": "",
+   "results": {
+    "p51b1ee": {
+     "result": "absent",
+     "observed": "activeElement is the Message textarea after the reply."
+    },
+    "p23866a": {
+     "result": "absent",
+     "observed": "activeElement is the Message textarea after the reply."
+    },
+    "pa8edb8": {
+     "result": "present",
+     "observed": "activeElement BODY after the reply (Enter in Message keeps focus on Message)."
+    }
+   }
+  }
+ ]
+}

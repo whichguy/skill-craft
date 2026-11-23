@@ -1,0 +1,54 @@
+{"pairs": [
+{"pair": "Y-X", "better": "X-some",
+ "advantages": [
+  {"of": "X", "what": "Repeated status/priority parameters keep their previous first-value meaning; Y silently changed them to intersect (conflicting repeats return nothing) with no changelog note, against 'everything keeps working'", "ref": "D-1", "matters_to": "operator"},
+  {"of": "X", "what": "CHANGELOG has a section describing the assignment feature; Y has none and no version bump", "ref": "D-2", "matters_to": "operator"},
+  {"of": "X", "what": "An assigned ticket is always distinguishable from an unassigned one in the table and show (names quoted, bare word unassigned); in Y an agent named '-' (table) or 'null' (show) looks unassigned", "ref": "D-3", "matters_to": "operator"},
+  {"of": "X", "what": "Invalid UTF-8 in an assignment body or filter is refused with 400 instead of storing and notifying a name with a replacement character", "ref": "D-4", "matters_to": "operator"},
+  {"of": "X", "what": "Keeping the assignee through transitions, the show output and the history display are documented; Y leaves them untold", "ref": "U-12", "matters_to": "operator"},
+  {"of": "Y", "what": "list --raw gains the assignee as a fifth column, so scripts reading raw output can see assignments; X keeps raw at four columns", "ref": "U-16", "matters_to": "operator"},
+  {"of": "Y", "what": "Smaller change for a maintainer to carry: no second hand-written query decoder for the assignee filter, no leftover acceptance/ and [tool]/ folders, no tightened cursor validation", "ref": "X maintainer note; X extras", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Restore first-value handling for repeated status and priority parameters (or document the change in the changelog)",
+  "Add a CHANGELOG section for the assignment feature with a version bump",
+  "Make an assigned agent distinguishable from unassigned in the table and show (refuse '-'/'null' as names or quote names)",
+  "Decode the assignment body strictly and refuse invalid UTF-8 with 400 invalid"
+ ],
+ "one_task_closes": "yes",
+ "why": "X has none of the four defects while Y has all four, the most consequential being D-1, an undocumented change to how existing list queries behave. Y's raw assignee column and leaner code are real but small, and X's extra parsing code and builder leftovers are a modest maintenance cost. Each of Y's gaps is a small, local fix, so one short task closes them."},
+{"pair": "Y-Z", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "Repeated status/priority parameters keep the previous first-value meaning; Y changed what existing queries return without noting it", "ref": "D-1", "matters_to": "operator"},
+  {"of": "Z", "what": "Table and show use the same '-' marker for unassigned; Y shows '-' in the table but the word null in show", "ref": "U-18", "matters_to": "operator"},
+  {"of": "Z", "what": "The 64-character limit is counted the same way as the requester limit; Y counts code points, a different rule from the existing field", "ref": "U-3", "matters_to": "maintainer"},
+  {"of": "Y", "what": "A failed data-file save during an assignment rolls back ticket, audit and outbox so a retry works and no phantom notice is sent", "ref": "Y extras (src/store.js assign rollback)", "matters_to": "operator"},
+  {"of": "Y", "what": "Loading legacy data files and the notice key design are documented (decision record 0009, operations.md); Z does not tell how old files load", "ref": "U-11", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Restore first-value handling for repeated status and priority parameters (and decide the same for assignee)",
+  "Print the same unassigned marker in show as in the table",
+  "Count the 64-character limit the way the requester limit is counted"
+ ],
+ "one_task_closes": "yes",
+ "why": "The two deliveries share the changelog, marker and UTF-8 defects; the difference that matters is Y's undocumented change to repeated status/priority filters, which breaks 'everything keeps working' for existing callers. Y's save rollback and decision record are worth something but cover a rare failure and documentation only. Y's extra gaps are small fixes in query.js and format.js."},
+{"pair": "Z-X", "better": "X-some",
+ "advantages": [
+  {"of": "X", "what": "CHANGELOG section describing the feature; Z leaves CHANGELOG and version untouched", "ref": "D-2", "matters_to": "operator"},
+  {"of": "X", "what": "Assigned and unassigned tickets are always distinguishable in the CLI; in Z an agent named '-' looks unassigned", "ref": "D-3", "matters_to": "operator"},
+  {"of": "X", "what": "Invalid UTF-8 in an assignment is refused instead of being stored, audited and notified with a replacement character", "ref": "D-4", "matters_to": "operator"},
+  {"of": "X", "what": "A failed save during assignment rolls back memory so a retry works and no phantom notice goes out", "ref": "X extras (src/store.js assign rollback)", "matters_to": "operator"},
+  {"of": "X", "what": "Legacy data-file loading, notice keys, assignee retention through transitions and show history are documented; Z leaves U-11, U-12, U-18 and U-27 untold", "ref": "U-11", "matters_to": "operator"},
+  {"of": "Z", "what": "list --raw includes the assignee as a fifth column", "ref": "U-16", "matters_to": "operator"},
+  {"of": "Z", "what": "Much smaller change with no extras: one query parser, no leftover acceptance/ and [tool]/ folders, no change to cursor validation", "ref": "Z extras (none); X maintainer note", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Add a CHANGELOG section for the assignment feature with a version bump",
+  "Refuse '-' as an agent name or use a marker no name can take",
+  "Refuse invalid UTF-8 in the assignment body with 400 invalid",
+  "Roll back the in-memory ticket, audit and outbox when saving an assignment fails",
+  "Document legacy data-file loading and assignee retention through transitions in docs/operations.md and docs/api.md"
+ ],
+ "one_task_closes": "yes",
+ "why": "Z is a sound, lean delivery, but it carries three low defects that X avoids and lacks X's save rollback and its operator documentation. X costs more to maintain (a second query decoder, builder leftovers) and Z's raw column is a small plus, so the gap is real but not large. Each missing item is small and local, so about an hour of work closes it."}
+]}

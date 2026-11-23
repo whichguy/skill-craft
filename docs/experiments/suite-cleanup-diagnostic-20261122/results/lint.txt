@@ -1,0 +1,14 @@
+A4 lint (ruff 0.17.2, shellcheck 0.11.0; no ruff configuration in the repository or user folders, so ruff's defaults apply; --no-cache)
+
+Changed test files: ruff check --output-format concise test/run_suites.py test/test-groups.test.py
+  before (HEAD 4758480e40c646c0d09eaf394ec6b00feaaf82a1 copies written by git show to a scratch folder): Found 92 errors.
+  after (the worktree files): Found 92 errors.
+  multiset of (file, rule code, message), line numbers ignored: 92 before, 92 after; added none; removed none
+  after per file: test/run_suites.py 24, test/test-groups.test.py 68 (all present at HEAD)
+
+Evidence scripts:
+  ruff check --output-format concise double_kill.py: All checks passed! (exit 0)
+  shellcheck run_test41.sh: exit 0, no findings
+  double_kill.py changes to reach clean (the scratch original had 5 findings): file made executable (EXE001);
+  unused 'noqa: E402' removed (RUF100); check=False written out on subprocess.run, its default (PLW1510);
+  two '"%s=%s" % e' joins written as f-strings over the same two-string tuples (UP031). Same measurements, same output.

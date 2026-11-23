@@ -1,0 +1,32 @@
+{"pairs": [
+{"pair": "Y-Z", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "Validates the FEN and throws a descriptive error, the same kind from all three functions, for wrong rank counts, bad rank widths, unknown pieces, bad fields, non-strings and wrong king counts. Y gives confident wrong answers (7 ranks -> 'ongoing' and an invented rank; side 'x' -> 'stalemate'; garbage echoed into the returned FEN) or raw internal TypeErrors", "ref": "D-1, D-2, D-3, D-4, U-1", "matters_to": "operator"},
+  {"of": "Z", "what": "The README tells the caller the move-input contract and that a saved FEN can be reused; the spec marks malformed-FEN and non-UCI input as Open for the customer instead of deciding them silently", "ref": "U-3, U-11, Z spec_notes", "matters_to": "requester"},
+  {"of": "Y", "what": "Move-count tests go to depth 3 (start 8902, position 3 2812); Z's stop at depth 2, so the suite guards less deep move generation", "ref": "S-37, U-9", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Ships no 1,400-line acceptance harness that a maintainer has to decide whether to keep", "ref": "Z extras: acceptance/", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Y's tests pin builder choices that another correct build need not share (rejecting 'E2E4' and 'e2e4\\n', exact BigInt clocks beyond 2^53); Z's tests do not", "ref": "Y tests_notes", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": ["Add FEN validation in Y's readFen that throws one descriptive error kind from legalMoves, status and applyMove for missing or non-string input, wrong rank count or width, unknown piece letters, bad side, castling, en-passant and clock fields, and a wrong number of kings", "Add tests that pass invalid FENs and assert the thrown error class", "Say in the README what a malformed FEN does"],
+ "one_task_closes": "yes",
+ "why": "Both engines are fully correct on every stated rule and every perft count, so the only difference that matters in use is Z's FEN validation: Y gives confident wrong answers or raw TypeErrors on malformed input (D-1 to D-4). Y's deeper count tests and lack of Z's extra harness count a little the other way, but they do not outweigh wrong game results. Adding validation and its tests to Y is a contained parser change of about an hour."},
+{"pair": "Y-X", "better": "same",
+ "advantages": [
+  {"of": "X", "what": "Move-count tests are a little deeper (start 20/400/8902, Kiwipete 48/2039/97862, position 3 14/191/2812, against Y's start d3, Kiwipete d2, position 3 d3)", "ref": "S-37, U-9", "matters_to": "maintainer"},
+  {"of": "X", "what": "X's tests pin nothing a correct build need not share; Y's tests pin rejecting 'E2E4' and 'e2e4\\n' and exact BigInt clocks", "ref": "X tests_notes, Y tests_notes", "matters_to": "maintainer"},
+  {"of": "Y", "what": "The README says malformed FEN is unsupported, so a caller is warned about the no-validation behaviour that both share", "ref": "Y extras: README.md, U-1", "matters_to": "operator"}
+ ],
+ "lesser_lacks": [],
+ "one_task_closes": "yes",
+ "why": "X and Y are the same product in practice: both are correct on every rule and perft count, both lack FEN validation with the same defects D-1 to D-4, and both handle move input and the error class the same way. The small differences (X's slightly deeper and less opinionated tests, Y's README note on malformed FEN) are slight and point both ways."},
+{"pair": "X-Z", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "Validates the FEN with descriptive, consistent errors across all three functions; X accepts wrong rank counts and widths, unknown letters and bad fields, reports a bad side as 'stalemate', echoes damage into the returned FEN, and throws internal TypeErrors on missing input", "ref": "D-1, D-2, D-3, D-4, U-1", "matters_to": "operator"},
+  {"of": "Z", "what": "The README states the move-input contract and that saved FENs can be reused; the spec marks the unsaid input questions as Open for the customer", "ref": "U-3, U-11, Z spec_notes", "matters_to": "requester"},
+  {"of": "X", "what": "Move-count tests reach depth 3 on start, Kiwipete and position 3; Z's stop at depth 2", "ref": "S-37, U-9", "matters_to": "maintainer"},
+  {"of": "X", "what": "No 1,400-line acceptance harness for a maintainer to carry or remove", "ref": "Z extras: acceptance/", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": ["Add FEN validation in X's parseFen that throws one descriptive error kind from legalMoves, status and applyMove for missing or non-string input, wrong rank count or width, unknown piece letters, bad side, castling, en-passant and clock fields, and a wrong number of kings", "Add tests that pass invalid FENs and assert the thrown error class", "Document malformed-FEN behaviour in the README"],
+ "one_task_closes": "yes",
+ "why": "Both are correct chess engines on every stated rule and published perft count, but X answers malformed FENs with confident wrong results or internal TypeErrors, and Z rejects them consistently (D-1 to D-4). X's deeper count tests and leaner delivery are real but smaller advantages. Adding validation to X's parser, with tests, is about an hour's work."}
+]}

@@ -1,0 +1,315 @@
+id | host | arm (select/planning) | ShipLoop | wall min | output tokens | cost $ | token src/test/docs/other | plan packets holding entry | entry given at plan | card named in a call | environment.md names card
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+u01 | codex | declared/inline | done | 11.2 | 22845 | - | 2/4/2/1 | 1 of 1 | no | 2 | yes
+u02 | codex | declared/inline | done | 10.1 | 19332 | - | 2/1/2/1 | 1 of 1 | no | 2 | yes
+u03 | claude | declared/inline | done | 18.9 | 136258 | 6.8278 | 3/18/14/2 | 1 of 1 | no | 1 | yes
+
+u01: product work, returned (ShipLoop done)
+u02: product work, returned (ShipLoop done)
+u03: product work, returned (ShipLoop done)
+[
+ {
+  "id": "u01",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/u01",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-named",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 11.2,
+  "host_minutes": 11.2,
+  "tokens": {
+   "input_peak": 159802,
+   "processed": 6466167,
+   "output": 22845
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/u01/work",
+  "found": "work, returned (ShipLoop done)",
+  "select_route": "declared",
+  "card": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft/skills/shiploop/references/platforms/node-express.md",
+  "entry": "N-GATEWAY",
+  "token": "X-Org-Request-Id",
+  "packets": {
+   "plan_packets": 1,
+   "plan_packets_holding": 1,
+   "holding": [
+    "/Users/dadleet/e2e-runs-pk/20261122-r/u01/.shiploop-runs/work-20261123-002045-324229/run/packets/sent/84e92ffb2c9531b5.md"
+   ],
+   "other_stages_holding": [
+    "carry-forward",
+    "document",
+    "implement",
+    "product-acceptance",
+    "release-verify",
+    "spec",
+    "test",
+    "test-spec",
+    "test-strategy"
+   ]
+  },
+  "entry_given_at_plan": false,
+  "card_reads": [
+   {
+    "at": "2026-11-23T00:22:17Z",
+    "at_ts": 1795393337.352,
+    "tool": "exec",
+    "excerpt": "const p=load(\"p\");text((await tools.exec_command({cmd:`cat '${p}/references/platforms/node-express.md'; cat '${p}/references/improve-context.md'`})).output);",
+    "seconds_after_packet": -93.7,
+    "in_plan_window": false
+   },
+   {
+    "at": "2026-11-23T00:22:37Z",
+    "at_ts": 1795393357.119,
+    "tool": "exec",
+    "excerpt": "and maintain the caller’s list semantics.\")],evidence_refs:[w+\"/docs/shiploop/spec.md\",load(\"p\")+\"/references/platforms/node-express.md\"]});",
+    "seconds_after_packet": -73.9,
+    "in_plan_window": false
+   }
+  ],
+  "token_in_product": {
+   "source": {
+    "files": 1,
+    "occurrences": 2,
+    "paths": [
+     "src/routes/stock.js"
+    ]
+   },
+   "test": {
+    "files": 1,
+    "occurrences": 4,
+    "paths": [
+     "test/stock.test.js"
+    ]
+   },
+   "docs": {
+    "files": 2,
+    "occurrences": 2,
+    "paths": [
+     "docs/shiploop/environment.md",
+     "docs/shiploop/spec.md"
+    ]
+   },
+   "other": {
+    "files": 1,
+    "occurrences": 1,
+    "paths": [
+     "README.md"
+    ]
+   }
+  },
+  "environment_names_card": true
+ },
+ {
+  "id": "u02",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/u02",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-named",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 10.1,
+  "host_minutes": 10.1,
+  "tokens": {
+   "input_peak": 154890,
+   "processed": 5929288,
+   "output": 19332
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/u02/work",
+  "found": "work, returned (ShipLoop done)",
+  "select_route": "declared",
+  "card": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft/skills/shiploop/references/platforms/node-express.md",
+  "entry": "N-GATEWAY",
+  "token": "X-Org-Request-Id",
+  "packets": {
+   "plan_packets": 1,
+   "plan_packets_holding": 1,
+   "holding": [
+    "/Users/dadleet/e2e-runs-pk/20261122-r/u02/.shiploop-runs/work-20261123-002046-a14ba3/run/packets/sent/e5ddacfdd5478708.md"
+   ],
+   "other_stages_holding": [
+    "carry-forward",
+    "document",
+    "implement",
+    "product-acceptance",
+    "release-verify",
+    "spec",
+    "test",
+    "test-spec",
+    "test-strategy"
+   ]
+  },
+  "entry_given_at_plan": false,
+  "card_reads": [
+   {
+    "at": "2026-11-23T00:22:08Z",
+    "at_ts": 1795393328.85,
+    "tool": "exec",
+    "excerpt": "\"p\");text((await tools.exec_command({cmd:`rg -n -C 4 'GATEWAY|request-id|production|Express' '${p}/references/platforms/node-express.md'`,max_output_tokens:2600})).output)",
+    "seconds_after_packet": -73.7,
+    "in_plan_window": false
+   },
+   {
+    "at": "2026-11-23T00:22:25Z",
+    "at_ts": 1795393345.633,
+    "tool": "exec",
+    "excerpt": "exact case matches the existing catalog.\"}],evidence_refs:[wt+\"/docs/shiploop/spec.md\",load(\"p\")+\"/references/platforms/node-express.md\",wt+\"/src/routes/items.js\"]})",
+    "seconds_after_packet": -56.9,
+    "in_plan_window": false
+   }
+  ],
+  "token_in_product": {
+   "source": {
+    "files": 1,
+    "occurrences": 2,
+    "paths": [
+     "src/routes/stock.js"
+    ]
+   },
+   "test": {
+    "files": 1,
+    "occurrences": 1,
+    "paths": [
+     "test/stock.test.js"
+    ]
+   },
+   "docs": {
+    "files": 2,
+    "occurrences": 2,
+    "paths": [
+     "docs/shiploop/environment.md",
+     "docs/shiploop/spec.md"
+    ]
+   },
+   "other": {
+    "files": 1,
+    "occurrences": 1,
+    "paths": [
+     "README.md"
+    ]
+   }
+  },
+  "environment_names_card": true
+ },
+ {
+  "id": "u03",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/u03",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-named",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 18.9,
+  "host_minutes": 18.9,
+  "tokens": {
+   "input_peak": 397770,
+   "processed": 40231757,
+   "output": 136258
+  },
+  "cost_usd": 6.8278,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/u03/work",
+  "found": "work, returned (ShipLoop done)",
+  "select_route": "declared",
+  "card": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft/skills/shiploop/references/platforms/node-express.md",
+  "entry": "N-GATEWAY",
+  "token": "X-Org-Request-Id",
+  "packets": {
+   "plan_packets": 1,
+   "plan_packets_holding": 1,
+   "holding": [
+    "/Users/dadleet/e2e-runs-pk/20261122-r/u03/.shiploop-runs/work-20261123-002033-fda344/run/packets/sent/3ea68fc9b94950da.md"
+   ],
+   "other_stages_holding": [
+    "carry-forward",
+    "document",
+    "implement",
+    "product-acceptance",
+    "release-verify",
+    "spec",
+    "step-plan",
+    "test",
+    "test-spec",
+    "test-strategy"
+   ]
+  },
+  "entry_given_at_plan": false,
+  "card_reads": [
+   {
+    "at": "2026-11-23T00:21:39Z",
+    "at_ts": 1795393299.101,
+    "tool": "Bash",
+    "excerpt": "arm-live-spec/build/plugins/skill-craft/skills/shiploop/references; grep -n -i -B2 -A8 \\\"gateway\\\\|X-Org\\\" $G/platforms/node-express.md | head -50\"}",
+    "seconds_after_packet": -224.7,
+    "in_plan_window": false
+   }
+  ],
+  "token_in_product": {
+   "source": {
+    "files": 1,
+    "occurrences": 3,
+    "paths": [
+     "src/app.js"
+    ]
+   },
+   "test": {
+    "files": 2,
+    "occurrences": 18,
+    "paths": [
+     "test/stock.test.js",
+     "test/system.test.js"
+    ]
+   },
+   "docs": {
+    "files": 3,
+    "occurrences": 14,
+    "paths": [
+     "docs/shiploop/architecture.md",
+     "docs/shiploop/environment.md",
+     "docs/shiploop/spec.md"
+    ]
+   },
+   "other": {
+    "files": 1,
+    "occurrences": 2,
+    "paths": [
+     "README.md"
+    ]
+   }
+  },
+  "environment_names_card": true
+ }
+]

@@ -1,0 +1,89 @@
+{
+ "label": "roundtable-2",
+ "arm": "ratchet",
+ "case": "roundtable",
+ "base": "762faa8a020dc8689e6a578374c67d6422f5b9de",
+ "points": {
+  "first-build": "a2da8ba4447d12481fa8dc214d12e6153fe1efef",
+  "final": "8203689392b95784bf667f5614f7c8b344e0e800"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 73.8,
+  "seconds": 4429.1,
+  "first_build_minutes": 10.5,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 13,
+  "final_pass": true,
+  "clauses": 68,
+  "seconds_by_role": {
+   "spec": 131.7,
+   "plan": 467.2,
+   "build": 964.6,
+   "tests": 1726.4,
+   "delta": 627.3
+  },
+  "finished": "2026-11-22T16:54:36-0800"
+ },
+ "tokens": {
+  "rollouts": 13,
+  "counted": 13,
+  "input": 14413941,
+  "cached": 13584000,
+  "output": 156366,
+  "reasoning": 41569,
+  "total": 14570307,
+  "uncached_input": 829941,
+  "first_build": {
+   "input": 1200161,
+   "cached": 1100928,
+   "output": 26474,
+   "reasoning": 3534
+  }
+ },
+ "measured_points": {
+  "first-build": "a2da8ba4447d12481fa8dc214d12e6153fe1efef",
+  "final": "8203689392b95784bf667f5614f7c8b344e0e800"
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "roundtable": {
+     "observed": true,
+     "passed": 0,
+     "failed": [
+      "conversation"
+     ],
+     "of": 1
+    },
+    "roundtable-checks": {
+     "observed": true,
+     "passed": 2,
+     "failed": [],
+     "of": 2
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "roundtable": {
+     "observed": true,
+     "passed": 0,
+     "failed": [
+      "conversation"
+     ],
+     "of": 1
+    },
+    "roundtable-checks": {
+     "observed": true,
+     "passed": 2,
+     "failed": [],
+     "of": 2
+    }
+   }
+  }
+ }
+}

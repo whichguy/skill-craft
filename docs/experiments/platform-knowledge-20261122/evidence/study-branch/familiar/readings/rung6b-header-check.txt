@@ -1,0 +1,96 @@
+== n05
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n05/work",
+ "started": true,
+ "factory": "src/app.js createServer",
+ "calls": [
+  {
+   "name": "valid",
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "hc-31368c41-1337-43c5-82ae-199a2eb5420d",
+   "status": 200,
+   "header": true,
+   "value": "hc-31368c41-1337-43c5-82ae-199a2eb5420d",
+   "echoed": true,
+   "status_as_requested": true,
+   "pass": true
+  },
+  {
+   "name": "refused",
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": true,
+   "value": "e0d9d4f3-2293-4902-866b-f9d60d8dc8d3",
+   "status_as_requested": true,
+   "pass": true
+  }
+ ],
+ "route_missing": false,
+ "statuses": "as the request says (200, 400)",
+ "verdict": "pass"
+}
+== n06
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n06/work",
+ "started": true,
+ "factory": "src/app.js createServer",
+ "calls": [
+  {
+   "name": "valid",
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "hc-603d7930-e524-4e5d-b045-f9a88cda2d36",
+   "status": 200,
+   "header": true,
+   "value": "hc-603d7930-e524-4e5d-b045-f9a88cda2d36",
+   "echoed": true,
+   "status_as_requested": true,
+   "pass": true
+  },
+  {
+   "name": "refused",
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": true,
+   "value": "02a98971-506c-46b6-942e-6384cb597bf1",
+   "status_as_requested": true,
+   "pass": true
+  }
+ ],
+ "route_missing": false,
+ "statuses": "as the request says (200, 400)",
+ "verdict": "pass"
+}
+== n07
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n07/work",
+ "started": true,
+ "factory": "src/app.js createServer",
+ "calls": [
+  {
+   "name": "valid",
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "hc-b874fae0-02fa-45c5-934a-4e29f8c21408",
+   "status": 200,
+   "header": true,
+   "value": "hc-b874fae0-02fa-45c5-934a-4e29f8c21408",
+   "echoed": true,
+   "status_as_requested": true,
+   "pass": true
+  },
+  {
+   "name": "refused",
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": true,
+   "value": "012bed47-36fd-45d5-b8d9-3bb7dfaeae6a",
+   "status_as_requested": true,
+   "pass": true
+  }
+ ],
+ "route_missing": false,
+ "statuses": "as the request says (200, 400)",
+ "verdict": "pass"
+}

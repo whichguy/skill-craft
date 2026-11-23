@@ -146,9 +146,11 @@ class TestGroupTests(unittest.TestCase):
         # The sport80 skill and its suite left for the fortified-strength repository (2026-11-15), so core is one fewer, 63, and all suites 206.
         # Backchain was retired (owner decision 2026-11-16): backchain-chunks and backchain-toolkit left with it, so core is 61
         # and all suites two fewer; backchain-graph stays, because its library moved into ShipLoop.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
+        # The pushpress skill and its suite left skill-craft for a private repository (2026-11-22), so core is one fewer, 60, and all suites 190.
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 60)
         # Bundled Grok/GAS harness (2 suites), Closed Loop ShipLoop adapter (3 suites), and Salesforce/hosted cases (14 suites) retired (2026-11-19).
-        self.assertEqual(len(suite_catalog.SUITES), 191)
+        # The pushpress suite left with its skill (2026-11-22): 190.
+        self.assertEqual(len(suite_catalog.SUITES), 190)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -389,11 +391,13 @@ class TestGroupTests(unittest.TestCase):
     def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
         # All 190 rows after retiring the bundled harness, Closed Loop adapter, and Salesforce suites (2026-11-19),
         # and the defaults list's suite (2026-11-21): 191.
+        # The pushpress suite's row left the catalog with the skill (2026-11-22; it moved to a private repository), so the digest
+        # below is that of the 190 rows that remain: it changed by the removal of that one row and by nothing else.
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "d88a4f3af888db8ef6e0c4fec2889c3059d254f1878d0afd23cb23e0f8a36c1b")
+        self.assertEqual(digest, "54ec6ac8c0ac865e59e16362118ffe89d8dcc8ad1b3702835625db1b03fcf248")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])
@@ -1692,17 +1696,30 @@ class SuiteGroupOwnershipTest(unittest.TestCase):
             "import os, subprocess, sys, time, signal\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)")
         argv = (sys.executable, "-B", "-c", script, *argv[3:])
         sentinel = KeyboardInterrupt("interrupt actual TERM grace once")
-        captured, owners, terms, injections = [], [], [], []
+        captured, owners, terms, injections, delivered, repeats = [], [], [], [], [], []
         decoy = self._decoy()
-        real_wait, real_killpg = run_suites._SuiteProcess.wait, os.killpg
+        real_wait, real_killpg, probe = run_suites._SuiteProcess.wait, os.killpg, run_suites._exit_probe()
         def started(process):
             owners.append(process)
             captured.extend(self._capture(process, ready, marker))
             gate.touch()
+        def leader_exited(pid):
+            try:
+                return probe(pid)
+            except ChildProcessError:
+                return True
         def signal_group(group, sig):
+            mine = bool(owners) and group == owners[0].pid
+            # macOS refuses a group KILL (EPERM) while an earlier delivered one is taking effect, until the leader
+            # can be waited for, and the runner records that refusal as unconfirmed cleanup
+            # (docs/local-validation-journal.md, round 7, F27).
+            if mine and sig == signal.SIGKILL and delivered and not leader_exited(group):
+                repeats.append(group)
             result = real_killpg(group, sig)
-            if owners and group == owners[0].pid and sig == signal.SIGTERM:
+            if mine and sig == signal.SIGTERM:
                 terms.append(group)
+            if mine and sig == signal.SIGKILL:
+                delivered.append(group)
             return result
         def wait(process, timeout=None):
             if owners and process is owners[0] and timeout == 1 and terms and not injections:
@@ -1726,6 +1743,8 @@ class SuiteGroupOwnershipTest(unittest.TestCase):
                 self.assertTrue(all(record[0] > 0 for record in captured))
                 self.assertEqual(injections, [owners[0].pid])
                 self.assertTrue(terms, "injection must follow actual TERM delivery")
+                self.assertEqual(repeats, [], "a group KILL was repeated before its leader was seen exited; macOS "
+                                 "answers that EPERM and the runner records unconfirmed cleanup")
                 stopped = self._until(lambda: not any(self._alive(r) for r in captured), 10)
                 closed = all(s is not None and s.closed for s in (owners[0].stdout, owners[0].stderr))
                 self.assertEqual((stopped, closed), (True, True),

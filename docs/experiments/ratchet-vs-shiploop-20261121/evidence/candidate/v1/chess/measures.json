@@ -1,0 +1,45 @@
+{
+ "label": "chess-1",
+ "arm": "shiploop",
+ "case": "node-chess-engine",
+ "base": "01fee0ff1dbf766a88a2cd16464b67db66f7241c",
+ "points": {
+  "final": "ac1fd290b834bcf22a864f500695dce39fbbf325"
+ },
+ "commit": "d5e259fb5a4c329c3f8a5579d97282bd9e70f371",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 11.3,
+  "seconds": 675.9,
+  "resumes": 0,
+  "outcome": "PASS",
+  "pass": true,
+  "shiploop_version": "2.6.0"
+ },
+ "tokens": {
+  "rollouts": 1,
+  "counted": 1,
+  "input": 6915922,
+  "cached": 6760960,
+  "output": 24611,
+  "reasoning": 580,
+  "total": 6940533,
+  "uncached_input": 154962
+ },
+ "measured_points": {
+  "final": "ac1fd290b834bcf22a864f500695dce39fbbf325"
+ },
+ "at": {
+  "final": {
+   "hidden": {
+    "chess": {
+     "observed": true,
+     "passed": 10,
+     "failed": [],
+     "of": 10
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,34 @@
+{
+ "commit": "9ca27527082cd12665af3d2401acf183813adb87",
+ "checkout": "/Users/dadleet/e2e-runs/d20261122-ccc2ff/source-9ca27527082c",
+ "checkout_head": "c022405f22d5acd6c1d96381404e0f4f7a6bd0e4",
+ "shiploop_version": "2.6.0",
+ "shiploop_last_commit": "9ca27527082cd12665af3d2401acf183813adb87",
+ "added_cases": {
+  "node-chess-engine": {
+   "base": {
+    "fixture": "compare-node-chess-engine",
+    "digest": "8d62989adcf5",
+    "source": "the starting files of docs/experiments/ratchet-pilot-20261120/cases.json node-chess-engine, the same files ratchet.py starts from"
+   },
+   "checks": [
+    "log=$(mktemp); npm test > \"$log\" 2>&1; rc=$?; grep -Eq '^(\u2139|#) pass [1-9]' \"$log\" && [ $rc -eq 0 ]; r=$?; rm -f \"$log\"; exit $r"
+   ]
+  },
+  "grokbot-local": {
+   "base": {
+    "fixture": "compare-grokbot-local",
+    "digest": "7f398d742dbf",
+    "source": "the starting files of docs/experiments/ratchet-pilot-20261120/cases.json grokbot-local, the same files ratchet.py starts from"
+   },
+   "checks": [
+    "log=$(mktemp); npm test > \"$log\" 2>&1; rc=$?; grep -Eq '^(\u2139|#) pass [1-9]' \"$log\" && [ $rc -eq 0 ]; r=$?; rm -f \"$log\"; exit $r"
+   ]
+  }
+ },
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "ratchet_enrich": "reworded",
+ "made": "2026-11-22T14:57:23-0800"
+}

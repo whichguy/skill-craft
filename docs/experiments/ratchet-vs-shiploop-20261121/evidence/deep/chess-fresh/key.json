@@ -1,0 +1,18 @@
+{
+ "p5bfa3a": {
+  "point": "S",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/fix/chess/work",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p762312": {
+  "point": "F",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-b54ea4/delivered/chess",
+  "spec": "docs/shiploop/spec.md"
+ },
+ "p5c7b34": {
+  "point": "L",
+  "tree": "/Users/dadleet/e2e-runs/d20261122-ac4afc/chess-2/work",
+  "commit": "68d2e1bbbfa5ca32136a1ca5d757268eb296dd27",
+  "spec": "ratchet/spec.md"
+ }
+}

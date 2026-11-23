@@ -1,0 +1,38 @@
+{
+ "recheck": [
+  {
+   "id": "U-1",
+   "kind": "unstated",
+   "text": "What legalMoves, applyMove and status do when the FEN argument is missing, not a string, malformed (empty, wrong number of ranks or squares in a rank, unknown piece letter, bad side-to-move or other field, trailing whitespace or newline) or syntactically valid but an impossible position (a side with no king or two kings, a pawn on the first or eighth rank, the side not to move already in check).",
+   "audits_said": {
+    "p5bfa3a": "sound",
+    "p762312": "poor",
+    "p5c7b34": "sound"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p762312",
+   "n": "p762312#1",
+   "title": "Malformed FENs are accepted and given confident wrong answers instead of an error",
+   "severity": "medium",
+   "repro": "const c=require('./src/chess.js'); c.status('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1'); c.legalMoves(same); c.applyMove('rnbqkbnr/pppppppp/9/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1','e2e4'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNX w KQkq - 0 1'); c.applyMove(c.startFen().replace('KQkq','XYZ'),'e2e4')",
+   "observed": "side 'x': status 'stalemate', legalMoves []; 9-square rank: returns 'rnbqkbnr/pppppppp/97/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'; unknown piece 'X': 20 moves and 'X' echoed into the next FEN; castling 'XYZ' echoed into the output FEN",
+   "expected": "a thrown, descriptive error (Error/TypeError/an invalid-FEN class) for a FEN that is not well-formed, never a status or a new FEN",
+   "basis": "unstated",
+   "item": "U-1"
+  },
+  {
+   "from": "p762312",
+   "n": "p762312#2",
+   "title": "Garbage FEN input surfaces internal TypeErrors with no description of the problem",
+   "severity": "low",
+   "repro": "const c=require('./src/chess.js'); c.legalMoves(''); c.legalMoves('not-a-fen'); c.legalMoves('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP w KQkq - 0 1'); c.status('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -')",
+   "observed": "TypeError 'ranks[rank] is not iterable' (empty, not-a-fen, 7 ranks); TypeError 'Cannot convert undefined to a BigInt' (4 fields)",
+   "expected": "an error whose message says the FEN is invalid (and which part)",
+   "basis": "unstated",
+   "item": "U-1"
+  }
+ ]
+}

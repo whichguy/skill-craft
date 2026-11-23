@@ -1,0 +1,395 @@
+{
+ "grokbot-fresh": {
+  "facts": {
+   "S": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 60,
+    "unstated": 39,
+    "handled": 34,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23",
+     "U-39",
+     "U-46"
+    ],
+    "told": 18,
+    "told_or_marked": 18,
+    "unstated_strong_test_read": 15,
+    "defects": 4,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 60,
+    "unstated": 39,
+    "handled": 31,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-21",
+     "U-23",
+     "U-39",
+     "U-44",
+     "U-46"
+    ],
+    "told": 1,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 8,
+    "defects": 6,
+    "defects_high": [],
+    "defects_low": 9,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 62,
+    "unstated": 39,
+    "handled": 36,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23"
+    ],
+    "told": 15,
+    "told_or_marked": 26,
+    "unstated_strong_test_read": 16,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-4",
+     "D-6",
+     "D-7",
+     "D-15",
+     "D-16",
+     "D-17"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "facts_with_arm_items": {
+   "S": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 60,
+    "unstated": 45,
+    "handled": 38,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23",
+     "U-39",
+     "U-46",
+     "U-50",
+     "U-54"
+    ],
+    "told": 20,
+    "told_or_marked": 20,
+    "unstated_strong_test_read": 17,
+    "defects": 4,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 4,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "F": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 3,
+    "strong_test_read": 60,
+    "unstated": 45,
+    "handled": 33,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-15",
+     "U-21",
+     "U-23",
+     "U-39",
+     "U-44",
+     "U-46",
+     "U-50",
+     "U-54",
+     "U-57",
+     "U-60"
+    ],
+    "told": 1,
+    "told_or_marked": 3,
+    "unstated_strong_test_read": 8,
+    "defects": 6,
+    "defects_high": [],
+    "defects_low": 9,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-3",
+     "D-4",
+     "D-5",
+     "D-6",
+     "D-7",
+     "D-8",
+     "D-9",
+     "D-10",
+     "D-11",
+     "D-12",
+     "D-13",
+     "D-14",
+     "D-15"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 2,
+     "neutral": 3,
+     "liability": 0
+    }
+   },
+   "L": {
+    "stated": 108,
+    "built": 108,
+    "not_built": [],
+    "proved_of": 6,
+    "proved": 4,
+    "strong_test_read": 62,
+    "unstated": 45,
+    "handled": 40,
+    "short": [
+     "U-9",
+     "U-11",
+     "U-23",
+     "U-50",
+     "U-60"
+    ],
+    "told": 18,
+    "told_or_marked": 29,
+    "unstated_strong_test_read": 16,
+    "defects": 3,
+    "defects_high": [],
+    "defects_low": 5,
+    "defect_ids": [
+     "D-1",
+     "D-2",
+     "D-4",
+     "D-6",
+     "D-7",
+     "D-15",
+     "D-16",
+     "D-17"
+    ],
+    "serious": 0,
+    "extras": {
+     "value": 5,
+     "neutral": 3,
+     "liability": 0
+    }
+   }
+  },
+  "pairs": {
+   "S-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": null,
+     "D5": null,
+     "D6": "second"
+    },
+    "gate": null,
+    "better": null,
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "some",
+      "one_task_closes": "yes",
+      "why": "Both build every stated requirement and share the same four defects; Z avoids X's one medium defect (a reply stuck pending after a storage failure) and handles damaged data and storage outages with real recovery. X is better for the operator on error logging and for the requester on specific correction messages and a few low-severity UI points, so Z's lead is modest. The fixes X needs are small and local, about an hour's work.",
+      "lesser_lacks": [
+       "Mark a reply failed (with Retry) or finish it when its result cannot be written, so the conversation is not left blocked (D-3)",
+       "Catch startup load errors and print a message naming workspace.json with a recovery step (D-9)",
+       "Refuse duplicate bot names or make same-named bots distinguishable (D-5)",
+       "Make the add-step choices and feedback identify which same-titled task gets the step (D-8)",
+       "Restore focus to the edited memory item after Save memory (D-10)",
+       "Add test assertions that DATA_DIR is honoured and that memory is shared across a bot's conversations (S-5, S-33)"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": true
+   },
+   "S-F": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": null,
+     "D4": "first",
+     "D5": "first",
+     "D6": "first"
+    },
+    "gate": null,
+    "better": "S",
+    "verdicts": {
+     "a": {
+      "side": "S",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Y has every defect X has and six more, two of them medium: a failed reply's visible failure and Retry vanish, and a task can show Running forever after a storage error. Its Since you were away never reflects an absence, and its README leaves the operator guessing. Closing this takes changes to reply and task error handling, the away report, and several smaller fixes, which is more than one short task.",
+      "lesser_lacks": [
+       "Keep a failed reply marked with a working Retry after later messages (D-11)",
+       "Mark a background task Interrupted or Failed with Retry task when its step cannot be saved (D-12)",
+       "Make Since you were away report only what changed since the last visit and drop items once read (D-13)",
+       "Refuse, or warn about, saving an instruction or task under an existing name (D-14)",
+       "Log unexpected server errors with their detail, token redacted (D-15)",
+       "Show a limit notice instead of silently cutting long bot names (D-6)",
+       "Name the changeable fields when a proposal is refused (U-29)",
+       "Keep drafts and scroll position per conversation (U-13)",
+       "Document these decisions in the README"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   },
+   "F-L": {
+    "readings": {
+     "D1": null,
+     "D2": null,
+     "D3": "second",
+     "D4": "second",
+     "D5": "second",
+     "D6": "second"
+    },
+    "gate": null,
+    "better": "L",
+    "verdicts": {
+     "a": {
+      "side": "L",
+      "strength": "much",
+      "one_task_closes": "no",
+      "why": "Z avoids nine of Y's defects, among them three medium ones in Y (a stuck reply, a hidden failed reply, a task stuck Running), and adds real storage recovery, damaged-data handling and documentation. Y's only edges are two low-severity UI defects and a visible marker for the instruction in use. The gap spans reply, task and storage error paths and the away report, well beyond one short task.",
+      "lesser_lacks": [
+       "Mark or finish a reply whose result cannot be saved instead of leaving it pending (D-3)",
+       "Mark a task Interrupted or resume it when a step cannot be saved (D-12)",
+       "Keep a failed reply visible with Retry when a new message is sent, or refuse the new message (D-11)",
+       "Make Since you were away reflect the absence and clear once reviewed (D-13)",
+       "Refuse saving under an existing name (D-14)",
+       "Give a named, actionable startup error for damaged or unwritable data (D-9)",
+       "Refuse duplicate bot names (D-5)",
+       "Identify or refuse the target task when several are running for add step (D-8)",
+       "Restore focus after Save memory (D-10)",
+       "Add tests for DATA_DIR and cross-conversation memory; document the decisions in the README"
+      ]
+     }
+    },
+    "judges_agree": true,
+    "one_task_closes_both": false
+   }
+  },
+  "nearly_competitive": true,
+  "rechecked_items": [
+   "U-15",
+   "U-21",
+   "U-39",
+   "U-44",
+   "U-46",
+   "U-50",
+   "U-54",
+   "U-57",
+   "U-60"
+  ],
+  "inventory": {
+   "stated": 108,
+   "proved": [
+    "S-5",
+    "S-31",
+    "S-33",
+    "S-67",
+    "S-72",
+    "S-88"
+   ],
+   "unstated_rated": 61,
+   "independent": 46,
+   "independent_kept": 39,
+   "arm_only": 15,
+   "arm_only_kept": 6
+  }
+ }
+}

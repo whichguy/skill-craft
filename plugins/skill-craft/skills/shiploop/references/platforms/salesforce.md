@@ -106,16 +106,21 @@ classes to fill an inventory. Reopen that exclusion when its basis changes.
 and the [deployment command's test-level contract](https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_deploy_start.html)
 are starting points; verify the rules for the operation actually selected.
 
-ShipLoop judges a focused Apex test from the runner's own pass or fail mark on
-the line that names it, so record the command with a reporter it can read:
-`sf apex run test --target-org <alias> --class-names <TestClass> --synchronous
---result-format tap` prints an `ok` or `not ok` line per test, while the default
-table and `--result-format human` put the outcome word after the test name,
-which ShipLoop does not read, so a focused command that uses them is refused as
-unread. An Apex test runs the code already in the org, which holds the item's
-change, so it is a remote test (Remote tests below): the test stage's base run
-does not run it, and the mutation check (it changes a local copy the org never
-sees) records why it skipped it. The candidate run carries the proof.
+ShipLoop reads a focused Apex test's outcome from the runner's own pass or fail
+mark on the line that names it, so record the command with a reporter it can
+read: `sf apex run test --target-org <alias> --class-names <TestClass> --synchronous
+--result-format tap` prints an `ok` or `not ok` line per test, which ShipLoop
+reads and counts, so a `not ok` test fails the command even when it exits 0.
+The default table and `--result-format human` put the outcome word after the
+test name, which ShipLoop does not read. ShipLoop still accepts a focused
+command that uses them when it exits 0 and its output names every listed test
+ID: only the exit code then catches a failed test (a wrapper or pipe that hides
+the exit code lets the failure pass), and no test count is read, so its
+`min_tests` is not checked. An Apex test runs the code already in the org,
+which holds the item's change, so it is a remote test (Remote tests below): the
+test stage's base run does not run it, and the mutation check (it changes a
+local copy the org never sees) records why it skipped it. The candidate run
+carries the proof.
 
 For a Lightning consumer, distinguish the org/instance identity from the
 feature's authenticated entry: an app, custom tab, component or other supported

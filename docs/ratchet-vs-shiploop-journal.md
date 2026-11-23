@@ -5,27 +5,50 @@ Apparatus: `docs/experiments/ratchet-vs-shiploop-20261121/`. Earlier work this b
 
 ## 0. Where it stands
 
-**As of 2026-11-22 10:20, after three rounds** (the first script measures on eight clean runs, sections 3 to 7; a
-deeper judge that runs every product and checks it item by item, sections 10 to 12; one look and one fix on
-ShipLoop's deliveries, first as repairs and then from clean runs, sections 11 and 13 to 15):
+**As of 2026-11-22 16:24, concluded for now at the owner's word** ("think critically about what would actually
+materially change a decision, and only wait for that part, and then conclude"). Six rounds: script measures on
+eight clean runs (sections 3 to 7); a deeper judge that runs every product item by item (10 to 12); one look and
+one fix on ShipLoop's deliveries, as repairs and then from clean runs (11, 13 to 15); both tools run fresh from one
+commit (16, 17); a look built into ShipLoop, two versions tried (18 to 20); the close (21).
 
-- **Nothing a request states was left unbuilt by either tool**, on any of 12 products last night and 12 audited
-  today.
-- **ShipLoop alone delivers in 15% to 31% of Ratchet's time and tells the customer less.** On two runs and two
-  ShipLoop versions (2.4.1, 2.6.0) it shipped no user page on the new service and no release record on the ticket
-  change. On three small cases that is the whole difference from Ratchet's final.
-- **On the large stateful case (Grokbot) Ratchet builds the better feature**, already at its first build, which
-  costs what ShipLoop's delivery costs: medium defects 6 against 2 against 1 (ShipLoop, Ratchet's first build,
-  Ratchet's final) last night, 8 against 3 on today's fresh ShipLoop run and re-audit.
-- **From clean runs, ShipLoop followed by one look (the builder's model, 2 to 8 minutes) and one fix (Opus at
-  xhigh) is level with Ratchet's final on shared expenses and tickets and ahead on chess, at 28% to 44% of Ratchet's
-  time.** On Grokbot the same sequence takes 38% of the time and closes about half the gap: Ratchet's final is still
-  the better feature there (medium defects 5 against 3, unsaid points handled 34 against 38 of 39).
-- **Limits that matter:** Ratchet's side is one run a case; the fixer is a stronger model than either builder; one
-  audit a product, and a look and an audit each find things the other does not, so every defect count is a floor.
+**The owner's question, which produces the better result:**
 
-The first round's registered result stands as recorded in section 7 ("no difference in results shown; ShipLoop
-costs 15% to 31% of Ratchet's time"); sections 12 and 15 say where that verdict was too coarse.
+- **Nothing a request states was left unbuilt by either tool**, in any audit of any round.
+- **ShipLoop alone delivers in 15% to 34% of Ratchet's time and is behind on what it tells the
+  customer**, on every round and both ShipLoop versions (told 0, 0, 10 and 1 to 2 unsaid points against Ratchet's
+  12, 1, 17 and 15 to 16 on expenses, chess, tickets and Grokbot, both tools fresh). On the three small cases that
+  is nearly the whole difference. On Grokbot it is also behind on behaviour (medium defects 6 against 3), mostly
+  in how failures are handled.
+- **ShipLoop followed by one look and one fix by a strong fixer (Opus at xhigh) is level with Ratchet, ahead,
+  level on the small cases at 36% to 43% of Ratchet's minutes, and on Grokbot level by the counts with a small
+  preference for Ratchet's by the blind judge, at 48%.** Both tools fresh, section 17.
+- **Ratchet's lead on Grokbot does not come from its closing looks**: a fresh Ratchet run that stopped before any
+  closing look read the same as one that ran three (17.3, 17.6). It comes from its specification, the build from
+  it and its heavy test pass. Ratchet's risks seen today: a run stuck on a clause the machine could not satisfy,
+  and a full run whose product fails a held-out check.
+
+**What a look built into ShipLoop is worth (sections 18 to 20):**
+
+- The session that built the product, asked to look at it, records that it works (two runs where the instruction
+  reached it; in two more it never saw the instruction).
+- A fresh worker started by that session does find real things. But the fix is then made by the building session
+  at medium effort, which does the least each finding needs: audited on chess and tickets, the candidate's
+  delivery was ahead of unchanged ShipLoop on nothing, at 1.4 and 2.0 times its minutes. **The gain of "look and
+  fix" was mostly the strong fixer and the document it wrote, not the look.**
+- On Codex the building session often reads only a slice of each stage's instructions, so a change to the long
+  duty text may never reach it; the result template and the refusal messages do.
+
+**Recommended next, not built:** aim at the steady gap directly. ShipLoop already lists the choices it made for the
+requester in its run report; have its existing `document` stage write them, and how to run and use the product,
+into a user document in the product. No worker, no extra stage. The look candidate (three versions on branch
+`shiploop-look-f586c6`) stays off `main` and is not proposed.
+
+**Limits that matter:** one or two runs of each tool a case; one Opus judge after the first round; two audits of
+one product differ by up to two medium defects on Grokbot and once by three "told" items, so small margins there
+are noise (17.2); the strong-fixer reading is mine, from two runs.
+
+The first round's registered result stands as recorded in section 7; sections 12, 15, 17 and 20 say where each
+later round sharpened it.
 
 ## 1. The question, in the owner's words (2026-11-21, late evening)
 
@@ -1073,3 +1096,616 @@ builder was not tested (the owner chose Opus at xhigh for fixes); nor was a seco
 **Not shown.** Ratchet rerun from scratch (the owner's option 2, deferred: "let's focus on 1 first"). The same
 sequence with the builder's own model as fixer. Whether the look belongs inside ShipLoop as a stage: that is a
 ShipLoop product decision for the owner, with section 11's design and these results as the evidence.
+
+## 16. Fresh Ratchet runs, and the look as a ShipLoop candidate: registered before either starts (2026-11-22 10:44)
+
+The owner, on section 15's three open decisions: "Do 3 then 2 then 1, plan out all and execute, use agents as needed
+for parallel". 3 was the merge and push of this study to `main` (done 10:41, merge commit
+`472919dfcc81ec1933293f836d4c7ee8d54286d4`; the boundary check and the quick tier's 14 suites passed on it). 2 is
+"one look after the build, then a fix" drafted as a ShipLoop candidate. 1 is the fresh Ratchet runs, the half of
+the owner's earlier "2" (fresh runs of both tools) that section 14 left out. The Ratchet runs take about three
+hours, so they start first and the candidate is drafted beside them.
+
+### 16.1 Fresh Ratchet runs (the owner's step 1)
+
+**Question.** Section 15 set a fresh ShipLoop 2.6.0 delivery, with and without the look and the fix, beside
+*last night's* Ratchet final. Does its result hold when Ratchet's side is also a fresh run, of the same day, from
+the same commit and the same starting files?
+
+**What runs.**
+
+1. **A fresh Ratchet run of each of the four cases**, from scratch in a new repository, through `launch.py run ROOT
+   ratchet CASE LABEL` (the pilot's `ratchet.py --enrich reworded`, Codex, Sol 6.2 medium, the three-cycle limit),
+   in a new runs root, from a new checkout of commit `22e52c0807ca41aa0224dd81f03b84e9bba44e82`, **the same commit
+   this morning's ShipLoop runs came from**. Checked by `git diff` between last night's base
+   (`d522655ae4f6a8af0b289d346aa08cf44d2e9fbe`) and that commit: `ratchet.py`, `one_session.py`, the pilot's
+   `cases.json` and `grade.py` are unchanged; the one difference in starting files is the ticket fixture
+   (its tests listen on 127.0.0.1), which this morning's ShipLoop ticket run already started from. So on tickets
+   the fresh Ratchet run starts from the same files as the fresh ShipLoop run, which last night's did not. The four
+   runs start together, as last night's did.
+2. **Script measures** of each run's first build and final (`measure.py`: time, tokens, held-out checks).
+3. **The deep judge on three products a case, all audited afresh in one round** (the rule of section 14): the
+   fresh ShipLoop delivery after the look and the fix (S'), the fresh ShipLoop delivery (N), both exactly the
+   products of section 15, and the **fresh Ratchet final (L2)**. Section 12's inventories are used unchanged. One
+   cross-probe a case, the single reader, the Opus judge alone. Ratchet's fresh first build is measured by script
+   and not audited (section 12 already read a first build; the question here is the final).
+
+**Readings.**
+
+- **F-1, S' against L2** and **F-2, N against L2**: the better feature and "nearly competitive", by section 10's
+  rules with one judge. These repeat C-2 and C-1 with a fresh Ratchet side.
+- **F-3, cost**: section 15's ShipLoop minutes (run, look, fix) beside the fresh Ratchet minutes.
+- **F-4, how much one Ratchet run differs from another** (reported, no rule): L2's readings beside last night's
+  final (L, as audited in section 15), per case; the time and the cycle count of each.
+- **F-5, how much one audit differs from another on the same product** (reported, no rule): S' and N are the same
+  trees section 15 audited, read here by new sessions. For each of D1 to D5, the difference between the two
+  audits of the same product, set beside the margin the reading needs (2 items). A reading whose two audits of
+  one product differ by its own margin cannot carry a verdict on that case, and I will say so where it happens.
+
+**Predictions.**
+
+- Every fresh Ratchet final passes every held-out check (as all of last night's did).
+- F-1: on the three small cases S' is level with or ahead of L2 on at least two; on Grokbot L2 is the better
+  feature again.
+- F-2: N is behind L2 on what the customer is told (D4) on at least three of four cases.
+- F-3: Ratchet's fresh minutes within 30% of last night's on at least three of four cases.
+- F-5: the two audits of one product agree within one item on D1, D3 and D5 on the small cases; on Grokbot's 153
+  items I expect D5 (defects found) to differ by two or more on at least one product, because section 13 already
+  showed that two readers of one product find different defects.
+
+**Limits known now.** One fresh run of each tool a case: two deliveries of Ratchet and two of ShipLoop a case in
+all, still far too few for a rate. The ShipLoop side is not rerun for this section. The fixer is Opus at xhigh,
+stronger than either builder. ShipLoop is 2.6.0 against section 7's 2.4.1.
+
+### 16.2 The look as a ShipLoop candidate (the owner's step 2)
+
+**What is drafted.** A candidate change to ShipLoop that adds the sequence section 15 measured: after the build
+and its tests, the session uses the running product as its users and operators would, writes down the shortfalls
+it saw happen and the choices the customer was not told, fixes the shortfalls the request's intent covers (each
+with a test) and tells the choices in the delivered documents. It is built on a branch with tests and a change
+note, reviewed by Sol 6.2 at max, tried on real runs of this comparison's cases, and **stays off `main` until the
+owner accepts it** (AGENTS.md: a ShipLoop product behaviour trade-off is the owner's decision).
+
+**What is already known that the design must respect** (read before designing):
+
+- Section 15: one look and one fix bring a fresh ShipLoop delivery level with or ahead of Ratchet's final on the
+  three small cases; on Grokbot they halve the gap. There the look ran as a **separate session that had not built
+  the product** (Sol medium), and the fix was done by **a stronger model** (Opus xhigh). Inside ShipLoop both
+  would be the building session itself, after its context has cleared: neither condition carries over for free,
+  and the trial has to measure what is left of the gain.
+- Section 13: everything a look writes reproduces, but on the small cases under half of it is something a customer
+  would call a shortfall (2 of 5, 1 of 2, 1 of 5; 15 of 15 on Grokbot). A fix that builds every line of a look
+  would add work nobody asked for on small cases.
+- The Ratchet pilot's journal (`docs/ratchet-pilot-journal.md`, sections 13 and 14, finding on the closing looks):
+  of what Ratchet's closing looks **added to the specification**, two outside judges accepted 10 of 59, and no run
+  converged within three cycles because each look kept adding. So the candidate is **one look, not a loop**, it
+  reports what it saw happen, not new requirements, and it adds no cycle limit of its own (no limit on a ShipLoop
+  loop is added or changed without the owner).
+- The released `defaults` list (ShipLoop 2.6.0) already tells the requester the choices made at specification
+  time; section 15's fresh deliveries still told 0 to 13 of 16 to 39 unsaid points in the documents delivered
+  with the product. The look's second list is about choices the *running product* shows, told in the *product's*
+  documents.
+
+**The trial, registered now.** The candidate is run from its branch (`run.py --source checkout`) on the four
+cases, Codex Sol 6.2 medium. Read by script: the run ends delivered; the held-out checks; the minutes the new
+step adds (the harness's per-stage timings); whether the look's file exists and names at least one tried step.
+Read by the deep judge, as a fourth product beside 16.1's three where time allows: D3 to D5 against N (the same
+ShipLoop without the step). The candidate is worth proposing to the owner if, on at least three of four cases, it
+is not behind N on any of D1 to D5 and ahead on at least one, at under 1.5 times N's minutes; otherwise it is
+reported as tried and not proposed. This is one run a case and reads as a first look, not a rate.
+
+### 16.3 The candidate's design, its outside review, and two amendments made before any candidate run (2026-11-22 11:01)
+
+**Where the look attaches, and the evidence for it.** A read-only map of ShipLoop's stage machinery (an Explore
+agent, 85 tool calls) and the per-stage timings of this morning's four fresh ShipLoop runs
+(`~/e2e-runs/d20261122-b54ea4/*/metrics.json`) settle it:
+
+- No stage asks the session to start the assembled product and use it. `document` runs one step's changed
+  behaviour, the Improve reviews trace entry points in code, `system-test` runs the planned commands,
+  `release-verify` runs the consumer checks.
+- The stage whose goal is "assess the product against the request", `product-acceptance`, took **5, 6, 6 and 46
+  seconds** in the four fresh runs (expenses, chess, tickets, Grokbot). It closes from evidence already recorded.
+- Those runs have no Improve review at all (the harness's default), so a design that extends the end-of-work
+  review would not run in the trial; and a new stage would break the 23-stage count that some twenty suites pin.
+  **Superseded 2026-11-22 13:33: the first clause is wrong.** The runs do have Improve reviews: eight or nine a
+  run, one pass each, 4 to 34 seconds, 0 lines changed in all four. I read `metrics.json`'s per-stage rows, saw
+  no row named `improve`, and concluded there were none; a review's time is folded into the reviewed stage's row
+  and the reviews are counted apart (`improve_children`). Found by the read-only map of section 18. The choice
+  of attachment point stands on its other grounds (the five-second acceptance stage; no new stage), and the
+  corrected fact adds one: on the default route those reviews are passes by the same session, and they changed
+  nothing.
+
+So the candidate adds no stage. `product-acceptance` gets one duty (use the running product as its users and
+operators would, and record each thing done as a row of a new result field `look`: works, shortfall or untold
+choice), one script check with a routing rule (a `done` result is refused while a high or medium shortfall or an
+untold choice is listed; they go to **one** corrective work item through the existing `add-work`, so the inner loop
+supplies the failing-first test, the fix and the document edit), and an answer pass after that item (no new look;
+each routed row answered `closed` with a test file that changed since the look, or `told` with a line the script
+finds in a delivered document). **One look a run, and no limit added to any loop.** Full text:
+`docs/experiments/ratchet-vs-shiploop-20261121/shiploop-look/DESIGN.md` on the candidate's branch.
+
+**Outside review** (Sol 6.2 at max, 8 minutes; question and verbatim answer beside the design): "Change first."
+Seven changes. Taken: a test of the actual claim (below); discovery narrowed to what a person who uses or runs the
+product would notice, with the checklist conditional on the request and the product; routing and closure made
+executable (the corrective item must name every routed id; `closed` and `told` checked against the tree); the
+hand-off to a retry printed whole. **Not taken, on purpose, and recorded as the two options the trial can call
+for:** (1) a script-owned receipt that the look happened, which the review ranks first. No cheap script-run form
+exists for a page action, and the owner's standing rule is the plain rule first with the guard offered as the
+option; the trial instead reads, from the session's own command record, whether the product was started during the
+stage. (2) A direct edit of the delivered documents at acceptance when a look finds only untold choices; it would
+change the stage's read-only contract and the engine's commit route.
+
+**Amendment a, the cost bound.** 16.2 said "under 1.5 times N's minutes". I set that without checking section
+15's own numbers: the look-and-fix sequence this candidate reproduces cost 2.0, 1.5, 2.7 and 2.1 times N (20.3,
+16.4, 27.9, 61.7 minutes against 10.1, 10.7, 10.5, 28.7), so the bound would have rejected the result that
+motivates the candidate. The claim is "near Ratchet's result at well under Ratchet's cost": the bound is now **at
+most half of the fresh Ratchet run's minutes for the case**, with the ratio to N reported beside it.
+
+**Amendment b, the rule.** The review showed what 16.2's rule lets through: three small cases each gaining one
+reading while Grokbot, the one case with a measured behaviour gap, does not move, and no comparison with Ratchet
+at all. The rule is now, all four required:
+
+1. every candidate run ends delivered and passes every held-out check;
+2. against N, on at least three of four cases not behind on any of D1 to D5 and ahead on at least one, **Grokbot
+   among them, ahead on D4 or D5**;
+3. against the fresh Ratchet final, "nearly competitive" by section 10's rule on at least two of the three small
+   cases;
+4. at most half of the fresh Ratchet run's minutes for the case.
+
+A reading on its margin (one item either side of a two-item margin, or 45 to 55% of Ratchet's minutes) is not
+decided by one run: that case is run once more first. The candidate's delivery is audited in one round with N and
+the fresh Ratchet final (the candidate takes S's place in a layout like `CASE-fresh`), so both comparisons are read
+from the same audits. S' (a separate observer, a stronger fixer) is a different intervention and is read beside
+the candidate, not as its target.
+
+Both amendments are made before the candidate exists as code: an Opus worker at xhigh began building it at 11:00
+on its own branch, off `main`.
+
+### 16.4 The fresh Ratchet runs ended; Grokbot's stopped as stuck, and a second Grokbot run is registered (12:15, before any Grokbot audit has answered)
+
+The four runs of 16.1 (runs root `~/e2e-runs/d20261122-ac4afc/`, started together at 10:44:05), by `measure.py`:
+
+| Case | Minutes (last night) | Stop | First build, minutes | Held-out checks, first build / final | Output tokens |
+|---|---|---|---|---|---|
+| shared expenses | 47.4 (46.4) | cycle limit, 3 cycles | 9.4 | 6 of 6 / 6 of 6 | 113,490 |
+| chess | 45.5 (37.2) | cycle limit, 3 cycles | 10.1 | 10 of 10 / 10 of 10 | 108,955 |
+| ticket assignment | 72.1 (100.4) | cycle limit, 3 cycles | 11.6 | 18 of 18 / 18 of 18 | 146,279 |
+| Grokbot | 85.1 (162.3) | **stuck in cycle 1** | 21.6 | 49 of 49 and 28 of 28 / the same | 122,201 |
+
+**Grokbot's fresh run is not a full Ratchet run, and why.** Its specification wrote clause C-2, "The application
+works on the declared Node.js runtime: start the app on Node.js 22, the minimum supported version declared by the
+project" (source: the starting files' `package.json`). Its acceptance test for that clause asks for a Node.js 22
+executable; this machine has Node.js 26 only, so the test fails with "Node.js 22 is unavailable. Set
+ACCEPTANCE_NODE22 to an installed Node.js 22 executable." The first gate failed on C-2 and C-18; the first fix
+closed C-18; three fix sessions could not make a missing runtime appear, and the loop stopped as `stuck` with its
+own gate failing on that one clause (110 of 111 pass). **No closing look ever ran** (sessions: spec, plan, build,
+tests, fix, fix, fix), so this product is a first build with the heavy test pass and three fixes, not the
+three-cycle product of last night. It still passes every held-out check.
+
+What this is: a real outcome of the tool, and a failure mode of its own. A clause the environment cannot satisfy
+has no way out of Ratchet's gate (ShipLoop has one: an outcome it cannot observe here is listed as `unverified`
+with an owner and a due stage, and the run goes on). The clause itself is an artificial mandate in the sense of
+the owner's rule of 2026-11-18: nothing in the request asks for a version floor to be proven, and last night's
+run of the same request wrote no such test.
+
+**Decision (routine: launching a verification run).** The stuck product is audited and judged as registered in
+16.1; it is the fresh run. But it cannot answer 16.1's question for Grokbot, whether section 15's "still behind"
+holds against a fresh *full* Ratchet run. So one more fresh Grokbot Ratchet run is started now, same commit, same
+settings, in a new runs root, with nothing changed and no Node.js 22 supplied (supplying it would be tuning the
+environment to one run's specification). If it completes its cycles, its final is audited in the same way
+(three shares, cross-probe with the two ShipLoop products, the single reader, the Opus judge) and reported as
+Grokbot's second fresh Ratchet run, beside the stuck one. If it sticks again, that is reported and no third run is
+started. **Prediction:** it does not write the Node.js 22 clause as a tested clause and runs three cycles (of this study's two Ratchet runs of
+Grokbot, last night's ran three cycles and today's stuck; I have not counted the pilot's).
+
+Noted for the tickets audits: the auditors' `base/` folder is last night's copy of the starting files; today's
+builders started from the fixture as changed on `main` yesterday (its tests listen on 127.0.0.1). One auditor read
+that difference in `test/helpers.js` as the builder's edit and graded the item `yes` anyway; the cross-probe was
+told the difference is not a builder's change.
+
+## 17. Both tools fresh: results of section 16.1 (2026-11-22, audits 11:30 to 13:00; written 13:00; Grokbot's second Ratchet run is added below when it ends)
+
+Status: firm for what was run (one fresh run of each tool a case); Grokbot's Ratchet side is a run that stopped as
+stuck (16.4), so Grokbot's row is interim until the second run is judged.
+
+Three products a case, all audited in this round by new sessions (41 Opus sessions in all: 9 audits for the three
+small cases, 9 shares for Grokbot, 4 cross-probes, 4 readers, 4 judges; the inventories are section 12's,
+unchanged): **S'** this morning's fresh ShipLoop 2.6.0 delivery after one look (Sol medium) and one fix (Opus
+xhigh); **N** that fresh delivery itself; **L2** the fresh Ratchet run's final. Evidence:
+`evidence/deep/CASE-fresh/`, `evidence/deep/deep.json` and `deep.md`, `evidence/fresh/` (the Ratchet runs' measure
+and launch records).
+
+### 17.1 The readings (S' / N / L2)
+
+| | shared expenses | chess | ticket assignment | Grokbot (L2 = the stuck run) |
+|---|---|---|---|---|
+| D1 stated items built | 35 / 35 / 35 of 35 | 40 / 40 / 40 of 40 | 21 / 21 / 21 of 21 | 108 / 108 / 108 of 108 |
+| D2 tests proved by breaking the behaviour | 5 / 5 / 6 of 6 | 6 / 5 / 5 of 6 | 6 / 6 / 6 of 6 | 3 / 3 / 4 of 6 |
+| D3 unsaid points handled | 16 / 16 / 16 of 16 | 6 / 5 / 6 of 6 | 18 / 17 / 19 of 19 | 34 / 31 / 37 of 39 |
+| D4 unsaid points told in the delivered documents | 13 / 0 / 12 of 16 | 4 / 0 / 1 of 6 | 17 / 10 / 17 of 19 | 20 / 2 / 16 of 39 |
+| D5 reproducing medium defects (none high anywhere); low | 0 / 0 / 0; 2 / 2 / 2 | 0 / 1 / 0; 0 / 1 / 0 | 0 / 0 / 0; 2 / 3 / 1 | 4 / 6 / 3; 5 / 8 / 2 |
+| The Opus judge, S' against L2 | S' somewhat | S' somewhat | same | L2 somewhat; a short task does not close it |
+| **F-1, S' against L2, by the rule** | no difference shown | **S' better** (D4, D6) | no difference shown | no difference shown (D4 to S', D6 to L2) |
+| **F-2, N against L2, by the rule** | L2 better (D4, D6) | no difference shown (judge: L2 somewhat) | L2 better (D3, D4, D6) | L2 better (D3, D4, D5, D6; judge: much) |
+| S' "nearly competitive" with L2 | yes | yes | yes | yes by the rule; the judge says a short task does not close it |
+| **F-3, minutes: S' (run + look + fix) / N / L2** | 20.3 / 10.1 / 47.4 | 16.4 / 10.7 / 45.5 | 27.9 / 10.5 / 72.1 | 61.7 / 28.7 / 85.1 (stuck) |
+| S' as a share of L2's minutes | 43% | 36% | 39% | 73% of a run that stopped early |
+
+### 17.2 What repeats
+
+- **The three small cases repeat section 15 exactly**: level, S' ahead, level, with Ratchet's side now a run of the
+  same day from the same commit and starting files. Unchanged ShipLoop is behind Ratchet on two of them and level
+  on the third, again as in section 15, and for the same reason: it tells the customer little (0, 0 and 10 unsaid
+  points told against 12, 1 and 17).
+- **F-5, two audits of one product.** S' and N are the trees section 15 audited; different sessions read them
+  here. Small cases: D1 and D2 identical on all six products; D3 within one item; D5's medium count identical;
+  D4 within one item on five, and **three items apart on tickets' N (13, then 10)**, more than the two-item margin.
+  Grokbot: S' 34 and 34 handled, told 17 then 20, medium defects 5 then 4; N 31 and 31 handled, told 2 and 2,
+  medium defects **8 then 6**. Every verdict by the rule on the small cases is the same in both rounds. So: the
+  rule's verdicts on the small cases are stable under a second audit; a two-defect difference on Grokbot is within
+  what two audits of one product differ by, and section 15's "5 against 3" there could not carry a verdict alone
+  (it did not have to: the judge agreed).
+- **F-4, one Ratchet run against another.** L2 beside last night's final as audited in section 15: expenses told
+  12 against 15, tests proved 6 and 6; chess tests proved 5 against 4, told 1 and 1; tickets handled 19 and 19,
+  told 17 against 18; minutes 47.4, 45.5, 72.1 against 46.4, 37.2, 100.4. Close on every reading.
+
+### 17.3 Grokbot: what the stuck run shows
+
+The fresh Ratchet run never reached a closing look (16.4), and its product reads almost as last night's
+three-cycle final did: handled 37 of 39 (38 last night), told 16 (18), medium defects 3 (3), tests proved 4 of 6
+(4). Section 12 had already read last night's *first build* at 35 handled, 14 told, 2 medium defects. Three
+readings of Ratchet's Grokbot product before or without closing looks, all close to its three-cycle final: **on
+Grokbot, what puts Ratchet ahead of ShipLoop is in its specification, its build from that specification and its
+heavy test pass, not in its closing looks.** The looks and extra cycles are what cost the second half of last
+night's 162 minutes.
+
+Against that product, ShipLoop with one look and one fix: ahead on told (20 against 16), one more medium defect (4
+against 3, inside audit noise), three fewer unsaid points handled (34 against 37, 8 points of share, under the
+ten the rule asks), and the judge prefers Ratchet's ("somewhat"; X leaves a reply pending for ever when it cannot be
+saved, which blocks the conversation). By the registered rule that is "no difference shown"; I would not call it
+level. The honest reading: **the gap is smaller than section 15 put it, and it is in failure handling**
+(D-2, D-4, D-6, D-7, D-8 of this round's fifteen probed defects are present on both ShipLoop products and absent on
+Ratchet's), which one look and one fix reduced (ten defects Ratchet's lacks on N, five on S') and did not close.
+
+### 17.4 Predictions of 16.1, scored as registered
+
+| Prediction | Result |
+|---|---|
+| Every fresh Ratchet final passes every held-out check | holds, 4 of 4 (6, 10, 18, 49 and 28) |
+| F-1: on the small cases S' level with or ahead of L2 on at least two | holds, 3 of 3 |
+| F-1: on Grokbot L2 is the better feature again | **fails by the rule** on the stuck run (no difference shown); the judge prefers L2; the second run decides |
+| F-2: N behind L2 on D4 on at least three of four | holds: expenses, tickets, Grokbot (chess 0 against 1) |
+| F-3: Ratchet's fresh minutes within 30% of last night's on at least three of four | holds: +2%, +22%, -28%; Grokbot -48% (stuck) |
+| F-5: two audits agree within one item on D1, D3 and D5 on the small cases | holds |
+| F-5: on Grokbot D5 differs by two or more on at least one product | holds (N: 8, then 6) |
+
+### 17.5 Not shown
+
+One fresh run of each tool a case; two deliveries of each a case in the whole study. The fixer of S' is Opus at
+xhigh, stronger than either builder, and the look was done by a session that had not built the product (the
+candidate of 16.2 tests both inside ShipLoop). D4 on one product moved by three items between two readers once.
+The Grokbot comparison with a full fresh Ratchet run waits on the second run.
+
+### 17.6 Grokbot against a full fresh Ratchet run (the second run of 16.4; added 15:13)
+
+The second fresh Ratchet run of Grokbot (runs root `~/e2e-runs/d20261122-6e5bd5/`, started 12:17, nothing changed)
+ran all three cycles: 129.5 minutes (162.3 last night), its own gate passing at every point, 116 clauses, first
+build at 24.0 minutes. Its specification states the Node.js floor as a plain start-up clause ("with Node.js 22 or
+later, `node server.js` starts the app") and wrote no test that demands a Node.js 22 program, so it did not stick;
+the prediction of 16.4 holds. **It fails one held-out check of 49** ("confirming applies the change"), at its first
+build and at its final alike, and passes the other set, 28 of 28: the first Ratchet product of this study to fail
+a held-out check.
+
+Audited as 16.4 registered: its final in three shares by new sessions; the two ShipLoop products keep their
+audits of 17.1 (made two hours earlier; the joined files are byte-identical); a new cross-probe over all three
+(29 reported defects merged to 17, 9 disagreed items), a new single reader, the Opus judge. Layout under
+`~/e2e-runs/d20261122-360a9f-second/deep/grokbot-fresh/`.
+
+| Grokbot | S' (ShipLoop, look, fix) | N (ShipLoop) | Ratchet, full fresh run | for comparison: the stuck run (17.1) |
+|---|---|---|---|---|
+| D1 stated items built | 108 of 108 | 108 of 108 | 108 of 108 | 108 of 108 |
+| D2 tests proved | 3 of 6 | 3 of 6 | 4 of 6 | 4 of 6 |
+| D3 unsaid points handled | 34 of 39 | 31 of 39 | 36 of 39 | 37 of 39 |
+| D4 told in the delivered documents | 18 of 39 | 1 of 39 | 15 of 39 | 16 of 39 |
+| D5 medium defects; low | 4; 5 | 6; 9 | 3; 5 | 3; 2 |
+| Held-out checks | 49 and 28, all | 49 and 28, all | **48 of 49**, 28 of 28 | 49 and 28, all |
+| Minutes | 61.7 | 28.7 | 129.5 | 85.1 |
+
+- **S' against the full Ratchet run, by the rule: no difference shown** (only D6 goes to Ratchet). The judge:
+  Ratchet's "somewhat" better, and **one short task closes it** (against the stuck run it said a short task does
+  not). What it names: ShipLoop's reply that stays pending after a storage failure (one medium defect), four low
+  ones, and two seeded breaks Ratchet's tests catch and ShipLoop's do not; against that, ShipLoop's logs server
+  errors for the operator and says which fields a refusal covers. S' took 48% of this Ratchet run's minutes.
+- **N against it: Ratchet better** on handled, told, defects and the judge ("much").
+- **The two Ratchet runs agree with each other** within one or two items on every reading, though one had three
+  closing looks and the other none. 17.3's reading stands on a second run: on Grokbot the closing looks and extra
+  cycles are not what separates Ratchet's product from ShipLoop's.
+- The held-out failure is a Ratchet failure the audits did not surface as a defect of that name; the audits and
+  the held-out checks look at different things, as section 13 found for looks and audits.
+
+**So, both tools fresh, all four cases** (the answer to 16.1's question): the three small cases are level, ahead,
+level for ShipLoop with one look and one fix, at 36 to 43% of Ratchet's minutes; on Grokbot the registered rule
+shows no difference against either Ratchet run, the blind judge prefers Ratchet's product both times ("somewhat"),
+and ShipLoop's cost is 48% of the full run's. Section 15's "still behind on Grokbot" becomes "behind by a little,
+in failure handling, by the judge and not by the counts". Unchanged ShipLoop is behind Ratchet on three of four
+cases and level on the fourth.
+
+## 18. The look inside ShipLoop, version one: the trial (2026-11-22 13:04 to 13:29), and version two registered (13:33)
+
+Status: firm for version one on these four cases (one run a case). Version two: registered here, not yet built.
+
+### 18.1 Version one, as built
+
+Candidate commit `d5e259fb5a4c329c3f8a5579d97282bd9e70f371` on branch `shiploop-look-f586c6` (off `main`, not
+pushed): `product-acceptance` has the session start and use the product and record rows of a new field `look`;
+a script rule routes high and medium shortfalls and untold choices to one corrective item; design, review and the
+as-built departures in `docs/experiments/ratchet-vs-shiploop-20261121/shiploop-look/DESIGN.md` on that branch.
+Without a model: its own suite of 18 routes fails 18 of 18 on unchanged `main` and passes 18 of 18; the ShipLoop
+tier (135 suites) passed but for one fixture, fixed and rerun.
+
+### 18.2 The trial: four runs from that commit (Codex, Sol 6.2 medium, runs root `~/e2e-runs/d20261122-236b00/`)
+
+| Case | Minutes (unchanged ShipLoop this morning) | Held-out checks | `product-acceptance`, seconds (this morning) | The look recorded | Corrective item |
+|---|---|---|---|---|---|
+| shared expenses | 12.1 (10.1) | 6 of 6 | 24 (5) | 3 rows, all `works`: the request's examples; a wrong share total and a missing group; a stop and restart | none |
+| chess | 11.3 (10.7) | 10 of 10 | 23 (6) | 1 row, `works`: the request's examples through the library, with timings | none |
+| ticket assignment | 14.2 (10.5) | 18 of 18 | 17 (6) | 1 row, `works`: it cites the system-test script it had already run | none |
+| Grokbot | 24.8 (28.7) | 49 of 49 and 28 of 28 | 47 (46) | 4 rows, all `works`: sign-in and switch, an instruction and the composer keys, the order change through its preview, both widths and themes with a reconnect | none |
+
+- **Nothing was routed in four of four.** No shortfall of any size, no untold choice. So no corrective item ran
+  and each delivery is what unchanged ShipLoop delivers; the candidate cost 11 to 19 seconds a run.
+- **The builder did run things** (the rows carry measured timings, status codes, a restart), so this is not a
+  session inventing a look. It is a session checking what it built against what it meant to build.
+- **The same kind of delivery, looked at by a session that had not built it** (section 15, Sol medium, 2 to 8
+  minutes): 5, 2, 5 and 15 shortfalls, and untold choices of which 5, 1, 1 and 8 matched the judge's inventory; told
+  rose from 0 to 13 of 16 on expenses and from 2 to 17 of 39 on Grokbot after the fix.
+- No fresh worker was started in any run (0 `spawn_agent` events in the four event records), as designed: version
+  one asked the session itself.
+
+**By the registered rule (16.3):** prerequisite 1 holds (every run delivered, every held-out check passes).
+Condition 2 cannot hold: a delivery the candidate did not change cannot be ahead of unchanged ShipLoop because of
+the candidate. **Version one is not worth proposing.** The audits of these four deliveries are **not run**: with
+nothing routed they would measure one more ShipLoop delivery a case, which is run-to-run variation and not the
+candidate (the owner's rule of economy: say when there is enough to conclude early). This is a departure from
+16.3's text, which had the candidate's delivery audited; stated here before any such audit exists.
+
+**What was learned.** The risk named in the design before the build (DESIGN.md section 4, first risk) and by the
+outside review (its second failure mode: "the builder may confirm the same assumptions it built into the product")
+is what happened, four of four. It is the Ratchet program's finding again (`docs/ratchet-pilot-journal.md` section
+26: the requester's answer and a fresh reader move a build; wording does not). Where a second pair of eyes is
+wanted, asking the first pair to look again does not supply it, however the asking is worded.
+
+### 18.3 What ShipLoop has for a fresh reader (a read-only map of the candidate branch, 94 tool calls)
+
+- Two fresh-session routes ship in the skill, both under the opt-in run option `delegation: ask-agent`: inner
+  producer packets ask for "a native fresh worker with no inherited conversation", and Improve reviews go to
+  improve-agent. `product-acceptance` is an outer stage and has neither.
+- On the default `inline` route, which every run of this study used, nothing is fresh: the Improve reviews are
+  "self-passes by this same executor", and this morning's four runs show what that is worth on Sol at medium:
+  eight or nine reviews a run, one pass each, **0 lines changed**.
+- On Codex the session can start a fresh native worker (no forked turns); the harness sets the worker's model and
+  effort to the run's.
+- The harness's reviewer, judge and purpose check are fresh sessions, but they are the harness's; ShipLoop's CLI
+  launches no model, and its documents say so in five places.
+
+### 18.4 Version two, registered before it is built
+
+The same field, check, routing rule, answer pass and displays. What changes is who looks: on a pass with no
+recorded look, `product-acceptance` has **one fresh native worker** look (no inherited conversation, started through
+the host's own agent tool), giving it only the request, the product's folder and a look guide (a new reference
+file with the instructions of this morning's separate looks); the session copies the worker's rows into `look` as
+given. If the host has no worker the session can start, it looks itself by the same guide and says so: preferred,
+never required. The answer pass after the corrective item stays with the session, since a script checks its
+evidence. Full text: DESIGN.md section 7 on the candidate branch.
+
+**What it asks of the owner beyond version one:** a default run starts one worker at one stage where the host has
+one. Today an inline run starts none, and the skill's documents say duties inside existing stages add no required
+subagents. This one is preferred and not required, but it is a product trade-off to accept or refuse with the
+candidate.
+
+**Trial:** the four cases again from the new commit, same settings. By script: whether a worker was started
+during `product-acceptance`; rows by kind; whether a corrective item ran and every routed row ended `closed` or
+`told`; minutes added; held-out checks. A case whose look routes nothing is not audited and counts as "not ahead".
+Cases whose look routes something are audited and judged by 16.3's rule (the candidate's delivery, this morning's
+unchanged delivery, the fresh Ratchet final, one round).
+
+**Predictions:** a worker is started in at least three of four runs; where one is, its look routes at least one
+row; on at least two small cases told rises by two items or more over unchanged ShipLoop. **What would end this
+line:** the session does not start the worker, or the worker's looks are as empty as the builder's. Then the look
+belongs outside the building session altogether (a driver or harness step), a different product decision.
+
+## 19. Version two's trial so far, why one run did nothing, and a middle case at the owner's word (15:23)
+
+Status: interim (three of four version-two runs ended; two are being audited). The registrations in 19.3 and 19.4
+are made before the things they register exist.
+
+### 19.1 Version two, three runs (candidate commit `9ca27527082cd12665af3d2401acf183813adb87`, runs root `~/e2e-runs/d20261122-ccc2ff/`)
+
+| Case | Minutes (unchanged ShipLoop) | Held-out checks | Worker started | The look | What followed |
+|---|---|---|---|---|---|
+| shared expenses | 9.2 (10.1) | 6 of 6 | **no** | 1 row in 14 seconds: `node --test`, `works` | nothing |
+| chess | 15.4 (10.7) | 10 of 10 | yes | 136 seconds, 10 rows: 9 `works`, 1 untold (malformed positions are not reliably refused, and nothing delivered says so) | one corrective item (73 seconds of inner stages): a README stating the limit; the answer pass `told`, quote found by script |
+| ticket assignment | 20.9 (10.5) | 18 of 18 | yes | 160 seconds, 12 rows: 9 `works`, 2 medium shortfalls (contradictory repeated filter values answered as if one; the 64-character name limit counted in code units, so a 33-character name of supplementary characters is refused), 1 low (an agent named `-` looks unassigned in the listing) | one corrective item (136 seconds): both medium ones fixed with tests; the answer pass `closed` twice, the test file changed since the look |
+
+Where the worker looked, it found what this morning's separate looks and the auditors found: the malformed-input
+weakness on chess (section 17's medium defect of the unchanged delivery) and the `-` look-alike on tickets
+(section 17's D-3). The routing rule, the corrective item and the script-checked answers all worked as designed.
+
+### 19.2 Why the expenses run did nothing: the instruction never reached the session (firm for that run)
+
+Read from the Codex rollout, which holds what the model was given (not from the harness's event record): on Codex
+the session drives ShipLoop through a helper script it writes for itself; the helper submits a result and shows
+the model a slice of the next packet. In the expenses run the slice of the `product-acceptance` packet was 3,673 of
+19,315 characters: the header and callback, the goal line, the "Checked by" line, the result template's rows and
+the allowed outcomes. The duty text, the Look block and the references were not in it. Across everything that
+session was given, "Look before you assess", "have a fresh worker look", "Product look guide" and "no look is
+recorded" occur **0 times**. It filled the template's `look` row and the check accepted it. In the chess and
+tickets runs the same phrases occur 2 to 3 times each, and those sessions started the worker.
+
+Applied to version one's four runs (section 18): the look instruction reached the session in two (expenses and
+Grokbot: 1 occurrence each; their looks had 3 and 4 rows) and not in the other two (chess and tickets: 0; 1 row
+each). **So section 18's verdict, "the builder's own look finds nothing", rests on two runs, not four.** In the
+other two the builder was never told what a look was; it filled a template. The verdict's direction is unchanged
+(where told, it looked and found nothing), its base is half what I wrote.
+
+This is a known property of this host that I did not check before reading a trial (the SDLC study recorded it on
+2026-11-21: on Codex the model is given only part of what a command prints). The rule I take from it: before a
+trial of an instruction counts, count the instruction in what the model was given.
+
+**Version three, registered now:** the look's instruction is put where every session read it: the first-pass
+result template's placeholder for `did` names the fresh worker and the guide's path, and the refusal for a row
+left as the template says the same. No new refusal and no count is added (the check cannot know who looked).
+The released `defaults` list relies on the same channel. An Opus worker is building it on the candidate branch.
+Trial: expenses, chess and tickets again and the middle case of 19.4; a run counts only if the instruction is
+found in what the session was given. Prediction: with the template carrying it, the worker is started in all of
+them.
+
+### 19.3 Grokbot leaves the iteration loop (the owner, 15:22)
+
+The owner: "Is the Grokbot comparison just too expensive? Should we use something different to make it still more
+complex than some of the in-place cases, but basically not take so much time?" The costs I gave: a ShipLoop run
+25 to 29 minutes, a Ratchet run 85 to 162, a judging round about 45 minutes of wall clock and twelve Opus
+sessions (three shares a product), against 10 to 15, 45 to 72, about 15 and six for a small case. Recommendation
+accepted: iterate on the small cases; Grokbot once at the end as a confirmation. Version two's Grokbot run, already
+started, is read by script only (worker started, rows, held-out checks) and is not audited.
+
+### 19.4 `roundtable` as the middle case (the owner: "Yes, set up roundtable as the middle case")
+
+`roundtable` is an existing case of the E2E harness: a web application built from an empty repository, with a
+rendered interface, on a request of about 2,000 characters (Grokbot's is 6,700; the small cases' 1,100 to 1,700).
+It is chosen because Grokbot's differences were in a rendered interface and its failure handling, which the three
+small cases do not have, and because one auditor should be able to cover it in one pass.
+
+Set up, in this order: (a) the apparatus learns the case for both tools (the Ratchet loop gets the harness's
+request verbatim); (b) **the inventory is written before any product of the case exists**: two listers (Opus and
+Grok 4.7), a merge, both families rating each unsaid point, kept only when both rate it must or should, exactly
+section 10's procedure, with no arm's notes as a source; (c) one fresh run of unchanged ShipLoop 2.6.0 and one of
+Ratchet from commit `22e52c0807ca41aa0224dd81f03b84e9bba44e82` (the commit of every baseline run of sections 15 to
+17), and the candidate's run from its own commit; (d) one judging round on the three products.
+
+What it changes for comparability: nothing in sections 1 to 18 (no earlier number is recomputed). The four-case
+rule of 16.3 named Grokbot; for the candidate's next round the same four conditions are read with roundtable in
+Grokbot's place (ahead of unchanged ShipLoop on told or on defects there), and Grokbot is run once afterwards as
+the confirmation. Limits known now: the case has no held-out checks of this study's kind (what the harness has is
+recorded when the apparatus is built); it has no earlier run of either tool here, so nothing about it is known in
+advance; one run of each tool.
+
+## 20. Version two, audited on the two cases where its worker looked: no gain over unchanged ShipLoop (15:36)
+
+Status: firm for these two deliveries (one run a case); the reading of *why* in 20.2 is mine and is marked.
+
+One judging round a case, as 16.3 and 18.4 registered: the candidate's delivery (S), this morning's unchanged
+ShipLoop delivery (N) and the fresh Ratchet final (L2), all three audited by new sessions, one cross-probe, the
+single reader, the Opus judge. Layouts `deep/chess-cand` and `deep/tickets-cand`.
+
+### 20.1 The readings (candidate / unchanged ShipLoop / fresh Ratchet)
+
+| | chess | ticket assignment |
+|---|---|---|
+| D1 stated items built | 40 / 40 / 40 of 40 | 21 / 21 / 21 of 21 |
+| D2 tests proved | 5 / 5 / 5 of 6 | 6 / 6 / 6 of 6 |
+| D3 unsaid points handled | 5 / 5 / 6 of 6 | 18 / 18 / 19 of 19 |
+| D4 told in the delivered documents | 0 / 0 / 2 of 6 | 16 / 15 / 19 of 19 |
+| D5 medium defects; low | 3 / 3 / 0; 1 / 1 / 0 | 0 / 0 / 0; 4 / 3 / 0 |
+| The judge, candidate against unchanged ShipLoop | same | unchanged ShipLoop "somewhat" better |
+| **Candidate against unchanged ShipLoop, by the rule** | no difference shown | no difference shown |
+| Candidate against Ratchet, by the rule | Ratchet better (D4, D5, D6) | Ratchet better (D4, D6) |
+| Minutes, candidate / unchanged | 15.4 / 10.7 | 20.9 / 10.5 |
+
+**By 16.3's rule version two is not worth proposing:** on neither audited case is the candidate ahead of unchanged
+ShipLoop on any reading, at 1.4 and 2.0 times its minutes. (Expenses did nothing because its instruction did not
+arrive, 19.2; Grokbot's run is read by script only.)
+
+### 20.2 What happened in each, from the records
+
+- **Chess.** The worker found the real weakness (confident wrong answers on malformed positions: a side to move of
+  `x` reported as stalemate, a seven-rank position played as valid). It recorded it as an *untold choice*, not a
+  shortfall. The routing rule did its job; the corrective item added one README line, "Malformed-position behavior
+  is outside the API contract"; the answer pass was accepted on that quote. The behaviour did not change (the same
+  three medium defects as the unchanged delivery), and the independent reader did not count the line as telling
+  the customer what the product does. The script's `told` check holds that a quote is in a delivered file; it
+  cannot hold that the quote tells anything.
+- **Tickets.** The worker's two medium shortfalls were real observations, and the corrective item fixed both with
+  tests. One of them (contradictory repeated values of one filter) was fixed by changing how *every* repeated
+  filter behaves, including `status` and `priority`, which worked before and which nobody asked to change; the
+  audit records that as a defect of the candidate's delivery (D-1, low, not in the changelog), and it is why the
+  judge prefers the unchanged delivery. The third finding, the `-` look-alike, was `low`, so it was shown and not
+  routed, and it is still there.
+
+*My reading:* the fresh worker does see more than the builder (it found in two runs what the builder's own look
+found in none), so version two fixes what version one lacked. What it does not have is the other half of section
+15's result. There the fix was made by Opus at xhigh, which closed the behaviour and wrote a README of the
+product's choices that took "told" from 0 to 13 of 16 on expenses; here the fix is made by the session that built
+the product, Sol at medium, which did the least that satisfied each row. **Section 15's gain was mostly the
+stronger fixer and the document it wrote, not the look.** The looks themselves, this morning's and the worker's,
+list few untold choices (this morning's matched 5, 1, 1 and 8 of the inventory's; the worker's listed 1 and 0);
+the telling came from the fixer.
+
+### 20.3 What this changes
+
+- **Version three** (already in hand, 19.2) also takes two wording rules from the chess record: a wrong or
+  misleading answer is a shortfall, never an untold choice; and a `told` line must say what the product does, not
+  that the point is unsupported. Whether those are enough is what its round tests; I do not expect them to supply
+  the stronger fixer.
+- **A simpler candidate this result points to, not built:** the largest and steadiest gap between unchanged
+  ShipLoop and Ratchet across every round is what the delivered documents tell (0, 0, 10 to 15 and 1 to 2 against
+  12, 1 to 2, 17 to 19 and 15 to 18). Unchanged ShipLoop writes no user document on a new build, and its released
+  list of the choices it made (`defaults`, "Decided for you") goes to the run's report, not into the product. A
+  duty of the `document` stage to keep a user-facing document that states those choices would aim at that gap
+  directly, with no worker and no extra stage. It is recorded here as the next thing to try if version three's
+  round also shows no gain.
+
+## 21. The close (16:24): what was stopped, and why nothing pending would change a decision
+
+The owner, after asking for a time estimate (about 1 hour 45 minutes were left): "Do we really need to do all
+this, or have we actually already concluded pretty clearly what's going on?", and then: "think critically about
+what we really need to do and what would actually materially change a decision, and only wait for that part, and
+then conclude."
+
+| Still open at 16:20 | Would its result change a decision? | Done |
+|---|---|---|
+| Version three's trial (four runs, then judging) | No. Its best case is "ahead on chess, unknown elsewhere", which reads "maybe, more runs", not "adopt". What section 20 found missing is a stronger fixer, and version three does not add one. | Not run |
+| Roundtable's judging round | No. It would re-check a comparison that held in three rounds, on a new case. | Not run |
+| Grokbot's confirmation run for the candidate | No, for the same reason. | Not run |
+| The Ratchet run of roundtable (two thirds done) | No, but it is the Ratchet baseline for any later round on the middle case and costs nothing to let end. | Left to finish; measured by script when it ends |
+| Version three's code (its test tier at 117 of 135, all passing) | No, but uncommitted work in a worktree is lost work. | Committed on the candidate branch when the tier ends; no model run |
+
+**Recorded for whoever picks this up:**
+
+- **Version two on Grokbot, read by script only** (19.3): the instruction arrived, a worker was started, its look
+  took about five minutes and recorded 14 rows, one a medium shortfall (a failed reply loses its Retry when a new
+  message is sent, a defect section 17's auditors found on the unchanged delivery), one low, two untold choices;
+  one corrective item closed the medium one with a test and documented the two choices; 43.5 minutes (28.7
+  unchanged), every held-out check passes. Not audited.
+- **Roundtable is ready as the middle case** (19.4), in `~/e2e-runs/d20261122-cc457a/`: the apparatus runs it for
+  both tools; its inventory, written before any product of it existed, is 58 stated items and 31 unsaid points
+  that both Opus and Grok 4.7 rate as mattering (40 rated; the listers took 2 and 12 minutes, the raters under 1
+  and 6), audited in two shares a product; the unchanged ShipLoop 2.6.0 run took 19.3 minutes and passes the
+  harness's browser check and both case checks. No product of it has been audited.
+- **Version three** (branch `shiploop-look-f586c6`): the look's instruction is carried by the result template and
+  the refusal message; two guide rules from the chess record (a wrong or misleading answer is a shortfall, never
+  an untold choice; a `told` line must say what the product does). Built, its suites passing; never run with a
+  model.
+- **Costs of this study's instruments**, for planning a next round: a ShipLoop run 9 to 29 minutes, a Ratchet run
+  45 to 162; a judging round about 15 minutes and six Opus sessions for a small case, about 45 minutes and twelve
+  for Grokbot; a candidate build with its test tier about 80 to 120 minutes, of which the tier is 50.
+
+**What I would do differently:** check what the model was given before reading a trial of an instruction (19.2:
+the fault was on record the day before); register the cost bound against the right baseline the first time (16.3);
+ask "would this change a decision" before each round, not after the owner did.
+
+### 21.1 Addendum (16:55): the two roundtable baselines, by script only
+
+| roundtable (a web application from an empty repository; request 2,043 characters) | unchanged ShipLoop 2.6.0 | Ratchet |
+|---|---|---|
+| Minutes (first build) | 19.3 | 73.8 (10.5); three cycles, stopped at the cycle limit, its own gate passing |
+| The harness's held-out browser check (`conversation`) | **passes**, 1 of 1 | **fails**, 0 of 1, at its first build and at its final: 7 assertions ran, the one named `agent-identified` failed, and the check did not complete |
+| The case's two own checks (the product's tests; the page and the agent endpoint) | 2 of 2 | 2 of 2 |
+| Output tokens | 31,278 | 156,366 |
+
+Nothing of roundtable has been audited or judged, so this table says only what a script saw. The failed assertion
+is about how the page marks the demonstration agent; whether that is a defect a customer would name or the check's
+own expectation of a label has not been looked at. It is the third held-out failure or stuck run on Ratchet's side
+today (17.6, 16.4) and the first case here where unchanged ShipLoop passes a held-out check that Ratchet's product
+fails. One run of each tool. Evidence: `evidence/fresh/roundtable/` (both runs' measure and launch records, the
+inventory and its ratings).

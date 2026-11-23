@@ -6,6 +6,9 @@ calls no model. It lays out the folders and the instruction files the model sess
 joins their JSON answers, and computes the readings. Everything lives under ROOT/deep/.
 
     deep_judge.py prepare ROOT CASE            products under code names, the request, the starting files, prompts
+    deep_judge.py prepare-inventory ROOT CASE  before any run of a case that starts empty: the request, an empty base,
+                                               no arm points, the first prompts (roundtable; its products come with the
+                                               derived layouts, fresh or cand)
     deep_judge.py rate-packet ROOT CASE        after merged.json: the rating instructions, sources left out
     deep_judge.py inventory ROOT CASE          after both ratings: inventory.json, inventory.md, the audit prompts
     deep_judge.py calibrate ROOT [ROUND]       after the ticket inventory: the instrument check as a case of its own
@@ -15,10 +18,13 @@ joins their JSON answers, and computes the readings. Everything lives under ROOT
     deep_judge.py verdict-packet ROOT CASE     after told.json: one masked packet for each of the two judges
     deep_judge.py fixed ROOT CASE              CASE-fixed: the looked-at and fixed product beside the two it is compared with
     deep_judge.py clean ROOT FRESH CASE        CASE-clean: a fresh run's delivery, the same after look and fix, and Ratchet's final
+    deep_judge.py fresh ROOT FRESH RATCHET CASE  CASE-fresh: as CASE-clean, but L is the final of RATCHET/CASE-2 (after measure.py)
+    deep_judge.py cand ROOT FRESH RATCHET CAND CASE  CASE-cand: as CASE-fresh, but S is the delivery of CAND/CASE-1, a ShipLoop
+                                               candidate's run (after measure.py), and F is FRESH/delivered/CASE
     deep_judge.py grab IN.json OUT.json        the first JSON object in an `ask` answer's text
     deep_judge.py score ROOT OUT_DIR           D1 to D6, the gate, the pairs, deep.json and deep.md
 
-CASE is the short name: expenses, chess, tickets, grokbot (and calibration for the last four steps).
+CASE is the short name: expenses, chess, tickets, grokbot, roundtable (and calibration for the last four steps).
 """
 import json
 import random
@@ -30,14 +36,23 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PILOT = HERE.parent / "ratchet-pilot-20261120"
+PILOT_REL, E2E_REL = "docs/experiments/ratchet-pilot-20261120", "test/shiploop_e2e"
 CASES = {"expenses": "shared-expenses", "chess": "node-chess-engine", "tickets": "ticket-assignment",
-         "grokbot": "grokbot-local"}
+         "grokbot": "grokbot-local", "roundtable": "roundtable"}
+DERIVED = ("-fixed", "-clean", "-fresh", "-cand")
+# Cases with a page whose single-share audit and cross-probe prompts carry the browser note (PAGE). Grokbot's audits
+# carry it in their shares (SHARE); its probe prompts were written without it and are left as they were.
+BROWSER_NOTE_CASES = ("roundtable",)
 POINTS = (("S", "1", "final", "docs/shiploop/spec.md"), ("F", "2", "first-build", "ratchet/spec.md"),
           ("L", "2", "final", "ratchet/spec.md"))
 NAMES = {"S": "ShipLoop's delivery", "F": "Ratchet's first build", "L": "Ratchet's final"}
 FIXED_NAMES = {"S": "ShipLoop's delivery after one look and one fix", "F": "ShipLoop's delivery", "L": "Ratchet's final"}
 CLEAN_NAMES = {"S": "a fresh ShipLoop delivery after one look and one fix", "F": "the fresh ShipLoop delivery",
                "L": "Ratchet's final, audited again"}
+FRESH_NAMES = {"S": "a fresh ShipLoop delivery after one look and one fix", "F": "the fresh ShipLoop delivery",
+               "L": "a fresh Ratchet final"}
+CAND_NAMES = {"S": "a ShipLoop candidate's delivery (the look inside product-acceptance)", "F": "the fresh ShipLoop delivery",
+              "L": "a fresh Ratchet final"}
 CALIBRATION_NAMES = {"S": "the correct reference", "F": "the reference, padded", "L": "a stated requirement broken"}
 PAIRS = (("S", "L"), ("S", "F"), ("F", "L"))
 JUDGES = ("a", "b")
@@ -49,8 +64,9 @@ EXPLORE = 12  # probes of the auditor's own beyond the inventory, the same for e
 PLAYWRIGHT = "/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright"
 BROWSER = ("/Users/dadleet/Library/Caches/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-mac-arm64/"
            "chrome-headless-shell")
-SHARES = 3  # an inventory of more than SHARE_OVER items is audited in this many shares by separate sessions
-SHARE_OVER = 80
+# An inventory (stated items plus the unstated ones kept) is audited by separate sessions in shares by its size: one
+# share up to the first bound, two up to the second, three above it. Grokbot (153 items) takes three, roundtable (89) two.
+SHARE_BOUNDS = (80, 120)
 # The ticket case's calibrated defects (test/fixtures/quality/reference_ticket_assignment.py) that break a behaviour
 # the request states, and those that break one the request leaves unsaid but the new feature raises.
 STATED_DEFECTS = ("closed-assignable", "cli-no-assignee", "empty-filter-ignored", "filter-or", "listing-hides-assignee",
@@ -223,6 +239,23 @@ Write your audit to `{out}` as one JSON object and nothing else in the file:
 
 Every inventory item must appear once. When the file is written and every process you started is stopped, reply
 with three lines only: the tests' result, the count of stated items not `yes`, the count of defects.
+"""
+
+PAGE = """
+
+## The page
+
+Where a step needs the product's page in a browser, drive it for real with Playwright from a Node script:
+`const {{ chromium }} = require('{playwright}')` and `chromium.launch({{ executablePath: '{browser}' }})` (headless).
+Close every browser you open.
+"""
+
+# arm-points.md of a case whose inventory is written before any run (prepare-inventory): the merge finds nothing there.
+NO_ARM_POINTS = """# Points raised by people who built the product
+
+None. This case's inventory was written before any run of it existed, so no arm's own notes were used for it (no
+Ratchet `Open:` lines or clauses added after a build, no code reader's remarks): every item comes from the two
+readers of the request.
 """
 
 SHARE = """
@@ -429,7 +462,11 @@ def prepare(root: Path, case: str) -> None:
         write_first_prompts(case_dir)  # a case's products are laid out once; its first prompts may be rewritten
         print(f"{case}: already laid out; lister.md and merge.md rewritten")
         return
-    request = load(PILOT / "cases.json")[CASES[case]]["request"]
+    pilot = load(PILOT / "cases.json")
+    if CASES[case] not in pilot:
+        raise SystemExit(f"{case}: {CASES[case]!r} is not a case of {PILOT / 'cases.json'}; its inventory is written before "
+                         f"any run with `prepare-inventory ROOT {case}`, and its products are laid out by `fresh` or `cand`")
+    request = pilot[CASES[case]]["request"]
     (case_dir / "prompts").mkdir(parents=True)
     (case_dir / "request.md").write_text(request.rstrip() + "\n")
     shutil.copytree(root / "measure" / f"{case}-1" / "fixture", case_dir / "base", ignore=SKIP)
@@ -446,6 +483,60 @@ def prepare(root: Path, case: str) -> None:
     print(f"{case}: {len(key)} products under {case_dir / 'products'}; prompts lister.md and merge.md")
 
 
+def base_case(name: str) -> str:
+    """The case a case folder's name is derived from: roundtable for roundtable-fresh, calibration2 for itself."""
+    return next((name.removesuffix(suffix) for suffix in DERIVED if name.endswith(suffix)), name)
+
+
+def request_of(root: Path, case: str) -> tuple:
+    """CASE's request, its starting point and where both were read, as (request, starts from, where). With
+    ROOT/source.json the files are those of the checkout it names, the one both arms run from (launch.py checkout);
+    without it, this repository's own. The harness's prompt is the request; where the pilot's cases.json has the case
+    too (launch.py adds it in the checkout), its request must be the same word for word, since each arm reads its own."""
+    name, record = CASES[case], root / "source.json"
+    if record.exists():
+        top = Path(load(record)["checkout"])
+        if not top.is_dir():
+            raise SystemExit(f"{record} names the checkout {top}, which is not there any more")
+        told = f"the checkout named by {record} ({top})"
+    else:
+        top, told = HERE.parents[2], f"this repository ({HERE.parents[2]}), as {root} has no source.json"
+    harness = load(top / E2E_REL / "cases.json").get(name)
+    pilot = load(top / PILOT_REL / "cases.json").get(name)
+    if harness is None and pilot is None:
+        raise SystemExit(f"{case}: {name!r} is a case of neither {E2E_REL}/cases.json nor {PILOT_REL}/cases.json in {told}")
+    if harness is not None and "prompt" not in harness:
+        raise SystemExit(f"{case}: the harness's case {name!r} has no inline prompt (a prompt file is not read here)")
+    request = harness["prompt"] if harness is not None else pilot["request"]
+    if harness is not None and pilot is not None and pilot["request"] != request:
+        raise SystemExit(f"{case}: the pilot's request for {name!r} is not the harness's prompt word for word, in {told}")
+    starts = ((harness or {}).get("base") or {}).get("fixture") or (pilot or {}).get("fixture") or (pilot or {}).get("fixture_path")
+    read = " and ".join(f"{path}/cases.json {name}" for path, entry in ((E2E_REL, harness), (PILOT_REL, pilot)) if entry)
+    return request, starts, f"{read}, in {told}"
+
+
+def prepare_inventory(root: Path, case: str) -> None:
+    """Lay out ROOT/deep/CASE before any run of it exists, so its inventory is written without a product or a builder's
+    notes: the request, `base/` (an empty folder: the case starts empty, so base_line tells every prompt "The builder
+    started from an empty folder"), `arm-points.md` with no points, and the first prompts. The products are laid out
+    later by `fresh` or `cand` from this folder's request, inventory and base, under ROOT/deep/CASE-fresh or -cand."""
+    case_dir = root / "deep" / case
+    if (case_dir / "request.md").exists():
+        write_first_prompts(case_dir)
+        print(f"{case}: already laid out; lister.md and merge.md rewritten")
+        return
+    request, starts, where = request_of(root, case)
+    if starts:
+        raise SystemExit(f"{case}: the case starts from {starts}; prepare-inventory lays out a case that starts empty")
+    (case_dir / "prompts").mkdir(parents=True)
+    (case_dir / "base").mkdir()
+    (case_dir / "request.md").write_text(request.rstrip() + "\n")
+    (case_dir / "arm-points.md").write_text(NO_ARM_POINTS)
+    write_first_prompts(case_dir)
+    print(f"{case}: request ({len(request)} characters) from {where}; base/ empty (the case starts empty); arm-points.md "
+          f"with no points; prompts lister.md and merge.md under {case_dir / 'prompts'}")
+
+
 def rate_packet(root: Path, case: str) -> None:
     case_dir = root / "deep" / case
     merged = load(case_dir / "merged.json")
@@ -456,13 +547,21 @@ def rate_packet(root: Path, case: str) -> None:
 
 
 def shares_of(inv: dict) -> list:
-    """The inventory's item ids in shares: one share for a short inventory; for a long one the stated items in
-    SHARES - 1 runs of equal length and the unstated items as the last share."""
+    """The inventory's item ids in shares, as many as SHARE_BOUNDS gives for its size: one share for a short
+    inventory; for a longer one the stated items in one run less than the shares, of equal length, and the unstated
+    items as the last share. With two shares the first is every stated item (the proved items among them) and the
+    second the unstated items; the last share also makes the auditor's own probes."""
     stated, unstated = [item["id"] for item in inv["stated"]], [item["id"] for item in inv["unstated"]]
-    if len(stated) + len(unstated) <= SHARE_OVER:
+    count = 1 + sum(len(stated) + len(unstated) > bound for bound in SHARE_BOUNDS)
+    if count == 1:
         return [stated + unstated]
-    size = -(-len(stated) // (SHARES - 1))
+    size = -(-len(stated) // (count - 1))
     return [stated[start:start + size] for start in range(0, len(stated), size)] + [unstated]
+
+
+def page_note(case_dir: Path) -> str:
+    """The browser note for a prompt about the products of a case with a page (BROWSER_NOTE_CASES), else nothing."""
+    return PAGE.format(playwright=PLAYWRIGHT, browser=BROWSER) if base_case(case_dir.name) in BROWSER_NOTE_CASES else ""
 
 
 def write_audit_prompts(case_dir: Path) -> None:
@@ -481,7 +580,7 @@ def write_audit_prompts(case_dir: Path) -> None:
         if len(shares) == 1:
             (case_dir / "prompts" / f"audit-{code}.md").write_text(AUDIT.format(
                 case_dir=case_dir, base_line=base, product=product, spec_line=spec_line, work=case_dir / "work" / code,
-                out=case_dir / "audits" / f"{code}.json", code=code, proved=proved, explore=EXPLORE))
+                out=case_dir / "audits" / f"{code}.json", code=code, proved=proved, explore=EXPLORE) + page_note(case_dir))
             continue
         for number, items in enumerate(shares, 1):
             last = number == len(shares)
@@ -505,6 +604,12 @@ def inventory(root: Path, case: str) -> None:
     merged = load(case_dir / "merged.json")
     ratings = {name: {row["id"]: row["rating"] for row in load(case_dir / f"rate-{name}.json")["ratings"]}
                for name in JUDGES}
+    arm_points = case_dir / "arm-points.md"
+    if arm_points.exists() and arm_points.read_text() == NO_ARM_POINTS:  # prepare-inventory: no arm source exists
+        sourced = [item["id"] for item in merged["unstated"] if set(item["sources"]) - {"a", "b"}]
+        if sourced:
+            raise SystemExit(f"{case}: merged.json gives {', '.join(sourced)} a source other than the two readers, and "
+                             "this case has no arm points")
     kept, rows = [], []
     for item in merged["unstated"]:
         pair = [ratings[name].get(item["id"]) for name in JUDGES]
@@ -527,7 +632,10 @@ def inventory(root: Path, case: str) -> None:
         text += [f"- **{item['id']}**: {item['text']}", f"  - Probe: {item['probe']}",
                  f"  - Outcomes that would be acceptable: {item.get('fine_answers') or 'not given'}"]
     (case_dir / "inventory.md").write_text("\n".join(text) + "\n")
-    write_audit_prompts(case_dir)
+    if (case_dir / "key.json").exists():
+        write_audit_prompts(case_dir)
+    else:  # an inventory written before any run (prepare-inventory): a layout writes the audit prompts with its products
+        print(f"{case}: no products yet; `fresh` or `cand` lays them out, with their audit prompts, from this inventory")
     arm_only = [row for row in rows if not row["independent"]]
     primary = [row for row in rows if row["independent"]]
     print(f"{case}: stated {len(stated_ids)} (tests proved on {', '.join(proved)}); unstated rated {len(rows)}: "
@@ -660,31 +768,99 @@ def fixed(root: Path, case: str) -> None:
           + ", ".join(sorted(path.name for path in (out_dir / "prompts").glob(f"audit-{code}*.md"))))
 
 
-def clean(root: Path, fresh: Path, case: str) -> None:
-    """Lay out CASE-clean (journal section 14): three products, all to be audited afresh under new code names. S is
-    the fresh ShipLoop delivery after the look and the fix (FRESH/fix/CASE/work), F the fresh delivery itself
-    (FRESH/delivered/CASE), L last night's Ratchet final (the copy under ROOT/deep/CASE/products)."""
-    case_dir, out_dir = root / "deep" / case, root / "deep" / f"{case}-clean"
+def lay_out(root: Path, case: str, suffix: str, sources: tuple) -> None:
+    """Lay out CASE-SUFFIX: CASE's request, starting files and inventory, and each source as a product under a new
+    code name (drawn by the seed "deep-judge codes CASE SUFFIX", in the order given), all to be audited afresh. A
+    source is (point, folder, spec, commit). Without a commit the folder is copied, less `.git` and `node_modules`;
+    with one, the folder is a Git repository and the product is that commit's files, exported as measure.py exports
+    a run's starting files."""
+    case_dir, out_dir = root / "deep" / case, root / "deep" / f"{case}-{suffix}"
     if (out_dir / "key.json").exists():
         raise SystemExit(f"{out_dir} is already laid out")
-    old = next(code for code, entry in load(case_dir / "key.json").items() if entry["point"] == "L")
-    sources = (("S", fresh / "fix" / case / "work", "docs/shiploop/spec.md"),
-               ("F", fresh / "delivered" / case, "docs/shiploop/spec.md"),
-               ("L", case_dir / "products" / old, "ratchet/spec.md"))
+    missing = [str(folder) for _, folder, _, _ in sources if not folder.is_dir()]
+    if missing:  # checked before anything is made, so a failed layout leaves no folder that blocks the next try
+        raise SystemExit(f"{case}-{suffix}: no folder {', '.join(missing)}")
     (out_dir / "prompts").mkdir(parents=True)
     for name in ("request.md", "inventory.json", "inventory.md"):
         shutil.copy2(case_dir / name, out_dir / name)
     shutil.copytree(case_dir / "base", out_dir / "base")
-    chooser = random.Random(f"deep-judge codes {case} clean")
+    chooser = random.Random(f"deep-judge codes {case} {suffix}")
     key = {}
-    for point, tree, spec in sources:
+    for point, folder, spec, commit in sources:
         code = f"p{chooser.randrange(16 ** 6):06x}"
-        shutil.copytree(tree, out_dir / "products" / code, ignore=SKIP)
-        key[code] = {"point": point, "tree": str(tree), "spec": spec}
+        product = out_dir / "products" / code
+        if commit:
+            product.mkdir(parents=True)
+            archive = subprocess.run(["git", "-C", str(folder), "archive", commit], capture_output=True, check=True).stdout
+            subprocess.run(["tar", "-x", "-C", str(product)], input=archive, check=True)
+            key[code] = {"point": point, "tree": str(folder), "commit": commit, "spec": spec}
+        else:
+            shutil.copytree(folder, product, ignore=SKIP)
+            key[code] = {"point": point, "tree": str(folder), "spec": spec}
     dump(out_dir / "key.json", key)
     write_audit_prompts(out_dir)
-    print(f"{case}-clean: " + ", ".join(f"{code} {entry['point']}" for code, entry in key.items()) + "; audit prompts: "
+    print(f"{case}-{suffix}: " + ", ".join(f"{code} {entry['point']}" for code, entry in key.items()) + "; audit prompts: "
           + ", ".join(sorted(path.name for path in (out_dir / "prompts").glob("audit-*.md"))))
+
+
+def clean(root: Path, fresh: Path, case: str) -> None:
+    """Lay out CASE-clean (journal section 14): three products, all to be audited afresh under new code names. S is
+    the fresh ShipLoop delivery after the look and the fix (FRESH/fix/CASE/work), F the fresh delivery itself
+    (FRESH/delivered/CASE), L last night's Ratchet final (the copy under ROOT/deep/CASE/products)."""
+    case_dir = root / "deep" / case
+    old = next(code for code, entry in load(case_dir / "key.json").items() if entry["point"] == "L")
+    lay_out(root, case, "clean", (("S", fresh / "fix" / case / "work", "docs/shiploop/spec.md", None),
+                                  ("F", fresh / "delivered" / case, "docs/shiploop/spec.md", None),
+                                  ("L", case_dir / "products" / old, "ratchet/spec.md", None)))
+
+
+ARMS = {"shiploop": ("ShipLoop", "1"), "ratchet": ("Ratchet", "2")}  # an arm's name, and its run's label number in POINTS
+
+
+def run_final(runs: Path, arm: str, case: str) -> tuple:
+    """A run's final, the point `final` measure.py records in RUNS/measure/LABEL/measures.json (LABEL is CASE-1 for
+    ShipLoop, CASE-2 for Ratchet), as (the run's work repository, the commit). ShipLoop's `final` is its delivered head
+    (result.json's committed head), Ratchet's its last snapshot (run.json). The repository is measure.py's `self.work`,
+    the launch record's output (launch.py sets it to RUNS/LABEL) and its `work` folder. Exported there with git archive,
+    the commit is the product without its history: for a ShipLoop run the files look.py's `prepare-clean` exports to
+    FRESH/delivered/CASE. `prepare` instead copies measure.py's clone checked out at the commit; the clone is made only
+    by the parts that read it. On last night's four Ratchet runs both give the same files."""
+    name, number = ARMS[arm]
+    label = f"{case}-{number}"
+    path = runs / "measure" / label / "measures.json"
+    if not path.exists():
+        raise SystemExit(f"{path} is missing: run `measure.py {runs} {label}` first (any part); it records the "
+                         "run's final commit")
+    record = load(path)
+    commit = (record.get("points") or {}).get("final")
+    if record.get("arm") != arm or record.get("case") != CASES[case] or not commit:
+        raise SystemExit(f"{path} records no final point of a {name} run of {CASES[case]} (it records arm "
+                         f"{record.get('arm')!r}, case {record.get('case')!r}, final {commit!r})")
+    return runs / label / "work", commit
+
+
+def fresh_runs(root: Path, fresh: Path, ratchet: Path, case: str) -> None:
+    """Lay out CASE-fresh (journal section 16.1): three products, all to be audited afresh under new code names. S and
+    F are CASE-clean's (FRESH/fix/CASE/work and FRESH/delivered/CASE); L is the final of a fresh Ratchet run,
+    RATCHET/CASE-2, exported at the commit its measure record names."""
+    work, commit = run_final(ratchet, "ratchet", case)
+    lay_out(root, case, "fresh", (("S", fresh / "fix" / case / "work", "docs/shiploop/spec.md", None),
+                                  ("F", fresh / "delivered" / case, "docs/shiploop/spec.md", None),
+                                  ("L", work, "ratchet/spec.md", commit)))
+
+
+def cand(root: Path, fresh: Path, ratchet: Path, candidate: Path, case: str) -> None:
+    """Lay out CASE-cand (journal sections 16.2 and 16.3, the trial of the look as a ShipLoop candidate): three
+    products, all to be audited afresh under new code names, so the comparisons with N and with the fresh Ratchet
+    final are read from one round of audits. S is the candidate's delivery, the final of CAND/CASE-1 exported from its
+    work repository the way look.py's `prepare-clean` exported F; F is that fresh delivery of unchanged ShipLoop,
+    FRESH/delivered/CASE (N); L is CASE-fresh's, the final of RATCHET/CASE-2. Both measure records are read before
+    anything is made."""
+    work, commit = run_final(candidate, "shiploop", case)
+    ratchet_work, ratchet_commit = run_final(ratchet, "ratchet", case)
+    lay_out(root, case, "cand", (("S", work, "docs/shiploop/spec.md", commit),
+                                 ("F", fresh / "delivered" / case, "docs/shiploop/spec.md", None),
+                                 ("L", ratchet_work, "ratchet/spec.md", ratchet_commit)))
 
 
 def grade_class(kind: str, grade: str | None) -> str:
@@ -710,7 +886,8 @@ def defects(root: Path, case: str) -> None:
                 recheck.append({"id": item["id"], "kind": kind, "text": item["text"], "audits_said": grades})
     dump(case_dir / "defects-reported.json", {"recheck": recheck, "defects": reported})
     codes = ", ".join(f"`{code}`" for code in key)
-    (case_dir / "prompts" / "probe.md").write_text(PROBE.format(case_dir=case_dir, codes=codes, work=case_dir / "work" / "probe"))
+    (case_dir / "prompts" / "probe.md").write_text(PROBE.format(case_dir=case_dir, codes=codes, work=case_dir / "work" / "probe")
+                                                   + page_note(case_dir))
     print(f"{case}: {len(reported)} defects reported, {len(recheck)} items to recheck ({', '.join(row['id'] for row in recheck)}); prompt probe.md")
 
 
@@ -891,8 +1068,9 @@ def facts_of(case_dir: Path, code: str, inv: dict, probed: list, primary: bool) 
 
 def judges_of(case: str) -> tuple:
     """The judges whose verdicts count for a case. The owner, 2026-11-22, after the twelve products were judged by
-    both families: "just use opus for the judge to speed things up". The fixed-product cases are judged by Opus."""
-    return ("a",) if case.endswith(("-fixed", "-clean")) else JUDGES
+    both families: "just use opus for the judge to speed things up". The derived cases (fixed, clean, fresh and cand)
+    are judged by Opus."""
+    return ("a",) if case.endswith(("-fixed", "-clean", "-fresh", "-cand")) else JUDGES
 
 
 def judged(case_dir: Path, case: str, key: dict) -> dict:
@@ -919,6 +1097,8 @@ def score(root: Path, out_dir: Path) -> None:
               for path in sorted((root / "deep").glob("calibration*"))}
     fixes = {f"{case}-fixed": f"{name}, after one look and one fix" for case, name in CASES.items()}
     fixes.update({f"{case}-clean": f"{name}, clean ShipLoop run with one look and one fix" for case, name in CASES.items()})
+    fixes.update({f"{case}-fresh": f"{name}, fresh runs of both tools" for case, name in CASES.items()})
+    fixes.update({f"{case}-cand": f"{name}, the look candidate's trial" for case, name in CASES.items()})
     for case, full_name in {**CASES, **fixes, **rounds}.items():
         case_dir = root / "deep" / case
         if not (case_dir / "defects-probed.json").exists():
@@ -928,7 +1108,8 @@ def score(root: Path, out_dir: Path) -> None:
             continue
         key, inv = load(case_dir / "key.json"), load(case_dir / "inventory.json")
         names = (CALIBRATION_NAMES if case.startswith("calibration") else FIXED_NAMES if case.endswith("-fixed")
-                 else CLEAN_NAMES if case.endswith("-clean") else NAMES)
+                 else CLEAN_NAMES if case.endswith("-clean") else FRESH_NAMES if case.endswith("-fresh")
+                 else CAND_NAMES if case.endswith("-cand") else NAMES)
         code_of = {entry["point"]: code for code, entry in key.items()}
         probed = load(case_dir / "defects-probed.json")["defects"]
         facts = {point: facts_of(case_dir, code, inv, probed, True) for point, code in code_of.items()}
@@ -1025,7 +1206,8 @@ def main(argv=None) -> int:
     if command == "calibrate" and len(rest) in (1, 2):
         calibrate(Path(rest[0]).expanduser().resolve(), int(rest[1]) if len(rest) == 2 else 1)
         return 0
-    steps = {"prepare": prepare, "rate-packet": rate_packet, "inventory": inventory, "defects": defects,
+    steps = {"prepare": prepare, "prepare-inventory": prepare_inventory, "rate-packet": rate_packet, "inventory": inventory,
+             "defects": defects,
              "join-shares": join_shares, "told-packet": told_packet, "verdict-packet": verdict_packet}
     late = ("defects", "join-shares", "told-packet", "verdict-packet")
     if command == "fixed" and len(rest) == 2 and rest[1] in CASES:
@@ -1034,8 +1216,16 @@ def main(argv=None) -> int:
     if command == "clean" and len(rest) == 3 and rest[2] in CASES:
         clean(Path(rest[0]).expanduser().resolve(), Path(rest[1]).expanduser().resolve(), rest[2])
         return 0
+    if command == "fresh" and len(rest) == 4 and rest[3] in CASES:
+        fresh_runs(Path(rest[0]).expanduser().resolve(), Path(rest[1]).expanduser().resolve(),
+                   Path(rest[2]).expanduser().resolve(), rest[3])
+        return 0
+    if command == "cand" and len(rest) == 5 and rest[4] in CASES:
+        cand(*(Path(path).expanduser().resolve() for path in rest[:4]), rest[4])
+        return 0
     derived = rest[1:] and (rest[1].startswith("calibration") or rest[1].removesuffix("-fixed") in CASES
-                            or rest[1].removesuffix("-clean") in CASES)
+                            or rest[1].removesuffix("-clean") in CASES or rest[1].removesuffix("-fresh") in CASES
+                            or rest[1].removesuffix("-cand") in CASES)
     if command in steps and len(rest) == 2 and (rest[1] in CASES or (derived and command in late)):
         steps[command](Path(rest[0]).expanduser().resolve(), rest[1])
         return 0

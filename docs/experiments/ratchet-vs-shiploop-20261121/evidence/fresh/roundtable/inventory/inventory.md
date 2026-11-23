@@ -1,0 +1,158 @@
+# Inventory
+
+## Stated requirements
+
+- **S-1**: The app is a small local project-room app titled "Roundtable" (the page shows and is titled Roundtable).
+- **S-2**: The app is served by server.js.
+- **S-3**: The server runs on Node.js.
+- **S-4**: The app has no npm dependencies (none declared in any package.json, no node_modules needed).
+- **S-5**: The server listens on the port given in the PORT environment variable.
+- **S-6**: When PORT is not set, the server listens on port 3000.
+- **S-7**: GET / serves the app.
+- **S-8**: The app has a light, Gemini-like look and feel.
+- **S-9**: The app starts with one room, named Launch plan.
+- **S-10**: The Launch plan room is seeded with a realistic conversation.
+- **S-11**: The seeded conversation contains at least one message from Maya, a person.
+- **S-12**: The seeded conversation contains at least one message from Theo, a person.
+- **S-13**: The seeded conversation contains at least one message from Scribe, an agent.
+- **S-14**: Scribe is clearly identified as a demonstration agent.
+- **S-15**: The current user is Maya.
+- **S-16**: A region named Conversation contains the messages.
+- **S-17**: Each message in the Conversation region is an article.
+- **S-18**: Each message article shows its author.
+- **S-19**: Each message article shows its person/agent identity.
+- **S-20**: Each message article shows its time.
+- **S-21**: Each message article is accessibly named Message from Maya, Message from Theo or Message from Scribe using its actual author.
+- **S-22**: There is a textbox named Message for composing a message.
+- **S-23**: There is a Send button for sending the composed message.
+- **S-24**: Pressing Enter in the Message textbox sends the message.
+- **S-25**: Pressing Shift+Enter in the Message textbox inserts a newline.
+- **S-26**: Whitespace-only text is ignored: sending it adds no message.
+- **S-27**: Sending preserves multiline text (line breaks are kept in the sent message).
+- **S-28**: Sending clears that draft from the Message textbox.
+- **S-29**: Sending a message containing @Scribe calls the local POST /api/agent endpoint.
+- **S-30**: That call sends the JSON body {"text": <the complete sent text>}.
+- **S-31**: POST /api/agent is deterministic and returns exactly {"text": "Demo reply: " followed by that text}.
+- **S-32**: POST /api/agent rejects whitespace-only text with HTTP 400.
+- **S-33**: POST /api/agent uses no external service.
+- **S-34**: While awaiting the agent reply, the app shows a working state with role status.
+- **S-35**: On a failed response, the app shows an alert.
+- **S-36**: On a failed response, the app shows a Retry Scribe button.
+- **S-37**: Retry Scribe retries the agent reply.
+- **S-38**: Retrying does not duplicate the person message.
+- **S-39**: The URL /?empty=1 starts an empty conversation.
+- **S-40**: The empty conversation shows useful guidance.
+- **S-41**: In the empty conversation, sending still works.
+- **S-42**: The ?empty=1 fixture control is not a normal UI feature.
+- **S-43**: A visible Use dark appearance button switches the appearance.
+- **S-44**: After switching, that button becomes Use light appearance.
+- **S-45**: Use light appearance switches the appearance back.
+- **S-46**: At a 320px narrow browser width, reading and composing stay usable without page-level horizontal scrolling.
+- **S-47**: At a 390px narrow browser width, reading and composing stay usable without page-level horizontal scrolling.
+- **S-48**: At a 1440px wide browser width, reading and composing stay usable without page-level horizontal scrolling.
+- **S-49**: State can live in the current browser session.
+- **S-50**: The state rules are in a module that the app uses.
+- **S-51**: node:test tests under test/ cover those state rules.
+- **S-52**: Those tests run with node --test.
+- **S-53**: This first delivery has one room.
+- **S-54**: This first delivery has one local agent.
+- **S-55**: This first delivery has no accounts.
+- **S-56**: This first delivery has no file sharing.
+- **S-57**: This first delivery has no canvases.
+- **S-58**: This first delivery uses no external services.
+
+## Conditions the request leaves unsaid
+
+- **U-1**: Which text counts as containing @Scribe: letter case (@scribe, @SCRIBE), position (start, middle, end, on its own line), punctuation around it (@Scribe, or (@Scribe)), longer words or addresses (@Scribes, a@Scribe, me@Scribe.com, @@Scribe), and more than one occurrence in one message.
+  - Probe: From a fresh session on /, send each of these on its own and record whether POST /api/agent fires (network panel) and, if so, its JSON text: hello @Scribe; hello @scribe; hello @SCRIBE; @Scribe; ping @Scribe now; @Scribe, can you summarise?; (@Scribe); see @Scribes; a@Scribe; mail me@Scribe.com; @@Scribe; line1, newline, @Scribe, newline, line2; and @Scribe twice in one message.
+  - Outcomes that would be acceptable: A case-sensitive @Scribe match anywhere in the text, including with trailing punctuation, or a case-insensitive match; treating @Scribes or a@Scribe as a mention or requiring a word boundary are both fine if consistent. More than one occurrence sends one POST with the complete sent text.
+- **U-2**: A send that does not contain @Scribe adds Maya's message and makes no call to POST /api/agent.
+  - Probe: On /, count the Conversation articles. Type I will bring the agenda (no @Scribe) and click Send; record the new article's author, person/agent identity, time and accessible name, and whether any POST /api/agent fired. Repeat with Enter on a fresh draft.
+  - Outcomes that would be acceptable: Exactly one new article from Maya, shown as a person, and no POST /api/agent. Calling the endpoint for every send, or dropping the message, is not fine.
+- **U-3**: Shift+Enter only inserts a newline and never also sends the draft; the draft stays until Enter or Send.
+  - Probe: Focus Message, type line one, press Shift+Enter, type line two and stop. Record whether an article was added, whether POST /api/agent was called, and whether the textbox holds both lines. Then press Enter and check one message contains both lines.
+  - Outcomes that would be acceptable: Shift+Enter inserts a newline and sends nothing; one message with both lines appears after Enter.
+- **U-4**: Where and how the Scribe reply appears: as a new Conversation article from Scribe with agent identity, a time and the accessible name Message from Scribe, showing the exact response text, placed after the person message that mentioned it.
+  - Probe: On /, type Please summarize this, Shift+Enter, @Scribe and press Enter. Record the POST /api/agent response body. When the wait ends, record every new article: full text, author, identity, time, accessible name and position. Compare the shown reply with the response text, including the Demo reply: prefix and the newline. Count Maya articles for that send.
+  - Outcomes that would be acceptable: Maya's message appears once; the exact response text appears once, attributed to Scribe as an agent, after her message, preferably as an article named Message from Scribe with a time. Another clearly attributed visible reply surface showing the exact text is also acceptable. Hiding the reply or replacing Maya's message is not fine.
+- **U-5**: Which outcomes count as a failed agent response (network error, HTTP 4xx/5xx, a non-JSON or malformed body, a server that never answers) and how long the app waits before treating a reply as failed.
+  - Probe: Load /, then stop the server and send @Scribe hi; note whether an alert and Retry Scribe appear. Restart, and using devtools request blocking or an override make POST /api/agent return 500, then a non-JSON 200 body, then never respond; note what the UI shows for each after 30 s and after 2 min.
+  - Outcomes that would be acceptable: Network errors and non-2xx responses shown as failures; a timeout from a few seconds to about a minute, or no timeout but a way to cancel. Limiting failure to network and server errors is also fine. A working state that never ends without recourse is not fine.
+- **U-6**: What the failure alert is and says (an in-page role alert or a browser dialog, and its wording), and what happens to the alert and Retry Scribe after a successful retry, after a second failure, and when a later @Scribe message is sent while a failure is shown.
+  - Probe: Block /api/agent and send @Scribe one; record whether the alert is in-page or a dialog, its text, and whether Retry Scribe can be used while the alert is up. Click Retry Scribe with the endpoint still blocked: count alerts and Retry buttons. Unblock and click Retry Scribe: check the alert and button are gone and exactly one Maya message and one reply exist. With one failure showing, send @Scribe two and note the alerts and buttons.
+  - Outcomes that would be acceptable: Any wording saying the reply failed; in-page alert or a dialog (with the button usable after dismissing it). One alert per failed reply or one shared alert; the alert and Retry Scribe clear after success; a second failure shows them again with still one person message.
+- **U-7**: What Retry Scribe resends and which message it targets: the original complete sent text of the message whose reply failed, not the current unsent draft or a later message.
+  - Probe: Fail the reply to once @Scribe. Type a different unsent draft in Message, click Retry Scribe, and record the POST JSON text. Then fail two mentions in a row (@Scribe A, @Scribe B), click each Retry Scribe and record which text each POST carries and where each reply lands.
+  - Outcomes that would be acceptable: Retry posts the original complete sent text of the failed message and leaves the draft untouched; with two failures, each retry targets its own message (or one retry covers the latest, if stated).
+- **U-8**: Activating Send or Retry Scribe twice quickly (double click, repeated Enter) does not produce two person messages, two identical agent calls or two Scribe replies.
+  - Probe: Throttle the network (devtools Slow 3G). Double-click Send for twice @Scribe and count person articles and POSTs. Block /api/agent, send @Scribe once, unblock, double-click Retry Scribe quickly; count Scribe replies after it settles.
+  - Outcomes that would be acceptable: Send and Retry Scribe disabled or hidden while pending, or a guard that ignores the second activation; exactly one person message and one reply result.
+- **U-9**: What happens when Maya sends another message, or another @Scribe message, while a Scribe reply is still pending: whether the composer stays usable, and in what order messages and replies are placed.
+  - Probe: Delay /api/agent (Slow 3G or an override). Send @Scribe first, then immediately @Scribe second and plain note. Wait for all replies; record the order of messages and replies and whether the working state and Send stayed usable throughout.
+  - Outcomes that would be acceptable: The composer stays usable and each reply follows its own message in send order; or further sends are blocked or queued with a visible state. Silently dropping a send is not fine.
+- **U-10**: What the working state says, where it appears, and that it is present for the whole wait and gone once a reply or the failure alert is shown, including during and after Retry Scribe.
+  - Probe: Slow POST /api/agent. Send draft the note @Scribe; while it is open, record the role status element's text and position relative to Conversation. After the reply, check the status is gone. Provoke a failure: record the status during the wait and after the alert. Click Retry Scribe and record the status during the second wait and after its result.
+  - Outcomes that would be acceptable: Any short visible status text, inside or next to Conversation, present for the whole wait and cleared once a reply or the alert is shown. Skipping it for an instant response is arguable; leaving it up after the outcome is not fine.
+- **U-11**: Which characters count as whitespace-only (spaces, tabs, newlines, a non-breaking space, the empty string) in the composer and at the endpoint, and whether an ignored draft stays in the Message textbox.
+  - Probe: In Message, submit three spaces, then only a newline (Shift+Enter then Enter), then only a tab, then only a non-breaking space; for each record articles added, any POST /api/agent, and whether the textbox still holds the draft. Separately POST /api/agent with text set to three spaces, a newline, a tab, space-newline-space, an empty string and a non-breaking space, and record each status and body.
+  - Outcomes that would be acceptable: Spaces, tabs and newlines are whitespace: no message, no agent call, and HTTP 400 at the endpoint. Keeping or clearing the ignored draft are both fine. A non-breaking space treated either way is fine. An empty string may get 400 or another 4xx.
+- **U-13**: Whether leading and trailing whitespace and internal blank lines of a non-empty message are kept exactly or trimmed, consistently in the shown message, the POST body and the Demo reply: echo.
+  - Probe: Send two spaces, hello, newline, newline, world, two spaces (no @Scribe) and compare the article text with what was typed. Then send two spaces, hello @Scribe, newline, next, Shift+Enter twice; compare the Maya article, the POST JSON text and the text after Demo reply: in the response.
+  - Outcomes that would be acceptable: Kept exactly as typed, or only the outer ends trimmed with internal blank lines kept; the shown message, the POST text and the echo must use the same string. Dropping an internal blank line is not fine.
+- **U-14**: What POST /api/agent answers for a body that is not valid JSON, has no text field, has a non-string text (number, null, array), or has a wrong content type; and that the server stays up afterwards.
+  - Probe: Start the server. Run curl -i -X POST localhost:3000/api/agent -d 'not json'; then with -H 'Content-Type: application/json' and bodies '{}', '{"text":42}', '{"text":null}', '{"text":["a"]}'. Record each status and body, then curl -i localhost:3000/ to confirm the server still answers.
+  - Outcomes that would be acceptable: HTTP 400 (or another 4xx, e.g. 415 for wrong content type) with a short error for each malformed case; extra fields may be ignored. A 500 that crashes the server or a request that never answers is not fine.
+- **U-15**: The HTTP status, Content-Type and body shape of POST /api/agent responses: on success, and the body of the whitespace-only HTTP 400.
+  - Probe: curl -i -X POST localhost:3000/api/agent -H 'Content-Type: application/json' -d '{"text":"Hi @Scribe"}' twice; record status, Content-Type and body and compare the two bodies. Repeat with '{"text":"   "}' and record status and body.
+  - Outcomes that would be acceptable: Success is 200 or 201 with application/json (or another JSON type) and exactly {"text": "Demo reply: Hi @Scribe"}, identical each time. The 400 body may be empty, plain text or JSON with an error field.
+- **U-17**: Whether the server serves files outside the app's public assets, such as server.js, test files or files outside the project folder through path traversal.
+  - Probe: curl -i --path-as-is localhost:3000/../server.js; curl -i --path-as-is 'localhost:3000/%2e%2e/%2e%2e/etc/passwd'; curl -i localhost:3000/test/. Record statuses and bodies.
+  - Outcomes that would be acceptable: 404 or 403 for anything outside the served assets; serving app assets including the shared state module is fine. Serving files outside the project folder is not fine.
+- **U-20**: Message text is shown as plain text, not interpreted as HTML (in person messages and in the Scribe reply).
+  - Probe: Open /, send <b>bold</b> & <img src=x onerror=alert(1)> @Scribe. Check that the person message and the Scribe reply show the literal characters, with no bold, no broken image and no alert dialog.
+  - Outcomes that would be acceptable: Plain text; a deliberate, stated safe markdown subset is also fine. Script running or markup rendered from typed text is not fine.
+- **U-21**: A send updates the current page in place rather than navigating or reloading it.
+  - Probe: Type stay put and click Send; watch for a document reload, a flash of the original seed or a scroll reset, and record the resulting articles. Repeat with Enter. Then send stay @Scribe and check the working state and reply complete without a reload.
+  - Outcomes that would be acceptable: Conversation updates in place. A reload that still shows the sent message once and completes one agent reply is also acceptable. A reload that loses the send or duplicates the seed is not fine.
+- **U-22**: Which state survives a reload, a new tab and a new browser session: messages, appearance and an unsent draft; and whether two open tabs share updates.
+  - Probe: On /, send keep me, activate Use dark appearance, and leave not sent yet in Message. Reload the same tab; record messages, appearance, button label and draft. Open / in a new tab and in a private window, and after quitting the browser; record the same. With two tabs open, send in one and check the other.
+  - Outcomes that would be acceptable: Page memory only, sessionStorage for the tab, or persistence beyond the session are all fine if consistent; losing an unsent draft on reload is fine; two tabs may share or stay independent. The appearance button label must match the appearance shown after reload. Server accounts or profiles are out of scope.
+- **U-23**: How /?empty=1 relates to session state and to a later GET /: whether stored messages override the empty start, whether the fixture disturbs the seeded room, and what the empty page shows (room name, @Scribe still calling the agent).
+  - Probe: Open /, send seeded extra. Open /?empty=1 in the same tab: check the conversation is empty with guidance and note whether Launch plan is shown. Send from empty, then hello @Scribe and check POST /api/agent runs and the reply appears. Go to /: record which messages show. Reload /?empty=1: empty again or holding from empty? Confirm no visible control navigates to ?empty=1.
+  - Outcomes that would be acceptable: ?empty=1 always starts with no messages and @Scribe still works there; it may apply only to that load or keep its own session state, and the room name may or may not be shown. A fresh session on / still starts from the seeded Launch plan room. Seeded messages shown under ?empty=1 are not fine.
+- **U-24**: What the empty-state guidance says and whether it goes away once the first message is sent.
+  - Probe: Open /?empty=1 and read the guidance (does it explain typing a message and mentioning @Scribe?). Send hello. Check whether the guidance is gone or reduced and the message shows as an article.
+  - Outcomes that would be acceptable: Any guidance that explains composing and mentioning @Scribe; it may be removed, reduced or kept after the first send, as long as the conversation stays readable.
+- **U-26**: After Use light appearance switches back, the same button reads Use dark appearance again and the starting light appearance is restored, over repeated toggles.
+  - Probe: Load / at 1440px; record the appearance and label. Activate the button three times, recording appearance and label after each.
+  - Outcomes that would be acceptable: The same button alternates between Use dark appearance and Use light appearance, with the starting light appearance restored each time. A second always-visible button was not asked for.
+- **U-27**: The appearance button stays visible and usable at 320px, 390px and 1440px widths.
+  - Probe: At 320px, 390px and 1440px, load / and check the appearance button is visible and activatable without page-level horizontal scrolling; activate it at each width.
+  - Outcomes that would be acceptable: Visible and activatable at all three widths, including when it wraps to another line or sits in a compact header.
+- **U-28**: The dark appearance keeps text and controls readable: contrast of messages, timestamps, identity badges, the alert, and a visible focus indicator.
+  - Probe: Switch to dark, run a contrast check (Lighthouse or axe), and tab through Message, Send, the appearance button and Retry Scribe, checking the focus indicator is visible.
+  - Outcomes that would be acceptable: WCAG AA text contrast as the plain target and a visible focus indicator; the exact palette is open.
+- **U-29**: How a long unbroken token (a long URL or a 200-300 character word) and long multiline messages stay within the page at 320px, 390px and 1440px.
+  - Probe: At 320px, send https://example.com/ followed by 300 letters with no spaces, and a 40-line message with several long lines. Check document.documentElement.scrollWidth <= the viewport width and that the full text is readable. Repeat at 390px and 1440px, and check Message and Send stay usable.
+  - Outcomes that would be acceptable: Breaking long words, or scrolling inside the message or Conversation region; no page-level horizontal scroll. Clipping text so it cannot be read is not fine.
+- **U-32**: New messages and the Scribe reply are announced to screen-reader users (a live region), beyond the working state's role status.
+  - Probe: With VoiceOver or NVDA on, send @Scribe hi and listen for the working state and then the reply or its arrival; or inspect the DOM for aria-live on Conversation or a status update on completion.
+  - Outcomes that would be acceptable: A polite live announcement of the reply, or the status region saying the reply arrived; either works.
+- **U-33**: How message times are shown: format, time zone, the times given to seeded messages (fixed or relative to now, and earlier than new messages), and whether they carry a machine-readable datetime.
+  - Probe: Open / and record each seeded article's time text; inspect for a <time datetime> element. Send a message and compare its time with the clock. Change the OS time zone, reload, and compare.
+  - Outcomes that would be acceptable: Local clock time, a date plus time, or a relative time, visible on each article; seeded times not later than new messages. Identical times on seed messages are fine.
+- **U-34**: Where newly sent messages appear relative to the seed and to each other (reading order).
+  - Probe: Read Conversation from start to end and record each seed article's author. Send first marker, then second marker; record where each appears relative to the seed and to each other.
+  - Outcomes that would be acceptable: Newest at the bottom or newest at the top, applied consistently; the seed may stay in its order above or below new messages.
+- **U-37**: How a maintainer runs the tests (node --test alone or an npm test script) and which Node.js version is needed.
+  - Probe: In the project folder run node --test and npm test; note results. Check package.json for scripts and engines and the README for run instructions.
+  - Outcomes that would be acceptable: node --test alone, or an npm test script wrapping it; a README line naming the command and a working Node version.
+- **U-38**: Scribe's demonstration-agent identity is visible on its articles (a label or badge such as Demo agent, not only hidden text), distinct from Maya and Theo shown as people.
+  - Probe: Open / and, for each seed article and any Scribe reply, record the visible author, the visible person/agent identity and the accessible name.
+  - Outcomes that would be acceptable: Visible wording such as demonstration agent or Demo agent, or an equally clear badge, on Scribe's articles; Maya and Theo read as people. A bare bot label is a weak match.
+- **U-39**: The seeded conversation reads as a coherent, realistic Launch plan discussion rather than placeholder text.
+  - Probe: Open / and read the seed from start to end; check the messages discuss planning a launch coherently and that no lorem ipsum or test strings appear.
+  - Outcomes that would be acceptable: Any coherent launch-planning exchange among Maya, Theo and Scribe.
+- **U-40**: Messages sent from the composer are attributed to Maya as a person, and there is no control to post as Theo or switch user.
+  - Probe: Send identity check and record the new article's author, person/agent identity and accessible name. Look for any control that would post as Theo or switch user.
+  - Outcomes that would be acceptable: New messages are Message from Maya, shown as a person; a visible posting-as-Maya label is optional; no user switcher.

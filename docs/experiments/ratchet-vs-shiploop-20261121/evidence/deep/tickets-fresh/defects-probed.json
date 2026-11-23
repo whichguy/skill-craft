@@ -1,0 +1,116 @@
+{
+ "rechecks": [
+  {
+   "id": "U-2",
+   "results": {
+    "p4c8106": {
+     "grade": "poor",
+     "observed": "Ran on port 47811, worker off. {} , {\"assignee\":5}, {} object, [] value -> 400 invalid 'assignee must be a string' (missing field not treated as null); {\"assignee\":\"dana\",\"x\":1} -> 400 invalid 'unknown field: x', ticket unchanged; top-level [] and empty body -> 400 invalid 'request body must be a JSON object'; 'not json' -> 400 invalid 'request body is not valid JSON'; T-9999 -> 404 not_found. But body {\"assignee\":\"da<0xFF>na\"} -> 200, assignee stored as 'da\\ufffdna', updated moved, audit gained a ticket.assigned entry to 'da\\ufffdna' and /admin/outbox gained a pending ticket.assigned notice to 'da\\ufffdna'. One malformed body is accepted and stored altered."
+    },
+    "p5ffd4c": {
+     "grade": "poor",
+     "observed": "Ran on port 47812, worker off. Same answers as p4c8106: {}, number, object, array -> 400 invalid 'assignee must be a string'; extra field -> 400 'unknown field: x', ticket unchanged; [] and empty body -> 400 'request body must be a JSON object'; non-JSON -> 400 'request body is not valid JSON'; T-9999 -> 404 not_found. Invalid UTF-8 body {\"assignee\":\"da<0xFF>na\"} -> 200, assignee 'da\\ufffdna', ticket.assigned audit entry and a pending ticket.assigned outbox notice to 'da\\ufffdna'."
+    },
+    "p10059e": {
+     "grade": "sound",
+     "observed": "Ran on port 47813, worker off. {} -> 400 invalid 'assignee is required'; number/object/array -> 400 invalid 'assignee must be a string'; extra field -> 400 'unknown field: x'; [] and empty body -> 400 'request body must be a JSON object'; non-JSON -> 400 'request body is not valid JSON'; invalid UTF-8 body -> 400 invalid 'request body is not valid UTF-8'; T-9999 -> 404 not_found. Afterwards GET T-0001 shows assignee null and the original updated time, audit holds only ticket.created, outbox holds only the ticket.created notice."
+    }
+   }
+  },
+  {
+   "id": "U-22",
+   "results": {
+    "p4c8106": {
+     "grade": "acceptable",
+     "observed": "docs/api.md documents the PUT endpoint, the assignee ticket field, the ?assignee= filter (incl. empty value and AND semantics), the ticket.assigned audit action and the ticket.assigned notification; README describes the list assignee column, show, and the new fifth raw column; CHANGELOG.md has a 1.5.0 (2026-11-22) section describing the feature and package.json version is 1.5.0. docs/decisions/ is unchanged from base (no new record) although the change alters conventions: filters now combine with AND instead of 1.4.0's any-match (the changelog says so), list --raw gains a fifth column, and the data file's tickets gain an assignee field (version kept at 1)."
+    },
+    "p5ffd4c": {
+     "grade": "poor",
+     "observed": "docs/api.md documents the endpoint, the assignee field, the filter, the ticket.assigned audit action and a notification to the new agent; README describes the assignee column and a fifth raw column. CHANGELOG.md is identical to base (top section 1.4.0 (2025-09-15)) and package.json version is still 1.4.0; docs/decisions/ unchanged. No release record of the change."
+    },
+    "p10059e": {
+     "grade": "acceptable",
+     "observed": "docs/api.md documents the endpoint, field, filter (AND semantics, empty value), ticket.assigned audit action and the notice to the agent; README gains an Assignment section and describes the list/show assignee display (raw stays four columns); a new decision record docs/decisions/0009-ticket-assignments.md (and decisions README updated); CHANGELOG.md has an 'Unreleased' section describing the feature, but package.json version stays 1.4.0 (no version bump)."
+    }
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "An agent name holding an invalid UTF-8 byte is accepted and stored with a replacement character",
+   "severity": "low",
+   "merged_from": [
+    "p4c8106#1",
+    "p5ffd4c#3"
+   ],
+   "repro": "Start the service; POST /tickets {\"title\":\"Printer jam\",\"priority\":\"low\",\"requester\":\"ann@example.com\"}; PUT /tickets/T-0001/assignee with Content-Type application/json and the raw bytes {\"assignee\":\"da\\xFFna\"} (curl --data-binary from a file); GET /tickets/T-0001, its audit, and GET /admin/outbox.",
+   "expected": "400 invalid (body is not valid UTF-8); ticket, audit and outbox unchanged.",
+   "note": "Both reports describe the same behaviour; same severity kept.",
+   "results": {
+    "p4c8106": {
+     "result": "present",
+     "observed": "200; ticket assignee 'da\\ufffdna', updated moved; audit seq 2 ticket.assigned {from:null,to:'da\\ufffdna'}; outbox pending ticket.assigned to 'da\\ufffdna'."
+    },
+    "p5ffd4c": {
+     "result": "present",
+     "observed": "200; ticket assignee 'da\\ufffdna'; audit seq 2 ticket.assigned to 'da\\ufffdna'; outbox pending ticket.assigned notice to 'da\\ufffdna'."
+    },
+    "p10059e": {
+     "result": "absent",
+     "observed": "400 {\"error\":{\"code\":\"invalid\",\"message\":\"request body is not valid UTF-8\"}}; ticket still assignee null with original updated; audit only ticket.created; outbox only the ticket.created notice."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "No CHANGELOG.md section and no version bump for the assignment feature",
+   "severity": "low",
+   "merged_from": [
+    "p5ffd4c#1"
+   ],
+   "repro": "Compare CHANGELOG.md and package.json version of the delivered tree with the starting files (base: top section 1.4.0 (2025-09-15), version 1.4.0).",
+   "expected": "A new changelog section describing assignment and a bumped package.json version.",
+   "note": "p10059e has the changelog section (as 'Unreleased') but not the version bump, so it shows half of the defect; recorded as present for that half.",
+   "results": {
+    "p4c8106": {
+     "result": "absent",
+     "observed": "CHANGELOG.md has a new '## 1.5.0 (2026-11-22)' section describing ticket assignment, filter, notification and CLI changes; package.json version 1.5.0."
+    },
+    "p5ffd4c": {
+     "result": "present",
+     "observed": "CHANGELOG.md identical to base: top section '## 1.4.0 (2025-09-15)'; package.json version 1.4.0."
+    },
+    "p10059e": {
+     "result": "present",
+     "observed": "CHANGELOG.md has a new '## Unreleased' section describing assignment, but package.json version is still 1.4.0 (no bump)."
+    }
+   }
+  },
+  {
+   "id": "D-3",
+   "title": "An agent named '-' is indistinguishable from an unassigned ticket in the command line",
+   "severity": "low",
+   "merged_from": [
+    "p5ffd4c#2"
+   ],
+   "repro": "With DATA_FILE in the work folder: POST two tickets; PUT /tickets/T-0001/assignee {\"assignee\":\"-\"}; stop the service; node bin/tickets.js --data FILE list, list --raw, show T-0001, show T-0002.",
+   "expected": "Either '-' is refused as a name, or the human list/show mark unassigned with something no accepted name prints as, so the two are distinguishable.",
+   "note": "p4c8106 documents this look-alike in README and its list --raw tells them apart ('-' vs empty last column); the human list and show still print the same '-' for both.",
+   "results": {
+    "p4c8106": {
+     "result": "present",
+     "observed": "PUT '-' -> 200. list: ASSIGNEE column shows '-' for both T-0001 (agent '-') and T-0002 (unassigned); show prints 'assignee   -' for both. list --raw: last column '-' vs empty."
+    },
+    "p5ffd4c": {
+     "result": "present",
+     "observed": "PUT '-' -> 200. list: '-' in ASSIGNEE for both the '-' agent and the unassigned ticket; show prints 'assignee   -' for both. list --raw: last column '-' vs empty."
+    },
+    "p10059e": {
+     "result": "absent",
+     "observed": "PUT '-' -> 200. list shows '\"-\"' (quoted) for T-0001 and 'unassigned' for T-0002; show prints 'assignee   \"-\"' vs 'assignee   unassigned'; history 'assignee unassigned -> \"-\"'. Distinguishable."
+    }
+   }
+  }
+ ]
+}

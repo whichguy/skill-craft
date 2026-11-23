@@ -1,0 +1,1 @@
+d20261122-ccc2ff/expenses-1 | rollouts 1 | outputs 56 | median chars 3793 | largest 41129 | {'Look before you assess': 0, 'have a fresh worker look': 0, 'fresh native worker': 1, 'Product look guide': 0, 'no look is recorded': 0}

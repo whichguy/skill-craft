@@ -1,0 +1,9 @@
+/Users/dadleet/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run
+/Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03
+/Users/dadleet/e2e-runs/2026-11-04/chess-sf-clean
+/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01
+/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02
+/Users/dadleet/e2e-runs/20261024/chess-sf-full-12a23d
+/Users/dadleet/e2e-runs-hostonly/20261031/sf-live-2
+/Users/dadleet/e2e-runs-hostonly/20261031/ui-live-2
+/Users/dadleet/e2e-runs-hostonly/20261031/ui-live-3

@@ -2,6 +2,7 @@
 """Every script measure of one finished run (journal section 4, M1 to M7a). No model is called.
 
     python3 measure.py ROOT LABEL [--only PART ...] [--again]
+    python3 measure.py held-out KIND WORK COMMIT OUT.json    one held-out grader grade.py does not have (roundtable)
 
 ROOT is the comparison's runs root (launch.py's), LABEL a run in it. Results go under ROOT/measure/LABEL/: one file a
 part and point, and ROOT/measure/LABEL/measures.json, the run's whole record. A part already measured is read back,
@@ -12,7 +13,8 @@ stage commit). Each point is cloned with its history into ROOT/measure/LABEL/POI
 The base is the commit the run started from (ShipLoop: the harness's start_head; Ratchet: its `base` commit), and the
 starting files (for the seeded faults' "changed lines") are that commit's tree, exported to ROOT/measure/LABEL/fixture.
 
-The tools: the pilot's grade.py tree (held-out checks), mutate.py (seeded faults; --own-command for a case whose
+The tools: the pilot's grade.py tree (held-out checks; for roundtable, which grade.py has no grader of, this script's
+own `held-out`, run the same way), mutate.py (seeded faults; --own-command for a case whose
 tests run with `node --test`; with --manifest for Ratchet, so its acceptance suite is read too), baseline.py (ticket
 assignment's calibrated defects), and this folder's static.py and coverage.py. TMPDIR is a plain folder under ROOT
 for all of them (the macOS temporary folder is a symbolic link that path-watching tests trip on).
@@ -26,11 +28,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+import threading
 import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PILOT = HERE.parent / "ratchet-pilot-20261120"
+E2E = HERE.parents[2] / "test" / "shiploop_e2e"  # the harness grade.py reads (REPO/test/shiploop_e2e beside the pilot)
 sys.path.insert(0, str(PILOT))
 
 CASES = {
@@ -39,8 +44,11 @@ CASES = {
     "ticket-assignment": {"kinds": ["ticket-assignment"], "own": "npm test", "entries": ["src/server.js", "bin/tickets.js"],
                           "calibrated": True},
     "grokbot-local": {"kinds": ["grokbot", "grokbot2"], "own": "npm test", "entries": ["server.js"]},
+    "roundtable": {"kinds": ["roundtable", "roundtable-checks"], "own": "node --test", "entries": ["server.js"]},
 }
 PARTS = ("time", "tokens", "hidden", "static", "coverage", "mutation", "calibrated")
+HELD_OUT = ("roundtable", "roundtable-checks")  # held-out graders of this script's own (`held-out`), not grade.py's
+HELD_OUT_SECONDS = 1800  # the browser check's driver waits without a limit of its own: its groups are ended after this
 
 
 def git(*args, check=True) -> str:
@@ -110,8 +118,9 @@ class Run:
         target = self.folder / "fixture"
         if not target.exists():
             target.mkdir(parents=True)
-            archive = subprocess.run(["git", "-C", str(self.work), "archive", self.base], capture_output=True, check=True).stdout
-            subprocess.run(["tar", "-x", "-C", str(target)], input=archive, check=True)
+            if self.base:  # a ShipLoop run of a case that starts empty (roundtable) has no start commit: no starting files
+                archive = subprocess.run(["git", "-C", str(self.work), "archive", self.base], capture_output=True, check=True).stdout
+                subprocess.run(["tar", "-x", "-C", str(target)], input=archive, check=True)
         return target
 
     def cached(self, path: Path, again: bool):
@@ -187,9 +196,10 @@ class Run:
             path = self.folder / point / f"hidden-{kind}.json"
             row = self.cached(path, again)
             if row is None:
-                run_tool([sys.executable, str(PILOT / "grade.py"), "tree", kind, str(self.work), self.points[point], str(path)],
-                         self.env, self.log)
-                row = self.cached(path, False) or {"observed": False, "reason": "grade.py wrote no result"}
+                tool = ([sys.executable, str(Path(__file__).resolve()), "held-out"] if kind in HELD_OUT
+                        else [sys.executable, str(PILOT / "grade.py"), "tree"])
+                run_tool(tool + [kind, str(self.work), self.points[point], str(path)], self.env, self.log)
+                row = self.cached(path, False) or {"observed": False, "reason": f"{Path(tool[1]).name} wrote no result"}
             rows[kind] = {"observed": row.get("observed"), "passed": len(row.get("passed") or []),
                           "failed": sorted(row.get("failed") or {}), "of": len(row.get("passed") or []) + len(row.get("failed") or {}),
                           **({"stated": row["stated"], "implied": row["implied"]} if row.get("stated") else {})}
@@ -341,7 +351,89 @@ def summarize_calibrated(row: dict) -> dict:
             "test_files": row.get("test_files")}
 
 
+def held_out(kind: str, work: str, commit: str, out: str) -> None:
+    """KIND's held-out checks on COMMIT of WORK, written to OUT in the shape grade.py's `tree` writes, for a case grade.py
+    has no grader of. As grade.py's grade_tree, the commit's files are exported and Ratchet's own folders removed first.
+
+    roundtable         the harness's held-out check of the case (its cases.json quality.acceptance: roundtable_accept's
+                       `conversation`, a browser driving the page), run by the harness's own quality.acceptance, as
+                       grade.py runs ticket assignment's, with grade.py's Playwright and browser
+    roundtable-checks  the harness case's own checks (the pass-count `node --test`; the page and the local agent
+                       endpoint, serve.py with roundtable_contract.py api), each run as the harness runs a check, a shell
+                       line in the copy with E2E_CHECKS set, as grade.py's battleship kind runs that case's. The Ratchet
+                       arm's gate runs only the first, so the second is held out from that arm and not from ShipLoop's
+                       harness, whose verdict includes it
+    """
+    import grade  # the pilot's: its apparatus folders and this machine's Playwright and browser
+    sys.path.insert(0, str(E2E))
+    import listeners
+    import quality
+    case = json.loads((E2E / "cases.json").read_text())["roundtable"]
+    scratch = Path(tempfile.mkdtemp(prefix="held-out-"))
+    copy = scratch / "copy"
+    copy.mkdir()
+    try:
+        archive = subprocess.run(["git", "-C", work, "archive", commit], capture_output=True, check=True).stdout
+        subprocess.run(["tar", "-x", "-C", str(copy)], input=archive, check=True)
+        for name in grade.APPARATUS:  # a check that runs `node --test` must see the delivery's tests only
+            shutil.rmtree(copy / name, ignore_errors=True)
+        if kind == "roundtable":
+            os.environ.setdefault("PLAYWRIGHT_NODE_PATH", grade.PLAYWRIGHT)
+            os.environ.setdefault("BROWSER_EXECUTABLE_PATH", grade.BROWSER)
+            groups, ended = set(), []
+
+            def end_groups():  # this process's own children only: the groups quality.acceptance registered
+                ended.extend(pid for pid in groups.copy() if listeners.end_group(pid))
+
+            timer = threading.Timer(HELD_OUT_SECONDS, end_groups)
+            timer.start()
+            try:
+                spec = case["quality"]
+                found = quality.acceptance(copy, spec["acceptance"], groups=groups, stop=lambda: None, logs=scratch / "logs",
+                                           ports=list(spec.get("refuse_ports") or []))
+            finally:
+                timer.cancel()
+            rows = found.get("checks") or []
+            result = {"observed": bool(found.get("observed")), "reason": found.get("reason"),
+                      "passed": [row["id"] for row in rows if row.get("pass")],
+                      "failed": {row["id"]: row.get("note") for row in rows if not row.get("pass")}}
+            if ended:
+                result.update(observed=False, reason=f"ended after {HELD_OUT_SECONDS} s; {result['reason'] or ''}".strip("; "))
+        elif kind == "roundtable-checks":
+            names = ("own-tests", "page-and-agent")
+            passed, failed = [], {}
+            for index, command in enumerate(case["checks"]):
+                name = names[index] if len(case["checks"]) == len(names) else f"check-{index + 1}"
+                try:
+                    done = subprocess.run(command, shell=True, cwd=copy, capture_output=True, stdin=subprocess.DEVNULL,
+                                          text=True, timeout=300, env=dict(os.environ, E2E_CHECKS=str(E2E / "checks")),
+                                          check=False)
+                    ok, note = done.returncode == 0, (done.stdout + done.stderr).strip()[-240:]
+                except subprocess.TimeoutExpired:
+                    ok, note = False, "timed out after 300 s"
+                if ok:
+                    passed.append(name)
+                else:
+                    failed[name] = note
+            result = {"observed": True, "reason": None, "passed": passed, "failed": failed}
+        else:
+            raise SystemExit(f"no held-out grader of this script named {kind!r}: {', '.join(HELD_OUT)}")
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        result = {"observed": False, "reason": f"{type(error).__name__}: {error}"[:300]}
+    finally:
+        listeners.reap(scratch)  # a server a check or a test left listening in the copy
+        shutil.rmtree(scratch, ignore_errors=True)
+    resolved = subprocess.run(["git", "-C", work, "rev-parse", commit], capture_output=True, text=True, check=False).stdout.strip()
+    Path(out).write_text(json.dumps(dict(result, kind=kind, work=str(Path(work).resolve()), commit=resolved), indent=1) + "\n")
+    print(f"{Path(work).resolve().parent.name:<34}{kind:<18}passed {len(result.get('passed') or []):>2}  "
+          f"failed {sorted(result.get('failed') or {})}" + ("" if result.get("observed") else f"  (not observed: {result.get('reason')})"))
+
+
 def main(argv=None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if len(argv) == 5 and argv[0] == "held-out":  # held-out KIND WORK COMMIT OUT.json: run by hidden_part
+        held_out(*argv[1:])
+        return 0
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("root", type=Path)
     parser.add_argument("label")

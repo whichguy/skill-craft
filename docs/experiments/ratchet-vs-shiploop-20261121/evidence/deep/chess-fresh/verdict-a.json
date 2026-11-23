@@ -1,0 +1,51 @@
+{"pairs": [
+ {"pair": "Y-Z", "better": "Y-some",
+  "advantages": [
+   {"of": "Y", "what": "The error contract is written down for the caller: malformed FENs throw 'Invalid FEN: <reason>', whitespace is accepted, impossible positions are answered, applyMove needs exact lowercase UCI, IllegalMoveError's name and shape, and how inconsistent castling or en-passant fields are treated. Z says none of this.", "ref": "U-1, U-3, U-4, U-5 (Y told yes, Z told no)", "matters_to": "requester"},
+   {"of": "Y", "what": "Its tests cover the invalid-FEN path: 13 malformed FENs through all three functions, with the error class asserted. Z has no invalid-FEN or non-string-move test, so nothing guards its validation.", "ref": "U-12", "matters_to": "maintainer"},
+   {"of": "Y", "what": "Its move-count tests go to depth 3 (start, Kiwipete, position 3). Z's stop at depth 2 on two positions, which, by its own audit, would miss a depth-3 regression.", "ref": "U-9, S-37, Z maintainer note", "matters_to": "maintainer"},
+   {"of": "Y", "what": "Removing the IllegalMoveError export fails a test (TC-9). In Z the suite stays green.", "ref": "S-17", "matters_to": "maintainer"},
+   {"of": "Z", "what": "It rejects positions with no king or two kings of one colour. Y accepts them and answers, e.g. 'stalemate' for a board with no kings, though it documents this and the request allows it.", "ref": "U-1", "matters_to": "operator"},
+   {"of": "Z", "what": "More en-passant edge tests (sole escape, shared target with pins) and a README note that repetition and 50-move draws are left to the caller.", "ref": "S-34, Z extras README", "matters_to": "maintainer"},
+   {"of": "Z", "what": "Cost: it ships an undocumented acceptance/ harness that npm test does not run, which a maintainer must understand or delete.", "ref": "Z extras acceptance/", "matters_to": "maintainer"},
+   {"of": "Y", "what": "Cost: TC-9 pins the choice of a plain Error with an 'Invalid FEN' message prefix, which another correct build could fail.", "ref": "Y tests_notes", "matters_to": "maintainer"}
+  ],
+  "lesser_lacks": [
+   "Document in the README the invalid-FEN errors, the whitespace tolerance, the exact-UCI rule for applyMove, IllegalMoveError's shape and how inconsistent castling and en-passant fields are treated",
+   "Add tests that pass malformed FENs and non-string moves and assert the error thrown",
+   "Add depth-3 perft assertions for the start position and Kiwipete",
+   "Make the exported-class check fail when the export is missing (e.g. assert typeof IllegalMoveError === 'function')",
+   "Remove or document the acceptance/ harness"
+  ],
+  "one_task_closes": "yes",
+  "why": "Both engines are correct on every rule and perft count and both validate malformed FENs. Y also tells the caller its error contract and tests both error paths and deeper move counts. Z's one runtime edge, rejecting kingless boards, is small, so the gap is documentation and tests that one short task closes."},
+ {"pair": "Y-X", "better": "Y-some",
+  "advantages": [
+   {"of": "Y", "what": "Malformed FENs are rejected with a descriptive 'Invalid FEN: <reason>' error. X gives confident wrong answers: side 'x' gives status 'stalemate', and an unknown piece letter or a 9-square rank is echoed back into a new FEN.", "ref": "D-1", "matters_to": "operator"},
+   {"of": "Y", "what": "Garbage input gets a message that names the problem. In X it surfaces as internal TypeErrors ('ranks[rank] is not iterable', BigInt conversion).", "ref": "D-2", "matters_to": "operator"},
+   {"of": "Y", "what": "Its tests cover invalid FENs and catch a missing IllegalMoveError export. X has no invalid-FEN test, and its suite stays green with the export removed.", "ref": "U-12, S-17", "matters_to": "maintainer"},
+   {"of": "Y", "what": "The README tells the caller about input handling, impossible positions, exact-UCI moves and the error's shape. X's README covers only the API.", "ref": "U-1, U-3, U-4, U-5 told", "matters_to": "requester"}
+  ],
+  "lesser_lacks": [
+   "Validate all six FEN fields in parseFen and throw a descriptive error, keeping the whitespace tolerance",
+   "Add tests that pass malformed FENs and assert the error",
+   "Document the input and error behaviour in the README",
+   "Make the exported-class check fail when the export is missing"
+  ],
+  "one_task_closes": "yes",
+  "why": "Rules, perft counts, tests of the named subjects and performance are equivalent. X's real defect is that a malformed FEN gets a confident wrong answer instead of an error, and its error contract is neither tested nor documented. Adding validation in parseFen with tests and a README note is a short, contained task."},
+ {"pair": "X-Z", "better": "Z-some",
+  "advantages": [
+   {"of": "Z", "what": "Malformed FENs and boards without exactly one king per colour throw descriptive errors. X answers malformed FENs confidently and wrongly.", "ref": "D-1", "matters_to": "operator"},
+   {"of": "Z", "what": "Non-string and garbage FENs get 'Expected a FEN string' or 'Invalid FEN ...'. X surfaces internal TypeErrors.", "ref": "D-2", "matters_to": "operator"},
+   {"of": "X", "what": "Its move-count tests go to depth 3 on three standard positions. Z's stop at depth 2 on two.", "ref": "U-9, S-37", "matters_to": "maintainer"},
+   {"of": "Z", "what": "The README says a saved FEN can be reused and that draws by repetition or the 50-move rule are left to the caller.", "ref": "U-11 told, Z extras README", "matters_to": "requester"},
+   {"of": "Z", "what": "Cost: it ships an undocumented acceptance/ harness that npm test does not run.", "ref": "Z extras acceptance/", "matters_to": "maintainer"}
+  ],
+  "lesser_lacks": [
+   "Validate the FEN in parseFen (field count, ranks, piece letters, side to move, castling, en-passant and counters) and throw a descriptive error",
+   "Add a test for invalid FEN input"
+  ],
+  "one_task_closes": "yes",
+  "why": "Both are correct engines with comparable tests, and neither tests invalid FENs. Z validates its input while X gives confident wrong answers for malformed FENs, a medium defect the operator would meet. X's deeper perft tests and Z's shipped acceptance clutter partly offset this, and one validation task in X closes the gap."}
+]}

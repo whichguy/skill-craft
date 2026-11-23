@@ -1,0 +1,140 @@
+{
+ "told": [
+  {
+   "id": "U-1",
+   "results": {
+    "p5bfa3a": {
+     "told": "yes",
+     "where": "README.md: \"Anything else, or a value that is not a string, throws the `Invalid FEN:` error.\" / \"A board with no king, two kings of one color, a pawn on the first or last rank, or the side not to move in check is accepted and answered for (for example, a board with no white king and white to move reports `stalemate`).\" / \"Leading and trailing whitespace, and any run of spaces, tabs or newlines between fields, are accepted.\""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-3",
+   "results": {
+    "p5bfa3a": {
+     "told": "yes",
+     "where": "README.md: \"`applyMove` needs the exact move string, such as `e2e4` or `e7e8q`. Leading or trailing whitespace, upper case, or a value that is not a string throws `IllegalMoveError`.\""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-4",
+   "results": {
+    "p5bfa3a": {
+     "told": "yes",
+     "where": "README.md: \"`IllegalMoveError` (exported class, `name` is `'IllegalMoveError'`): thrown by `applyMove` when the move is not a legal move in the position, including a move string that is not lowercase UCI or is not a string.\""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-5",
+   "results": {
+    "p5bfa3a": {
+     "told": "yes",
+     "where": "README.md: \"A castling right whose king or rook is not on its home square is accepted and kept in the FEN `applyMove` returns, unless the move removes it, but it never produces a castling move. An en-passant square that no pawn can capture to is accepted, gives no capture, and is not carried into the FEN `applyMove` returns.\""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-7",
+   "results": {
+    "p5bfa3a": {
+     "told": "no",
+     "where": ""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  },
+  {
+   "id": "U-9",
+   "results": {
+    "p5bfa3a": {
+     "told": "no",
+     "where": ""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "yes",
+     "where": "README.md: \"This invokes `node --test` and includes played games, special moves, and move counts for the starting position and Kiwipete.\""
+    }
+   }
+  },
+  {
+   "id": "U-11",
+   "results": {
+    "p5bfa3a": {
+     "told": "no",
+     "where": ""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "yes",
+     "where": "README.md: \"Each call takes the complete position as a six-field FEN string, so callers can keep and reuse earlier positions.\""
+    }
+   }
+  },
+  {
+   "id": "U-12",
+   "results": {
+    "p5bfa3a": {
+     "told": "no",
+     "where": ""
+    },
+    "p762312": {
+     "told": "no",
+     "where": ""
+    },
+    "p5c7b34": {
+     "told": "no",
+     "where": ""
+    }
+   }
+  }
+ ]
+}

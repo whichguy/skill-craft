@@ -1,0 +1,43 @@
+run folders read: 6; whose discovery packet asked for the platform guide: 6
+
+run | case | host model effort | ShipLoop | status | targets section says | linked | opened (stage) | shown: card own-lines given of all (basis)
+e2e-runs-pk/20261122-d/d01 | custom | codex gpt-6.2-sol medium | 2.6.0 | done | cards: harbor | harbor | harbor (discovery) | harbor 31 of 31 (session record)
+e2e-runs-pk/20261122-d/d02 | custom | claude claude-sonnet-5-5 medium | 2.6.0 | done | cards: harbor | harbor | harbor (intake) | harbor 31 of 31 (tool results)
+e2e-runs-pk/20261122-d/d03 | custom | codex gpt-6.2-sol medium | 2.6.0 | done | nothing said | - | harbor (discovery) | harbor 31 of 31 (session record)
+e2e-runs-pk/20261122-d/d04 | custom | claude claude-sonnet-5-5 medium | 2.6.0 | done | cards: harbor | - | harbor (discovery) | harbor 31 of 31 (tool results)
+e2e-runs-pk/20261122-d/d05 | custom | codex gpt-6.2-sol medium | 2.6.0 | done | nothing said | - | - | - (session record)
+e2e-runs-pk/20261122-d/d06 | custom | claude claude-sonnet-5-5 medium | 2.6.0 | done | nothing said | - | - | - (tool results)
+
+== of the 6 asked runs, 6 delivered a docs/shiploop/environment.md
+   targets section: cards: 3 of 6
+   targets section: none: 0 of 6
+   targets section: nothing said: 3 of 6
+== of the 3 runs that named a card
+   the script printed its testing link: 2 of 3
+   the model was given that link line: 1 of 3
+   the builder opened a named card: 3 of 3
+   the model was given at least one own line of a named card: 3 of 3
+   share of a named card's own lines given, where any: median 100% (100% to 100%; 3 cards)
+== of all 6 asked runs
+   the builder opened any card: 4 of 6
+   the model was given an own line of any card: 4 of 6
+
+   the file names a card anywhere, not only in the targets section: 3 of 6
+   the file mentions a platform guide or card anywhere: 4 of 6
+
+== by model family, runs with a delivered environment.md: runs | named a card | said none | nothing said | opened any card | given any card line
+   sol | 3 | 1 | 0 | 2 | 2 | 2
+   sonnet | 3 | 2 | 0 | 1 | 2 | 2
+
+== stage of the first open of each card, all asked runs: discovery 3, intake 1
+
+== by host: runs | named a card | said none | opened any card | given any card line
+   claude | 3 | 2 | 0 | 2 | 2
+   codex | 3 | 1 | 0 | 2 | 2
+== by case: runs | named a card | said none | opened any card | given any card line
+   custom | 6 | 3 | 0 | 4 | 4
+
+card | runs that named it | opened it | were given a line of it
+   harbor | 3 | 4 | 4
+
+what the targets section says about the platform guide, first such line of each run that names no card:

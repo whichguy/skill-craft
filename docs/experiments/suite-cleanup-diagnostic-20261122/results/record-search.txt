@@ -1,0 +1,49 @@
+Earlier sightings: has a real run ever printed the runner's cleanup record? Searched 2026-11-22.
+
+The runner (test/run_suites.py) formats the record as `signal <n>: PermissionError; group cleanup unconfirmed`. The source holds
+`signal {sig}: PermissionError`, so the text with a number exists only in a run's output (or in a quote of one).
+
+1. Claude session records: ~/.claude/projects, every project, *.jsonl, 13 GB (LC_ALL=C grep -rl -F).
+
+   needle                                         files other than this session's own record
+   signal 9: PermissionError                      0
+   signal 15: PermissionError                     0
+   suite dispatch cleanup failed                  0
+   leader still unreaped after bounded drain      0
+
+   (This session's own record holds the needles because it holds the search commands and the probe's output.)
+
+2. Codex session records: ~/.codex/sessions, 3.1 GB.
+
+   needle                                         files
+   signal 9: PermissionError                      2
+   signal 15: PermissionError                     0
+   suite dispatch cleanup failed                  9   (source text, diffs and file reads only; no session shows it as a run's output)
+   failure or uncertainty during bounded cleanup  25  (a run's output in 2, which are one run; the other 23 are source, diffs, scripts or
+                                                      quotes of the commit message of 88cfb703b)
+
+   The two files with `signal 9: PermissionError` are one run and a review session that was shown its transcript
+   (sessions/2026/11/18/rollout-2026-11-18T02-42-44-01a1ee40-...jsonl and rollout-2026-11-18T02-47-28-01a1ee44-...jsonl):
+
+   - 2026-11-18, 11:07:48 to 11:13:16 UTC (03:07 to 03:13 local), `bash test/run-all.sh --group quick --changed-from 95670c1b0f1c...`
+     (82 suites selected, no --output, so no receipt) in a clone at release 3.1.0, started by a `codex exec --sandbox workspace-write`
+     worker, so inside a Seatbelt sandbox.
+   - In that sandbox `/bin/ps` could not be started (`PermissionError: [Errno 1] Operation not permitted: 'ps'`, 8 times in the log),
+     a loopback bind was refused, and `security create-keychain` failed.
+   - All 23 suites that had reported when the run was stopped carry `cleanup: signal 9: PermissionError; group cleanup unconfirmed`
+     and `FAIL <id>`: 18 whose own tests had passed (for example `shiploop-no-model-launch`, "Ran 10 tests in 8.806s OK"), 4 whose own
+     tests failed on what the sandbox refused, and 1 node suite that printed nothing.
+   - The session wrote "the sandbox cannot inspect or signal test processes. That environment cannot provide a valid full-suite result",
+     stopped the run, and ran the tier again outside that sandbox three times: 82 suites, 79 passed and 3 failed for other reasons;
+     82 of 82; 82 of 82. No cleanup line in any of the three. Its commit ed1b57ab46c8f439c2eaeece8823288da6a70cc0 says the first attempt
+     ran "inside an incompatible workspace sandbox".
+   - The log still exists: ~/.codex/visualizations/2026/11/18/01a1ee40-761f-7933-b07a-bfd23d3b3f83/salesforce-grokbot-e2e/tests-sol62/
+     02-quick.stderr.log (292,335 bytes).
+
+   The one run that printed `failure or uncertainty during bounded cleanup`: 2026-11-16 04:51 UTC, `/usr/bin/python3 -B
+   test/test-groups.test.py` (stock Python 3.9.6) on the candidate of 88cfb703b, mid-dots, "Ran 78 tests in 34.436s OK". It is the
+   sighting that commit's message records and left unconfirmed.
+
+Read by: the two greps above (main session) and a read-only Opus agent that read the two Codex records and the run's log.
+Not determined: whether the EPERM in the sandboxed run was the ordinary macOS answer for a group that holds only a zombie or a refusal by
+the sandbox; with `ps` unable to start, the runner could not have confirmed either. The sandbox's exact policy was not recorded.

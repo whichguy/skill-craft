@@ -1,0 +1,10 @@
+{"slice": "s09", "score": 3, "rules": ["SLOT", "BLOB", "SCAN"], "quotes": {"SLOT": "peated starts for a scheduled slot overwrite one complete blob.\", \"id\": \"", "BLOB": "ds are read only. Key the CSV blob by slot and retain seven days.\", \"id\": \"state\", ", "SCAN": "Use Harbor scheduler, config, cursor scan, blob storage and structured "}}
+{"slice": "s10", "score": 2, "rules": ["BLOB", "SCAN"], "quotes": {"BLOB": "\": \"Reports are kept 30 days (keep_days=30), one blob per date\", \"disposition\": \"op", "SCAN": "\" }, { \"assumption\": \"records.scan pages at 500 so ~1,200 items need "}}
+{"slice": "s11", "score": 4, "rules": ["JOB", "SLOT", "BLOB", "SCAN"], "quotes": {"JOB": "BLOB/H-SCAN/H-CONFIG. Declare jobs.low_stock_report at 02:00 UTC with 60-second maximum and config.low_stock_", "SLOT": "der, header-only output, same-slot replacement and different-slot reten", "BLOB": "p the UTF-8 CSV in the Harbor blob store seven days (H-BLOB).\", \"id\": \"platform-s", "SCAN": "aginated inventory reads. The scan covers the store beyond the platform's first 500 records. The standard-library"}}
+{"slice": "s12", "score": 4, "rules": ["SLOT", "BLOB", "SCAN", "CONFIG"], "quotes": {"SLOT": "ision\": \"double start for one slot overwrites the same blob name; test ca", "BLOB": "\"The report is delivered as a blob in the Harbor blob store (30 days); no email or file share.\", \"", "SCAN": "applies\": \"yes\", \"decision\": \"scan pages to the end; test with 1,200 ", "CONFIG": "cision\": \"low_stock_threshold declared under [config], default 10; test that changi"}}
+
+slice | score | rules
+s09 | 3 | SLOT BLOB SCAN
+s10 | 2 | BLOB SCAN
+s11 | 4 | JOB SLOT BLOB SCAN
+s12 | 4 | SLOT BLOB SCAN CONFIG

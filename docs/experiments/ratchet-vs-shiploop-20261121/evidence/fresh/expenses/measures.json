@@ -1,0 +1,73 @@
+{
+ "label": "expenses-2",
+ "arm": "ratchet",
+ "case": "shared-expenses",
+ "base": "46aab148543874cd181dbdd269c89f681fafa7c5",
+ "points": {
+  "first-build": "08464a6d723faf307bad55fc87ebdfadfe9970d6",
+  "final": "434f8460cd8dae6834ef65c19dd5dc9c6df7ac65"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 47.4,
+  "seconds": 2845.8,
+  "first_build_minutes": 9.4,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 13,
+  "final_pass": true,
+  "clauses": 50,
+  "seconds_by_role": {
+   "spec": 152.5,
+   "plan": 448.9,
+   "build": 647.1,
+   "tests": 930.4,
+   "delta": 531.5
+  },
+  "finished": "2026-11-22T11:31:31-0800"
+ },
+ "tokens": {
+  "rollouts": 13,
+  "counted": 13,
+  "input": 7389540,
+  "cached": 6733056,
+  "output": 113490,
+  "reasoning": 29150,
+  "total": 7503030,
+  "uncached_input": 656484,
+  "first_build": {
+   "input": 940782,
+   "cached": 842880,
+   "output": 25400,
+   "reasoning": 5197
+  }
+ },
+ "measured_points": {
+  "first-build": "08464a6d723faf307bad55fc87ebdfadfe9970d6",
+  "final": "434f8460cd8dae6834ef65c19dd5dc9c6df7ac65"
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "expenses": {
+     "observed": true,
+     "passed": 6,
+     "failed": [],
+     "of": 6
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "expenses": {
+     "observed": true,
+     "passed": 6,
+     "failed": [],
+     "of": 6
+    }
+   }
+  }
+ }
+}

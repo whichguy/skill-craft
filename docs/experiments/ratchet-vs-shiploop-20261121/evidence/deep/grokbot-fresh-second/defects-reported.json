@@ -1,0 +1,415 @@
+{
+ "recheck": [
+  {
+   "id": "U-15",
+   "kind": "unstated",
+   "text": "What Save instruction or Save task does when the name already exists and Edit was not used, or when the name or text is empty.",
+   "audits_said": {
+    "p51b1ee": "sound",
+    "p23866a": "poor",
+    "pa8edb8": "sound"
+   }
+  },
+  {
+   "id": "U-21",
+   "kind": "unstated",
+   "text": "What Retry does after a reload or a server restart, what happens to a failed message if I send a new one instead, and whether a reply interrupted by stopping the server is retried automatically.",
+   "audits_said": {
+    "p51b1ee": "sound",
+    "p23866a": "poor",
+    "pa8edb8": "sound"
+   }
+  },
+  {
+   "id": "U-39",
+   "kind": "unstated",
+   "text": "What `add step:` does when no task is running in the conversation, or when several are (including several with the same title), and whether the feedback identifies which task received the step.",
+   "audits_said": {
+    "p51b1ee": "poor",
+    "p23866a": "poor",
+    "pa8edb8": "sound"
+   }
+  },
+  {
+   "id": "U-44",
+   "kind": "unstated",
+   "text": "What counts as 'being away' for the Since you were away region, which events it reports, and when reported items stop appearing.",
+   "audits_said": {
+    "p51b1ee": "sound",
+    "p23866a": "poor",
+    "pa8edb8": "acceptable"
+   }
+  },
+  {
+   "id": "U-46",
+   "kind": "unstated",
+   "text": "What the app does when DATA_DIR is missing, unwritable, or holds damaged or unexpected data at start.",
+   "audits_said": {
+    "p51b1ee": "poor",
+    "p23866a": "poor",
+    "pa8edb8": "sound"
+   }
+  },
+  {
+   "id": "U-50",
+   "kind": "unstated",
+   "text": "Whether a lookup or change keeps the record identifier the person typed (for example ORD-1001A while ORD-1001 exists).",
+   "audits_said": {
+    "p51b1ee": "poor",
+    "p23866a": "poor",
+    "pa8edb8": "acceptable"
+   }
+  },
+  {
+   "id": "U-54",
+   "kind": "unstated",
+   "text": "What happens when storage writes fail while the app is open: whether the outcome of the save (or of a reply) is reported truthfully and recoverable.",
+   "audits_said": {
+    "p51b1ee": "poor",
+    "p23866a": "poor",
+    "pa8edb8": "sound"
+   }
+  },
+  {
+   "id": "U-57",
+   "kind": "unstated",
+   "text": "Whether one unexpected failure in background work takes down the whole app.",
+   "audits_said": {
+    "p51b1ee": "sound",
+    "p23866a": "poor",
+    "pa8edb8": "sound"
+   }
+  },
+  {
+   "id": "U-60",
+   "kind": "unstated",
+   "text": "Whether unexpected server errors are shown honestly to the person and recorded for the operator.",
+   "audits_said": {
+    "p51b1ee": "sound",
+    "p23866a": "poor",
+    "pa8edb8": "poor"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#1",
+   "title": "Conversations with the same 56-character opening cannot be told apart",
+   "severity": "medium",
+   "repro": "As Maya: send \"Please prepare the quarterly summary of all open orders for the customer named Northwind Traders\"; New conversation; send \"Please prepare the quarterly summary of all open orders for the customer named Southwind Partners\". Read the Conversations navigation (accessible names or visually).",
+   "observed": "Two buttons both named \"Please prepare the quarterly summary of all open orders\" with no detail (the detail is shown only when the latest message differs from the title).",
+   "expected": "Each entry identifiable before opening it (e.g. distinct title, time or the differing text).",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#2",
+   "title": "A reply that cannot be saved stays pending forever and blocks the conversation",
+   "severity": "medium",
+   "repro": "Start with DATA_DIR=d and a token; send \"hello [slow]\"; within 1.5 s run chmod 500 d; after 2 s chmod 700 d. Read the conversation and send another message.",
+   "observed": "The message stays \"preparing a reply\" indefinitely; sending returns 409 \"Wait for the current reply before sending again.\" until the server is restarted (then it becomes failed with Retry).",
+   "expected": "The reply is marked failed with a retry or storage-error message once it cannot be written, and the conversation stays usable.",
+   "basis": "unstated",
+   "item": "U-54"
+  },
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#3",
+   "title": "A typed id with extra characters is answered with another record's value",
+   "severity": "medium",
+   "repro": "As Maya send \"what is the status of ORD-1001A\".",
+   "observed": "\"The status of ORD-1001 is closed.\" (ORD-1001A does not exist).",
+   "expected": "A reply that ORD-1001A cannot be found and how to correct it.",
+   "basis": "unstated",
+   "item": "U-50"
+  },
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#4",
+   "title": "Duplicate bot names are indistinguishable",
+   "severity": "low",
+   "repro": "As Ana: New bot, Bot name \"Assistant\", Save bot name; read the Bots navigation.",
+   "observed": "Two buttons named \"Assistant\", visually identical.",
+   "expected": "Duplicates refused, or each bot distinguishable before selecting it.",
+   "basis": "unstated",
+   "item": "U-9"
+  },
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#5",
+   "title": "Forgetting a fact that is not remembered is reported as forgotten",
+   "severity": "low",
+   "repro": "Send \"remember that likes tea\", then \"forget tea\".",
+   "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no note; Memory still lists \"likes tea\".",
+   "expected": "The non-matching forget is flagged (or matched loosely and shown).",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#6",
+   "title": "Step choice between two tasks with the same title is ambiguous",
+   "severity": "low",
+   "repro": "In one conversation send \"long task: same [long]\" twice, then \"add step: extra\"; read the choice buttons and, after choosing, the note.",
+   "observed": "Buttons \"Add to same\" and \"Add to same\"; note \"Added “extra” to the end of same.\"",
+   "expected": "The choices and the feedback identify which task gets the step.",
+   "basis": "unstated",
+   "item": "U-39"
+  },
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#7",
+   "title": "Damaged data file stops the server with a raw stack trace and no recovery step",
+   "severity": "low",
+   "repro": "Write \"{not json\" to DATA_DIR/workspace.json and run node server.js; separately write {\"version\":1,\"users\":{},\"sessions\":{}} and send a message.",
+   "observed": "Exit 1 with \"SyntaxError: Expected property name...\" stack that does not name the file; the second case starts and every reply fails with \"The reply could not finish. Retry...\" and a log line about reading 'filter'.",
+   "expected": "A clear message naming the file and a recovery step; damaged data kept (it is).",
+   "basis": "unstated",
+   "item": "U-46"
+  },
+  {
+   "from": "p51b1ee",
+   "n": "p51b1ee#8",
+   "title": "Keyboard focus is lost after Save memory",
+   "severity": "low",
+   "repro": "Remember a fact, Edit memory, change Memory text, Tab to Save memory and press Enter; read document.activeElement.",
+   "observed": "BODY",
+   "expected": "Focus on the edited item, its Edit memory button or another nearby control.",
+   "basis": "unstated",
+   "item": "U-58"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#1",
+   "title": "Sending a new message after a failed reply hides the failure and disables its Retry",
+   "severity": "medium",
+   "repro": "Fresh data, valid token, Continue as Maya. Send \"hello [fail once]\"; the alert and Retry appear. Instead of Retry, send \"next\". Then POST /api/action {\"action\":\"retry\",\"id\":<id of the hello message>, botId, threadId}.",
+   "observed": "Transcript shows \"hello [fail once]\", \"next\", reply to next; no alert, no Retry button; the retry call returns 200 and the message stays failed with no reply.",
+   "expected": "The failed message stays marked as failed with a way to resend it, or the person is told to retry first.",
+   "basis": "unstated",
+   "item": "U-21"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#2",
+   "title": "A reply whose result cannot be saved stays pending forever and blocks the conversation after storage recovers",
+   "severity": "medium",
+   "repro": "Start the app, Continue as Maya, send \"hello [slow]\"; within 1 s run chmod 555 on DATA_DIR; wait 5 s; chmod 755 DATA_DIR; send \"another\" in the same conversation.",
+   "observed": "\"preparing a reply…\" remains indefinitely; the new send is refused with 409 \"Wait for the current reply before sending again.\" until the server is restarted, when the message becomes failed.",
+   "expected": "The reply is reported as failed (with Retry) when it cannot be saved, and the conversation is usable once storage works again.",
+   "basis": "unstated",
+   "item": "U-54"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#3",
+   "title": "A background task whose step cannot be saved keeps showing Running forever",
+   "severity": "medium",
+   "repro": "STANDIN_STEP_MS=1500. Send \"long task: rotest [long]\"; after 1 s chmod 555 DATA_DIR; wait 4 s; chmod 755 DATA_DIR; wait 3 s; read Task status.",
+   "observed": "Task status Running with 0 finished steps and Cancel task offered, never advancing; becomes Interrupted only after a server restart.",
+   "expected": "The task is marked Failed or Interrupted with Retry task, or resumes once storage works.",
+   "basis": "unstated",
+   "item": "U-57"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#4",
+   "title": "Conversations cannot be told apart in the Conversations navigation",
+   "severity": "medium",
+   "repro": "Click New conversation twice; then in two new conversations send \"Please look up the latest order details and status history for customer Northwind\" and \"...Southwind\". Read the Conversations buttons.",
+   "observed": "Three buttons named \"Untitled conversation\"; two buttons both named \"Please look up the latest order details and status histo\".",
+   "expected": "Each conversation identifiable before opening it.",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#5",
+   "title": "Bots with the same name are indistinguishable",
+   "severity": "low",
+   "repro": "Click New bot, Bot name \"Assistant\", Save bot name; read the Bots navigation.",
+   "observed": "Two buttons with text, title and accessible name \"Assistant\".",
+   "expected": "Duplicate refused, or each bot distinguishable before selecting it.",
+   "basis": "unstated",
+   "item": "U-9"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#6",
+   "title": "Forgetting something not remembered is reported as forgotten",
+   "severity": "low",
+   "repro": "Send \"remember that likes tea\", then \"forget tea\".",
+   "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no notice; Memory still lists \"likes tea\".",
+   "expected": "A notice that nothing matched, or the matching fact removed and shown.",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#7",
+   "title": "Saving an instruction or task under an existing name silently overwrites it",
+   "severity": "low",
+   "repro": "Save instruction A = \"x\"; without Edit, save instruction A = \"y\".",
+   "observed": "One entry A with text \"y\"; no notice that \"x\" was replaced.",
+   "expected": "Overwrite with a notice, refuse, or ask.",
+   "basis": "unstated",
+   "item": "U-15"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#8",
+   "title": "add step feedback does not identify which of several tasks received it",
+   "severity": "low",
+   "repro": "In one conversation send \"long task: same [long]\" twice, then \"add step: extra\"; read both Task: same articles.",
+   "observed": "Both articles identical (Running, \"Working in the background.\"); the receiving task's \"Added a step\" detail is overwritten within one step; bot text says only \"the task that is running\".",
+   "expected": "Feedback naming or marking the task that got the step.",
+   "basis": "unstated",
+   "item": "U-39"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#9",
+   "title": "Since you were away never changes after the person returns",
+   "severity": "low",
+   "repro": "Start and finish a task, reload several times, then start two more, close the tab until they end, reopen; reload again.",
+   "observed": "The region lists every task ever started (including ones seen before leaving), identical after each reload, never dismissed, no waiting proposals.",
+   "expected": "Reports what changed since the last visit, and reported items stop appearing after being read or a reload.",
+   "basis": "unstated",
+   "item": "U-44"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#10",
+   "title": "Damaged or unwritable data folder crashes the server with a raw stack trace",
+   "severity": "low",
+   "repro": "Write '{\"version\":1}' (or invalid JSON) to DATA_DIR/workspace.json and run node server.js; or point DATA_DIR at a folder with mode 555.",
+   "observed": "Exit 1 with an uncaught stack trace (TypeError in allThreads / SyntaxError in openStore / EACCES); no recovery advice.",
+   "expected": "A clear message naming the file and the recovery step, keeping the damaged file.",
+   "basis": "unstated",
+   "item": "U-46"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#11",
+   "title": "Unexpected errors are logged without any detail",
+   "severity": "low",
+   "repro": "chmod 555 DATA_DIR while the app runs and click Save instruction; read the server output.",
+   "observed": "Page: \"The workspace could not complete this action. Try again.\"; server output only \"Workspace operation failed.\"",
+   "expected": "Server output records the error (without the token); page says what to try.",
+   "basis": "unstated",
+   "item": "U-60"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#12",
+   "title": "Lookup of a nonexistent id with a valid prefix answers about another record",
+   "severity": "low",
+   "repro": "As Maya send \"what is the status of ORD-1001A\".",
+   "observed": "\"The status of ORD-1001 is open.\"",
+   "expected": "A reply that ORD-1001A cannot be found.",
+   "basis": "unstated",
+   "item": "U-50"
+  },
+  {
+   "from": "p23866a",
+   "n": "p23866a#13",
+   "title": "Focus is lost after Save memory",
+   "severity": "low",
+   "repro": "Remember a fact, Edit memory, change text, Tab to Save memory and press Enter; read document.activeElement.",
+   "observed": "Focus on the page body.",
+   "expected": "Focus on the updated item or a nearby control.",
+   "basis": "unstated",
+   "item": "U-58"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#1",
+   "title": "Since you were away keeps the step list from the moment of return while its status updates, so a task can read Completed beside only some of its steps",
+   "severity": "low",
+   "repro": "Start `STANDIN_STEP_MS=1500 node server.js` with a fresh DATA_DIR and a valid token. Continue as Ana, send `long task: report check [long]`, close the page, wait 4 s, open GET / again (same browser cookie). Read the region 'Since you were away', then leave the page open 10 s and read it again, and read the Tasks article 'Task: report check'.",
+   "observed": "At return: 'report check Running' with 3 Done steps (accurate). 10 s later the same region reads 'report check Completed' still listing only those 3 Done steps, while the Tasks article reads 'Completed 8 of 8 steps finished' with all 8.",
+   "expected": "The away account should agree with itself: either keep the status as at return, or update the finished steps along with the status (Completed with all 8 steps).",
+   "basis": "stated",
+   "item": "S-51"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#2",
+   "title": "Since you were away shows a task as Completed while listing only the steps finished before the return",
+   "severity": "low",
+   "repro": "STANDIN_STEP_MS=800, token saved. Continue as Maya, send \"long task: frozen [long]\", close the page within 0.5 s, open the app again in the same browser 2.2 s later, then leave it open ~7 s until the task finishes.",
+   "observed": "On return: Since you were away \"frozen | Running | Done: Collect... | Done: Compare... | Done: Check part 1 of frozen\" while the task card already showed 4 of 8. After the task finished: Since you were away \"frozen | Completed\" still listing only those 3 steps, while Task: frozen reads Completed, 8 of 8 steps finished.",
+   "expected": "The report's status and its list of finished steps describe the same moment (either both as of the return, or both current), so it does not read as a completed task with 3 steps done.",
+   "basis": "stated",
+   "item": "S-107"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#3",
+   "title": "The \"save a token first\" alert stays on screen after a token is saved",
+   "severity": "low",
+   "repro": "Fresh DATA_DIR, no PROVIDER_TOKEN. Continue as Maya, type \"hello before token\" in Message, Send. Then type sk-local-abcdefghijkl in Provider token and Save token.",
+   "observed": "After Send: alert \"Save a provider token in Setup to start chatting.\" (no message kept). After saving the token Setup disappears but that alert is still shown under the composer (observed 0.7 s after saving).",
+   "expected": "Once the token is saved, the stale instruction to save one is cleared (or replaced by confirmation).",
+   "basis": "stated",
+   "item": "S-57"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#4",
+   "title": "Empty conversations are named \"New conversation\", the same accessible name as the New conversation button",
+   "severity": "medium",
+   "repro": "Empty DATA_DIR, valid token. Open GET /, click Continue as Ana. Query buttons with accessible name exactly \"New conversation\" (e.g. Playwright page.getByRole(\"button\", {name: \"New conversation\", exact: true}).count()). Click the New conversation action twice and read the Conversations navigation.",
+   "observed": "Count is 2 on first entry (the empty open conversation and the action). After two clicks the navigation lists \"New conversation\" three times, all with the same accessible name as the action; a screen-reader user or a checker asking for the button named New conversation cannot tell the action from existing empty conversations.",
+   "expected": "Exactly one button named New conversation (the action), and each listed conversation identifiable before opening it.",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#5",
+   "title": "Conversations with similar long first messages get identical names",
+   "severity": "low",
+   "repro": "As Maya send \"Please look up the order history for the customer named Northwind Traders please\"; click New conversation; send \"Please look up the order history for the customer named Southwind Traders please\". Read the Conversations navigation.",
+   "observed": "Both buttons read \"Please look up the order history for the cust…\" (title cut to 45 characters).",
+   "expected": "Each conversation can be told apart before opening it (longer label, time, or a distinguishing suffix).",
+   "basis": "unstated",
+   "item": "U-11"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#6",
+   "title": "A long bot name typed in the page is silently cut to 80 characters",
+   "severity": "low",
+   "repro": "Click New bot, type a 300-character name into Bot name, click Save bot name.",
+   "observed": "The textbox accepts only 80 characters (maxlength=80) and the bot is saved with the first 80 characters, with no message.",
+   "expected": "A long name is refused with a message, kept intact, or shortened only for display.",
+   "basis": "unstated",
+   "item": "U-9"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#7",
+   "title": "A forget that matches nothing is reported as done",
+   "severity": "low",
+   "repro": "Send \"remember that likes tea\", then \"forget tea\". Read the reply and Memory.",
+   "observed": "Reply \"I've forgotten \\\"tea\\\".\" with no app notice; Memory still lists \"likes tea\". (The app does add notices for other ignored effects, such as add step with no running task.)",
+   "expected": "A notice that nothing matched (or a loose match shown), so the conversation does not claim a forget that did not happen.",
+   "basis": "unstated",
+   "item": "U-23"
+  },
+  {
+   "from": "pa8edb8",
+   "n": "pa8edb8#8",
+   "title": "Unexpected server errors are not recorded for the operator and are always blamed on storage",
+   "severity": "low",
+   "repro": "Start the service, Continue as Maya, then make DATA_DIR read-only (chmod 500) or rename it, and POST /api/action {action:\"saveInstruction\", name:\"X\", text:\"y\"}. Read the response and the service output.",
+   "observed": "503 \"The service could not save or load this request. Check the data directory and try again.\"; the service output contains only the startup line. The same 503 text is used for any non-rule error, whatever its cause.",
+   "expected": "The page says the action failed and what to try, and the service output records the error (without the token).",
+   "basis": "unstated",
+   "item": "U-60"
+  }
+ ]
+}

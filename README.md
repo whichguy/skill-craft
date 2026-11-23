@@ -30,7 +30,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**25 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**24 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
@@ -50,11 +50,10 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [prompt-audit](skills/prompt-audit/SKILL.md) | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a… |
 | [prompt-migrate](skills/prompt-migrate/SKILL.md) | 0.1.2 | TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain… |
 | [prompt-refine](skills/prompt-refine/SKILL.md) | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify… |
-| [pushpress](skills/pushpress/SKILL.md) | 0.1.1 | Sign in to and navigate PushPress Core, the gym-management system, through the owner's signed-in browser: members and leads, plans and billing, payments, class schedule and… |
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
 | [rubric-eval](skills/rubric-eval/SKILL.md) | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default), grade blind with one evidence-first judge, and decide by… |
-| [shiploop](skills/shiploop/SKILL.md) | 2.6.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact callback until the script reports completion with… |
+| [shiploop](skills/shiploop/SKILL.md) | 2.6.1 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact callback until the script reports completion with… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 2.0.0 | Run the continuous ShipLoop end-to-end improvement loop from a skill-craft source checkout: iterate ShipLoop on a real local case, evaluate behavior and workflow quality, decide… |
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.5.2 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |

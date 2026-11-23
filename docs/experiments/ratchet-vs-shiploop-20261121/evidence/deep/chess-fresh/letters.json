@@ -1,0 +1,28 @@
+{
+ "a": {
+  "letters": {
+   "p762312": "X",
+   "p5bfa3a": "Y",
+   "p5c7b34": "Z"
+  },
+  "pairs": [
+   "Y-Z",
+   "Y-X",
+   "X-Z"
+  ],
+  "characters": 82230
+ },
+ "b": {
+  "letters": {
+   "p5bfa3a": "X",
+   "p762312": "Y",
+   "p5c7b34": "Z"
+  },
+  "pairs": [
+   "X-Z",
+   "X-Y",
+   "Y-Z"
+  ],
+  "characters": 82230
+ }
+}

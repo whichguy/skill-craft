@@ -1,0 +1,39 @@
+{
+ "arm": "shiploop",
+ "case": "shared-expenses",
+ "label": "expenses-1",
+ "output": "/Users/dadleet/e2e-runs/d20261122-236b00/expenses-1",
+ "commit": "d5e259fb5a4c329c3f8a5579d97282bd9e70f371",
+ "shiploop_version": "2.6.0",
+ "host": "codex",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "argv": [
+  "/opt/homebrew/opt/python@3.15/bin/python3.15",
+  "/Users/dadleet/e2e-runs/d20261122-236b00/source-d5e259fb5a4c/test/shiploop_e2e/run.py",
+  "--source",
+  "checkout",
+  "--case",
+  "shared-expenses",
+  "--host",
+  "codex",
+  "--model",
+  "gpt-6.2-sol",
+  "--effort",
+  "medium",
+  "--output",
+  "/Users/dadleet/e2e-runs/d20261122-236b00/expenses-1",
+  "--baseline",
+  "/Users/dadleet/e2e-runs/d20261122-236b00/baselines.jsonl",
+  "--quiet"
+ ],
+ "attempts": [
+  {
+   "started": 1795381440.231512,
+   "ended": 1795382196.86694,
+   "returncode": 0,
+   "refused_by_lease": false
+  }
+ ],
+ "log": "/Users/dadleet/e2e-runs/d20261122-236b00/expenses-1.log"
+}

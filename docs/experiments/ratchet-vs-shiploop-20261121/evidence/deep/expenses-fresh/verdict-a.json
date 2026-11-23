@@ -1,0 +1,55 @@
+{"pairs": [
+{"pair": "Z-Y", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "Refuses whitespace-only member names; Y accepts \" \" as a real member who then appears in balances and settlements", "ref": "U-6", "matters_to": "requester"},
+  {"of": "Z", "what": "Leaner number handling (one reviver plus regex) than Y's regex re-parse that walks a second source tree in step with the parsed one", "ref": "Y maintainer note; Z maintainer note", "matters_to": "maintainer"},
+  {"of": "Z", "what": "No builder acceptance harness or working notes shipped in the product; Y's spec also states two clauses (C-48, C-50) the product does not meet", "ref": "Y extras (acceptance/*.cjs); Y spec_notes", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Fewer tests pinning one builder's choices (Y pins startup refusal, 0600 permissions, 500 on failed save, strict UTF-8, upload interleaving)", "ref": "Y tests_notes; Z tests_notes", "matters_to": "maintainer"},
+  {"of": "Z", "what": "Ids \".\" and \"..\" refused and the encodeURIComponent rule documented with an example", "ref": "U-4; Z extras", "matters_to": "operator"},
+  {"of": "Y", "what": "Amount check proved by its tests (cents <= 0 mutation fails a test); Z's TC-3 masks it", "ref": "S-22", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Startup validates the whole saved ledger and refuses an inconsistent file without touching it", "ref": "Y extras (loadGroups / validSavedGroup); U-10", "matters_to": "operator"},
+  {"of": "Y", "what": "README also covers aborted uploads, racing creates and numbering across restart", "ref": "U-35; U-15; U-16", "matters_to": "operator"},
+  {"of": "Y", "what": "Strict UTF-8 decoding of request bodies", "ref": "Y extras (readBody)", "matters_to": "no one"}
+ ],
+ "lesser_lacks": [
+  "Refuse member names that are empty after trimming whitespace, with a test",
+  "Remove the shipped acceptance harness and builder working notes from the product",
+  "Bring the spec's C-48 and C-50 in line with what the product does (or drop them)"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both meet every stated requirement and handle almost every unstated condition soundly, with READMEs of similar reach and the same two low defects. Y's one behavioural slip is accepting whitespace-only names as members, and its extra defences come with a heavier dual-tree number parser, choice-pinning tests, unmet spec clauses and shipped clutter. Its stronger amount test and ledger validation do not outweigh that for someone keeping it running."},
+{"pair": "Z-X", "better": "Z-some",
+ "advantages": [
+  {"of": "Z", "what": "README documents statuses, id encoding, duplicate-name collapse, share rules, crash-safe writes and startup behaviour; X tells the operator none of its choices", "ref": "U-1..U-10, U-21, U-25 told yes for Z, no for X", "matters_to": "operator"},
+  {"of": "Z", "what": "Corrupt DATA_FILE gives a clean exit-1 error and an empty file starts cleanly; X exits with a raw SyntaxError stack and also refuses an empty file", "ref": "U-10", "matters_to": "operator"},
+  {"of": "Z", "what": "Rejects fractional amounts that JSON.parse would round to whole cents (1.0000000000000001)", "ref": "S-23; Z extras", "matters_to": "requester"},
+  {"of": "Z", "what": "Ids \".\" and \"..\" refused so every accepted id stays addressable", "ref": "U-4; Z extras", "matters_to": "operator"},
+  {"of": "Z", "what": "Ten tests covering ids, number rounding and empty file versus X's six", "ref": "S-35; Z tests_notes; X tests_notes", "matters_to": "maintainer"},
+  {"of": "X", "what": "Slightly less code to carry (no symlink following, no reviver source check)", "ref": "Z extras (followLinks)", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Write a README stating endpoints, statuses and the open choices (duplicates, id encoding, share rules, crash safety, corrupt file)",
+  "Catch a corrupt DATA_FILE at startup and print a clear one-line error instead of a stack trace",
+  "Refuse ids \".\" and \"..\" and amounts written with fractional digits that round to whole numbers",
+  "Add tests for id encoding and number edge cases"
+ ],
+ "one_task_closes": "yes",
+ "why": "The behaviour is nearly identical: both meet every stated requirement, write atomically and share the same two low defects. Z tells the operator what it decided and handles the corrupt or empty data file more cleanly, while X documents nothing. The gap is documentation plus a few small edge checks, about an hour's work."},
+{"pair": "X-Y", "better": "Y-some",
+ "advantages": [
+  {"of": "Y", "what": "README documents malformed JSON, missing fields, id rules, share rules, missing/corrupt file, concurrency, aborted uploads and restart numbering; X documents nothing", "ref": "U-1, U-2, U-4, U-5, U-8..U-16, U-35 told yes for Y, no for X", "matters_to": "operator"},
+  {"of": "Y", "what": "Tests prove the amount check and cover failed saves, malformed and inconsistent snapshots and interrupted uploads; X's suite masks S-22/S-23 and tests none of those", "ref": "S-22; X tests_notes; Y tests_notes", "matters_to": "maintainer"},
+  {"of": "Y", "what": "Corrupt file refused with a clear error, and the whole saved ledger validated at startup", "ref": "U-10; Y extras", "matters_to": "operator"},
+  {"of": "Y", "what": "Exact whole-cent checks on the JSON text reject amounts JSON would round", "ref": "Y extras (wholeCents)", "matters_to": "requester"},
+  {"of": "X", "what": "Refuses whitespace-only member names; Y accepts \" \" as a member", "ref": "U-6", "matters_to": "requester"},
+  {"of": "X", "what": "Much simpler code with no dual-tree regex parser, no shipped acceptance harness or notes, and no tests pinning builder-only choices", "ref": "Y maintainer note; Y extras; Y tests_notes", "matters_to": "maintainer"}
+ ],
+ "lesser_lacks": [
+  "Write a README stating endpoints, statuses and the open choices",
+  "Catch a corrupt DATA_FILE at startup with a clear error message",
+  "Make the tests fail when the cents <= 0 or integer checks are weakened (pair bad amounts with otherwise valid bodies)",
+  "Add tests for corrupt data file, aborted body and group-creation race"
+ ],
+ "one_task_closes": "yes",
+ "why": "Both meet every stated requirement with sound concurrency and atomic writes, and share the two low defects. Y gives the operator a thorough README, a clean refusal of a damaged ledger and tests that actually catch the amount checks. X is simpler and handles whitespace-only names better, but its silence and weak tests leave the operator guessing. A README, one startup guard and a few tests would close it."}
+]}

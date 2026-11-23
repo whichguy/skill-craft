@@ -1,0 +1,71 @@
+{
+ "recheck": [
+  {
+   "id": "U-22",
+   "kind": "unstated",
+   "text": "Whether the documentation and release records describe the change: docs/api.md (endpoint, ticket field, filter, audit action, notification), README command-line columns, a CHANGELOG.md section with a version bump in package.json, and a decision record if a format or rule changed.",
+   "audits_said": {
+    "p28273b": "poor",
+    "p097740": "poor",
+    "pe7fbf9": "acceptable"
+   }
+  }
+ ],
+ "defects": [
+  {
+   "from": "p28273b",
+   "n": "p28273b#1",
+   "title": "Repeated status or priority parameters changed meaning: a second value now narrows to nothing or is refused, where the service used the first value",
+   "severity": "low",
+   "repro": "Start the service; POST /tickets {\"title\":\"a\",\"requester\":\"r@x\"}; GET /tickets?status=open&status=closed; GET /tickets?status=open&status=bogus",
+   "observed": "200 {\"items\":[],\"next\":null} and 400 invalid \"status must be one of ...\"",
+   "expected": "as before the change: the open ticket in both cases (the first value is used), or a documented change in the changelog; the request asked only for an assignee filter and that everything else keeps working",
+   "basis": "other",
+   "item": "S-18"
+  },
+  {
+   "from": "p28273b",
+   "n": "p28273b#2",
+   "title": "No changelog entry or version bump for the assignment feature",
+   "severity": "low",
+   "repro": "Read CHANGELOG.md and package.json in the delivered tree",
+   "observed": "CHANGELOG.md ends at 1.4.0 (2025-09-15) with nothing on assignment, the assignee filter, the CLI column or the status+priority filter fix; package.json version 1.4.0",
+   "expected": "a new changelog section and version describing the endpoint, field, filter, notification, raw column and the changed filter behaviour",
+   "basis": "unstated",
+   "item": "U-22"
+  },
+  {
+   "from": "p097740",
+   "n": "p097740#1",
+   "title": "An agent named '-' is shown exactly like an unassigned ticket in the CLI table and show",
+   "severity": "low",
+   "repro": "Start the service with DATA_FILE=FILE; POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; PUT /tickets/T-0001/assignee {\"assignee\":\"-\"} (200); POST a second ticket and leave it unassigned; run `node bin/tickets.js --data FILE list` and `show T-0001`.",
+   "observed": "Both tickets show '-' in the ASSIGNEE column; show T-0001 prints 'assignee   -', the same as an unassigned ticket.",
+   "expected": "An assigned ticket and an unassigned one are distinguishable in the listing (either refuse '-' as a name or use a marker no valid name can take).",
+   "basis": "unstated",
+   "item": "U-17"
+  },
+  {
+   "from": "p097740",
+   "n": "p097740#2",
+   "title": "A name holding an invalid UTF-8 byte is accepted and stored with a replacement character",
+   "severity": "low",
+   "repro": "POST /tickets {\"title\":\"t\",\"requester\":\"r\"}; send PUT /tickets/T-0001/assignee with body bytes {\"assignee\":\"da<0xFF>na\"} (e.g. printf '{\"assignee\":\"da\\xffna\"}' > b.json; curl -X PUT --data-binary @b.json ...).",
+   "observed": "200; assignee stored, audited and notified as 'da\\uFFFDna'.",
+   "expected": "400 invalid with the ticket unchanged (the service's existing POST /tickets behaves the same way for titles, so this is inherited from readJson).",
+   "basis": "unstated",
+   "item": "U-2"
+  },
+  {
+   "from": "p097740",
+   "n": "p097740#3",
+   "title": "No changelog entry or version bump for the assignment feature",
+   "severity": "low",
+   "repro": "Read CHANGELOG.md and package.json in the delivered tree.",
+   "observed": "CHANGELOG.md's newest section is still 1.4.0 (2025-09-15) and package.json version is 1.4.0; nothing mentions assignment.",
+   "expected": "A new CHANGELOG section describing the assignee endpoint, field, filter, notification and CLI column, with a matching version in package.json.",
+   "basis": "unstated",
+   "item": "U-22"
+  }
+ ]
+}

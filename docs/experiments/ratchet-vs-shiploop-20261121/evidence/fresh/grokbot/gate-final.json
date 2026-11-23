@@ -1,0 +1,2078 @@
+{
+ "restored": [],
+ "restored_during": [],
+ "clauses": {
+  "U-1": {
+   "command": "ACCEPTANCE_ITEM=U-1 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 6.7,
+   "tail": [
+    "\u2714 U-1 an operator starts the app, resumes saved work and starts fresh with an empty state folder (6356.050334ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 6597.829584"
+   ]
+  },
+  "U-2": {
+   "command": "ACCEPTANCE_ITEM=U-2 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.8,
+   "tail": [
+    "\u2714 U-2 a first-time user selects an identity, reloads and switches back to the chooser (1475.573166ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1719.128875"
+   ]
+  },
+  "U-3": {
+   "command": "ACCEPTANCE_ITEM=U-3 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.3,
+   "tail": [
+    "\u2714 U-3 an operator recovers from refused setup, saves a token and chats after restart (2982.871292ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3224.5385"
+   ]
+  },
+  "U-4": {
+   "command": "ACCEPTANCE_ITEM=U-4 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.5,
+   "tail": [
+    "\u2714 U-4 a person creates and renames bots, navigates discussions and returns to earlier work (2175.570083ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2416.2975"
+   ]
+  },
+  "U-5": {
+   "command": "ACCEPTANCE_ITEM=U-5 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.0,
+   "tail": [
+    "\u2714 U-5 a person composes multiline chat, follows up and retries a failed reply in place (3642.069292ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3881.691958"
+   ]
+  },
+  "U-6": {
+   "command": "ACCEPTANCE_ITEM=U-6 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.1,
+   "tail": [
+    "\u2714 U-6 a person saves, edits, uses or runs, and deletes reusable materials across discussions (1794.443042ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2045.987834"
+   ]
+  },
+  "U-7": {
+   "command": "ACCEPTANCE_ITEM=U-7 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.6,
+   "tail": [
+    "\u2714 U-7 a person remembers, corrects, inspects and removes bot-specific memory (3217.828416ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3465.7565"
+   ]
+  },
+  "U-8": {
+   "command": "ACCEPTANCE_ITEM=U-8 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.6,
+   "tail": [
+    "\u2714 U-8 Maya queries starting orders and Ana cannot read an unauthorized order (2235.05225ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2498.744042"
+   ]
+  },
+  "U-9": {
+   "command": "ACCEPTANCE_ITEM=U-9 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.1,
+   "tail": [
+    "\u2714 U-9 Maya clarifies a change, reviews it, rejects one and confirms another with a replay and reload (3694.722667ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3959.840084"
+   ]
+  },
+  "U-10": {
+   "command": "ACCEPTANCE_ITEM=U-10 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.9,
+   "tail": [
+    "\u2714 U-10 Maya reviews Cedar, confirms its creation and can query her private order afterwards (3568.887833ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3816.608042"
+   ]
+  },
+  "U-11": {
+   "command": "ACCEPTANCE_ITEM=U-11 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.6,
+   "tail": [
+    "\u2714 U-11 a person closes the app during a long task and returns to ordered progress and a summary (4214.141291ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4460.135875"
+   ]
+  },
+  "U-12": {
+   "command": "ACCEPTANCE_ITEM=U-12 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.7,
+   "tail": [
+    "\u2714 U-12 a person steers running work, then cancels the remaining work and inspects what happened (2359.721666ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2618.123167"
+   ]
+  },
+  "U-13": {
+   "command": "ACCEPTANCE_ITEM=U-13 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 7.8,
+   "tail": [
+    "\u2714 U-13 a person retries a failed step and later recovers unfinished work after a server interruption (7438.192292ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 7689.371584"
+   ]
+  },
+  "U-14": {
+   "command": "ACCEPTANCE_ITEM=U-14 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.4,
+   "tail": [
+    "\u2714 U-14 keeps chat comfortable at desktop and narrow widths and operates with keyboard alone (4065.501167ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4307.376625"
+   ]
+  },
+  "U-15": {
+   "command": "ACCEPTANCE_ITEM=U-15 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.4,
+   "tail": [
+    "npm notice",
+    "npm notice New patch version of npm available! 12.2.1 -> 12.2.3",
+    "npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3",
+    "npm notice To update run: npm install -g npm@12.2.3",
+    "npm notice",
+    "\u2714 U-15 a maintainer runs the repository test suite and sees its results for application rules (4198.114917ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4305.233875"
+   ]
+  },
+  "C-1": {
+   "command": "ACCEPTANCE_ITEM=C-1 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.8,
+   "tail": [
+    "\u2714 C-1 runs with node server.js from a copy without an installed dependency tree (4476.618917ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4749.278833"
+   ]
+  },
+  "C-2": {
+   "command": "ACCEPTANCE_ITEM=C-2 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": false,
+   "unstable": false,
+   "first_rc": 1,
+   "first_tail": [
+    "  AssertionError [ERR_ASSERTION]: Node.js 22 is unavailable. Set ACCEPTANCE_NODE22 to an installed Node.js 22 executable.",
+    "      at node22 (/Users/dadleet/e2e-runs/d20261122-ac4afc/grokbot-2/work/acceptance/platform.cjs:17:10)",
+    "      at TestContext.<anonymous> (/Users/dadleet/e2e-runs/d20261122-ac4afc/grokbot-2/work/acceptance/platform.cjs:52:45)",
+    "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+    "      at Test.run (node:internal/test_runner/test:1402:25)",
+    "      at Test.start (node:internal/test_runner/test:1262:17)",
+    "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+    "    generatedMessage: false,",
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: undefined,",
+    "    operator: 'fail',",
+    "    diff: 'simple'",
+    "  }"
+   ],
+   "rc": 1,
+   "seconds": 0.6,
+   "tail": [
+    "  AssertionError [ERR_ASSERTION]: Node.js 22 is unavailable. Set ACCEPTANCE_NODE22 to an installed Node.js 22 executable.",
+    "      at node22 (/Users/dadleet/e2e-runs/d20261122-ac4afc/grokbot-2/work/acceptance/platform.cjs:17:10)",
+    "      at TestContext.<anonymous> (/Users/dadleet/e2e-runs/d20261122-ac4afc/grokbot-2/work/acceptance/platform.cjs:52:45)",
+    "      at Test.runInAsyncScope (node:async_hooks:226:14)",
+    "      at Test.run (node:internal/test_runner/test:1402:25)",
+    "      at Test.start (node:internal/test_runner/test:1262:17)",
+    "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+    "    generatedMessage: false,",
+    "    code: 'ERR_ASSERTION',",
+    "    actual: undefined,",
+    "    expected: undefined,",
+    "    operator: 'fail',",
+    "    diff: 'simple'",
+    "  }"
+   ]
+  },
+  "C-3": {
+   "command": "ACCEPTANCE_ITEM=C-3 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-3 honors an explicitly assigned free port (899.490625ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1171.699583"
+   ]
+  },
+  "C-4": {
+   "command": "ACCEPTANCE_ITEM=C-4 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 0.4,
+   "tail": [
+    "\u2714 C-4 serves HTTP on 3000 when PORT is unset and that port is free (125.2445ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 258.26775"
+   ]
+  },
+  "C-5": {
+   "command": "ACCEPTANCE_ITEM=C-5 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-5 opens the applicable application screen through GET / (900.226292ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1155.032959"
+   ]
+  },
+  "C-6": {
+   "command": "ACCEPTANCE_ITEM=C-6 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.8,
+   "tail": [
+    "\u2714 C-6 retains saved work using the chosen DATA_DIR with a fresh copy of the sources (1426.215792ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1695.846333"
+   ]
+  },
+  "C-7": {
+   "command": "ACCEPTANCE_ITEM=C-7 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.5,
+   "tail": [
+    "\u2714 C-7 uses ./data when DATA_DIR is unset (1152.840542ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1417.704708"
+   ]
+  },
+  "C-8": {
+   "command": "ACCEPTANCE_ITEM=C-8 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.4,
+   "tail": [
+    "\u2714 C-8 seeds a second empty directory independently of an updated first directory (2071.892875ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2333.1225"
+   ]
+  },
+  "C-9": {
+   "command": "ACCEPTANCE_ITEM=C-9 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-9 preserves the supplied people and record files through a confirmed change (1260.001166ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1532.697875"
+   ]
+  },
+  "C-10": {
+   "command": "ACCEPTANCE_ITEM=C-10 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-10 offers exactly one fresh-session Continue as button per supplied person (854.579042ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1136.182375"
+   ]
+  },
+  "C-11": {
+   "command": "ACCEPTANCE_ITEM=C-11 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.3,
+   "tail": [
+    "\u2714 C-11 opens each person workspace directly without a password form (1963.179167ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2220.935042"
+   ]
+  },
+  "C-12": {
+   "command": "ACCEPTANCE_ITEM=C-12 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-12 Switch person restores the chooser (953.191ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1205.964833"
+   ]
+  },
+  "C-13": {
+   "command": "ACCEPTANCE_ITEM=C-13 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.7,
+   "tail": [
+    "\u2714 C-13 keeps Theo selected on page reload (1335.994875ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1594.958042"
+   ]
+  },
+  "C-14": {
+   "command": "ACCEPTANCE_ITEM=C-14 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.4,
+   "tail": [
+    "\u2714 C-14 isolates private workspace objects, writes and delayed results across a person switch (4011.436291ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4254.732458"
+   ]
+  },
+  "C-15": {
+   "command": "ACCEPTANCE_ITEM=C-15 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.2,
+   "tail": [
+    "\u2714 C-15 explains the required provider token and how to supply it when unconfigured (856.989667ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1124.493458"
+   ]
+  },
+  "C-16": {
+   "command": "ACCEPTANCE_ITEM=C-16 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-16 enables replies through Provider token and Save token (1263.087792ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1525.76625"
+   ]
+  },
+  "C-17": {
+   "command": "ACCEPTANCE_ITEM=C-17 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-17 presents a refusal alert and accepts a subsequent attempt (1189.872042ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1454.858125"
+   ]
+  },
+  "C-18": {
+   "command": "ACCEPTANCE_ITEM=C-18 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.2,
+   "tail": [
+    "\u2714 C-18 accepts twelve and longer ASCII alphanumeric suffixes and refuses malformed boundary values (2574.126042ms)",
+    "\u2714 C-18 accepts a syntactically valid long token with no provider length cap (1204.530209ms)",
+    "\u2139 tests 2",
+    "\u2139 suites 0",
+    "\u2139 pass 2",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4059.999083"
+   ]
+  },
+  "C-19": {
+   "command": "ACCEPTANCE_ITEM=C-19 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.9,
+   "tail": [
+    "\u2714 C-19 accepts a valid environment token and lets the operator recover from an invalid-only one (2557.389708ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2828.731667"
+   ]
+  },
+  "C-20": {
+   "command": "ACCEPTANCE_ITEM=C-20 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.2,
+   "tail": [
+    "\u2714 C-20 keeps an accepted setup token usable without PROVIDER_TOKEN after restart (1794.562167ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2046.892333"
+   ]
+  },
+  "C-21": {
+   "command": "ACCEPTANCE_ITEM=C-21 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.9,
+   "tail": [
+    "\u2714 C-21 keeps saved and environment tokens out of responses, rendered pages, errors and retries (5533.7075ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 5769.85325"
+   ]
+  },
+  "C-22": {
+   "command": "ACCEPTANCE_ITEM=C-22 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-22 initializes exactly one Assistant and does not add another on later visits (1278.440417ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1528.184459"
+   ]
+  },
+  "C-23": {
+   "command": "ACCEPTANCE_ITEM=C-23 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.4,
+   "tail": [
+    "\u2714 C-23 lists the active person bots by their names in Bots (1016.922292ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1282.161791"
+   ]
+  },
+  "C-24": {
+   "command": "ACCEPTANCE_ITEM=C-24 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.5,
+   "tail": [
+    "\u2714 C-24 marks the selected bot as current in Bots (1141.731083ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1418.8915"
+   ]
+  },
+  "C-25": {
+   "command": "ACCEPTANCE_ITEM=C-25 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-25 creates the entered name with New bot and Save bot name (952.322125ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1201.398416"
+   ]
+  },
+  "C-26": {
+   "command": "ACCEPTANCE_ITEM=C-26 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-26 opens the bot just saved (941.449583ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1193.689541"
+   ]
+  },
+  "C-27": {
+   "command": "ACCEPTANCE_ITEM=C-27 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.4,
+   "tail": [
+    "\u2714 C-27 renames the same bot and preserves its discussions, instructions and memory (2009.985917ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2252.911333"
+   ]
+  },
+  "C-28": {
+   "command": "ACCEPTANCE_ITEM=C-28 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.0,
+   "tail": [
+    "\u2714 C-28 shows only the open bot discussions and keeps similar discussions selectable (2613.409125ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2871.679917"
+   ]
+  },
+  "C-29": {
+   "command": "ACCEPTANCE_ITEM=C-29 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.8,
+   "tail": [
+    "\u2714 C-29 marks the discussion selected by the user as current (1417.335084ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1677.086334"
+   ]
+  },
+  "C-30": {
+   "command": "ACCEPTANCE_ITEM=C-30 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-30 opens an empty separate discussion without discarding the previous one (1251.866458ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1517.006542"
+   ]
+  },
+  "C-31": {
+   "command": "ACCEPTANCE_ITEM=C-31 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.0,
+   "tail": [
+    "\u2714 C-31 reopens saved turns in order and continues their discussion after restart (2686.02025ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2932.249042"
+   ]
+  },
+  "C-32": {
+   "command": "ACCEPTANCE_ITEM=C-32 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-32 names person and bot message articles in Conversation (1238.489ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1530.894125"
+   ]
+  },
+  "C-33": {
+   "command": "ACCEPTANCE_ITEM=C-33 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.5,
+   "tail": [
+    "\u2714 C-33 Send adds the entered request to the discussion receiving it (1066.053625ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1341.611667"
+   ]
+  },
+  "C-34": {
+   "command": "ACCEPTANCE_ITEM=C-34 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-34 Enter submits the focused Message draft (941.288291ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1206.105625"
+   ]
+  },
+  "C-35": {
+   "command": "ACCEPTANCE_ITEM=C-35 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.2,
+   "tail": [
+    "\u2714 C-35 Shift+Enter inserts a newline without sending (840.942ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1094.357958"
+   ]
+  },
+  "C-36": {
+   "command": "ACCEPTANCE_ITEM=C-36 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-36 exposes a status while a reply is pending (901.544584ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1162.523084"
+   ]
+  },
+  "C-37": {
+   "command": "ACCEPTANCE_ITEM=C-37 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-37 presents an alert after the provider reply attempt fails (1208.020666ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1460.122792"
+   ]
+  },
+  "C-38": {
+   "command": "ACCEPTANCE_ITEM=C-38 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.5,
+   "tail": [
+    "\u2714 C-38 retries the original message once and does not replay its side effects (2154.047583ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2412.102417"
+   ]
+  },
+  "C-39": {
+   "command": "ACCEPTANCE_ITEM=C-39 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.9,
+   "tail": [
+    "\u2714 C-39 retains a stopped reply in its conversation and makes it recoverable (1530.545417ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1795.823917"
+   ]
+  },
+  "C-40": {
+   "command": "ACCEPTANCE_ITEM=C-40 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.4,
+   "tail": [
+    "\u2714 C-40 uses the unmodified stand-in and displays its deterministic output (2027.841958ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2291.226875"
+   ]
+  },
+  "C-41": {
+   "command": "ACCEPTANCE_ITEM=C-41 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.3,
+   "tail": [
+    "\u2714 C-41 keeps each discussion context and routes a slow reply to its originating discussion (3998.326042ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4239.946584"
+   ]
+  },
+  "C-42": {
+   "command": "ACCEPTANCE_ITEM=C-42 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.0,
+   "tail": [
+    "\u2714 C-42 uses the open bot name and active instruction text in its reply (1656.840791ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1920.099167"
+   ]
+  },
+  "C-43": {
+   "command": "ACCEPTANCE_ITEM=C-43 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.7,
+   "tail": [
+    "\u2714 C-43 renders the provider clarification as a bot turn (1296.2535ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1565.96"
+   ]
+  },
+  "C-44": {
+   "command": "ACCEPTANCE_ITEM=C-44 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.0,
+   "tail": [
+    "\u2714 C-44 interprets the follow-up using the clarification immediately before it (1646.015917ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1910.601166"
+   ]
+  },
+  "C-45": {
+   "command": "ACCEPTANCE_ITEM=C-45 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.5,
+   "tail": [
+    "\u2714 C-45 saves a reusable instruction with its named actions across restart (1156.603625ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1413.408083"
+   ]
+  },
+  "C-46": {
+   "command": "ACCEPTANCE_ITEM=C-46 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.3,
+   "tail": [
+    "\u2714 C-46 activates a saved instruction on one bot and restores it after restart (1880.17975ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2147.396166"
+   ]
+  },
+  "C-47": {
+   "command": "ACCEPTANCE_ITEM=C-47 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-47 prefills both fields from the selected saved instruction (955.7675ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1183.342875"
+   ]
+  },
+  "C-48": {
+   "command": "ACCEPTANCE_ITEM=C-48 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-48 saves text changes under the same instruction name (1219.684542ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1464.687208"
+   ]
+  },
+  "C-49": {
+   "command": "ACCEPTANCE_ITEM=C-49 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.9,
+   "tail": [
+    "\u2714 C-49 removes all actions for the deleted instruction and keeps other items (1512.859208ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1748.340334"
+   ]
+  },
+  "C-50": {
+   "command": "ACCEPTANCE_ITEM=C-50 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.5,
+   "tail": [
+    "\u2714 C-50 saves a reusable task with its named actions across restart (1165.106959ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1392.288167"
+   ]
+  },
+  "C-51": {
+   "command": "ACCEPTANCE_ITEM=C-51 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-51 runs the saved request through the provider in the open discussion (1241.4775ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1488.001583"
+   ]
+  },
+  "C-52": {
+   "command": "ACCEPTANCE_ITEM=C-52 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.4,
+   "tail": [
+    "\u2714 C-52 prefills both fields from the selected saved task (1003.723417ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1262.9745"
+   ]
+  },
+  "C-53": {
+   "command": "ACCEPTANCE_ITEM=C-53 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.4,
+   "tail": [
+    "\u2714 C-53 saves text changes under the same task name (1027.626459ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1292.919"
+   ]
+  },
+  "C-54": {
+   "command": "ACCEPTANCE_ITEM=C-54 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.4,
+   "tail": [
+    "\u2714 C-54 removes all actions for the deleted task and keeps other items (1063.213625ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1325.915417"
+   ]
+  },
+  "C-55": {
+   "command": "ACCEPTANCE_ITEM=C-55 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-55 shows an empty memory list or fact list items with two named actions (1191.274708ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1449.996917"
+   ]
+  },
+  "C-56": {
+   "command": "ACCEPTANCE_ITEM=C-56 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.1,
+   "tail": [
+    "\u2714 C-56 adds the provider fact to the current bot including when repeated (1677.054791ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1968.852292"
+   ]
+  },
+  "C-57": {
+   "command": "ACCEPTANCE_ITEM=C-57 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.4,
+   "tail": [
+    "\u2714 C-57 opens the selected fact in Memory text with Save memory (1010.79175ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1275.404333"
+   ]
+  },
+  "C-58": {
+   "command": "ACCEPTANCE_ITEM=C-58 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.4,
+   "tail": [
+    "\u2714 C-58 replaces the selected fact with the saved correction (984.608ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1242.047334"
+   ]
+  },
+  "C-59": {
+   "command": "ACCEPTANCE_ITEM=C-59 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.7,
+   "tail": [
+    "\u2714 C-59 removes the fact via the Forget control (1282.017333ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1550.965417"
+   ]
+  },
+  "C-60": {
+   "command": "ACCEPTANCE_ITEM=C-60 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-60 removes the fact via the provider forget effect (1244.504334ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1498.0375"
+   ]
+  },
+  "C-61": {
+   "command": "ACCEPTANCE_ITEM=C-61 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.2,
+   "tail": [
+    "\u2714 C-61 supplies current memory only to the matching person and bot across discussions and restarts (3893.734667ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4128.098917"
+   ]
+  },
+  "C-62": {
+   "command": "ACCEPTANCE_ITEM=C-62 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.9,
+   "tail": [
+    "\u2714 C-62 queries each person authorized records, missing fields and confirmed working values (4549.348041ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4791.335959"
+   ]
+  },
+  "C-63": {
+   "command": "ACCEPTANCE_ITEM=C-63 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.7,
+   "tail": [
+    "\u2714 C-63 keeps inaccessible and unknown records unavailable for reads and changes (2350.486958ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2597.456125"
+   ]
+  },
+  "C-64": {
+   "command": "ACCEPTANCE_ITEM=C-64 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.0,
+   "tail": [
+    "\u2714 C-64 shows the exact record ID, field, prior value and new value in a review (1668.248792ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1921.867"
+   ]
+  },
+  "C-65": {
+   "command": "ACCEPTANCE_ITEM=C-65 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.6,
+   "tail": [
+    "\u2714 C-65 reviews the exact business contents and creator access for Cedar (1263.412791ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1514.157541"
+   ]
+  },
+  "C-66": {
+   "command": "ACCEPTANCE_ITEM=C-66 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.3,
+   "tail": [
+    "\u2714 C-66 offers Confirm changes and Reject changes within an undecided proposal (933.746667ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1189.955458"
+   ]
+  },
+  "C-67": {
+   "command": "ACCEPTANCE_ITEM=C-67 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.3,
+   "tail": [
+    "\u2714 C-67 leaves updates and creations unapplied without a specific explicit confirmation (2925.299917ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3163.186458"
+   ]
+  },
+  "C-68": {
+   "command": "ACCEPTANCE_ITEM=C-68 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.7,
+   "tail": [
+    "\u2714 C-68 applies a reviewed update for its proposer and refuses another person decision (2247.905417ms)",
+    "\u2714 C-68 can confirm a reviewed field when a separate field has changed (2083.563208ms)",
+    "\u2139 tests 2",
+    "\u2139 suites 0",
+    "\u2139 pass 2",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4591.336"
+   ]
+  },
+  "C-69": {
+   "command": "ACCEPTANCE_ITEM=C-69 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.7,
+   "tail": [
+    "\u2714 C-69 does not let an older review silently overwrite an intervening confirmed value (2552.772834ms)",
+    "\u2714 C-69 keeps an earlier proposal unapplied if a supported change revokes the proposer access (1763.750333ms)",
+    "\u2139 tests 2",
+    "\u2139 suites 0",
+    "\u2139 pass 2",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4574.869583"
+   ]
+  },
+  "C-70": {
+   "command": "ACCEPTANCE_ITEM=C-70 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.3,
+   "tail": [
+    "\u2714 C-70 makes a created order visible only to its creator (2000.431958ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2242.976959"
+   ]
+  },
+  "C-71": {
+   "command": "ACCEPTANCE_ITEM=C-71 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.6,
+   "tail": [
+    "\u2714 C-71 assigns the next free order IDs to distinct, overlapping confirmations (2268.47725ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2511.875458"
+   ]
+  },
+  "C-72": {
+   "command": "ACCEPTANCE_ITEM=C-72 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.0,
+   "tail": [
+    "\u2714 C-72 rejects an update and a creation without record changes, including late confirms (1623.018792ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1855.945"
+   ]
+  },
+  "C-73": {
+   "command": "ACCEPTANCE_ITEM=C-73 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.9,
+   "tail": [
+    "\u2714 C-73 applies a given creation at most once across duplicate confirmation, reload and restart (2516.980375ms)",
+    "\u2714 C-73 does not let a repeated update overwrite a later deliberate change (1549.513375ms)",
+    "\u2714 C-73 recovers a committed creation after lost acknowledgement and a server interruption (1515.190333ms)",
+    "\u2139 tests 3",
+    "\u2139 suites 0",
+    "\u2139 pass 3",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 5819.923334"
+   ]
+  },
+  "C-74": {
+   "command": "ACCEPTANCE_ITEM=C-74 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.0,
+   "tail": [
+    "\u2714 C-74 reports applied and rejected outcomes consistently after reload (2616.581541ms)",
+    "\u2714 C-74 reports an unapplied decision when the reviewed change has become stale (1992.833208ms)",
+    "\u2139 tests 2",
+    "\u2139 suites 0",
+    "\u2139 pass 2",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4863.848625"
+   ]
+  },
+  "C-75": {
+   "command": "ACCEPTANCE_ITEM=C-75 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.6,
+   "tail": [
+    "\u2714 C-75 persists confirmed updates and creations in working records across restart (2267.07425ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2514.348"
+   ]
+  },
+  "C-76": {
+   "command": "ACCEPTANCE_ITEM=C-76 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.8,
+   "tail": [
+    "\u2714 C-76 puts the named provider task in Tasks for the requesting person (1404.945375ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1666.315292"
+   ]
+  },
+  "C-77": {
+   "command": "ACCEPTANCE_ITEM=C-77 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.8,
+   "tail": [
+    "\u2714 C-77 exposes Task status with the state corresponding to each task outcome (5418.45425ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 5654.432791"
+   ]
+  },
+  "C-78": {
+   "command": "ACCEPTANCE_ITEM=C-78 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.5,
+   "tail": [
+    "\u2714 C-78 runs the three ordinary and eight long provider steps to completion in provider order (3195.134833ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3437.182625"
+   ]
+  },
+  "C-79": {
+   "command": "ACCEPTANCE_ITEM=C-79 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.7,
+   "tail": [
+    "\u2714 C-79 keeps finished steps and their provider results visible after navigation and restart (2380.490917ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2636.699375"
+   ]
+  },
+  "C-80": {
+   "command": "ACCEPTANCE_ITEM=C-80 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.0,
+   "tail": [
+    "\u2714 C-80 continues an unfinished task after the only app page is closed (4687.797125ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4938.036833"
+   ]
+  },
+  "C-81": {
+   "command": "ACCEPTANCE_ITEM=C-81 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.8,
+   "tail": [
+    "\u2714 C-81 summarizes work finished while away, work still running and work needing attention on return (5536.0995ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 5750.616166"
+   ]
+  },
+  "C-82": {
+   "command": "ACCEPTANCE_ITEM=C-82 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 10.5,
+   "tail": [
+    "\u2714 C-82 appends a steering step after the same conversation queued work and does not steer another conversation (5193.899959ms)",
+    "\u2714 C-82 does not append steps to failed or cancelled tasks (2917.60375ms)",
+    "\u2714 C-82 steers only one eligible task if multiple tasks can run in the same discussion (2037.617792ms)",
+    "\u2139 tests 3",
+    "\u2139 suites 0",
+    "\u2139 pass 3",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 10388.929458"
+   ]
+  },
+  "C-83": {
+   "command": "ACCEPTANCE_ITEM=C-83 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.8,
+   "tail": [
+    "\u2714 C-83 offers Cancel task only on running tasks (5463.435125ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 5714.863292"
+   ]
+  },
+  "C-84": {
+   "command": "ACCEPTANCE_ITEM=C-84 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.2,
+   "tail": [
+    "\u2714 C-84 stops unstarted steps and leaves a completed task completed after a late cancel (4863.045542ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 5109.071291"
+   ]
+  },
+  "C-85": {
+   "command": "ACCEPTANCE_ITEM=C-85 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.2,
+   "tail": [
+    "\u2714 C-85 explains stopped remaining work while preserving already completed details (2828.859333ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3085.129333"
+   ]
+  },
+  "C-86": {
+   "command": "ACCEPTANCE_ITEM=C-86 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.1,
+   "tail": [
+    "\u2714 C-86 retains the completed prefix and identifies the second-step failure (1647.117333ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1916.99325"
+   ]
+  },
+  "C-87": {
+   "command": "ACCEPTANCE_ITEM=C-87 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 6.2,
+   "tail": [
+    "\u2714 C-87 offers Retry task on failed or interrupted work and excludes other states (5865.584208ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 6111.656916"
+   ]
+  },
+  "C-88": {
+   "command": "ACCEPTANCE_ITEM=C-88 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.8,
+   "tail": [
+    "\u2714 C-88 continues the unfinished steps once even with repeated retry activation (2463.294875ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2720.307125"
+   ]
+  },
+  "C-89": {
+   "command": "ACCEPTANCE_ITEM=C-89 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.6,
+   "tail": [
+    "\u2714 C-89 preserves a finished step and honest recovery state after the server stops (2194.29575ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2456.764042"
+   ]
+  },
+  "C-90": {
+   "command": "ACCEPTANCE_ITEM=C-90 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.0,
+   "tail": [
+    "\u2714 C-90 keeps a readable multi-turn conversation and composer as the main reading area (1636.640042ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1900.189375"
+   ]
+  },
+  "C-91": {
+   "command": "ACCEPTANCE_ITEM=C-91 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 5.2,
+   "tail": [
+    "\u2714 C-91 places applicable desktop surfaces on the main screen as their states become available (4833.1655ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 5068.005333"
+   ]
+  },
+  "C-92": {
+   "command": "ACCEPTANCE_ITEM=C-92 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 1.7,
+   "tail": [
+    "\u2714 C-92 keeps reading and composition usable and makes secondary areas reachable in a narrow window (1320.1445ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 1573.24275"
+   ]
+  },
+  "C-93": {
+   "command": "ACCEPTANCE_ITEM=C-93 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 2.7,
+   "tail": [
+    "\u2714 C-93 can navigate and operate the workspace using the keyboard with discernible focus (2387.496292ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 2646.536167"
+   ]
+  },
+  "C-94": {
+   "command": "ACCEPTANCE_ITEM=C-94 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 3.3,
+   "tail": [
+    "\u2714 C-94 exposes named ARIA navigation, articles, controls, alerts, statuses and current selections (2939.808958ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3190.773791"
+   ]
+  },
+  "C-95": {
+   "command": "ACCEPTANCE_ITEM=C-95 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.6,
+   "tail": [
+    "npm notice",
+    "npm notice New patch version of npm available! 12.2.1 -> 12.2.3",
+    "npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3",
+    "npm notice To update run: npm install -g npm@12.2.3",
+    "npm notice",
+    "\u2714 C-95 runs node:test tests under test/ using npm test without an installed dependency (4409.923541ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 4522.842958"
+   ]
+  },
+  "C-96": {
+   "command": "ACCEPTANCE_ITEM=C-96 node --test --test-reporter=spec acceptance/run.cjs",
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 6.2,
+   "tail": [
+    "npm notice",
+    "npm notice New patch version of npm available! 12.2.1 -> 12.2.3",
+    "npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3",
+    "npm notice To update run: npm install -g npm@12.2.3",
+    "npm notice",
+    "\u2714 C-96 executes app rules through modules loaded by the delivered application (5863.825875ms)",
+    "\u2139 tests 1",
+    "\u2139 suites 0",
+    "\u2139 pass 1",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 6140.05375"
+   ]
+  }
+ },
+ "checks": {
+  "npm test": {
+   "pass": true,
+   "unstable": false,
+   "rc": 0,
+   "seconds": 4.0,
+   "tail": [
+    "\u2714 reviews preserve structural metadata and recheck access and sensitive values (0.159709ms)",
+    "\u2714 creations allocate distinct global IDs and are private to the creator (0.430917ms)",
+    "\u2714 storage publishes only successful whole snapshots and preserves unreadable state (15.41525ms)",
+    "\u2714 steps settle in order and a failed step retries with a new attempt and the same completed prefix (2009.00275ms)",
+    "\u2714 cancellation lets only the claimed step settle (0.326792ms)",
+    "\u2714 recovery preserves finished results and invalidates a lost claim (0.210916ms)",
+    "\u2139 tests 14",
+    "\u2139 suites 0",
+    "\u2139 pass 14",
+    "\u2139 fail 0",
+    "\u2139 cancelled 0",
+    "\u2139 skipped 0",
+    "\u2139 todo 0",
+    "\u2139 duration_ms 3763.730292"
+   ]
+  }
+ },
+ "syntax": {},
+ "failing": [
+  "C-2"
+ ],
+ "pass": false
+}

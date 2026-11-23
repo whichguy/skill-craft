@@ -1,0 +1,74 @@
+{
+ "label": "tickets-2",
+ "arm": "ratchet",
+ "case": "ticket-assignment",
+ "base": "eb200ab2d98c7528af02685df4a251f914ef2b3c",
+ "points": {
+  "first-build": "f0c2f322677a54c11f5bd63f56d390888d4de385",
+  "final": "957d61d6bc8ece8cab07fe94fa209af03386c2a2"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 72.1,
+  "seconds": 4327.9,
+  "first_build_minutes": 11.6,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 14,
+  "final_pass": true,
+  "clauses": 54,
+  "seconds_by_role": {
+   "spec": 154.4,
+   "plan": 583.0,
+   "build": 934.4,
+   "tests": 1285.5,
+   "delta": 604.4,
+   "fix": 172.1
+  },
+  "finished": "2026-11-22T11:56:13-0800"
+ },
+ "tokens": {
+  "rollouts": 14,
+  "counted": 14,
+  "input": 16540695,
+  "cached": 15533440,
+  "output": 146279,
+  "reasoning": 29452,
+  "total": 16686974,
+  "uncached_input": 1007255,
+  "first_build": {
+   "input": 2732027,
+   "cached": 2486656,
+   "output": 29843,
+   "reasoning": 3557
+  }
+ },
+ "measured_points": {
+  "first-build": "f0c2f322677a54c11f5bd63f56d390888d4de385",
+  "final": "957d61d6bc8ece8cab07fe94fa209af03386c2a2"
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "ticket-assignment": {
+     "observed": true,
+     "passed": 18,
+     "failed": [],
+     "of": 18
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "ticket-assignment": {
+     "observed": true,
+     "passed": 18,
+     "failed": [],
+     "of": 18
+    }
+   }
+  }
+ }
+}

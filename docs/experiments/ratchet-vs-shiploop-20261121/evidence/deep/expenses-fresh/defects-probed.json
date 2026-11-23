@@ -1,0 +1,56 @@
+{
+ "rechecks": [],
+ "defects": [
+  {
+   "id": "D-1",
+   "title": "An interrupted write leaves a stray temporary file beside DATA_FILE that is never removed, not even at the next startup",
+   "severity": "low",
+   "merged_from": [
+    "p47737c#1",
+    "p64907e#1"
+   ],
+   "repro": "DATA_FILE=<work>/ledger.json PORT=<free port> node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"]}; from 8 clients loop POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"}; SIGKILL the server after ~200 ms; ls -a the directory; start again with the same DATA_FILE, GET /groups/g/balances, stop; ls -a again. 5 rounds per product.",
+   "expected": "Stray temporary files from an interrupted write removed at startup (or never left), so the data directory does not accumulate copies of the ledger",
+   "note": "Both reports describe the same behaviour (orphan <DATA_FILE>.<uuid>.tmp after a SIGKILL mid-write, kept after restart). Severity low kept. Observed strays were all 0-byte files (the kill landed between open and write), not ledger copies as p47737c#1 described; DATA_FILE itself always parsed and was complete, so the effect is directory clutter only. pc5ec3e names its temporary files .expenses-<uuid>.tmp (hidden).",
+   "results": {
+    "p47737c": {
+     "result": "present",
+     "observed": "5 rounds (group g [Ann,Bob]; 8 keep-alive clients looping POST /groups/g/expenses {payer:Ann,cents:2,split:equal}; SIGKILL after 200 ms; ls -a; restart with same DATA_FILE, GET balances, SIGTERM; ls -a). Stray ledger.json.<uuid>.tmp left after the kill and still present after the restart in 1 of 5 rounds (rounds 3); every stray found was 0 bytes. ledger.json parsed in 5 of 5 rounds and after restart Ann's balance was 812/926/997/952/920 against 811/925/997/952/919 acknowledged expenses (no acknowledged expense lost). Server code has no startup cleanup of temporary files."
+    },
+    "p64907e": {
+     "result": "present",
+     "observed": "5 rounds (group g [Ann,Bob]; 8 keep-alive clients looping POST /groups/g/expenses {payer:Ann,cents:2,split:equal}; SIGKILL after 200 ms; ls -a; restart with same DATA_FILE, GET balances, SIGTERM; ls -a). Stray ledger.json.<uuid>.tmp left after the kill and still present after the restart in 4 of 5 rounds (rounds 1, 2, 3, 4); every stray found was 0 bytes. ledger.json parsed in 5 of 5 rounds and after restart Ann's balance was 850/887/962/923/943 against 850/887/962/923/943 acknowledged expenses (no acknowledged expense lost). Server code has no startup cleanup of temporary files."
+    },
+    "pc5ec3e": {
+     "result": "present",
+     "observed": "5 rounds (group g [Ann,Bob]; 8 keep-alive clients looping POST /groups/g/expenses {payer:Ann,cents:2,split:equal}; SIGKILL after 200 ms; ls -a; restart with same DATA_FILE, GET balances, SIGTERM; ls -a). Stray .expenses-<uuid>.tmp (hidden, in the DATA_FILE directory) left after the kill and still present after the restart in 1 of 5 rounds (rounds 2); every stray found was 0 bytes. ledger.json parsed in 5 of 5 rounds and after restart Ann's balance was 802/739/719/829/770 against 802/739/719/829/770 acknowledged expenses (no acknowledged expense lost). Server code has no startup cleanup of temporary files."
+    }
+   }
+  },
+  {
+   "id": "D-2",
+   "title": "A group with a very long id is created (201) but can never be used: every group route answers 431 or drops the connection",
+   "severity": "low",
+   "merged_from": [
+    "pc5ec3e#1"
+   ],
+   "repro": "Start the server with a fresh DATA_FILE. POST /groups {\"id\":\"<20,000 x characters>\",\"members\":[\"A\",\"B\"]}; then GET /groups/<id>/balances, POST /groups/<id>/expenses {\"payer\":\"A\",\"cents\":100,\"split\":\"equal\"}, GET /groups/<id>/settlements, and POST /groups with the same id again. Repeat with a 100,000-character id (and 1,000 and 8,000 as controls).",
+   "expected": "Either refuse ids too long to address (400) or keep every group that got 201 reachable by all three routes.",
+   "note": "Same on all three products: none limits id length, and Node's default 16 KB header limit makes the path unreachable.",
+   "results": {
+    "p47737c": {
+     "result": "present",
+     "observed": "POST /groups with a 20,000-character id and members [A,B] -> 201 and the id is written to DATA_FILE; GET /groups/<id>/balances, POST /groups/<id>/expenses and GET /groups/<id>/settlements -> 431 each; a second POST /groups with the same id -> 409. With a 100,000-character id: 201 on create, then every group route -> connection reset (ECONNRESET), re-create -> 409. Ids of 1,000 and 8,000 characters work on all routes (200/201/200). Server keeps serving other requests afterwards (POST /groups id \"ok\" -> 201). No id length limit in the code."
+    },
+    "p64907e": {
+     "result": "present",
+     "observed": "POST /groups with a 20,000-character id and members [A,B] -> 201 and the id is written to DATA_FILE; GET /groups/<id>/balances, POST /groups/<id>/expenses and GET /groups/<id>/settlements -> 431 each; a second POST /groups with the same id -> 409. With a 100,000-character id: 201 on create, then every group route -> connection reset (ECONNRESET), re-create -> 409. Ids of 1,000 and 8,000 characters work on all routes (200/201/200). Server keeps serving other requests afterwards (POST /groups id \"ok\" -> 201). No id length limit in the code."
+    },
+    "pc5ec3e": {
+     "result": "present",
+     "observed": "POST /groups with a 20,000-character id and members [A,B] -> 201 and the id is written to DATA_FILE; GET /groups/<id>/balances, POST /groups/<id>/expenses and GET /groups/<id>/settlements -> 431 each; a second POST /groups with the same id -> 409. With a 100,000-character id: 201 on create, then every group route -> connection reset (ECONNRESET), re-create -> 409. Ids of 1,000 and 8,000 characters work on all routes (200/201/200). Server keeps serving other requests afterwards (POST /groups id \"ok\" -> 201). No id length limit in the code."
+    }
+   }
+  }
+ ]
+}

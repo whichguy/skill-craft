@@ -1,0 +1,38 @@
+{
+ "recheck": [],
+ "defects": [
+  {
+   "from": "p47737c",
+   "n": "p47737c#1",
+   "title": "Temporary files from interrupted writes are never cleaned up",
+   "severity": "low",
+   "repro": "DATA_FILE=/tmp/x/ledger.json PORT=<port> node server.js; POST /groups {\"id\":\"g\",\"members\":[\"Ann\",\"Bob\"]}; from 8 clients loop POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"}; send SIGKILL to the server after ~200 ms; ls /tmp/x; start the server again with the same DATA_FILE, stop it, ls /tmp/x",
+   "observed": "A file ledger.json.<uuid>.tmp holding a partial or full ledger sits beside ledger.json and remains after the restart (3 of 5 rounds); ledger.json itself parses and is complete",
+   "expected": "Stray temporary files from an interrupted write removed at startup (or never left), so the data directory does not accumulate copies of the ledger",
+   "basis": "unstated",
+   "item": "U-8"
+  },
+  {
+   "from": "p64907e",
+   "n": "p64907e#1",
+   "title": "A crash during a write leaves an orphan temporary file next to DATA_FILE that is never removed",
+   "severity": "low",
+   "repro": "DATA_FILE=/tmp/x/d.json PORT=4000 node server.js; create group g; loop POST /groups/g/expenses {\"payer\":\"Ann\",\"cents\":2,\"split\":\"equal\"} from two clients and send SIGKILL to the server mid-stream; ls /tmp/x; restart and ls again",
+   "observed": "d.json parses and is complete, but d.json.<uuid>.tmp remains in the directory, also after restart",
+   "expected": "No stray files, or leftover temporary files cleaned up at startup",
+   "basis": "unstated",
+   "item": "U-8"
+  },
+  {
+   "from": "pc5ec3e",
+   "n": "pc5ec3e#1",
+   "title": "A group with a very long id is created (201) but can never be used: every group route answers 431 or drops the connection",
+   "severity": "low",
+   "repro": "Start the server. ID=$(printf \"x%.0s\" $(seq 1 20000)); curl -s -o /dev/null -w \"%{http_code}\\n\" -X POST localhost:$PORT/groups -H \"Content-Type: application/json\" -d \"{\\\"id\\\":\\\"$ID\\\",\\\"members\\\":[\\\"A\\\",\\\"B\\\"]}\"; curl -s -o /dev/null -w \"%{http_code}\\n\" localhost:$PORT/groups/$ID/balances",
+   "observed": "POST /groups -> 201 and the group is written to DATA_FILE; GET /groups/<id>/balances, POST /groups/<id>/expenses and GET /groups/<id>/settlements -> 431 (a 100,000-character id: connection reset). The id is taken, so it can never be recreated or used.",
+   "expected": "Either refuse ids too long to address (400) or keep every group that got 201 reachable by all three routes.",
+   "basis": "unstated",
+   "item": "U-4"
+  }
+ ]
+}

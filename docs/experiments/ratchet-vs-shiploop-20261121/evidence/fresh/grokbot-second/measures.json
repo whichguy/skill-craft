@@ -1,0 +1,105 @@
+{
+ "label": "grokbot-2",
+ "arm": "ratchet",
+ "case": "grokbot-local",
+ "base": "aefc2fe6a6a93c977b0cf60114dc599fab0da005",
+ "points": {
+  "first-build": "56a18afbfbc6d8423d7e06bc5de9234868d69f4b",
+  "final": "546d9e1e39efc637c23ef57659ed483e0f87f304"
+ },
+ "commit": "22e52c0807ca41aa0224dd81f03b84e9bba44e82",
+ "model": "gpt-6.2-sol",
+ "effort": "medium",
+ "time": {
+  "minutes": 129.5,
+  "seconds": 7771.9,
+  "first_build_minutes": 24.0,
+  "stop": "max-cycles",
+  "cycles": 3,
+  "sessions": 13,
+  "final_pass": true,
+  "clauses": 116,
+  "seconds_by_role": {
+   "spec": 215.6,
+   "plan": 586.3,
+   "build": 2494.6,
+   "tests": 2110.1,
+   "delta": 790.2
+  },
+  "finished": "2026-11-22T14:26:03-0800"
+ },
+ "tokens": {
+  "rollouts": 13,
+  "counted": 13,
+  "input": 35113918,
+  "cached": 33848832,
+  "output": 242479,
+  "reasoning": 56671,
+  "total": 35356397,
+  "uncached_input": 1265086,
+  "first_build": {
+   "input": 2690334,
+   "cached": 2528128,
+   "output": 63444,
+   "reasoning": 8578
+  }
+ },
+ "measured_points": {
+  "first-build": "56a18afbfbc6d8423d7e06bc5de9234868d69f4b",
+  "final": "546d9e1e39efc637c23ef57659ed483e0f87f304"
+ },
+ "at": {
+  "first-build": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 48,
+     "failed": [
+      "confirming-applies-the-change"
+     ],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   }
+  },
+  "final": {
+   "hidden": {
+    "grokbot": {
+     "observed": true,
+     "passed": 48,
+     "failed": [
+      "confirming-applies-the-change"
+     ],
+     "of": 49
+    },
+    "grokbot2": {
+     "observed": true,
+     "passed": 28,
+     "failed": [],
+     "of": 28,
+     "stated": {
+      "passed": 23,
+      "of": 23
+     },
+     "implied": {
+      "passed": 5,
+      "of": 5
+     }
+    }
+   }
+  }
+ }
+}
