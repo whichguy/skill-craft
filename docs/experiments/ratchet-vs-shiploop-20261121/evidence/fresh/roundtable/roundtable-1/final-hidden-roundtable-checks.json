@@ -1,0 +1,12 @@
+{
+ "observed": true,
+ "reason": null,
+ "passed": [
+  "own-tests",
+  "page-and-agent"
+ ],
+ "failed": {},
+ "kind": "roundtable-checks",
+ "work": "/Users/dadleet/e2e-runs/d20261122-cc457a/roundtable-1/work",
+ "commit": "3615a0b8b7aba69072a7ac143570469093f98c74"
+}

@@ -1693,3 +1693,19 @@ then conclude."
 **What I would do differently:** check what the model was given before reading a trial of an instruction (19.2:
 the fault was on record the day before); register the cost bound against the right baseline the first time (16.3);
 ask "would this change a decision" before each round, not after the owner did.
+
+### 21.1 Addendum (16:55): the two roundtable baselines, by script only
+
+| roundtable (a web application from an empty repository; request 2,043 characters) | unchanged ShipLoop 2.6.0 | Ratchet |
+|---|---|---|
+| Minutes (first build) | 19.3 | 73.8 (10.5); three cycles, stopped at the cycle limit, its own gate passing |
+| The harness's held-out browser check (`conversation`) | **passes**, 1 of 1 | **fails**, 0 of 1, at its first build and at its final: 7 assertions ran, the one named `agent-identified` failed, and the check did not complete |
+| The case's two own checks (the product's tests; the page and the agent endpoint) | 2 of 2 | 2 of 2 |
+| Output tokens | 31,278 | 156,366 |
+
+Nothing of roundtable has been audited or judged, so this table says only what a script saw. The failed assertion
+is about how the page marks the demonstration agent; whether that is a defect a customer would name or the check's
+own expectation of a label has not been looked at. It is the third held-out failure or stuck run on Ratchet's side
+today (17.6, 16.4) and the first case here where unchanged ShipLoop passes a held-out check that Ratchet's product
+fails. One run of each tool. Evidence: `evidence/fresh/roundtable/` (both runs' measure and launch records, the
+inventory and its ratings).

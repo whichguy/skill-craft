@@ -1,0 +1,204 @@
+{
+ "ratings": [
+  {
+   "id": "U-1",
+   "rating": "should",
+   "why": "Ordinary @Scribe mentions vary by position and nearby punctuation, so a careful builder pins one stable contains-rule and tests it, while case folding and email-like strings are a smaller mismatch."
+  },
+  {
+   "id": "U-2",
+   "rating": "must",
+   "why": "Most room traffic is ordinary talk, and dropping those lines or calling POST /api/agent for them breaks the conversation the operator is reading."
+  },
+  {
+   "id": "U-3",
+   "rating": "must",
+   "why": "Shift+Enter is how a multiline draft is written, and sending on that keystroke posts text Maya had not finished."
+  },
+  {
+   "id": "U-4",
+   "rating": "must",
+   "why": "Mentioning Scribe is how Maya gets an answer, and a reply that is missing, mistyped, or not the returned text leaves the operator with nothing to read."
+  },
+  {
+   "id": "U-5",
+   "rating": "must",
+   "why": "If a network error, HTTP error, or unusable body is not a failure, the working state stays up and Retry Scribe never appears."
+  },
+  {
+   "id": "U-6",
+   "rating": "should",
+   "why": "Maya needs a clear in-page failure that clears on success, and a blocking dialog or a Retry left on the wrong message is a real but secondary trap."
+  },
+  {
+   "id": "U-7",
+   "rating": "must",
+   "why": "Retry means the failed reply again, and posting the current draft or a later message answers text Maya did not send for that line."
+  },
+  {
+   "id": "U-8",
+   "rating": "should",
+   "why": "A sluggish Send or Retry invites a second activation, and an extra person line or a second Scribe reply is worth preventing even though a deliberate second send is still a real message."
+  },
+  {
+   "id": "U-9",
+   "rating": "should",
+   "why": "A careful builder either keeps the composer usable and attaches each reply to its own message, or says that a second send waits, because a swapped reply confuses the thread."
+  },
+  {
+   "id": "U-10",
+   "rating": "must",
+   "why": "The role=status cue is what a waiting person has, and a status that never appears, or stays after the reply or the failure alert, contradicts the outcome on screen."
+  },
+  {
+   "id": "U-11",
+   "rating": "must",
+   "why": "Enter on a blank or newline-only draft is a normal slip, and the composer and the HTTP 400 have to share one whitespace set so nothing is added and a blank body is rejected."
+  },
+  {
+   "id": "U-12",
+   "rating": "no",
+   "why": "The request only says whitespace-only text is ignored, so an enabled Send button that leaves a blank draft in place is a reasonable behavior."
+  },
+  {
+   "id": "U-13",
+   "rating": "should",
+   "why": "The Demo reply echoes the sent text, so a careful builder keeps one version of leading, trailing, and internal whitespace across the bubble, the POST body, and the echo."
+  },
+  {
+   "id": "U-14",
+   "rating": "should",
+   "why": "The built-in page sends well-formed JSON, but a maintainer calling the endpoint by hand needs a client error for a bad body and a process that stays up."
+  },
+  {
+   "id": "U-15",
+   "rating": "should",
+   "why": "Success has to be the stated JSON text and whitespace has to be HTTP 400, and a stable content type plus a parseable 400 body keep the page and the tests from misreading them."
+  },
+  {
+   "id": "U-16",
+   "rating": "no",
+   "why": "The delivery only needs GET / and POST /api/agent, so a default answer for PUT or /nope is enough and a method matrix is extra."
+  },
+  {
+   "id": "U-17",
+   "rating": "should",
+   "why": "A hand-rolled static handler can expose server.js, tests, or files outside the project to anyone who can open the port, which a careful builder closes."
+  },
+  {
+   "id": "U-18",
+   "rating": "no",
+   "why": "The request says a local app listens on PORT, and the default bind is a reasonable choice for a one-room demo with no accounts."
+  },
+  {
+   "id": "U-19",
+   "rating": "no",
+   "why": "A taken or invalid port already fails at startup through Node, and a custom message is polish this delivery can skip."
+  },
+  {
+   "id": "U-20",
+   "rating": "must",
+   "why": "Person lines and the Scribe echo are message text, and interpreting angle brackets as HTML drops what Maya typed and can run it."
+  },
+  {
+   "id": "U-21",
+   "rating": "must",
+   "why": "A navigation or reload on send discards a session-only transcript, brings the seed back, and drops an in-flight agent call."
+  },
+  {
+   "id": "U-22",
+   "rating": "should",
+   "why": "Session storage is allowed, and the operator and the maintainer need a stated choice for what a reload, a new tab, or a second tab keeps."
+  },
+  {
+   "id": "U-23",
+   "rating": "must",
+   "why": "/?empty=1 must open an empty sendable room, and stored messages overriding it or the fixture wiping Launch plan make both URLs wrong."
+  },
+  {
+   "id": "U-24",
+   "rating": "should",
+   "why": "The empty start should say how to write and how to call Scribe, and that note should go away once a message is actually in the room."
+  },
+  {
+   "id": "U-25",
+   "rating": "must",
+   "why": "The control is specified to start as Use dark appearance, so the room has to open in the light appearance or the label is wrong."
+  },
+  {
+   "id": "U-26",
+   "rating": "must",
+   "why": "Use light appearance has to bring back the light room and the Use dark appearance label, including on later toggles of the same control."
+  },
+  {
+   "id": "U-27",
+   "rating": "must",
+   "why": "The appearance button has to stay visible and usable at 320px, 390px, and 1440px, or the required control and the required widths both fail."
+  },
+  {
+   "id": "U-28",
+   "rating": "should",
+   "why": "Dark appearance still needs readable messages, times, badges, the failure alert, and a visible focus indicator, or the theme switch is hard to use."
+  },
+  {
+   "id": "U-29",
+   "rating": "should",
+   "why": "Pasted URLs and long unbroken tokens are common in a project room and are the usual reason a layout that fits short lines starts scrolling sideways at the required widths."
+  },
+  {
+   "id": "U-30",
+   "rating": "no",
+   "why": "A short seeded room still works if Maya scrolls to a new line herself, so auto-scroll is a convenience a simple page can omit."
+  },
+  {
+   "id": "U-31",
+   "rating": "no",
+   "why": "Maya can click the Message box again after sending, and returning focus there is a typing convenience the request does not depend on."
+  },
+  {
+   "id": "U-32",
+   "rating": "should",
+   "why": "A screen-reader user already hears the working status, and a live announcement of the new Scribe reply is the careful way for them to learn that the answer arrived."
+  },
+  {
+   "id": "U-33",
+   "rating": "should",
+   "why": "Shown times need a believable order and a stable format so the seed does not read as broken and the maintainer can test them."
+  },
+  {
+   "id": "U-34",
+   "rating": "must",
+   "why": "The operator reads the Launch plan seed first, and a new message that lands in the wrong place makes the thread unreadable."
+  },
+  {
+   "id": "U-35",
+   "rating": "no",
+   "why": "Nothing in the request caps message or body size, and an uncapped local demo is a reasonable build."
+  },
+  {
+   "id": "U-36",
+   "rating": "no",
+   "why": "Enter and Shift+Enter are the stated keys, and IME composition plus the phone keyboard's newline are platform edges this delivery can leave alone."
+  },
+  {
+   "id": "U-37",
+   "rating": "should",
+   "why": "The next maintainer has to run the required suite with node --test, and that depends on a Node version whose node:test discovery matches the command."
+  },
+  {
+   "id": "U-38",
+   "rating": "must",
+   "why": "Scribe is supposed to be a clearly identified demonstration agent, and a visible agent identity on its articles is what keeps it distinct from Maya and Theo in a demo."
+  },
+  {
+   "id": "U-39",
+   "rating": "should",
+   "why": "The customer demos the seeded Launch plan, so the lines should read as a coherent conversation, with the exact wording left as a writing choice."
+  },
+  {
+   "id": "U-40",
+   "rating": "must",
+   "why": "The current user is Maya and there are no accounts, so composer messages have to be hers and there is no control to post as Theo."
+  }
+ ]
+}

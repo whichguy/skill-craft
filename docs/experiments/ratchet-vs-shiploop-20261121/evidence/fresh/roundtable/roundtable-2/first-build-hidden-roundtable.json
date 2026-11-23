@@ -1,0 +1,11 @@
+{
+ "observed": true,
+ "reason": null,
+ "passed": [],
+ "failed": {
+  "conversation": "7 assertions; failures: agent-identified; complete=False; evidence: /Users/dadleet/e2e-runs/d20261122-cc457a/measure/tmp/held-out-eu3i6yyv/logs/product-roundtable_accept/scratch-1"
+ },
+ "kind": "roundtable",
+ "work": "/Users/dadleet/e2e-runs/d20261122-cc457a/roundtable-2/work",
+ "commit": "a2da8ba4447d12481fa8dc214d12e6153fe1efef"
+}
