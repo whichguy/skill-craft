@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Prepare one isolated Codybot project and launch a fresh ShipLoop session."""
+"""Prepare an isolated Codybot project. Use --run to also launch ShipLoop."""
+
+from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shlex
 import shutil
@@ -15,6 +18,9 @@ CHECKOUT = Path(__file__).resolve().parents[4]
 PROMPT = (
     "$skill-craft:shiploop Build Codybot from the complete brief in "
     f"`{BRIEF}`. Read every section before planning, in chunks as needed. "
+    "Record the requirements and release scenarios with their brief headings in ShipLoop's "
+    "durable planning artifacts. Reuse those artifacts at later checkpoints and after context "
+    "loss, reopening the relevant sections of the brief for details and conflicts. "
     "Start an isolated ShipLoop workspace using this Git project as the source "
     "and the absolute path to the sibling `workspace` directory as the workspace root. "
     "Keep product build and verification local until the operator explicitly assigns and authorizes "
@@ -24,21 +30,28 @@ PROMPT = (
 )
 
 
-def prepare_project(instance: Path) -> Path:
+def prepare_project(instance: Path, env: dict[str, str]) -> Path:
     project = instance / "project"
     project.mkdir()
     shutil.copyfile(Path(__file__).resolve().with_name(BRIEF), project / BRIEF)
-    git = ["git", "-C", str(project)]
-    subprocess.run([*git, "init", "--quiet", "--initial-branch=main", "--template="], check=True)
-    subprocess.run([*git, "-c", "core.autocrlf=false", "add", "--", BRIEF], check=True)
+    # Keep ambient Git hooks and attributes out of the fixture seed.
+    git = [
+        "git", "-C", str(project),
+        "-c", f"core.hooksPath={os.devnull}",
+        "-c", f"core.attributesFile={os.devnull}",
+        "-c", "core.autocrlf=false",
+    ]
+    env = dict(env, GIT_ATTR_NOSYSTEM="1")
+    subprocess.run([*git, "init", "--quiet", "--initial-branch=main", "--template="], env=env, check=True)
+    subprocess.run([*git, "add", "--", BRIEF], env=env, check=True)
     subprocess.run(
         [
             *git,
             "-c", "user.name=Codybot case",
             "-c", "user.email=codybot-case@example.invalid",
-            "-c", "core.hooksPath=/dev/null",
             "commit", "--quiet", "--no-gpg-sign", "-m", "Seed the original Codybot build brief",
         ],
+        env=env,
         check=True,
     )
     return project
@@ -50,17 +63,24 @@ def main() -> int:
         "--runs-root", type=Path, default=Path.home() / "e2e-runs" / "codybot",
         help="parent for retained instances (default: ~/e2e-runs/codybot)",
     )
-    parser.add_argument("--prepare-only", action="store_true", help="create a project without launching Codex")
+    launch_mode = parser.add_mutually_exclusive_group()
+    launch_mode.add_argument("--run", action="store_true", help="also launch one Codex session for this project")
+    launch_mode.add_argument("--prepare-only", action="store_true", help="prepare without launching Codex (default)")
     args = parser.parse_args()
     runs_root = args.runs_root.expanduser().resolve()
     if runs_root == CHECKOUT or CHECKOUT in runs_root.parents:
         parser.error("--runs-root must be outside this Skill Craft checkout")
 
     try:
+        # A Git hook or checkout job may export its own repository's paths.
+        git_local_vars = subprocess.check_output(["git", "rev-parse", "--local-env-vars"], text=True).split()
+        # Receive hooks also export a quarantine guard outside Git's list.
+        git_local_vars.append("GIT_QUARANTINE_PATH")
+        env = {key: value for key, value in os.environ.items() if key not in git_local_vars}
         runs_root.mkdir(parents=True, exist_ok=True)
         instance = Path(tempfile.mkdtemp(prefix="run-", dir=runs_root))
         print(f"Instance: {instance}", flush=True)
-        project = prepare_project(instance)
+        project = prepare_project(instance, env)
         writable_roots = json.dumps([str(instance), str(project / ".git")], ensure_ascii=False)
         events = instance / "events.jsonl"
         command = [
@@ -69,13 +89,14 @@ def main() -> int:
             "--output-last-message", str(instance / "last-message.md"),
             PROMPT,
         ]
-        launch = shlex.join(command) + f" </dev/null >> {shlex.quote(str(events))}"
+        unset_git_vars = shlex.join(["unset", *git_local_vars])
+        launch = f"({unset_git_vars} && exec {shlex.join(command)}) </dev/null >> {shlex.quote(str(events))}"
         (instance / "launch.txt").write_text(launch + "\n", encoding="utf-8")
         print(f"Project: {project}\nEvents: {events}\nLaunch: {launch}", flush=True)
-        if args.prepare_only:
+        if not args.run:
             return 0
         with events.open("ab") as event_log:
-            return subprocess.run(command, stdin=subprocess.DEVNULL, stdout=event_log).returncode
+            return subprocess.run(command, env=env, stdin=subprocess.DEVNULL, stdout=event_log).returncode
     except (OSError, subprocess.CalledProcessError) as error:
         parser.exit(1, f"codybot: {error}\n")
 

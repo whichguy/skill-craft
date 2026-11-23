@@ -1,50 +1,58 @@
 # Codybot in ShipLoop
 
-Run the [original Codybot build brief](Codybot-design-prompt.md) as a standalone,
-manual case. Each invocation creates a separate source repository with the
-brief committed as its starting input. ShipLoop builds in its own worktree
-and returns the work to that instance's project.
-
-## Start a run
-
-Use Python 3 and Git with a working Codex login, the installed
-`skill-craft@whichguy` plugin, its ShipLoop hooks trusted, and `shiploop-codex`
-on `PATH`. From the Skill Craft repository root, run these commands in
-separate terminals to start two independent runs, or run them sequentially
-for a repeat.
+Prepare an independent build of the [Codybot build brief](Codybot-design-prompt.md)
+with Python 3 and Git. Run this from the Skill Craft repository root.
 
 ```sh
 python3 test/shiploop_e2e/manual/codybot/run.py
-python3 test/shiploop_e2e/manual/codybot/run.py
 ```
 
-Each launch runs in the foreground. The launcher prints the instance path,
-project path, events log and exact CLI command, and saves that command in
-`launch.txt`. Codex appends its session events to `events.jsonl`.
-Instances stay under `~/e2e-runs/codybot`. Pass `--runs-root /absolute/path`
-to keep them under a different directory outside the Skill Craft checkout.
+Each invocation creates a fresh Git repository with the complete brief
+committed. The default and the `--prepare-only` alias finish after local
+preparation, with zero Codex model usage. Repeat that command to prepare more
+independent instances, including from separate terminals. Instances stay
+under `~/e2e-runs/codybot` by default. Use `--runs-root /absolute/path` to put
+them in another directory outside the Skill Craft checkout.
 
-Preparing an instance requires only Python and Git.
+## Opt in to a build
+
+Launching consumes Codex model usage, even when product work stays local. A
+launch requires a working Codex login, the installed `skill-craft@whichguy`
+plugin with its ShipLoop hooks trusted, and `shiploop-codex` on `PATH`.
+This command prepares a new instance and launches one foreground Codex session.
 
 ```sh
-python3 test/shiploop_e2e/manual/codybot/run.py --prepare-only
+python3 test/shiploop_e2e/manual/codybot/run.py --run
 ```
 
-Run the printed command or `sh /path/to/instance/launch.txt` to launch that
-exact instance in a terminal. In Codex desktop, open the printed `project/`
-directory in a fresh session, select the
-model shown by `shiploop-codex --model-id` with medium effort, and submit the
-same `$skill-craft:shiploop …` prompt shown in the command. If ShipLoop reports
+To launch an already prepared instance, use its saved `launch.txt` as a shell
+script. It contains the printed command for that exact project. In Codex
+desktop, open that `project/` directory in a fresh session, select the model
+shown by `shiploop-codex --model-id` with medium effort, and submit the
+`$skill-craft:shiploop …` prompt from the command. If ShipLoop reports
 `SHIPLOOP-GRANT-NEEDED`, use its reported grant and exact retry command.
+
+The [prompt audit](PROMPT-AUDIT.md) documents the offline review. Collect
+product-build and live release evidence per instance.
+
+## Check the case offline
+
+Run the manual fixture checks with Python and Git. The launcher checks use a
+fake `shiploop-codex` and the prompt check reads the JSON examples locally.
+
+```sh
+python3 -B -m unittest discover -s test/shiploop_e2e/manual/codybot -p 'test_*.py' -v
+```
 
 ## Results and recovery
 
 Follow the link in ShipLoop's first packet to `workspace/run/progress.html`.
 The instance holds `project/` for the source and returned work,
 `workspace/worktree/` for implementation, and `workspace/run/` for packets
-and evidence. When the CLI returns a final response, find it in
-`last-message.md`. Keep ShipLoop's completion report and verified return
-receipt with the instance.
+and evidence. The CLI appends session events to `events.jsonl` and writes
+its final response to `last-message.md` when one is available. The launcher
+returns the CLI's exit status. Keep ShipLoop's completion report and verified
+return receipt with the instance.
 
 If launch failed before it created `workspace/`, fix the reported cause
 and retry the saved command for that instance. If a run started, resume its

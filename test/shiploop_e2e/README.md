@@ -18,8 +18,9 @@ is needed when packaged skill sources under `skills/` change, not merely because
 this harness changed.
 
 For independent builds of the Codybot Salesforce package, use the
-[manual Codybot test case](manual/codybot/README.md). Each invocation starts
-from the same Markdown brief in a fresh Git project.
+[manual Codybot test case](manual/codybot/README.md). The launcher prepares a
+fresh Git project from the complete brief by default. Use `--run` to start
+one Codex session for a new project.
 
 ## Inspect and repair retained evidence
 
