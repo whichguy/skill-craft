@@ -29,6 +29,12 @@ Conditions: macOS (Darwin 27.2.0), Python 3.15.1, load average 5 to 8 from other
   bash docs/experiments/suite-cleanup-diagnostic-20261122/run_test41.sh "$PWD" 150 /path/outside/the/checkout/out.txt
   ```
 
+- `stop_named.py LISTING.json` (added the same evening, for the update at the end of round 7). Stops exactly the
+  processes a listing names, each only if it is, at that moment, the process the listing describes: process id, start
+  time, working folder, command, an optional text of its command line, no parent, no children. It is a copy of
+  `docs/experiments/sdlc-structure-20261119/stop_named.py` with the expected command taken from the listing. It was used
+  once, at the owner's word, on the five workers of F30. Do not run it on anything the owner has not named.
+
 ## Results (`results/`)
 
 | file | what it holds |
@@ -40,6 +46,8 @@ Conditions: macOS (Darwin 27.2.0), Python 3.15.1, load average 5 to 8 from other
 | `test-groups-after.txt` | the whole of `test/test-groups.test.py` with the change: 78 tests, OK |
 | `lint.txt` | `ruff` on the two changed files before and after (the same 92 findings), `ruff` and `shellcheck` on the two scripts |
 | `record-search.txt` | the search of the Claude and Codex session records for a real run that printed the runner's record, and the one run that did |
+| `stop-named-trial.txt` | `stop_named.py` tried on four throwaway processes: one described rightly is stopped, three described wrongly are left alone |
+| `leftover-workers-stopped.txt` | the stop of the five workers of F30 at the owner's word: the listing, the checks before, the script's whole output, the checks after |
 
 How to read a line of `double-kill.txt`: the count, then the second kill (`probe=` what the exit probe said just before
 it, `killpg=` whether the kill was accepted or refused), then `WARNING` or `quiet` for what the runner recorded, then the

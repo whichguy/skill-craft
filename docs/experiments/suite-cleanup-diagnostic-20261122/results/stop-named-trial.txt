@@ -1,0 +1,165 @@
+Trial of docs/experiments/suite-cleanup-diagnostic-20261122/stop_named.py on four throwaway processes started for this trial, 2026-11-22 (times PST).
+Worktree base: 30d4be54f0d8b08e2951ff6f0c634da435a71236. Python: Python 3.15.1. Host: macOS 27.2.1.
+Scratch folder: /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop
+
+### worker program (each started by launch.py: Popen with start_new_session=True, cwd=its own folder, stdout piped and read for the ready line, then the launcher exits)
+--- launch.py
+"""Start one throwaway parentless worker in the folder given, print its pid, and exit at once."""
+
+import subprocess
+import sys
+
+PROGRAM = """import os,signal
+signal.signal(signal.SIGTERM,signal.SIG_IGN)
+print('worker-ready',flush=True)
+os.close(1); os.close(2)
+signal.pause()
+"""
+
+folder = sys.argv[1]
+child = subprocess.Popen(
+    ["python3", "-B", "-c", PROGRAM],
+    cwd=folder,
+    stdin=subprocess.DEVNULL,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    start_new_session=True,
+    text=True,
+)
+ready = child.stdout.readline().strip()
+print(child.pid, ready, flush=True)
+
+### workers started (label pid ready-line), started 2026-11-22 19:02:02 PST
+A 61281 worker-ready
+B 61294 worker-ready
+C 61297 worker-ready
+D 61304 worker-ready
+
+### properties of each worker before any run (command line shown as Python repr of ps -ww -o command= output)
+2026-11-22 19:02:08 PST
+== 61281
+ppid:     1
+comm: /opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python
+lstart: Sun Nov 22 19:02:02 2026
+cwd: n/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-A
+command (repr):
+"/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python -B -c import os,signal\\012signal.signal(signal.SIGTERM,signal.SIG_IGN)\\012print('worker-ready',flush=True)\\012os.close(1); os.close(2)\\012signal.pause()\\012\n"
+== 61294
+ppid:     1
+comm: /opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python
+lstart: Sun Nov 22 19:02:02 2026
+cwd: n/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-B
+command (repr):
+"/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python -B -c import os,signal\\012signal.signal(signal.SIGTERM,signal.SIG_IGN)\\012print('worker-ready',flush=True)\\012os.close(1); os.close(2)\\012signal.pause()\\012\n"
+== 61297
+ppid:     1
+comm: /opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python
+lstart: Sun Nov 22 19:02:02 2026
+cwd: n/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-C
+command (repr):
+"/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python -B -c import os,signal\\012signal.signal(signal.SIGTERM,signal.SIG_IGN)\\012print('worker-ready',flush=True)\\012os.close(1); os.close(2)\\012signal.pause()\\012\n"
+== 61304
+ppid:     1
+comm: /opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python
+lstart: Sun Nov 22 19:02:03 2026
+cwd: n/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-D
+command (repr):
+"/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python -B -c import os,signal\\012signal.signal(signal.SIGTERM,signal.SIG_IGN)\\012print('worker-ready',flush=True)\\012os.close(1); os.close(2)\\012signal.pause()\\012\n"
+
+### listing.json (A right with argv_contains; B start time one second off; C command node; D argv_contains absent)
+[
+  {
+    "pid": 61281,
+    "started": "Sun Nov 22 19:02:02 2026",
+    "cwd": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-A",
+    "command": "Python",
+    "argv_contains": "print('worker-ready',flush=True)"
+  },
+  {
+    "pid": 61294,
+    "started": "Sun Nov 22 19:02:03 2026",
+    "cwd": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-B",
+    "command": "Python"
+  },
+  {
+    "pid": 61297,
+    "started": "Sun Nov 22 19:02:02 2026",
+    "cwd": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-C",
+    "command": "node"
+  },
+  {
+    "pid": 61304,
+    "started": "Sun Nov 22 19:02:03 2026",
+    "cwd": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-D",
+    "command": "Python",
+    "argv_contains": "this-text-is-not-in-the-command-line"
+  }
+]
+
+### listing-no-command.json
+[
+  {
+    "pid": 61281,
+    "started": "Sun Nov 22 19:02:02 2026",
+    "cwd": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-A"
+  }
+]
+
+### run 1: listing with no command field
+time: 2026-11-22 19:02:31 PST
+$ python3 -I /Users/dadleet/src/skill-craft/.claude/worktrees/leftover-stop-03c4ae/docs/experiments/suite-cleanup-diagnostic-20261122/stop_named.py /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/listing-no-command.json
+entry 1 ({"pid": 61281, "started": "Sun Nov 22 19:02:02 2026", "cwd": "/private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-A"}) has no "command"; nothing touched
+exit code: 2
+time: 2026-11-22 19:02:31 PST
+ps after run 1:
+61281     1 Ss   Sun Nov 22 19:02:02 2026
+61294     1 Ss   Sun Nov 22 19:02:02 2026
+61297     1 Ss   Sun Nov 22 19:02:02 2026
+61304     1 Ss   Sun Nov 22 19:02:03 2026
+
+### ps check before run 2
+time: 2026-11-22 19:02:31 PST
+61281     1 Ss   Sun Nov 22 19:02:02 2026
+61294     1 Ss   Sun Nov 22 19:02:02 2026
+61297     1 Ss   Sun Nov 22 19:02:02 2026
+61304     1 Ss   Sun Nov 22 19:02:03 2026
+
+### run 2: four-entry listing
+time: 2026-11-22 19:02:31 PST
+$ python3 -I /Users/dadleet/src/skill-craft/.claude/worktrees/leftover-stop-03c4ae/docs/experiments/suite-cleanup-diagnostic-20261122/stop_named.py /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/listing.json
+61281: Python, no parent, started Sun Nov 22 19:02:02 2026, 0.0% of a processor, in /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-A
+61281: SIGTERM sent
+61281: still there after 5 s, SIGKILL sent
+61281: gone
+61294: LEFT ALONE, it started 'Sun Nov 22 19:02:02 2026', not 'Sun Nov 22 19:02:03 2026'
+61297: LEFT ALONE, its command is '/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python', not 'node'
+61304: LEFT ALONE, its command line does not contain 'this-text-is-not-in-the-command-line'
+listed 4, left alone 3, still alive 0
+exit code: 1
+time: 2026-11-22 19:02:38 PST
+
+### ps check after run 2
+ps -p 61281 exit 1 (absent)
+ps -p 61294 exit 0 (61294     1 Ss  )
+ps -p 61297 exit 0 (61297     1 Ss  )
+ps -p 61304 exit 0 (61304     1 Ss  )
+
+### stopping B, C, D by their own pids
+time: 2026-11-22 19:02:46 PST
+pid 61294: cwd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-B
+$ kill -KILL 61294
+kill exit 0
+pid 61297: cwd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-C
+$ kill -KILL 61297
+kill exit 0
+pid 61304: cwd /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/opus-stop/worker-D
+$ kill -KILL 61304
+kill exit 0
+time: 2026-11-22 19:02:47 PST
+ps -p 61281 exit 1 (absent)
+ps -p 61294 exit 1 (absent)
+ps -p 61297 exit 1 (absent)
+ps -p 61304 exit 1 (absent)
+
+### sweep: any process whose working folder is under the scratch folder
+$ lsof -a -d cwd -Fpn | grep -B1 opus-stop  -> exit 1, no match
