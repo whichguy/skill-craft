@@ -1664,6 +1664,22 @@ and the Drive results are about other things. As a matter of the harness it is a
 test sessions should run with the connectors off. Not changed here: it is a harness default, and every earlier Sol
 run had them on. No memory note recorded this before today.
 
+*Corrected 2026-11-22, 16:09, by the first session, after the copy reported that n03 "received nothing from the
+owner's accounts". That report read only the reply's `content` text. Read again by structure, printing no returned
+content (`item_completed` rows whose `item.type` is `McpToolCall`):*
+
+- *n03, the file-store search (21:01:57Z): `result.content[0].text` is "Action completed." (17 characters), and
+  `result.structuredContent.results` is a list of 5 records with the keys url, title, id, mime_type, size,
+  file_or_folder, created_at and updated_at. The whole result is 3,561 characters of JSON. The model was given an
+  output row of 2,791 characters holding 3 of the 5 titles and ids. So the names and links of three of the owner's
+  files entered that test session; no file contents did. None of the five titles occurs in the delivered product (0
+  of 14 files). The figures "about 900 and about 2,500 characters" above are lengths of the session's printed
+  output, not of what the connectors returned.*
+- *n05, the public code-hosting search: "Action completed." with 4 records under `structuredContent.repositories`;
+  public data. n03's other code-hosting search: 0 records. Every chat search: "No results found".*
+- *So a reply is empty only when its structured part is empty too. A count of connector use has to read
+  `structuredContent`; the copy's count over all run roots did not, and is being redone by it.*
+
 ## 41. The owner's answer on the two sessions, and one more reading for rung 10, registered before any of its results is opened (2026-11-22, 15:48)
 
 **Who writes this journal.** At 15:27 the first session handed the study to the copy (the note in section 39).
