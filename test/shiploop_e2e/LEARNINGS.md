@@ -9762,3 +9762,39 @@ exactly; the seed prompt says the request is the specification, which a real run
 Evidence: `docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/` (`results/reader.txt`, `samples.json`, `round.txt`),
 the design with its registration, and the outside review (`gpt-6.2-astra` at xhigh). Roots outside the repository, may be
 pruned: `~/e2e-runs/spr-20261122-9a927c/`, `~/e2e-runs/spr-round-20261122-5613dc/`.
+
+## 2026-11-23 — Script-first testing and 2.8.0 reflection alignment: 4/4 direct browser scripts vs 3/4 MCP-wrapped on stage replay, 0/1 one-step carry-forward note refusals, and two whole deliveries pass every verdict and every case check (Codex Sol 6.2 medium)
+
+What ran. The changes of branch `cursor/shiploop-reflection-and-test-scripts-45e6` on top of `d0185ef5dd4cab7438834be1c3cf42b4006928b8` (ShipLoop 2.8.0):
+- `573001dde3b0507ba3fcb9b0ed5dc41e11a2ff89`: align `END_REVIEW_FOCUS_HEAD`, `references/carry-forward.md`, and `step-plan`'s `follows` refusal with ShipLoop 2.8.0's requirement-rewrite rules (leaving `_CARRY_FORWARD_ONE_STEP` unchanged after baseline verification).
+- `e69c9144e6c864fc04e948ec0f844995d4fef934` and `9cd411fefb8b701575d2f3c8355546004724e855`: prefer committed, executable test scripts over prompt-driven procedures, fragile inline shell pipelines, or MCP-wrapped harnesses across `shiploop_stage_spec.py`, `shiploop_prompts.py`, `references/testing-and-documentation.md`, `references/repeatable-test-suites.md`, and `skills/shiploop/README.md`.
+- `bd075d6d3517411cac14d870d026a249ce750a28`: E2E apparatus improvements (optional `owner-notes/` in `stage_build.py` and promoted stage scenarios `test-strategy/ui-devtools-mcp-available` and `carry-forward/one-step-owed-note`).
+
+1. Paired stage-replay experiments (`stages.py live`, Codex CLI 0.171.0, `gpt-6.2-sol` at `medium`, fresh session per sample):
+   - `test-strategy/ui-devtools-mcp-available` (`web-choice` plain-JS fixture with both `chrome-devtools` MCP and local Node 26 + Chrome declared in `environment.md`):
+     - Baseline (`d0185ef5d`): **3 of 4** samples (pilot + 3-sample confirmation) chose an MCP-wrapped harness (`Chrome DevTools MCP and Python stdlib`, `node:test with Chrome DevTools MCP`, `Chrome DevTools MCP`); 1 of 4 chose `node:test with headless Chrome CDP`.
+     - Candidate (`e69c9144e`): **0 of 4** samples chose an MCP-wrapped harness; **4 of 4** selected a direct repo-native headless Chrome CDP script (`Standalone Node Chrome DevTools Protocol driver`, `Local Chrome CDP`, `node:test via isolated headless Chrome debugging pipe`, `Chrome CDP`).
+   - `step-plan/ui-devtools-mcp-available`: 1/1 baseline and 1/1 candidate planned committed countable `node --test` scripts for `focused` and `regression` and kept `check` for lint/search.
+   - `carry-forward/one-step-owed-note` (1-step run with owed owner note `N1` revising `R-1` and requesting a follow-up item): 1/1 baseline (67 s, 0 refusals) and 1/1 candidate (60 s, 0 refusals) rewrote `R-1` in place, left `R-2` untouched, queued `W2` with valid `follows`, and settled `N1` as `applied` with `item: "W2"`.
+   - `step-plan/ui-create-board` (3-sample paired control): 0/3 baseline (`P1 1/3, P2 1/3, C1 3/3, C2 3/3`) and 0/3 candidate (`P1 0/3, P2 0/3, C1 2/3, C2 3/3`), failing the same pre-existing art-direction/criterion-proof checks on both arms (no regression from testing wording).
+   - Offline packet diff (`packets.py --offline node-fix-bug`, inline, 83/96): only `step-plan` (+223) and `test` (+176) changed; `test-spec`, `validate-existing`, `implement`, `document`, and `carry-forward` stayed byte-identical and below 20,000 characters.
+
+2. Two whole deliveries (`run.py --source checkout --host codex --model gpt-6.2-sol --effort medium --quiet`, started together at 09:17 PST from `9cd411fefb8b701575d2f3c8355546004724e855`, overlapping 985.3 s, load 10.58 -> 6.46 on 18 CPUs, external baseline file):
+
+| Delivery | Verdicts | Checks | Held-out | Time | Sessions / Compactions | Refusals (repeated) |
+|---|---|---|---|---|---|---|
+| Sol 6.2 medium, `ticket-assignment` | pass | 3 of 3 | 18 of 18 (0 leaked) | 987.2 s (16.5 min) | 1 / 0 (254 turns) | 6 (0) |
+| Sol 6.2 medium, `battleship` | pass | 4 of 4 | mutation skipped (test binds fixed port 3000) | 995.6 s (16.6 min) | 1 / 0 (237 turns) | 2 (0) |
+
+Delivered test suites and spec-edit audit (from each product repository's git log and accepted stage results):
+- `ticket-assignment` (`HEAD 0be457ff`): `docs/shiploop/spec.md` changed only in `spec` and step commits (`W1/S1`, `W1/S2`) — **0 edits in `carry-forward` or end-of-work review**. `step-plan` recorded committed `node --test test/assignment.test.js` and `node --test test/assignment-cli.test.js` (`focused`), `npm test` (`regression`), and `git diff --check` (`check`); `system-test-author` recorded `npm test` (`regression`) and `git diff --check 8f627d9` (`check`); `release-plan` recorded `npm test` (`regression`).
+- `battleship` (`HEAD 5d6b1b1c`): `docs/shiploop/spec.md` changed only in `spec` — **0 edits in `carry-forward` or end-of-work review** (bringing post-2.7.1 `carry-forward` spec edits to 0 of 7 deliveries). `test-strategy` selected `node:test` (unit/component) and `headless Chrome with isolated profile` (e2e), with no MCP wrapper. `test/server.test.js` authored `T-6` gated behind `BATTLESHIP_BROWSER=1` launching headless Chrome with a temporary `mkdtemp` profile over native Node WebSocket CDP, verified in `step-plan`, `system-test-author`, and `release-plan` as a countable `focused` `node --test` command alongside default `node --test` (`regression`). Zero shell pipelines in `focused`.
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: `stage_build.py` now lays optional `owner-notes/` into `RUN/owner-notes/` natively, and both `test-strategy/ui-devtools-mcp-available` and `carry-forward/one-step-owed-note` are committed under `test/shiploop_e2e/stage_cases/` with `verify`/`render` oracles (`bd075d6d3517411cac14d870d026a249ce750a28`).
+2. More to learn on later passes: live hosts exposing callable browser MCP tools in the host catalog (Claude Code / Cursor), non-Codex drivers (Claude Sonnet, Grok), multi-item `carry-forward` with an owed owner note, an end-of-work review after an actual `step-plan` send-back rewrite in a whole delivery, and outer stages (`system-test-author`, `release-plan`) once wave-3 stage-suite support lands.
+3. More evaluation criteria: `battleship`'s held-out mutation check skipped because the delivered test bound fixed port 3000 (`quality: mutation not observed: its tests bind a fixed port`); no change made to the harness here.
+
+Limits: Codex `gpt-6.2-sol` medium only (no Claude Sonnet or Grok delivery); two whole deliveries ran overlapping each other; `ui-devtools-mcp-available` declared Chrome DevTools MCP in `environment.md` (with its stdio binary installed) rather than as a callable host catalog tool; no marketplace install run. Evidence roots (outside the repository, may be pruned): `~/e2e-runs/script-first-20261123/{ticket-assignment,battleship}` and `/tmp/shiploop-side-exp-20261123/{baseline-sol-6.2-medium,baseline-round2,baseline-step-plan-mcp,baseline-cf-note,candidate-ab-sol-6.2-medium,candidate-cf-note,ab3-baseline,ab3-candidate,board3-baseline,board3-candidate}`.
+
