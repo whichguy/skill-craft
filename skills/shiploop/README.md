@@ -1497,9 +1497,13 @@ current-run and durable-policy record.
 
 Prefer `curl` or an existing HTTP/API client when it can prove the required
 outcome. Choose tools by evidence coverage and overhead, not by a fixed ladder.
-Always consider Chrome DevTools, browser automation or an equivalent available
-browser surface for rendered behavior, interactions, or browser-specific auth
-such as session/SSO/MFA flows. No new browser integration is required by default.
+For repeatable browser checks, prefer committed, executable browser test scripts
+(such as a repo-native headless/CDP script, Playwright, or an adequate existing
+regression runner); use available, suitable Chrome DevTools for interactive
+browser inspection and probing (or as a fallback when no direct script runner is
+suitable), and consider browser surfaces for rendered behavior, interactions, or
+browser-specific auth such as session/SSO/MFA flows. No new browser integration
+is required by default.
 
 Discovery and test planning establish the target, intended user role, expected
 behavior and access prerequisites. INNER/system/release verification uses that
