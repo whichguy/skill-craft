@@ -191,8 +191,8 @@ def check_queue(state: Mapping[str, Any], stage: str, result: Any) -> None:
     absent = list(dict.fromkeys(ident for row in result.get("work_items") or () for ident in _follows(row)
                                 if ident not in known))
     _need(not absent, "work_items follows names " + ", ".join(absent) + ", with no entry (a line that starts with the "
-          "ID) in " + str(_spec_path(repo)) + " (R-) or " + str(architecture) + " (AD-): cite only IDs with an entry, "
-          "or write the entry first")
+          "ID) in " + str(_spec_path(repo)) + " (R-) or " + str(architecture) + " (AD-): cite only IDs with an entry"
+          + ("" if stage == "carry-forward" else ", or write the entry first"))
     ids = primary_ids(state)
     if not ids:
         return

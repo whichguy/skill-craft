@@ -45,7 +45,9 @@ Keep completed evidence separate from future plans. Update appropriate project
 knowledge (see
 [retain learnings for the next invocation](project-knowledge.md#retain-learnings-for-the-next-invocation))
 and preserve concrete revalidation conditions; do not silently expand scope or
-turn tentative ideas into adopted policy.
+turn tentative ideas into adopted policy. `spec.md` is not edited at this stage:
+the spec stage and the steps keep its lines, and a gap is routed to the queue or
+an open item.
 
 ## Decide on a reusable skill
 

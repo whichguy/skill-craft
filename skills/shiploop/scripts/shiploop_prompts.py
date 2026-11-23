@@ -1576,9 +1576,9 @@ preparatory commit); a mismatch there is a send-back.
      locators; fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation
      condition.
    - KNOWLEDGE/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
-   - KNOWLEDGE/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
-     included (State and data assessment). Keep unaffected clauses, and never relax one to fit the code or tests.
-     Test IDs live only in test code: write none here.
+   - KNOWLEDGE/spec.md: keep the spec and the steps' lines as written. Route an unmet R-<n> clause, or an unresolved
+     state or data change (State and data assessment), to its work item in duty 2, or to an open item due at the later
+     outer stage that can settle it; name the R-<n> and what would settle the gap.
    - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
      owns: open items in `assumptions`, each with owner and, as `due_stage`, the later outer stage it is due at.
    - Carry the prior baseline, incoming delta and updated knowledge locators forward, keeping historical snapshots
@@ -2344,6 +2344,7 @@ input, then review the change against the rubric below and for:
 - a mutant disposition a test stage recorded (equivalent, out-of-scope,
   not-exercisable) that a later edit made untrue, or a kill claimed with no run.
 Fix violations within scope; each fix comes with a test that fails before it.
+Leave spec.md as the steps wrote it; route a gap to the queue or an open item.
 A pass that finds no material violation is trivial.
 """
 END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT

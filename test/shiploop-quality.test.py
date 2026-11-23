@@ -29,6 +29,10 @@ CORE = fx.CORE
 PLAN_RECORD = " ".join((PACKAGE / "references/plan-record.md").read_text(encoding="utf-8").split())
 
 
+# The end-of-work review's one line about the living spec (END_REVIEW_FOCUS_HEAD).
+LEAVE_SPEC = "Leave spec.md as the steps wrote it; route a gap to the queue or an open item."
+
+
 class QualityLoopTests(fx.RunDriver):
     def assert_improve_stage_started(self, state):
         """ShipLoop binds the run's Improve card and starts the review at the transition (owner, 2026-10-11): the
@@ -49,6 +53,8 @@ class QualityLoopTests(fx.RunDriver):
         self.assertIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertIn("2. Fail at the door.", packet)
         self.assertIn("4. Spend tokens on information.", packet)
+        # carry-forward edits no spec line, so its review leaves the steps' lines too and routes a gap (2026-11-22).
+        self.assertIn("\n" + LEAVE_SPEC + "\n", packet)
 
     def test_each_steps_review_carries_the_step_focus_with_the_full_rubric(self):
         """Owner decision 2026-10-10: an Improve child reviews every step with the Code craft rubric
@@ -62,6 +68,7 @@ class QualityLoopTests(fx.RunDriver):
         self.assertIn(prompts.IMPLEMENT_STEP_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertEqual(packet.count("2. Fail at the door."), 1)
         self.assertNotIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
+        self.assertNotIn(LEAVE_SPEC, packet)  # a step's review still corrects its step's spec lines
 
     def test_planning_improve_does_not_carry_the_end_focus(self):
         self.start()
@@ -70,6 +77,7 @@ class QualityLoopTests(fx.RunDriver):
         handoff = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn("Planning review focus", handoff)
         self.assertNotIn("End-of-work code review focus", handoff)
+        self.assertNotIn(LEAVE_SPEC, handoff)  # a planning review still revises the spec it reviews
 
 
 # Each step's review (design T §8, after its document stage): the review list that applies the rubric to the step.

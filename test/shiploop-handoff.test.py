@@ -1630,6 +1630,15 @@ class PlanCoverageTests(RepoCase):
         self.assertTrue(message.startswith("work_items follows names R-9, AD-2, with no entry"), message)
         self.assertIn(str(self.repo / knowledge.HOME / "spec.md") + " (R-)", message)
         self.assertIn(str(self.repo / knowledge.HOME / "architecture.md") + " (AD-)", message)
+        # plan may add an AD-<n> under ## Decisions before it cites it; carry-forward may add no requirement (a missing one
+        # is a scope change), so its refusal names no entry to write.
+        self.assertTrue(message.endswith(": cite only IDs with an entry, or write the entry first"), message)
+        later = self.state_at("carry-forward", primary_ids=["R-1"],
+                              work_items=[{"id": "W1", "title": "one", "follows": ["R-1"]}])
+        message = self.refused(lambda: primary.check_queue(later, "carry-forward", self.done(
+            [{"id": "W2", "title": "two", "follows": ["R-9"]}])))
+        self.assertTrue(message.startswith("work_items follows names R-9, with no entry"), message)
+        self.assertTrue(message.endswith(": cite only IDs with an entry"), message)
         # A retired requirement still has an entry, as in a step plan's follows; the spec's primary list is checked
         # for current entries at the spec stage.
         primary.check_queue(state, "plan", self.done([{"id": "W1", "title": "one", "follows": ["R-1", "R-4", "AD-1"]}]))

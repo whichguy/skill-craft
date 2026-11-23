@@ -26,6 +26,7 @@ import shiploop_lessons as commit_lessons  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_knowledge_support as support  # noqa: E402
+import shiploop_prompts as prompts  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
@@ -631,6 +632,34 @@ class RemovalTests(HomeFixture):
         for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
             for names in table.values():
                 self.assertTrue(set(names) <= set(knowledge.LIVING), names)
+
+    def test_carry_forward_keeps_the_spec_as_written_and_routes_a_gap_in_both_forms_of_its_duty(self) -> None:
+        """Its duty agrees with STAGE_FILES, which gives it architecture.md and environment.md only: whole, and in the one-step
+        one-item form, it keeps spec.md as the steps wrote it and sends an unmet clause to its work item or an open item.
+
+        The duty once asked for each satisfied R-<n> in spec.md with no test IDs there, and carry-forward took the test IDs
+        out of the lines the steps had written (24 of its 27 changed-line cases; section 3 of
+        docs/shiploop-end-of-inner-loop-journal.md).
+        """
+        keep = ("keep the spec and the steps' lines as written. Route an unmet R-<n> clause, or an unresolved state or data "
+                "change (State and data assessment), to its work item in duty 2, or to an open item due at the later outer "
+                "stage that can settle it; name the R-<n> and what would settle the gap.")
+        one_step = prompts.duty("carry-forward", one_step_item="W1")  # as a packet prints it (_one_step_carry_forward)
+        self.assertIn("No item follows W1", one_step)
+        for form, text in (("whole", prompts.DUTIES["carry-forward"]), ("one step", one_step)):
+            with self.subTest(form):
+                duty_1 = text[:text.index("2. **Queue**")]
+                bullets = [" ".join(row.split()) for row in re.split(r"(?m)^   - ", duty_1)[1:]]
+                named = {}
+                for row in bullets:
+                    found = re.match(r"KNOWLEDGE/(\w+\.md)[^:]*: (.*)", row)
+                    if found:
+                        named.setdefault(found.group(1), []).append(found.group(2))
+                self.assertTrue(set(knowledge.STAGE_FILES["carry-forward"]) <= set(named), sorted(named))
+                self.assertEqual({name: rows for name, rows in named.items()
+                                  if name not in knowledge.STAGE_FILES["carry-forward"]}, {"spec.md": [keep]})
+                for gone in ("each R-<n> this item satisfied", "Test IDs live only in test code"):
+                    self.assertNotIn(gone, " ".join(text.split()))
 
     def test_run_label_is_the_old_folder_name_and_names_no_folder(self) -> None:
         self.assertEqual(knowledge.run_label(self.state), "add-a-fleet-command-tab-to-abcdef")

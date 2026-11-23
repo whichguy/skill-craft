@@ -369,11 +369,12 @@ into binding conditions merely because an earlier agent wrote them down.
    no second review counter or extra campaign is introduced. Do not widen a
    step merely to audit every unrelated feature.
 4. **Document/carry-forward, product acceptance and handoff:** reconcile the
-   maintained record with accepted changes and actual evidence. Keep unmet
-   requirements, proposals and verification limits explicit. Check links and
-   confirm required intent survives without old run folders; preserve unrelated
-   content and reconcile concurrent edits. Summarize supersession rationale
-   next to the replacement rather than accumulating a second current spec.
+   maintained record with accepted changes and actual evidence; carry-forward
+   does not edit `spec.md`. Keep unmet requirements, proposals and verification
+   limits explicit. Check links and confirm required intent survives without old
+   run folders; preserve unrelated content and reconcile concurrent edits.
+   Summarize supersession rationale next to the replacement rather than
+   accumulating a second current spec.
 
 Resume an interrupted request through its saved run; start each new feature
 with its own prompt and run identity. The maintained contract persists across
