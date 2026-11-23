@@ -2,6 +2,21 @@
 
 Written by scripts/release.py.
 
+## 2026-11-23
+
+### skill-craft 4.6.1
+
+- Skills: shiploop 2.8.1, test-harness 0.1.2
+
+### shiploop 2.8.1
+
+- Align ShipLoop's end-of-work review, carry-forward guide, and `step-plan` `follows` refusal with ShipLoop 2.8.0's requirement-rewrite rules: preserve `step-plan` send-back rewrites in `spec.md` alongside steps and owed owner notes, and stop inviting `step-plan` to add unlisted `R-<n>` entries to `spec.md`.
+- Make ShipLoop explicitly script-first for repeatable tests across `test-strategy`, `step-plan`, `test`, `system-test-author`, `release-plan`, and the testing reference guides: prefer committed, executable test scripts run directly by command over prompt-driven procedures, fragile inline shell pipelines, or MCP-wrapped harnesses, reserving Chrome DevTools and interactive host tools for inspection, probing, or fallback when no direct script runner is suitable.
+
+### test-harness 0.1.2
+
+- Self-test failures now reprint a fail-index of named checks before exit so a truncated CI log still names the failing assertion.
+
 ## 2026-11-22
 
 ### skill-craft 4.6.0

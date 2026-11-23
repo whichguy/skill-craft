@@ -6,7 +6,7 @@ description: >-
   a disposable worktree and rerun until clean, and always emit a machine-written report. Use when the user asks to run
   the test harness, audit test side effects, check harness hygiene, or gate a local change on suite plus
   unintended-write cleanliness for a repository or a package inside a monorepo.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

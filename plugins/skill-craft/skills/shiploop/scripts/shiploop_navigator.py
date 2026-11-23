@@ -4063,7 +4063,8 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         if absent:
             return _Fault("Fix the follows IDs in {result}", "fixes follows",
                           ["Cite only IDs with an entry (a line that starts with the ID) in " + str(spec) + " (R-) or "
-                           + str(architecture) + " (AD-): drop each other ID, or add its entry to the living file"
+                           + str(architecture) + " (AD-): correct or drop any unlisted R- (step-plan does not add new "
+                           "R- entries to spec.md), and drop an unlisted AD- or add its entry to " + str(architecture)
                            + ("; improve-commit that edit first." if command == "improve" else "."),
                            "No entry: " + ", ".join(absent) + "."])
     if stage in assumptions.OPEN_ITEM_STAGES:
