@@ -1,0 +1,69 @@
+{
+ "name": "released",
+ "ref": null,
+ "overlay": null,
+ "versions": {
+  "plugin_version": "4.5.1",
+  "shiploop_version": "2.7.1",
+  "plugin_sha256": "2e5558da8e0c"
+ },
+ "send-back-revises-r9": {
+  "checks": {
+   "revisit line": true,
+   "summary whole in the revisit line": true,
+   "summary not cut": true,
+   "sending result's file named": true,
+   "done rows printed as they must be copied": true,
+   "spec outline lists every R-n": true,
+   "duty 10 whole": true,
+   "no owner note owed": true,
+   "printed packet is the packet file": true
+  },
+  "packet_characters": 35010,
+  "printed_characters": 35037,
+  "summary_characters": 449,
+  "revisit_summary_limit": 600,
+  "duty_10": "10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the\n    step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else\n    in KNOWLEDGE/, unless an owner note this stage owes asks for a requirement change: then rewrite that requirement in\n    place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the old clause) and plan the step for the\n    rewritten text.\n",
+  "summary_printed_times": 2,
+  "spec_entries": [
+   "R-1",
+   "R-2",
+   "R-3",
+   "R-4",
+   "R-5",
+   "R-6",
+   "R-7",
+   "R-8",
+   "R-9"
+  ]
+ },
+ "replay-ticket-comments-late-send-back": {
+  "checks": {
+   "revisit line": true,
+   "summary whole in the revisit line": true,
+   "summary not cut": true,
+   "sending result's file named": true,
+   "done rows printed as they must be copied": true,
+   "spec outline lists every R-n": true,
+   "duty 10 whole": true,
+   "no owner note owed": true,
+   "printed packet is the packet file": true
+  },
+  "packet_characters": 34873,
+  "printed_characters": 34900,
+  "summary_characters": 297,
+  "revisit_summary_limit": 600,
+  "duty_10": "10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the\n    step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else\n    in KNOWLEDGE/, unless an owner note this stage owes asks for a requirement change: then rewrite that requirement in\n    place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the old clause) and plan the step for the\n    rewritten text.\n",
+  "summary_printed_times": 2,
+  "spec_entries": [
+   "R-1",
+   "R-2",
+   "R-3",
+   "R-4",
+   "R-5",
+   "R-6",
+   "R-7",
+   "R-8"
+  ]
+ }
+}

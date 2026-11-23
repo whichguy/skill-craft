@@ -1,0 +1,1020 @@
+#1 right, through the real gates: expected met -> AS EXPECTED
+    == T  send-back-revises-r9 #1  (<ROOT>)
+       hand-made right, through the real gates medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#2 right, after a fix-forward refusal on the first check (real gates): expected met, {'fix_forward_first': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #2  (<ROOT>)
+       hand-made right, after a fix-forward refusal on the first check (real gates) medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 1 (fix forward 1); fix forward on the first callback: no (steps S1 are done (reviewed and committed) and stay as they are: fix forward never reruns a done step. Start steps with the done steps exactly as below, each with "done": true, then the steps still to)
+         refused check: steps S1 are done (reviewed and committed) and stay as they are: fix forward never reruns a done step. Start steps with the done steps exactly as below, each with "done": true, then the steps still to
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#3 right, built from the released ref: cell C: expected met, {'cell': 'C'} -> AS EXPECTED
+    == C  send-back-revises-r9 #3  (<ROOT>)
+       hand-made right, built from the released ref: cell C medium  ref c06157c947ce9646bbe7528110a12b68ed8fbca8, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT C: met
+#4 first check refused by another gate: expected met, {'fix_forward_first': 'read'} -> AS EXPECTED
+    == T  send-back-revises-r9 #4  (<ROOT>)
+       hand-made first check refused by another gate medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 1 (fix forward 0); fix forward on the first callback: read (the first check was refused by another gate, which may run before fix forward: test_commands has a check row, so drop check_na)
+         refused check: test_commands has a check row, so drop check_na
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#5 leaves the spec alone: expected not met, {'normative clause states the new meaning': 'no', 'old clause gone': 'no', 'entry gives a source': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #5  (<ROOT>)
+       hand-made leaves the spec alone medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       no    old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       no    entry gives a source
+       no    entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the entry is unchanged
+       old clause: stands: - The message delivered for a comment carries the comment's author and content in its body.; basis line changed False, says revised False, rest of spec.md identical True
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': True}
+       product files changed: []; knowledge files changed: []
+       VERDICT T: not met
+#6 changes a second R-n: expected not met, {'every other R-n byte-identical': 'no', 'normative clause states the new meaning': 'yes'}, STOP another requirement changed: R-3 -> AS EXPECTED
+    == T  send-back-revises-r9 #6  (<ROOT>)
+       hand-made changes a second R-n medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       no    every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical False
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       STOP: another requirement changed: R-3
+       VERDICT T: not met
+#7 keeps the old clause beside the new one: expected not met, {'old clause gone': 'no', 'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #7  (<ROOT>)
+       hand-made keeps the old clause beside the new one medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       no    old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: stands: - The message delivered for a comment carries the comment's author and content in its body.; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#8 drops the ID: expected not met, {'ID kept': 'no', 'no R-n added, removed or retired': 'no'}, STOP a requirement removed: R-9 -> AS EXPECTED
+    == T  send-back-revises-r9 #8  (<ROOT>)
+       hand-made drops the ID medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       read  old clause gone
+       no    ID kept
+       no    sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       no    no R-n added, removed or retired
+       no    entry gives a source
+       no    entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the entry is gone
+       old clause: the entry is gone; basis line changed True, says revised False, rest of spec.md identical None
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       STOP: a sibling clause changed: - Its subject begins with the ticket ID in square brackets, as every other notification's does. Confirm by the same test.; - A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test.
+       STOP: a requirement removed: R-9
+       VERDICT T: not met
+#9 moves R-9 under Retired: expected not met, {'ID kept': 'no'}, STOP a requirement retired: R-9 -> AS EXPECTED
+    == T  send-back-revises-r9 #9  (<ROOT>)
+       hand-made moves R-9 under Retired medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       read  normative clause states the new meaning
+       yes   old clause gone
+       no    ID kept
+       no    sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       no    no R-n added, removed or retired
+       read  entry gives a source
+       read  entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text is absent and the old clause is gone: a paraphrase is read by hand
+       old clause: gone; basis line changed True, says revised False, rest of spec.md identical False
+         new in the entry: Replaced.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       STOP: a sibling clause changed: - Its subject begins with the ticket ID in square brackets, as every other notification's does. Confirm by the same test.; - A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test.
+       STOP: a requirement retired: R-9
+       VERDICT T: not met
+#10 adds R-10 instead: expected not met, {'no R-n added, removed or retired': 'no', 'normative clause states the new meaning': 'no'}, STOP a requirement added: R-10 -> AS EXPECTED
+    == T  send-back-revises-r9 #10  (<ROOT>)
+       hand-made adds R-10 instead medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       no    old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       no    no R-n added, removed or retired
+       no    entry gives a source
+       no    entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the entry is unchanged
+       old clause: stands: - The message delivered for a comment carries the comment's author and content in its body.; basis line changed False, says revised False, rest of spec.md identical False
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       STOP: a requirement added: R-10
+       VERDICT T: not met
+#11 weakens a sibling clause: expected not met, {'sibling clauses byte-identical': 'no', 'normative clause states the new meaning': 'yes'}, STOP a sibling clause changed -> AS EXPECTED
+    == T  send-back-revises-r9 #11  (<ROOT>)
+       hand-made weakens a sibling clause medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       no    sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - A message that cannot be delivered is dropped.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       STOP: a sibling clause changed: - A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test.
+       VERDICT T: not met
+#12 a valid paraphrase without the exact token: expected read, {'normative clause states the new meaning': 'read', 'old clause gone': 'yes', 'criterion of a step not done states it': 'read'} -> AS EXPECTED
+    == T  send-back-revises-r9 #12  (<ROOT>)
+       hand-made a valid paraphrase without the exact token medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       read  normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       read  criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text is absent and the old clause is gone: a paraphrase is read by hand
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment tells the agent who commented and on which ticket, and never any of the comment's own words.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         changed criterion C3: R-9 the delivered message names author and ticket and holds no word of the comment. Confirm by: TC_Comments_Notify; pass when the body holds none of it.
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': False}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: read
+#13 the token only in the reason, the clause a paraphrase of the OLD meaning: expected not met, {'normative clause states the new meaning': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #13  (<ROOT>)
+       hand-made the token only in the reason, the clause a paraphrase of the OLD meaning medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a reason
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment shows who wrote it and what they wrote.
+         new in the entry: Confirm by a worker delivery test.
+         new in the entry: - Step-plan revised this entry because the send-back asks for the body `<author> commented on <ticket> (no preview).` (docs/operations.md, wall display).
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#14 the token only in the reason, the old clause kept: expected not met, {'normative clause states the new meaning': 'no', 'old clause gone': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #14  (<ROOT>)
+       hand-made the token only in the reason, the old clause kept medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       no    old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       read  entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a reason
+       old clause: stands: - The message delivered for a comment carries the comment's author and content in its body.; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - Revised by step-plan: the send-back says the body must be `<author> commented on <ticket> (no preview).`, see docs/operations.md.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#15 the token only after 'because' in a normative sentence: expected not met, {'normative clause states the new meaning': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #15  (<ROOT>)
+       hand-made the token only after 'because' in a normative sentence medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a reason
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment shows who wrote it, because the send-back wanted the body `<author> commented on <ticket> (no preview).`.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#16 the token only in the Basis sentence: expected not met, {'normative clause states the new meaning': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #16  (<ROOT>)
+       hand-made the token only in the Basis sentence medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a reason
+       old clause: gone; basis line changed True, says revised True, rest of spec.md identical True
+         new in the entry: Basis: request S6; src/templates.js, src/notifier.js CONTRIBUTING.md; docs/operations.md; the text `<author> commented on <ticket> (no preview).`
+         new in the entry: - The message delivered for a comment shows who wrote it and what they wrote.
+         new in the entry: Confirm by a worker delivery test.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#17 the right clause in an R-1 style paragraph after its Basis: expected met, {'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #17  (<ROOT>)
+       hand-made the right clause in an R-1 style paragraph after its Basis medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: The delivered body is exactly `<author> commented on <ticket> (no preview).` and holds nothing else.
+       old clause: gone; basis line changed True, says revised True, rest of spec.md identical True
+         new in the entry: Basis: request S6; docs/operations.md (Notifications).
+         new in the entry: The delivered body is exactly `<author> commented on <ticket> (no preview).` and holds nothing else.
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#18 the token in the Basis line as what the send-back asks for: expected not met, {'normative clause states the new meaning': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #18  (<ROOT>)
+       hand-made the token in the Basis line as what the send-back asks for medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a reason
+       old clause: gone; basis line changed True, says revised True, rest of spec.md identical True
+         new in the entry: docs/operations.md;
+         new in the entry: the send-back asks for `<author> commented on <ticket> (no preview).`
+         new in the entry: - The message delivered for a comment shows who wrote it and what they wrote.
+         new in the entry: Confirm by a worker delivery test.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#19 a wrapped reason whose second line holds the token: expected not met, {'normative clause states the new meaning': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #19  (<ROOT>)
+       hand-made a wrapped reason whose second line holds the token medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a reason
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment shows who wrote it, because the send-back from implement wants the body to be `<author> commented on <ticket> (no preview).` on the wall display.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#20 the right clause wrapped over two lines: expected met, {'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #20  (<ROOT>)
+       hand-made the right clause wrapped over two lines medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#21 the right clause with its reason in a parenthesis of the same sentence: expected met, {'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #21  (<ROOT>)
+       hand-made the right clause with its reason in a parenthesis of the same sentence medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content (step-plan revised this because the relay shows messages on the wall displ
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content (step-plan revised this because the relay shows messages on the wall display: docs/operations.md).
+         new in the entry: Confirm by a worker delivery test.
+         new in the entry: - Source: docs/operations.md.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#22 the right clause with its reason after a dash: expected met, {'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #22  (<ROOT>)
+       hand-made the right clause with its reason after a dash medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` — revised by step-plan because visitors read the wall display (docs/operations.md).
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` — revised by step-plan because visitors read the wall display (docs/operations.md).
+         new in the entry: Confirm by a worker delivery test.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#23 the right clause with its reason first: expected met, {'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #23  (<ROOT>)
+       hand-made the right clause with its reason first medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - Because the relay shows every message on the lobby wall display, the body delivered for a comment is exactly `<author> commented on <ticket> (no preview).`
+       old clause: gone; basis line changed False, says revised False, rest of spec.md identical True
+         new in the entry: - Because the relay shows every message on the lobby wall display, the body delivered for a comment is exactly `<author> commented on <ticket> (no preview).`
+         new in the entry: Confirm by a worker delivery test.
+         new in the entry: - Source: docs/operations.md.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#24 the right clause opened with 'Revised by step-plan:': expected read, {'normative clause states the new meaning': 'read', 'old clause gone': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #24  (<ROOT>)
+       hand-made the right clause opened with 'Revised by step-plan:' medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       read  normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a sentence that says what was revised: - Revised by step-plan: the body delivered for a comment is exactly `<author> commented on <ticket> (no preview).`
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - Revised by step-plan: the body delivered for a comment is exactly `<author> commented on <ticket> (no preview).`
+         new in the entry: Confirm by a worker delivery test.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: read
+#25 the new text negated: expected not met, {'normative clause states the new meaning': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #25  (<ROOT>)
+       hand-made the new text negated medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a negation
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment shows what was written and must not be `<author> commented on <ticket> (no preview).`.
+         new in the entry: Confirm by a test.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#26 the new text stated after an unrelated 'not': expected met, {'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #26  (<ROOT>)
+       hand-made the new text stated after an unrelated 'not' medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment does not quote it and is exactly `<author> commented on <ticket> (no preview).`.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment does not quote it and is exactly `<author> commented on <ticket> (no preview).`.
+         new in the entry: Confirm by a test.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: met
+#27 the new text only in the Confirm sentence: expected read, {'normative clause states the new meaning': 'read'} -> AS EXPECTED
+    == T  send-back-revises-r9 #27  (<ROOT>)
+       hand-made the new text only in the Confirm sentence medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       read  normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: the new text stands only in a Confirm sentence
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment names its author and ticket and nothing else.
+         new in the entry: Confirm by a test that reads `<author> commented on <ticket> (no preview).`.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: read
+#28 the old clause quoted only in the reason: expected read, {'old clause gone': 'read', 'normative clause states the new meaning': 'yes'} -> AS EXPECTED
+    == T  send-back-revises-r9 #28  (<ROOT>)
+       hand-made the old clause quoted only in the reason medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       read  old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: quoted in a reason only; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md.
+         new in the entry: Step-plan revised "carries the comment's author and content in its body" because visitors read the wall display.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: read
+#29 no reason and no source in the entry: expected read, {'entry gives a source': 'read', 'entry gives a reason': 'read'} -> AS EXPECTED
+    == T  send-back-revises-r9 #29  (<ROOT>)
+       hand-made no reason and no source in the entry medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       read  entry gives a source
+       read  entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised False, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: read
+#30 summary does not begin Revised R-9, follows drops it: expected not met, {"summary begins 'Revised R-9'": 'no', 'follows names it': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #30  (<ROOT>)
+       hand-made summary does not begin Revised R-9, follows drops it medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       no    summary begins 'Revised R-9'
+       no    follows names it
+       yes   criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: S2 is replanned; R-9 was revised.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#31 the criterion stays the old one: expected not met, {'criterion of a step not done states it': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #31  (<ROOT>)
+       hand-made the criterion stays the old one medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       no    criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': False}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#32 the new meaning only on the done step's criterion: expected not met, {'criterion of a step not done states it': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #32  (<ROOT>)
+       hand-made the new meaning only on the done step's criterion medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       no    criterion of a step not done states it
+       yes   no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C9 (steps []): R-9 exact body `<author> commented on <ticket> (no preview).`. Confirm by: TC_Comments_Store; pass when equal.
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': False, 'P2': True, 'P3': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+#33 a product file changed: expected not met, {'no product file changed': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #33  (<ROOT>)
+       hand-made a product file changed medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   normative clause states the new meaning
+       yes   old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       yes   entry gives a source
+       yes   entry gives a reason
+       yes   summary begins 'Revised R-9'
+       yes   follows names it
+       yes   criterion of a step not done states it
+       no    no product file changed
+       normative: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+       old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+         new in the entry: - The message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and holds none of the comment's content.
+         new in the entry: Confirm by a worker delivery test that reads the delivered body.
+         new in the entry: - Source: docs/operations.md (Notifications).
+         new in the entry: Step-plan revised this clause because the relay shows every message on the lobby wall display, where visitors read it.
+         criterion C3 (steps ['S2']): R-9 the message delivered for a comment has exactly the body `<author> commented on <ticket> (no preview).` and none of the comment's content, and its subject begins with the ticket ID. Confirm by: TC_Comments_Notify; pa
+       summary: Revised R-9: a notified agent reads who commented on which ticket and none of the comment's text, because the relay shows every message on the lobby wall display. S2 is replanned for it; S1 and S3 are carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+       product files changed: ['src/templates.js']; knowledge files changed: ['docs/shiploop/spec.md']
+       VERDICT T: not met
+(seed build repeated: seed: could not advance the run to step-plan: child returncode 1; stderr: seed_route[2] expects implement, but the run i)
+#34 blocked: expected not met, {'accepted': 'no', 'normative clause states the new meaning': 'no'} -> AS EXPECTED
+    == T  send-back-revises-r9 #34  (<ROOT>)
+       hand-made blocked medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome blocked (accepted), run blocked
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first complete was accepted)
+       no    accepted
+       no    normative clause states the new meaning
+       no    old clause gone
+       yes   ID kept
+       yes   sibling clauses byte-identical
+       yes   every other R-n byte-identical
+       yes   no R-n added, removed or retired
+       no    entry gives a source
+       no    entry gives a reason
+       no    summary begins 'Revised R-9'
+       no    follows names it
+       no    criterion of a step not done states it
+       yes   no product file changed
+       normative: the entry is unchanged
+       old clause: stands: - The message delivered for a comment carries the comment's author and content in its body.; basis line changed False, says revised False, rest of spec.md identical True
+       summary: R-9 must change and step-plan may not write spec.md; the owner decides.
+       blocked: R-9 must change and step-plan may not write spec.md; the owner decides.
+       the stage suite's own checks (exact text only; for reading): {'P1': False, 'P2': False, 'P3': False}
+       product files changed: []; knowledge files changed: []
+       VERDICT T: not met
+#35 P: the Proof repaired, the spec alone (real gates): expected met, {'cell': 'P'} -> AS EXPECTED
+    == P  replay-ticket-comments-late-send-back #35  (<ROOT>)
+       hand-made P: the Proof repaired, the spec alone (real gates) medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   spec byte-identical
+       yes   failing Proof repaired
+       yes   no product file changed
+       summary: S2's Proof is quoted right; every other row is carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True}
+       product files changed: []; knowledge files changed: []
+       VERDICT P: met
+#36 P: the Proof as recorded: expected not met, {'failing Proof repaired': 'no'} -> AS EXPECTED
+    == P  replay-ticket-comments-late-send-back #36  (<ROOT>)
+       hand-made P: the Proof as recorded medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       yes   spec byte-identical
+       no    failing Proof repaired
+       yes   no product file changed
+       summary: S2's Proof is quoted right; every other row is carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': False}
+       product files changed: []; knowledge files changed: []
+       VERDICT P: not met
+#37 P: rewrites R-8 too: expected not met, {'spec byte-identical': 'no'}, STOP spec.md was rewritten on a Proof-only send-back: R-8 -> AS EXPECTED
+    == P  replay-ticket-comments-late-send-back #37  (<ROOT>)
+       hand-made P: rewrites R-8 too medium  ref None, ShipLoop hand-made, build hand-made  1.5 min  process stage-complete, outcome done (parked), run active
+       refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+       yes   accepted
+       no    spec byte-identical
+       yes   failing Proof repaired
+       yes   no product file changed
+       summary: S2's Proof is quoted right; every other row is carried over.
+       the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True}
+       product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+       STOP: spec.md was rewritten on a Proof-only send-back: R-8
+       VERDICT P: not met
+
+The normative measure alone, on sentences:
+  sentence 'plain': yes
+  sentence 'must': yes
+  sentence 'a clause after ;': yes
+  sentence 'quoted, not code': yes
+  sentence 'no quoting': yes
+  sentence 'reason first': yes
+  sentence 'per docs': yes
+  sentence 'wrapped over three lines': yes
+  sentence 'a step's mark at the end': yes
+  sentence 'the old meaning named in a parenthesis': yes
+  sentence 'a Basis sentence': no
+  sentence 'because, with no rule after it': no
+  sentence 'step-plan revised this because': no
+  sentence 'revised by step-plan: the send-back says': no
+  sentence 'only in a parenthesis that names the source': no
+  sentence 'instead of': no
+  sentence 'rather than': no
+  sentence 'revised by step-plan: the rule': read
+  sentence 'revised: was, now': read
+  sentence 'a paraphrase': read
+
+The retained run's guard:
+  retained file as recorded: no STOP
+  retained file edited: STOP
+
+The reader broken one part at a time:
+  a negation is not looked for: noticed by #25, 'instead of', 'rather than'
+  any earlier 'not' is a negation: noticed by #26, 'instead of', 'rather than'
+  a reason's tail is kept: noticed by #13, #14, #15, #18, #19, #28, 'a Basis sentence', 'because, with no rule after it', 'step-plan revised this because', 'revised by step-plan: the send-back says'
+  Basis and Source sentences count: noticed by #16
+  'Revised ...' sentences count: noticed by #24, 'revised by step-plan: the rule', 'revised: was, now'
+  a leading Because is not cut: noticed by #23, 'reason first'
+  Confirm sentences count: noticed by #27
+  a reason in a parenthesis is kept: noticed by 'only in a parenthesis that names the source'
+  fix-forward refusals are not known: noticed by #2
+  the old clause is not looked for: noticed by #5, #7, #14, #28
+  files never differ: noticed by #33
+  no sibling is named: noticed by #11
+  the released ref is another: noticed by #3
+  wrapped lines are not joined: noticed by #19
+
+59 of 59 as expected (37 samples, 20 sentences, 2 guard cases); every break noticed
+exit 0

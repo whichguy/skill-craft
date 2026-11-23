@@ -1,0 +1,18 @@
+send-back-revises-r9: packet file: 26 /Users/ paths, 0 outside the sample
+send-back-revises-r9: printed packet: 26 /Users/ paths, 0 outside the sample
+send-back-revises-r9: opening prompt: 2 /Users/ paths, 0 outside the sample
+send-back-revises-r9: files searched {'.shiploop-runs/seed/.workspace.lock': 1, '.shiploop-runs/seed/run': 45, '.shiploop-runs/seed/workspace.md': 1, '.shiploop-runs/seed/worktree': 68, '.stage-suite': 136, 'plugin build': 606, 'work': 67}, commits 4; outside the sample:
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/send-back-revises-r9/route/1-document x1
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/send-back-revises-r9/route/1-implement x1
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/send-back-revises-r9/route/1-test x1
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/send-back-revises-r9/route/2-draft x1
+    4 in all
+replay-ticket-comments-late-send-back: packet file: 26 /Users/ paths, 0 outside the sample
+replay-ticket-comments-late-send-back: printed packet: 26 /Users/ paths, 0 outside the sample
+replay-ticket-comments-late-send-back: opening prompt: 2 /Users/ paths, 0 outside the sample
+replay-ticket-comments-late-send-back: files searched {'.shiploop-runs/seed/.workspace.lock': 1, '.shiploop-runs/seed/run': 46, '.shiploop-runs/seed/workspace.md': 1, '.shiploop-runs/seed/worktree': 68, '.stage-suite': 136, 'plugin build': 606, 'work': 67}, commits 4; outside the sample:
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/replay-ticket-comments-late-send-back/route/1-document x1
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/replay-ticket-comments-late-send-back/route/1-implement x1
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/replay-ticket-comments-late-send-back/route/1-test x1
+    [.stage-suite] .stage-suite/route.json: <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases/step-plan/replay-ticket-comments-late-send-back/route/2-draft x1
+    4 in all

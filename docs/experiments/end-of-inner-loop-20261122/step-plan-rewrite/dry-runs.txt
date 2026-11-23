@@ -1,0 +1,47 @@
+Dry runs, 2026-11-22: nothing was built or launched. T's and P's --ref is a stand-in (1966c4c00b6fb83d8edfd4dfd877585cc83fc916, the worktree's HEAD): the branch's commit does not exist yet.
+
+$ stages.py live step-plan/send-back-revises-r9 step-plan/replay-ticket-comments-late-send-back --cases-dir <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases --host codex --model gpt-6.2-sol --effort medium --samples 1 --jobs 2 --timeout 1800 --ref 1966c4c00b6fb83d8edfd4dfd877585cc83fc916 --out /Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sol
+live plan: 2 scenarios x samples = 2 samples, 2 at once
+  step-plan/replay-ticket-comments-late-send-back: 1 sample, passes when 1 pass
+  step-plan/send-back-revises-r9: 1 sample, passes when 1 pass
+  driver: codex/gpt-6.2-sol/medium
+  ref: 1966c4c00b6fb83d8edfd4dfd877585cc83fc916
+  timeout: 1800 s per sample
+  results root: /Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sol
+NOTE: a live run starts a real model for every sample and costs money (tokens, and minutes of host time).
+dry run: nothing was built and nothing was launched (the host is checked when the run starts)
+exit 0
+
+$ stages.py live step-plan/send-back-revises-r9 step-plan/replay-ticket-comments-late-send-back --cases-dir <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases --host claude --backend anthropic --model claude-sonnet-5-5 --effort medium --samples 1 --jobs 2 --timeout 1800 --ref 1966c4c00b6fb83d8edfd4dfd877585cc83fc916 --out /Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sonnet
+live plan: 2 scenarios x samples = 2 samples, 2 at once
+  step-plan/replay-ticket-comments-late-send-back: 1 sample, passes when 1 pass
+  step-plan/send-back-revises-r9: 1 sample, passes when 1 pass
+  driver: claude:anthropic/claude-sonnet-5-5/medium
+  ref: 1966c4c00b6fb83d8edfd4dfd877585cc83fc916
+  timeout: 1800 s per sample
+  results root: /Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sonnet
+NOTE: a live run starts a real model for every sample and costs money (tokens, and minutes of host time).
+dry run: nothing was built and nothing was launched (the host is checked when the run starts)
+exit 0
+
+$ stages.py live step-plan/send-back-revises-r9 --cases-dir <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases --host codex --model gpt-6.2-sol --effort medium --samples 1 --jobs 1 --timeout 1800 --ref c06157c947ce9646bbe7528110a12b68ed8fbca8 --out /Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sol
+live plan: 1 scenario x samples = 1 sample, 1 at once
+  step-plan/send-back-revises-r9: 1 sample, passes when 1 pass
+  driver: codex/gpt-6.2-sol/medium
+  ref: c06157c947ce9646bbe7528110a12b68ed8fbca8
+  timeout: 1800 s per sample
+  results root: /Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sol
+NOTE: a live run starts a real model for every sample and costs money (tokens, and minutes of host time).
+dry run: nothing was built and nothing was launched (the host is checked when the run starts)
+exit 0
+
+$ stages.py live step-plan/send-back-revises-r9 --cases-dir <WORKTREE>/docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/stage_cases --host claude --backend anthropic --model claude-sonnet-5-5 --effort medium --samples 1 --jobs 1 --timeout 1800 --ref c06157c947ce9646bbe7528110a12b68ed8fbca8 --out /Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sonnet
+live plan: 1 scenario x samples = 1 sample, 1 at once
+  step-plan/send-back-revises-r9: 1 sample, passes when 1 pass
+  driver: claude:anthropic/claude-sonnet-5-5/medium
+  ref: c06157c947ce9646bbe7528110a12b68ed8fbca8
+  timeout: 1800 s per sample
+  results root: /Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sonnet
+NOTE: a live run starts a real model for every sample and costs money (tokens, and minutes of host time).
+dry run: nothing was built and nothing was launched (the host is checked when the run starts)
+exit 0

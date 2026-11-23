@@ -1,0 +1,53 @@
+diff -rN -U0 original/notes/plan-dependencies.md P/notes/plan-dependencies.md
+--- original/notes/plan-dependencies.md
++++ P/notes/plan-dependencies.md
+@@ -0,0 +1,3 @@
++# Dependency audit
++
++Claim: R-8 API, durable comments, notification and preservation are observable locally. Needs: valid handler, store mutation with audit and outbox, persisted record and legacy default, template, repeatable tests and docs. Supply: W1 owns all of these coupled seams; existing baseline and Node harness are available (scratch/baseline.log, test/helpers.js). Pull: HTTP clients need GET and POST, workers need renderable unique events, restart needs JSON read/write. Resolve: one item maintains a coherent checkable boundary; test-first cases import existing service before code and fail on baseline; implementation follows them, then full suite and documentation. Return to original checkout occurs only after candidate checks. No independent external delivery or setup producer is required.
+diff -rN -U0 original/notes/research.md P/notes/research.md
+--- original/notes/research.md
++++ P/notes/research.md
+@@ -0,0 +1,10 @@
++# Research
++
++Existing contracts resolve the consequential questions: src/tickets/states.js defines closed as final but resolved as non-final; comments must accept resolved. src/tickets/validate.js normalizes names by trimming and exact matching applies to assignees. Body text may contain newlines; default is trim outer whitespace and reject blank text, following existing text normalization while allowing multiline. src/persistence.js explicitly selects record fields and defaults earlier absent additions; extend the record with comments while retaining version 1. src/outbox.js deduplicates pending keys, so each comment needs its own key and payload. src/templates.js requires a template or the worker marks notifications dead. src/store.js defines audit and copy semantics; augment that mechanism. test/helpers.js runs isolated HTTP server and supports file-backed restart. No dependency or remote access is needed; local filesystem and Git access were proven by workspace start and test run.
++
++## Assumptions
++- Evidenced: names are normalized with existing validation and compared exactly (src/tickets/validate.js, src/store.js).
++- Evidenced: notification events are asynchronous and retryable (src/outbox.js, src/worker.js).
++- Evidenced: state lives in a single optional data file (src/persistence.js).
++- Default: comment IDs are sequential per ticket; chronological insertion order survives restart; test duplicate timestamps.
++- Default: comment bodies retain internal newlines and are trimmed at their boundaries. Verify at HTTP boundary.
+diff -rN -U0 original/scenario.json P/scenario.json
+--- original/scenario.json
++++ P/scenario.json
+@@ -16 +16 @@
+-   "context": "Ready: unchanged baseline npm test passed 124 cases, /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/scratch/baseline.log. Implement R-8 and AD-4 in one coherent CommonJS item: add node:test tests first against existing createService seam in test/helpers.js; validate HTTP, state boundaries, audit, notifications, persistence, legacy loading; then implement and run focused and full suite. Follow CONTRIBUTING.md, docs/api.md, /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/environment.md and /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/notes/research.md. Store owns changes, outbox and audit; compare normalized agent names exactly; body may contain line breaks. Check that resolved accepts and closed rejects, duplicate timestamps preserve order, each pending notification is distinct and rendered, and copies cannot mutate state. Persist version 1 records with defaults for absent comments. No extra dependencies or remote writes. Delivery is guarded local return. Done when tests and documentation pass and R-8 is observed. Dependency audit: /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/notes/plan-dependencies.md.",
++   "context": "Ready: unchanged baseline npm test passed 124 cases (docs/shiploop/environment.md). Implement R-8 and AD-4 in one coherent CommonJS item: add node:test tests first against existing createService seam in test/helpers.js; validate HTTP, state boundaries, audit, notifications, persistence, legacy loading; then implement and run focused and full suite. Follow CONTRIBUTING.md, docs/api.md, docs/shiploop/environment.md and RUN/notes/research.md. Store owns changes, outbox and audit; compare normalized agent names exactly; body may contain line breaks. Check that resolved accepts and closed rejects, duplicate timestamps preserve order, each pending notification is distinct and rendered, and copies cannot mutate state. Persist version 1 records with defaults for absent comments. No extra dependencies or remote writes. Delivery is guarded local return. Done when tests and documentation pass and R-8 is observed. Dependency audit: RUN/notes/plan-dependencies.md.",
+@@ -164,2 +164,2 @@
+-      "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/src/persistence.js",
+-      "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/src/outbox.js"
++      "src/persistence.js",
++      "src/outbox.js"
+@@ -174 +174 @@
+-      "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/scratch/baseline.log"
++      "docs/shiploop/environment.md"
+@@ -187 +187 @@
+-      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
++      "anchor": "docs/shiploop/architecture.md",
+@@ -194 +194 @@
+-      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
++      "anchor": "docs/shiploop/architecture.md",
+@@ -201 +201 @@
+-      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
++      "anchor": "docs/shiploop/architecture.md",
+@@ -223 +223 @@
+-      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
++      "anchor": "docs/shiploop/architecture.md",
+@@ -240 +240 @@
+-      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
++      "anchor": "docs/shiploop/architecture.md",
+@@ -247 +247 @@
+-      "anchor": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md",
++      "anchor": "docs/shiploop/architecture.md",

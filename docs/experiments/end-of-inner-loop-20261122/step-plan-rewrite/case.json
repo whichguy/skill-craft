@@ -1,0 +1,43 @@
+{
+ "about": "The one place for what the two scenarios and the reader share. make_scenarios.py and read_samples.py read it.",
+ "requirement_scenario": "send-back-revises-r9",
+ "proof_scenario": "replay-ticket-comments-late-send-back",
+ "proof_scenario_is": "the committed replay of the same name less the retained run's absolute paths (make_scenarios.py, own_paths, plus the two planning notes it then names); every other byte is the original's",
+ "copied_from": "test/shiploop_e2e/stage_cases/step-plan/replay-ticket-comments-late-send-back",
+ "released_ref": "c06157c947ce9646bbe7528110a12b68ed8fbca8",
+ "requirement": "R-9",
+ "heading": "### R-9 Comment notification message",
+ "basis_line": "Basis: request S6; src/templates.js, src/notifier.js and CONTRIBUTING.md. Pending implementation and checks:",
+ "changed_line": "- The message delivered for a comment carries the comment's author and content in its body. Confirm by a worker delivery test that reads both from the delivered body.",
+ "old_clause": "carries the comment's author and content in its body",
+ "siblings": [
+  "- Its subject begins with the ticket ID in square brackets, as every other notification's does. Confirm by the same test.",
+  "- A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test."
+ ],
+ "new_meaning": "the message's body is exactly `<author> commented on <ticket> (no preview).` and holds none of the comment's content",
+ "new_token": "(no preview)",
+ "source_pattern": "operations\\.md|docs/operations|operations document",
+ "reason_pattern": "wall display|lobby|visitor",
+ "send_back": {
+  "evidence_refs": ["docs/operations.md"],
+  "headline": "R-9's message clause must change",
+  "outcome": "send-back",
+  "summary": "R-9 must say instead: the message's body is exactly `<author> commented on <ticket> (no preview).` and holds none of the comment's content. Fact: docs/operations.md (Notifications) says the relay shows every message on the lobby wall display, where visitors read it, and no text someone typed but a ticket's title may be in one; R-9's \"carries the comment's author and content in its body\" breaks that. S2's draft stays in the worktree; lint exit 0."
+ },
+ "planted_fact": {
+  "file": "docs/operations.md",
+  "after": "- **Sent** notifications stay too, as a record.\n",
+  "text": "- The relay also puts every notification it sends on the wall display in the help desk lobby, where visitors read it.\n  Ticket ids, ticket titles and people's names may stand in a notification; no other text that someone typed may.\n"
+ },
+ "api_proof": {
+  "from": "a.equal(c.body.author,'a');a.equal(c.body.body,'hello');",
+  "to": "a.equal(c.body.author,'\"'\"'a'\"'\"');a.equal(c.body.body,'\"'\"'hello'\"'\"');"
+ },
+ "old_run": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85",
+ "notes": ["research.md", "plan-dependencies.md"],
+ "old_run_files": {
+  "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/spec.md": "f9119a0d0377a8a1dde8c2bc1774c7e062414da776f582f540720a17bcf1d4e2",
+  "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/architecture.md": "f900b5e34b9f3fe1e21f4606872142035b70a3fb42ad05b65e64df94e7d4a718",
+  "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/environment.md": "5fb38b4bc910b0f4faddc6177ef6fbbd44ddec52628f33ba8c0d4200a1e8115e"
+ }
+}

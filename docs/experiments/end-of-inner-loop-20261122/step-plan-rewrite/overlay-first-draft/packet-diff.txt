@@ -1,0 +1,22 @@
+== send-back-revises-r9
+126,128c126,130
+<     in KNOWLEDGE/, unless an owner note this stage owes asks for a requirement change: then rewrite that requirement in
+<     place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the old clause) and plan the step for the
+<     rewritten text.
+---
+>     in KNOWLEDGE/, unless an owner note this stage owes, or the send-back this plan answers, asks for a requirement
+>     change: then rewrite that requirement in place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the
+>     old clause) and plan the step for the rewritten text. A rewrite a send-back asks for keeps every clause the
+>     send-back does not name, relaxes none to fit code or tests already written, says in the entry that step-plan revised
+>     it and why, and is named in `summary`.
+== replay-ticket-comments-late-send-back
+126,128c126,130
+<     in KNOWLEDGE/, unless an owner note this stage owes asks for a requirement change: then rewrite that requirement in
+<     place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the old clause) and plan the step for the
+<     rewritten text.
+---
+>     in KNOWLEDGE/, unless an owner note this stage owes, or the send-back this plan answers, asks for a requirement
+>     change: then rewrite that requirement in place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the
+>     old clause) and plan the step for the rewritten text. A rewrite a send-back asks for keeps every clause the
+>     send-back does not name, relaxes none to fit code or tests already written, says in the entry that step-plan revised
+>     it and why, and is named in `summary`.

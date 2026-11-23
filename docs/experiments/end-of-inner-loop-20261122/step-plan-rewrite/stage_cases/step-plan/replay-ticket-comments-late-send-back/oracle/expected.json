@@ -1,0 +1,24 @@
+{
+ "done_rows": [
+  {
+   "criteria": [
+    "C1"
+   ],
+   "deps": [],
+   "id": "S1",
+   "paths": [
+    "src/store.js",
+    "src/persistence.js"
+   ],
+   "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{TicketStore}=require('\"'\"'./src/store'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"'),{toDocument,fromDocument}=require('\"'\"'./src/persistence'\"'\"');const s=new TicketStore({clock:manualClock()}),t=s.create({title:'\"'\"'x'\"'\"',priority:'\"'\"'normal'\"'\"',requester:'\"'\"'r'\"'\"'},'\"'\"'r'\"'\"');s.assign(t.id,'\"'\"'agent'\"'\"','\"'\"'actor'\"'\"');let before=s.outboxReport().pending.length;const c=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'hello'\"'\"'},'\"'\"'guest'\"'\"'),d=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'second'\"'\"'},'\"'\"'guest'\"'\"');a.deepEqual(s.get(t.id).comments,[c,d]);a.equal(s.outboxReport().pending.length,before+2);a.equal(s.history(t.id).at(-1).action,'\"'\"'ticket.commented'\"'\"');let file=toDocument(s.snapshot(),new Date()),saved=fromDocument(file,Error);a.deepEqual(saved.tickets[0].comments,[c,d]);delete file.tickets[0].comments;a.deepEqual(fromDocument(file,Error).tickets[0].comments,[]);s.transition(t.id,'\"'\"'in_progress'\"'\"','\"'\"'actor'\"'\"');s.transition(t.id,'\"'\"'resolved'\"'\"','\"'\"'actor'\"'\"');s.comment(t.id,{author:'\"'\"'agent'\"'\"',body:'\"'\"'ok'\"'\"'},'\"'\"'agent'\"'\"');s.transition(t.id,'\"'\"'closed'\"'\"','\"'\"'actor'\"'\"');a.throws(()=>s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'no'\"'\"'},'\"'\"'guest'\"'\"'),{status:409});'",
+   "skills": [],
+   "task": "Implement stored comments and persistence for C1, including audit and outbox event.",
+   "done": true
+  }
+ ],
+ "correction": {
+  "kind": "step_proof_runs",
+  "step": "S2",
+  "recorded_proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),v=require('\"'\"'./src/tickets/validate'\"'\"'),{withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"');for(const b of [{author:'\"'\"''\"'\"',body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"''\"'\"'},{author:'\"'\"'a'\"'\"'.repeat(65),body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'.repeat(2001)},{author:3,body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"',extra:1}])a.throws(()=>v.comment(b));a.equal(v.comment({author:'\"'\"'a'\"'\"'.repeat(64),body:'\"'\"'x'\"'\"'.repeat(2000)}).body.length,2000);withService({},async api=>{const t=await api.post('\"'\"'/tickets'\"'\"',ticketBody());a.deepEqual((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments,[]);const c=await api.post('\"'\"'/tickets/'\"'\"'+t.body.id+'\"'\"'/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'hello'\"'\"'});a.equal(c.status,201);a.ok(c.body.id);a.equal(c.body.author,'a');a.equal(c.body.body,'hello');a.ok(!Number.isNaN(Date.parse(c.body.created)));a.equal((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments[0].body,'\"'\"'hello'\"'\"');a.equal((await api.post('\"'\"'/tickets/missing/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'})).status,404)}).catch(e=>{console.error(e);process.exitCode=1});' && rg 'POST /tickets/:id/comments' src/tickets/validate.js"
+ }
+}

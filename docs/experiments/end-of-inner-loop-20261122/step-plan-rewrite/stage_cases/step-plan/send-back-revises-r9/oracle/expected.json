@@ -1,0 +1,19 @@
+{
+ "done_rows": [
+  {
+   "criteria": [
+    "C1"
+   ],
+   "deps": [],
+   "id": "S1",
+   "paths": [
+    "src/store.js",
+    "src/persistence.js"
+   ],
+   "proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),{TicketStore}=require('\"'\"'./src/store'\"'\"'),{manualClock}=require('\"'\"'./src/clock'\"'\"'),{toDocument,fromDocument}=require('\"'\"'./src/persistence'\"'\"');const s=new TicketStore({clock:manualClock()}),t=s.create({title:'\"'\"'x'\"'\"',priority:'\"'\"'normal'\"'\"',requester:'\"'\"'r'\"'\"'},'\"'\"'r'\"'\"');s.assign(t.id,'\"'\"'agent'\"'\"','\"'\"'actor'\"'\"');let before=s.outboxReport().pending.length;const c=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'hello'\"'\"'},'\"'\"'guest'\"'\"'),d=s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'second'\"'\"'},'\"'\"'guest'\"'\"');a.deepEqual(s.get(t.id).comments,[c,d]);a.equal(s.outboxReport().pending.length,before+2);a.equal(s.history(t.id).at(-1).action,'\"'\"'ticket.commented'\"'\"');let file=toDocument(s.snapshot(),new Date()),saved=fromDocument(file,Error);a.deepEqual(saved.tickets[0].comments,[c,d]);delete file.tickets[0].comments;a.deepEqual(fromDocument(file,Error).tickets[0].comments,[]);s.transition(t.id,'\"'\"'in_progress'\"'\"','\"'\"'actor'\"'\"');s.transition(t.id,'\"'\"'resolved'\"'\"','\"'\"'actor'\"'\"');s.comment(t.id,{author:'\"'\"'agent'\"'\"',body:'\"'\"'ok'\"'\"'},'\"'\"'agent'\"'\"');s.transition(t.id,'\"'\"'closed'\"'\"','\"'\"'actor'\"'\"');a.throws(()=>s.comment(t.id,{author:'\"'\"'guest'\"'\"',body:'\"'\"'no'\"'\"'},'\"'\"'guest'\"'\"'),{status:409});'",
+   "skills": [],
+   "task": "Implement stored comments and persistence for C1, including audit and outbox event.",
+   "done": true
+  }
+ ]
+}
