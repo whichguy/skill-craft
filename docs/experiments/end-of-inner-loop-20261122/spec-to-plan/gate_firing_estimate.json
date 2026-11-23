@@ -1,0 +1,835 @@
+[
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k3",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k4",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-ffb3fb/k1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-b54ea4/chess-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-b54ea4/grokbot-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-b54ea4/tickets-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-b54ea4/expenses-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-5d2cbc/g2",
+  "engine": "candidate",
+  "fired": {
+   "R-2": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "1ac112f21d3f",
+    "subject": "docs(shiploop): record skill-craft-shiploop-this-directory-is-4872dc knowledge after carry-forward"
+   },
+   "R-3": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "1ac112f21d3f",
+    "subject": "docs(shiploop): record skill-craft-shiploop-this-directory-is-4872dc knowledge after carry-forward"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-5d2cbc/k1",
+  "engine": "candidate",
+  "fired": {
+   "R-4": {
+    "how": "rewritten",
+    "stage": "step-plan",
+    "commit": "619bf8358d35",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-11c11d knowledge after step-plan"
+   },
+   "R-5": {
+    "how": "rewritten",
+    "stage": "step-plan",
+    "commit": "619bf8358d35",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-11c11d knowledge after step-plan"
+   },
+   "R-6": {
+    "how": "rewritten",
+    "stage": "step-plan",
+    "commit": "619bf8358d35",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-11c11d knowledge after step-plan"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-5d2cbc/g3",
+  "engine": "candidate",
+  "fired": {
+   "R-3": {
+    "how": "rewritten",
+    "stage": "step-plan",
+    "commit": "0e687d232ae2",
+    "subject": "docs(shiploop): record skill-craft-shiploop-this-directory-is-ee8e04 knowledge after step-plan"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/a3",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/b2",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/b3",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/a2",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/a5",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/a7",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/b1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/a9",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/a8",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8c4274/a1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-236b00/chess-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-236b00/grokbot-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-236b00/tickets-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-236b00/expenses-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/h2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d6",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d4",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w2/d5",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/h1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261121-2c3d50/w1/d3",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-ccc2ff/chess-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-ccc2ff/tickets-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-ccc2ff/expenses-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8a73b9/e2",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8a73b9/e4",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8a73b9/e1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8a73b9/e6",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-8a73b9/f1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-360a9f/chess-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-360a9f/expenses-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/s2",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/s3",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/s4",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/m1",
+  "engine": "candidate",
+  "fired": {
+   "R-7": {
+    "how": "rewritten",
+    "stage": "prepare",
+    "commit": "464cd706d24a",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-1c115a knowledge at prepare"
+   },
+   "R-5": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "35361104417a",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-1c115a knowledge after carry-forward"
+   },
+   "R-6": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "35361104417a",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-1c115a knowledge after carry-forward"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/n6",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/n1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/s1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/n4",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/n3",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/n2",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/n5",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/r-20261122-72ca72/t1",
+  "engine": "candidate",
+  "fired": {
+   "R-6": {
+    "how": "rewritten",
+    "stage": "other",
+    "commit": "e5f7b733f271",
+    "subject": "fix(due-times): report a failed startup backfill as one line that names the next action"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs/d20261122-cc457a/roundtable-1",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/q01",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/t03",
+  "engine": "candidate",
+  "fired": {
+   "R-4": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "22749525977a",
+    "subject": "docs(shiploop): record add-a-stock-lookup-route-to-ba9cf6 knowledge after carry-forward"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/k11",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/t02",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/n07",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/n01",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/q02",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/q03",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/k13",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/t01",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/k12",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/n04",
+  "engine": "candidate",
+  "fired": {
+   "R-2": {
+    "how": "rewritten",
+    "stage": "other",
+    "commit": "54255e827a76",
+    "subject": "fix(stock): 400 messages name the caller's next step; document the 431 limit"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/n03",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/n02",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-n/n05",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/u01",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/r06",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/r01",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/v01",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/u03",
+  "engine": "candidate",
+  "fired": {
+   "R-4": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "e360675ec8d7",
+    "subject": "docs(shiploop): record add-a-stock-lookup-route-to-ee6eaa knowledge after carry-forward"
+   },
+   "R-5": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "e360675ec8d7",
+    "subject": "docs(shiploop): record add-a-stock-lookup-route-to-ee6eaa knowledge after carry-forward"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/u02",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/r05",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/v03",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/r04",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/r03",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-r/v02",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-d/d06",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-d/d01",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-d/d04",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-d/d02",
+  "engine": "candidate",
+  "fired": {
+   "R-3": {
+    "how": "rewritten",
+    "stage": "other",
+    "commit": "511b8c729d10",
+    "subject": "docs(shiploop): align R-3/R-4 with the criteria's rejections after replaying the proof"
+   },
+   "R-4": {
+    "how": "rewritten",
+    "stage": "other",
+    "commit": "511b8c729d10",
+    "subject": "docs(shiploop): align R-3/R-4 with the criteria's rejections after replaying the proof"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-pk/20261122-d/d05",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-medium-due-p1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2",
+  "engine": "main",
+  "fired": {
+   "R-4": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "396ed0e7c8fe",
+    "subject": "docs(shiploop): record skill-craft-shiploop-this-directory-is-66116d knowledge after carry-forward"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/sol-high-due-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/grok-46-xhigh-due-1",
+  "engine": "main",
+  "fired": {
+   "R-1": {
+    "how": "rewritten",
+    "stage": "other",
+    "commit": "81b43b70bf05",
+    "subject": "fix(store): treat overdue as exact true; cover hours min, backfill, CLI due"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/sol-high-expenses-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/sol-high-due-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/sol-high-due-3",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/sol-high-due-4",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc10/20261120/sol-high-expenses-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc11/20261121/shared-expenses-sonnet-high",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc11/20261121/ticket-assignment-sol-high",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc12/20261121/sonnet-medium-due",
+  "engine": "main",
+  "fired": {
+   "R-4": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "9816de50b9de",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-60c1b1 knowledge after carry-forward"
+   },
+   "R-7": {
+    "how": "rewritten",
+    "stage": "carry-forward",
+    "commit": "9816de50b9de",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-60c1b1 knowledge after carry-forward"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc12/20261121/sonnet-high-due",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc12/20261121/sonnet-high-expenses",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc13/20261121/due-high-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc13/20261121/expenses-medium-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc13/20261121/assign-medium-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc13/20261121/expenses-high-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15e/20261122/sol-E-due-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15e/20261122/sonnet-E-due-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15b/20261121/sonnet-B-due",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15b/20261121/sonnet-A-due",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15b/20261121/sonnet-B-expenses",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15b/20261121/sol-A-due-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15b/20261121/sol-B-expenses",
+  "engine": "candidate",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15b/20261121/sol-A-due-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15c/20261121/sonnet-C-due-2",
+  "engine": "main",
+  "fired": {
+   "R-7": {
+    "how": "rewritten",
+    "stage": "other",
+    "commit": "cf6ff12af82a",
+    "subject": "test: move the verbatim 1.4.0 loader fixture to a new path so the commit carries its files"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15c/20261121/sol-C-due-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15d/20261121/sol-D-due-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc14/r15d/20261121/sonnet-D-due-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sonnet-high-due-L-2",
+  "engine": "main",
+  "fired": {
+   "R-8": {
+    "how": "rewritten",
+    "stage": "other",
+    "commit": "c2bcdaabd0f5",
+    "subject": "docs(shiploop): spec A8.2 describes the rollback test that exists"
+   }
+  }
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-expenses-L-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-due-S-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/rehearsal-L-sol-medium-hello",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-expenses-S-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-due-L-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/rehearsal-S-sol-medium-hello",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sonnet-high-due-S-2",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sonnet-high-due-L-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-due-S-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-expenses-L-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-due-L-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sol-medium-expenses-S-1",
+  "engine": "main",
+  "fired": {}
+ },
+ {
+  "folder": "/Users/dadleet/e2e-runs-sdlc9/20261120/sonnet-high-due-S-1",
+  "engine": "main",
+  "fired": {
+   "R-9": {
+    "how": "rewritten",
+    "stage": "handoff",
+    "commit": "501288edc597",
+    "subject": "docs(shiploop): record this-directory-is-an-existing-node-1d9151 knowledge after handoff"
+   }
+  }
+ }
+]

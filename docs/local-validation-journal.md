@@ -833,7 +833,8 @@ other sessions' work, their live E2E runs on the machine for part of it).
   a group. So every normal reap takes the route "refused, ask `ps`": all 3,000 reaps of the probe did, and were quiet. A suite's verdict on macOS therefore depends on
   `/bin/ps` starting and answering within the observer's 2 s; where it cannot start, every suite is reported failed, whatever its tests did.
 - *Six processes that run left behind.* A `node --test` worker (56210, stopped this morning at the owner's word: `docs/shiploop-sdlc-structure-journal.md`, R173) and
-  five Python workers that ignore SIGTERM (56247, 56264, 56352, 56737 and 56752, still there at this writing) all started on 2026-11-18 between 03:12:39 and 03:12:42
+  five Python workers that ignore SIGTERM (56247, 56264, 56352, 56737 and 56752, still there at this writing [stopped later the same day at the owner's word: the
+  update at the end of this round]) all started on 2026-11-18 between 03:12:39 and 03:12:42
   local time, while that tier was running, each in a group whose leader is gone and in a temporary folder that has since been deleted. They match one for one the six
   workers that `BaseTestsProcessOwnershipTest` in `test/shiploop-e2e-brownfield-tickets.test.py` starts through `owned_fixture`: one under `node --test`, five in Python
   that ignore SIGTERM, one of the five keeping its pipes. What ends such a worker is `fixture_process.stop_group`, which looks at the group with `ps` before it sends
@@ -875,8 +876,9 @@ other sessions' work, their live E2E runs on the machine for part of it).
   needs either.
 - F30 (firm for the code path, very likely for the attribution): where `ps` cannot start, `fixture_process.stop_group` raises before it sends a signal, so a worker
   that an owned fixture leaves in its group outlives the test. Six such processes of `BaseTestsProcessOwnershipTest` lived from the sandboxed tier of 2026-11-18 until
-  2026-11-22; one was stopped at the owner's word that morning, and the five others are left as they are for the owner to decide. Not changed: the rule that nothing is
-  signalled without a look at the group is the module's own, and the one case on record is that sandbox.
+  2026-11-22; one was stopped at the owner's word that morning, and the five others are left as they are for the owner to decide. [2026-11-22, evening: the owner
+  said "Yes, stop them", and they were stopped; the update at the end of this round.] Not changed: the rule that nothing is signalled without a look at the group is the
+  module's own, and the one case on record is that sandbox.
 
 **Decision (routine, this session's, 2026-11-22).** Remove the repeated kill instead of only writing down what the line means. The line had cost three looks (its
 author's on 2026-11-15, this session's report of it, the owner's question), and a diagnostic that fires on one push in eight for no fault is one nobody will believe on
@@ -891,3 +893,16 @@ against 3.6% back to back in the probe). Why macOS answers `EPERM` and not succe
 holding only a zombie answers `EPERM` to `killpg` on macOS was measured before (`docs/shiploop-batch-1011-integration-journal-2026-10-09.md`). Whether the `EPERM` of
 the sandboxed run was that ordinary answer or the sandbox's own refusal cannot be told from its log; with `ps` unable to start the runner could confirm neither. The two
 probe scripts were written for this round and are run by no suite.
+
+**Update (2026-11-22, evening): the five workers stopped at the owner's word.** This session's report named the five Python workers of F30 and asked "Stop the five idle
+test processes left over from 2026-11-18?"; the owner: "Yes, stop them".
+- *How.* Each was stopped only after it was checked, at that moment, to be the process listed: its process id, its start time, its working folder, its command, the
+  `worker-ready` text in its command line, no parent and no children. The script is `stop_named.py` in this round's evidence folder: a copy of the one that made the
+  stops of that morning (`docs/experiments/sdlc-structure-20261119/stop_named.py`), with the expected command and a text of the command line taken from the listing
+  instead of the command being `node`. An Opus worker wrote the copy and tried it first on four throwaway processes of its own, one to be stopped and three with a wrong
+  start time, a wrong command and a wrong text, which it left alone (`results/stop-named-trial.txt`). A Sonnet worker ran it once on the listing written here, and the
+  result was checked here.
+- *Result.* The script's output, whole, with the listing and the checks before and after, is `results/leftover-workers-stopped.txt`: all five are gone. With the one
+  stopped in the morning (`docs/shiploop-sdlc-structure-journal.md`, R173) none of the six of F30 is left, and a listing of parentless `python` and `node` processes taken
+  afterwards holds none of them.
+- *What the approval covered.* The five processes named in the question, and no others.

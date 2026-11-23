@@ -1,0 +1,97 @@
+== 00-baseline-no-repo-skills (cwd outside) exit=0
+   root r0 = codex-home/skills/.system
+   other skills listed: 4
+   AGENTS.md text in input: yes
+== 01-main-root (cwd a) exit=0
+   root r0 = work/a/.codex/skills
+   root r1 = codex-home/skills/.system
+   root r2 = work/a/.agents/skills
+   listed probe-abs-link  (r2/probe-abs-link/SKILL.md)
+   listed probe-agents-real  (r2/probe-agents-real/SKILL.md)
+   listed probe-codex-dir  (r0/probe-codex-dir/SKILL.md)
+   listed probe-linked-skill  (r2/probe-linked-skill/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: yes, names shiploop-skills/
+== 02-main-sub (cwd a/sub) exit=0
+   root r0 = work/a/.codex/skills
+   root r1 = codex-home/skills/.system
+   root r2 = work/a/.agents/skills
+   root r3 = work/a/sub/.agents/skills
+   listed probe-abs-link  (r2/probe-abs-link/SKILL.md)
+   listed probe-agents-real  (r2/probe-agents-real/SKILL.md)
+   listed probe-codex-dir  (r0/probe-codex-dir/SKILL.md)
+   listed probe-linked-skill  (r2/probe-linked-skill/SKILL.md)
+   listed probe-sub  (r3/probe-sub/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: yes, names shiploop-skills/
+== 03-dirlink (cwd b) exit=0
+   root r0 = codex-home/skills/.system
+   root r1 = work/b/shiploop-skills
+   listed probe-dirlink  (r1/probe-dirlink/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: no
+== 04-wt-committed (cwd .shiploop-runs/a-probe/worktree) exit=0
+   root r0 = work/.shiploop-runs/a-probe/worktree/.codex/skills
+   root r1 = codex-home/skills/.system
+   root r2 = work/.shiploop-runs/a-probe/worktree/.agents/skills
+   listed probe-abs-link  (r2/probe-abs-link/SKILL.md)
+   listed probe-agents-real  (r2/probe-agents-real/SKILL.md)
+   listed probe-codex-dir  (r0/probe-codex-dir/SKILL.md)
+   listed probe-linked-skill  (r2/probe-linked-skill/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: yes, names shiploop-skills/
+== 05-main-after-wt-skill (cwd a) exit=0
+   root r0 = work/a/.codex/skills
+   root r1 = codex-home/skills/.system
+   root r2 = work/a/.agents/skills
+   listed probe-abs-link  (r2/probe-abs-link/SKILL.md)
+   listed probe-agents-real  (r2/probe-agents-real/SKILL.md)
+   listed probe-codex-dir  (r0/probe-codex-dir/SKILL.md)
+   listed probe-linked-skill  (r2/probe-linked-skill/SKILL.md)
+   listed probe-main-new  (r2/probe-main-new/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: yes, names shiploop-skills/
+== 06-wt-after-wt-skill (cwd .shiploop-runs/a-probe/worktree) exit=0
+   root r0 = work/.shiploop-runs/a-probe/worktree/.codex/skills
+   root r1 = codex-home/skills/.system
+   root r2 = work/.shiploop-runs/a-probe/worktree/.agents/skills
+   listed probe-abs-link  (r2/probe-abs-link/SKILL.md)
+   listed probe-agents-real  (r2/probe-agents-real/SKILL.md)
+   listed probe-codex-dir  (r0/probe-codex-dir/SKILL.md)
+   listed probe-linked-skill  (r2/probe-linked-skill/SKILL.md)
+   listed probe-wt-new  (r2/probe-wt-new/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: yes, names shiploop-skills/
+== 07-enable-by-path (cwd a) exit=0
+   root r0 = work/a/.codex/skills
+   root r1 = codex-home/skills/.system
+   root r2 = work/a/.agents/skills
+   listed probe-abs-link  (r2/probe-abs-link/SKILL.md)
+   listed probe-agents-real  (r2/probe-agents-real/SKILL.md)
+   listed probe-codex-dir  (r0/probe-codex-dir/SKILL.md)
+   listed probe-linked-skill  (r2/probe-linked-skill/SKILL.md)
+   listed probe-main-new  (r2/probe-main-new/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: yes, names shiploop-skills/
+== 10-c-main-untracked (cwd c) exit=0
+   root r0 = codex-home/skills/.system
+   root r1 = work/c/.agents/skills
+   listed probe-c-main-untracked  (r1/probe-c-main-untracked/SKILL.md)
+   other skills listed: 4
+   AGENTS.md text in input: no
+== 11-c-wt-no-skills-dir (cwd .shiploop-runs/c-probe/worktree) exit=0
+   root r0 = codex-home/skills/.system
+   other skills listed: 4
+   AGENTS.md text in input: no
+== 08-real-home (cwd a, HOME=/Users/dadleet, CODEX_HOME throwaway) exit=0
+   root r0 = work/a/.codex/skills
+   root r1 = /Users/dadleet/.agents/skills
+   root r2 = codex-home/skills/.system
+   root r3 = work/a/.agents/skills
+   listed probe-abs-link  (r3/probe-abs-link/SKILL.md)
+   listed probe-agents-real  (r3/probe-agents-real/SKILL.md)
+   listed probe-codex-dir  (r0/probe-codex-dir/SKILL.md)
+   listed probe-linked-skill  (r3/probe-linked-skill/SKILL.md)
+   listed probe-main-new  (r3/probe-main-new/SKILL.md)
+   other skills listed: 6
+   AGENTS.md text in input: yes, names shiploop-skills/

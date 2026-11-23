@@ -1,0 +1,21 @@
+main runs (ShipLoop >= 2.4, with a plan boundary): 58 | the rule fires in: 6
+   first stage that changed a requirement, per run: {'carry-forward': 2, 'other': 3, 'handoff': 1}
+   kinds of change, per requirement: {'rewritten': 7}
+    ~/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2 {'R-4': ('carry-forward', 'rewritten')}
+    ~/e2e-runs-sdlc10/20261120/grok-46-xhigh-due-1 {'R-1': ('other', 'rewritten')}
+    ~/e2e-runs-sdlc12/20261121/sonnet-medium-due {'R-4': ('carry-forward', 'rewritten'), 'R-7': ('carry-forward', 'rewritten')}
+    ~/e2e-runs-sdlc14/r15c/20261121/sonnet-C-due-2 {'R-7': ('other', 'rewritten')}
+    ~/e2e-runs-sdlc9/20261120/sonnet-high-due-L-2 {'R-8': ('other', 'rewritten')}
+    ~/e2e-runs-sdlc9/20261120/sonnet-high-due-S-1 {'R-9': ('handoff', 'rewritten')}
+candidate runs (ShipLoop >= 2.4, with a plan boundary): 78 | the rule fires in: 9
+   first stage that changed a requirement, per run: {'carry-forward': 4, 'step-plan': 2, 'prepare': 1, 'other': 3}
+   kinds of change, per requirement: {'rewritten': 16}
+    ~/e2e-runs/r-20261122-5d2cbc/g2 {'R-2': ('carry-forward', 'rewritten'), 'R-3': ('carry-forward', 'rewritten')}
+    ~/e2e-runs/r-20261122-5d2cbc/k1 {'R-4': ('step-plan', 'rewritten'), 'R-5': ('step-plan', 'rewritten'), 'R-6': ('step-plan', 'rewritten')}
+    ~/e2e-runs/r-20261122-5d2cbc/g3 {'R-3': ('step-plan', 'rewritten')}
+    ~/e2e-runs/r-20261122-72ca72/m1 {'R-7': ('prepare', 'rewritten'), 'R-5': ('carry-forward', 'rewritten'), 'R-6': ('carry-forward', 'rewritten')}
+    ~/e2e-runs/r-20261122-72ca72/t1 {'R-6': ('other', 'rewritten')}
+    ~/e2e-runs-pk/20261122-n/t03 {'R-4': ('carry-forward', 'rewritten')}
+    ~/e2e-runs-pk/20261122-n/n04 {'R-2': ('other', 'rewritten')}
+    ~/e2e-runs-pk/20261122-r/u03 {'R-4': ('carry-forward', 'rewritten'), 'R-5': ('carry-forward', 'rewritten')}
+    ~/e2e-runs-pk/20261122-d/d02 {'R-3': ('other', 'rewritten'), 'R-4': ('other', 'rewritten')}

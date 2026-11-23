@@ -1,0 +1,73 @@
+The five test workers left by a sandboxed tier on 2026-11-18, stopped at the owner's word on 2026-11-22.
+
+What they were: five Python processes started on 2026-11-18 between 03:12:39 and 03:12:42 local time, each
+`python -B -c "... signal.signal(signal.SIGTERM,signal.SIG_IGN) ... print('worker-ready',flush=True) ... signal.pause()"`,
+parentless, idle, without a socket, each in a temporary folder that has since been deleted. Very likely the workers of
+`BaseTestsProcessOwnershipTest` (test/shiploop-e2e-brownfield-tickets.test.py) from a quick tier run inside a sandbox in
+which `ps` could not start, so that the fixtures' own cleanup sent no signal (docs/local-validation-journal.md, round 7,
+F30).
+
+The approval: the report of round 7 named the five by process id and asked "Stop the five idle test processes left over
+from 2026-11-18?". The owner: "Yes, stop them". It covers these five and no others.
+
+How: `stop_named.py` of this folder, run once on the listing below. It stops a process only if it is, at that moment,
+the one the listing describes (process id, start time, working folder, command, the text of its command line, no
+parent, no children). The listing was written in the main session from a reading of the five and matched every field of
+each one before the run. The sections below are the listing, the five as they were just before, the script's whole
+output with its exit code, and the checks afterwards.
+== the listing (stuck.json)
+[
+  {"pid": 56247, "started": "Wed Nov 18 03:12:39 2026", "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp_bxqab0c", "command": "Python", "argv_contains": "print('worker-ready',flush=True)"},
+  {"pid": 56264, "started": "Wed Nov 18 03:12:39 2026", "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpggs7wtwy", "command": "Python", "argv_contains": "print('worker-ready',flush=True)"},
+  {"pid": 56352, "started": "Wed Nov 18 03:12:40 2026", "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmptvj75fvm", "command": "Python", "argv_contains": "print('worker-ready',flush=True)"},
+  {"pid": 56737, "started": "Wed Nov 18 03:12:42 2026", "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp6ahgbxop", "command": "Python", "argv_contains": "print('worker-ready',flush=True)"},
+  {"pid": 56752, "started": "Wed Nov 18 03:12:42 2026", "cwd": "/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp31tsxug5", "command": "Python", "argv_contains": "print('worker-ready',flush=True)"}
+]
+== the five just before
+-- 56247
+56247     1 56242 Wed Nov 18 03:12:39 2026     S      0.0
+n/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp_bxqab0c
+-- 56264
+56264     1 56255 Wed Nov 18 03:12:39 2026     S      0.0
+n/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpggs7wtwy
+-- 56352
+56352     1 56346 Wed Nov 18 03:12:40 2026     S      0.0
+n/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmptvj75fvm
+-- 56737
+56737     1 56732 Wed Nov 18 03:12:42 2026     S      0.0
+n/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp6ahgbxop
+-- 56752
+56752     1 56746 Wed Nov 18 03:12:42 2026     S      0.0
+n/private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp31tsxug5
+== the run
+python3 -I /Users/dadleet/src/skill-craft/.claude/worktrees/leftover-stop-03c4ae/docs/experiments/suite-cleanup-diagnostic-20261122/stop_named.py /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/stop/stuck.json > /private/tmp/claude-501/-Users-dadleet--claude-spares-spare-mv9tTP/77974be7-1e38-4777-87b6-3c6ffba2469e/scratchpad/suite-cleanup/stop/land/stop-output.txt 2>&1
+56247: Python, no parent, started Wed Nov 18 03:12:39 2026, 0.0% of a processor, in /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp_bxqab0c
+56247: SIGTERM sent
+56247: still there after 5 s, SIGKILL sent
+56247: gone
+56264: Python, no parent, started Wed Nov 18 03:12:39 2026, 0.0% of a processor, in /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpggs7wtwy
+56264: SIGTERM sent
+56264: still there after 5 s, SIGKILL sent
+56264: gone
+56352: Python, no parent, started Wed Nov 18 03:12:40 2026, 0.0% of a processor, in /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmptvj75fvm
+56352: SIGTERM sent
+56352: still there after 5 s, SIGKILL sent
+56352: gone
+56737: Python, no parent, started Wed Nov 18 03:12:42 2026, 0.0% of a processor, in /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp6ahgbxop
+56737: SIGTERM sent
+56737: still there after 5 s, SIGKILL sent
+56737: gone
+56752: Python, no parent, started Wed Nov 18 03:12:42 2026, 0.0% of a processor, in /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmp31tsxug5
+56752: SIGTERM sent
+56752: still there after 5 s, SIGKILL sent
+56752: gone
+listed 5, left alone 0, still alive 0
+exit 0
+run at 2026-11-22 19:05:51
+== afterwards
+ps -p 56247 -o pid=: (nothing printed)
+ps -p 56264 -o pid=: (nothing printed)
+ps -p 56352 -o pid=: (nothing printed)
+ps -p 56737 -o pid=: (nothing printed)
+ps -p 56752 -o pid=: (nothing printed)
+parentless python or node processes: (nothing printed)

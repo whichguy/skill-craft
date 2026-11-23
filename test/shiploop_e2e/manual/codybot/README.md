@@ -38,7 +38,7 @@ product-build and live release evidence per instance.
 ## Check the case offline
 
 Run the manual fixture checks with Python and Git. The launcher checks use a
-fake `shiploop-codex` and the prompt check reads the JSON examples locally.
+fake `shiploop-codex`. The prompt checks read the transcript and the [Lightning, Apex and provider tool exchange](Codybot-design-prompt.md#model-tool-definitions-and-the-lightning-to-provider-exchange) directly from the Markdown.
 
 ```sh
 python3 -B -m unittest discover -s test/shiploop_e2e/manual/codybot -p 'test_*.py' -v

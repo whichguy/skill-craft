@@ -1,0 +1,362 @@
+[
+ {
+  "field": "environment",
+  "text": "TC-4 ran alongside the existing runner. No changes to test commands were needed.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "AD-4 records shared migration and startup ordering, with observed boundary checks.",
+  "classifier": "C",
+  "hand": "?",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "environment",
+  "text": "Existing commands and operational document locators cover the tested startup path.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "environment",
+  "text": "recorded the third focused command (4 tests, npm test 169) and that every row of the harness table is written and passing",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "architecture",
+  "text": "AD-1 and AD-2 match the observed implementation, with no new decision.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "environment",
+  "text": "Existing Node harness and commands worked as recorded; no runtime change.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "environment",
+  "text": "The named public API suite is test/chess.test.js with Node runner and TC IDs.",
+  "classifier": "?",
+  "hand": "?",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "environment",
+  "text": "Harness status now records TC-1..TC-15, TC-17 as passing (16 tests, full suite 22 OK), the TC-7 mutation result, the equivalent max_seconds mutant, and that test names must avoid the word skipped.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "Added '(W1/S2)' lines in R-1..R-11 stating what is met and by which tests, including the clarified rules (ids use the non-blank rule, equal-split overflow case, 413 boundary, 405 Allow header, trailing slash).",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "Added the implementation and test locators to R-1 and R-2.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "environment",
+  "text": "No new configuration beyond the existing exact flag.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "AD-1 remains applicable and is recorded for operators in decision 9.",
+  "classifier": "C",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "spec",
+  "text": "Recorded the test file and consumer boundaries in R-4.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "added A3.5 (store refuses a patch naming due) and A2.5 (observed config error text), each ending (W1/S1)",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "environment",
+  "text": "none new: npm test (140 pass) and the focused glob already recorded",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "spec",
+  "text": "R-5 records the verification of persisted worker checkpoints.",
+  "classifier": "C",
+  "hand": "?",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "R-2 CLI behavior confirmed with no acceptance change.",
+  "classifier": "?",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "environment",
+  "text": "none: node --test is already recorded under Commands; proven (26 pass)",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "AD-1 and AD-2 already document the implemented structure; decision 9 records the maintained data contract.",
+  "classifier": "C",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "environment",
+  "text": "none: the focused glob command is recorded; it now runs 48 tests",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "spec",
+  "text": "Added the focused test coverage line at R-4 with W1/S1 mark.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "architecture",
+  "text": "The approved CLI integration remained as designed.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "AD-1 and AD-2 were implemented as written. Recorded the retained local test boundary.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "architecture",
+  "text": "AD-1 through AD-3 confirmed against code; boundaries and checks placed in maintained sections.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "R-1 through R-4 already describe the observed behavior.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "added AD-9 (dueFor refuses bad arguments with RangeError because callers already validated; backfillDue treats null as missing)",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "architecture",
+  "text": "no new AD: S1 follows AD-1, AD-2, AD-3 and AD-5 as recorded.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "environment",
+  "text": "Recorded focused CLI and weekly-report verification in the harness list.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "Existing R-1 through R-3 already reflect the observed behavior.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "spec",
+  "text": "R-2 through R-4 already define these behaviors; no amendments.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "environment",
+  "text": "Recorded tested node:test areas and linked the operating procedure.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "architecture",
+  "text": "none: AD-1..AD-4 hold as built",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "RB-1 is now implemented by test/rollback.test.js (TC-17); no new AD",
+  "classifier": "U",
+  "hand": "?",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "none: AD-1..AD-4 hold as built",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "No change beyond the existing decision and CLI read-only boundary.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "spec",
+  "text": "Observed lines added inside R-2, R-3 and R-9 ending (W1/S1).",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "lines ending (W1/S2) added to R-2, R-4, R-5 and R-7.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "environment",
+  "text": "Recorded the exact Chrome opt-in command and isolated fixture use.",
+  "classifier": "C",
+  "hand": "C",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "R-1 through R-3 remain accurate with no requirement change.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "spec",
+  "text": "R-1 through R-3 were confirmed without a requirement change.",
+  "classifier": "?",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "spec",
+  "text": "Kept R-2 and R-3 acceptance lines intact.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "AD-1 records the format and startup migration. AD-2 records overdue filtering.",
+  "classifier": "C",
+  "hand": "?",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "R-2 and R-5 record the verified JavaScript input range and storage ownership.",
+  "classifier": "?",
+  "hand": "?",
+  "step_changed": true,
+  "stage_changed": true
+ },
+ {
+  "field": "spec",
+  "text": "R-1 through R-4 already carry the verified semantics.",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ },
+ {
+  "field": "architecture",
+  "text": "none: AD-1..AD-5 held; decision 9 records the choices in the repository docs",
+  "classifier": "U",
+  "hand": "U",
+  "step_changed": false,
+  "stage_changed": false
+ }
+]

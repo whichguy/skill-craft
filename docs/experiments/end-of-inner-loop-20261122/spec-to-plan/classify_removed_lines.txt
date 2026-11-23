@@ -1,0 +1,60 @@
+== carry-forward | 2.6.0 codex | ~/e2e-runs/r-20261122-5d2cbc/g2 | 1ac112f21d3f | docs(shiploop): record skill-craft-shiploop-this-directory-is-4872dc knowledge after carry
+    other - - When on, overdue=true intersects existing list filters and selects only open and in-progress tickets due strictly before the injected clock (exact equality and other query values are non-filtering defaults chosen 2026-
+    other - Basis: existing-data and rollback request, 2026-11-22. The operator pauses writers and runs an offline backfill (default chosen 2026-11-22). The migration uses each ticket's stored created time and priority, preserves an
+    other - - Test refusal on incomplete data, run the backfill command on genuine service-written legacy data, compare audit, outbox, sequence and ticket fields after migration, then rerun with changed hours and compare bytes. Star
+== step-plan | 2.6.0 claude | ~/e2e-runs/r-20261122-5d2cbc/k1 | 619bf8358d35 | docs(shiploop): record this-directory-is-an-existing-node-11c11d knowledge after step-plan
+    heading - ### R-4 Tickets already in the data file get due times
+    other - When the service starts on a data file whose tickets lack `due`, each such ticket gets due = its own `created` + hours of its own `priority`, and the file is saved at once (before any request), regardless of `DUE_TIMES`.
+    other - - Positive: a v1 file with T-0001 {priority high, created 2026-01-01T08:00:00.000Z, no due}: after `createService` the file on disk holds due 2026-01-02T08:00:00.000Z; a second start with other hours leaves it. Confirmed
+    other - - Positive: a file already holding due is not rewritten with a different due. Confirmed by a persistence test.
+    other - - Boundary: with no data file or an empty store nothing is written by backfill. Confirmed by a test.
+    other - - Boundary: `updated` and the audit log of the backfilled ticket are byte-equal before and after. Confirmed by a test.
+    other - Only the exact value `on` enables due times; unset, empty or any other value is off, without error. While off: no `due` key in any ticket response; the `overdue` parameter is ignored like any unknown parameter; CLI outpu
+    other - The data file stays `"version": 1` and `due` is an additive ticket field, so 1.4.0 starts on a file the new release wrote and shows every ticket. After the new release writes `due`, loading with the 1.4.0 loader (frozen 
+== step-plan | 2.6.0 codex | ~/e2e-runs/r-20261122-5d2cbc/g3 | 0e687d232ae2 | docs(shiploop): record skill-craft-shiploop-this-directory-is-ee8e04 knowledge after step-
+    other - Acceptance — start with a legacy file and the feature gate off. Before listening, save missing due values using each ticket's creation and stored priority, preserving all existing values and data. Verify mixed and fully 
+== prepare | 2.6.0 claude | ~/e2e-runs/r-20261122-72ca72/m1 | 464cd706d24a | docs(shiploop): record this-directory-is-an-existing-node-1c115a knowledge at prepare
+    other - - Positive: a verbatim copy of the 1.4.0 source (git commit e75638e: src/ and bin/) is vendored at test/fixtures/release-1.4.0/ (it must not depend on git history at test time; files there are only modules, so `node --te
+== carry-forward | 2.6.0 claude | ~/e2e-runs/r-20261122-72ca72/m1 | 35361104417a | docs(shiploop): record this-directory-is-an-existing-node-1c115a knowledge after carry-for
+    other - When the service starts on a data file (a store opened with persistence) whose tickets lack `due`, it sets due from each ticket's own created time and current priority with the configured hours, and saves the file at onc
+    other - Due times are exposed only when DUE_TIMES is exactly `on`. Unset or any other value is off. Off: no `due` in any response, `overdue` ignored as any unknown query parameter is today, audit/outbox/CLI/report output unchang
+== other | 2.6.0 claude | ~/e2e-runs/r-20261122-72ca72/m1 | e3e279a32a8d | fix(shiploop): commit the 1.4.0 oracle fixture and its test
+    other - - Positive: a verbatim copy of the 1.4.0 source (git commit e75638e: src/ and bin/) is vendored at fixtures/release-1.4.0/ at the repository root, not under test/: `node --test` runs every .js file under test/, and the v
+== other | 2.6.0 claude | ~/e2e-runs/r-20261122-72ca72/t1 | e5f7b733f271 | fix(due-times): report a failed startup backfill as one line that names the next action
+    other - Basis: request of 2026-11-22, "Nobody prepares the data file by hand ... It never refuses to start because due times are missing." With the literal `DUE_TIMES=on`, startup gives each ticket that has no `due` one, compute
+== carry-forward | 2.6.0 claude | ~/e2e-runs-pk/20261122-n/t03 | 22749525977a | docs(shiploop): record add-a-stock-lookup-route-to-ba9cf6 knowledge after carry-forward
+    other - R-3 unchanged. Pending: src/routes/stock.js and test/stock.test.js.
+== other | 2.6.0 claude | ~/e2e-runs-pk/20261122-n/n04 | 54255e827a76 | fix(stock): 400 messages name the caller's next step; document the 431 limit
+    other - - A1 failure: `GET /stock`, `GET /stock?ids=`, `GET /stock?ids=,` answer 400 `{"error":"ids is required"}`. Confirmed by HTTP test.
+    other - - A2 boundary: the 51 ids `P-0001`..`P-0051` answer 400 `{"error":"ids must list at most 50 ids"}`; the 50 ids `P-0001`..`P-0050` answer 200 with `items: []` and 50 entries in `missing`; the 51 entries `P-0001`..`P-0050,
+== carry-forward | 2.6.0 claude | ~/e2e-runs-pk/20261122-r/u03 | e360675ec8d7 | docs(shiploop): record add-a-stock-lookup-route-to-ee6eaa knowledge after carry-forward
+    other - Basis: the request of 2026-11-22 ("GET /stock?ids=P-1001,P-1002 answers with each listed item's id and units in stock, and lists unknown ids under \"missing\" instead of failing the call"); implemented in src/routes/stoc
+    other - Basis: the request of 2026-11-22 ("A call with no ids, or with more than 50, is refused with a 400 error"); src/routes/stock.js (pending); error convention of R-1 and AD-2.
+== other | 2.6.0 claude | ~/e2e-runs-pk/20261122-d/d02 | 511b8c729d10 | docs(shiploop): align R-3/R-4 with the criteria's rejections after replaying the proof
+    other - `csv.reader`. A `low_stock_threshold` that is not a whole number (for example `"abc"` or `7.5`) makes the job fail
+    other - - Failure: the job takes no request; its one failure is the invalid threshold of R-3, on which it raises and
+== carry-forward | 2.4.0 codex | ~/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2 | 396ed0e7c8fe | docs(shiploop): record skill-craft-shiploop-this-directory-is-66116d knowledge after carry
+    other - - 1.4.0 rewrites files without unknown fields. A copy retained before rollback lets the migration restore a matching stopped-service ticket's old deadline by ID and creation time via `--restore-from FILE` while keeping i
+== release-verify | 2.4.0 codex | ~/e2e-runs-sdlc10/20261121-paired/sol-high-due-p2 | a716541b4849 | docs(shiploop): record skill-craft-shiploop-this-directory-is-66116d knowledge at release-
+    other - - 1.4.0 rewrites files without unknown fields. A copy retained before rollback lets the migration restore a matching stopped-service ticket's old deadline by ID and creation time via `--restore-from FILE` while keeping i
+== carry-forward | 2.4.1 claude | ~/e2e-runs-sdlc12/20261121/sonnet-medium-due | 9816de50b9de | docs(shiploop): record this-directory-is-an-existing-node-60c1b1 knowledge after carry-for
+    other - - Positive: observed over HTTP in test/due.test.js.
+== carry-forward | 2.4.1 claude | ~/e2e-runs-sdlc13/20261121/assign-medium-1 | 776a62a5e744 | docs(shiploop): record this-directory-is-an-existing-node-666bf8 knowledge after carry-for
+    heading - ### Non-functional assessment
+== other | 2.4.1 claude | ~/e2e-runs-sdlc14/r15c/20261121/sonnet-C-due-2 | cf6ff12af82a | test: move the verbatim 1.4.0 loader fixture to a new path so the commit carries its files
+    other - - The data-file `version` stays 1 and `due` is an additional ticket field only; no other change of format. Confirmed by: a test that loads a file written by the new release through a verbatim copy of 1.4.0's loader and t
+== other | 2.4.0 claude | ~/e2e-runs-sdlc9/20261120/sonnet-high-due-L-2 | c2bcdaabd0f5 | docs(shiploop): spec A8.2 describes the rollback test that exists
+    other - extracts that file with `git show f3df632:src/persistence.js` into a temp directory and loads the new release's file
+    other - (skipped with a stated reason when git or the commit is not available; a vendored copy of the 1.4.0 persistence
+    other - module under `test/fixtures/` is the fallback and is used by default so the test never needs git).
+== handoff | 2.4.0 claude | ~/e2e-runs-sdlc9/20261120/sonnet-high-due-S-1 | 501288edc597 | docs(shiploop): record this-directory-is-an-existing-node-1d9151 knowledge after handoff
+    other - - A9.1 the 117 existing tests (baseline run/scratch/baseline-npm-test.txt) pass without any edit to an existing test file. Confirmed: `npm test`, and `git diff --stat` shows no changed file under test/ except new files.
+
+removed or changed lines by stage and kind (ShipLoop >= 2.4):
+   carry-forward {'other': 10, 'trace': 100, 'heading': 1}
+   handoff {'other': 1}
+   other {'trace': 25, 'other': 10}
+   prepare {'other': 1}
+   release-verify {'other': 1}
+   step-plan {'heading': 1, 'other': 8}
+commits with a removed heading or other line, by stage: {'carry-forward': 7, 'step-plan': 2, 'prepare': 1, 'other': 6, 'release-verify': 1, 'handoff': 1}
