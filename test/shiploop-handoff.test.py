@@ -1711,6 +1711,10 @@ class HandoffGateTests(GateCase):
         message = self.refusal(state, "step-plan", dict(done, follows=["R-1", "R-9", "AD-2"]))
         self.assertTrue(message.startswith("Fix the follows IDs in "), message)
         self.assertIn(str(self.repo / knowledge.HOME / "spec.md"), message.splitlines()[1])
+        self.assertIn(str(self.repo / knowledge.HOME / knowledge.ARCHITECTURE), message.splitlines()[1])
+        self.assertIn("does not add new R- entries", message.splitlines()[1])
+        self.assertIn("add its entry to " + str(self.repo / knowledge.HOME / knowledge.ARCHITECTURE),
+                      message.splitlines()[1])
         self.assertEqual(message.splitlines()[-1], "No entry: R-9, AD-2.")
 
     def test_a_wrong_type_is_a_refusal_with_its_route_not_a_crash(self) -> None:

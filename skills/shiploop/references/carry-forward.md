@@ -46,8 +46,10 @@ knowledge (see
 [retain learnings for the next invocation](project-knowledge.md#retain-learnings-for-the-next-invocation))
 and preserve concrete revalidation conditions; do not silently expand scope or
 turn tentative ideas into adopted policy. `spec.md` is not edited at this stage
-except for a requirement an owed owner note asks to change (the spec stage and
-the steps keep its other lines; a gap goes to the queue or an open item).
+except for a requirement an owed owner note asks to change, and is not edited
+during the end-of-work review (it stays as the spec stage, the steps,
+`step-plan` send-back rewrites, and owed owner-note rewrites left it; any
+remaining gap goes to the queue or an open item).
 
 ## Decide on a reusable skill
 

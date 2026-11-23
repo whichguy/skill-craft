@@ -2368,8 +2368,8 @@ input, then review the change against the rubric below and for:
 - a mutant disposition a test stage recorded (equivalent, out-of-scope,
   not-exercisable) that a later edit made untrue, or a kill claimed with no run.
 Fix violations within scope; each fix comes with a test that fails before it.
-Leave spec.md as the steps and the owner-note rewrites left it; route a gap to
-the queue or an open item.
+Leave spec.md as the steps, step-plan rewrites and owner-note rewrites left it;
+route a gap to the queue or an open item.
 A pass that finds no material violation is trivial.
 """
 END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT

@@ -30,8 +30,8 @@ PLAN_RECORD = " ".join((PACKAGE / "references/plan-record.md").read_text(encodin
 
 
 # The end-of-work review's one sentence about the living spec (END_REVIEW_FOCUS_HEAD).
-LEAVE_SPEC = ("Leave spec.md as the steps and the owner-note rewrites left it; route a gap to\n"
-              "the queue or an open item.")
+LEAVE_SPEC = ("Leave spec.md as the steps, step-plan rewrites and owner-note rewrites left it;\n"
+              "route a gap to the queue or an open item.")
 
 
 class QualityLoopTests(fx.RunDriver):
