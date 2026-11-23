@@ -1696,17 +1696,30 @@ class SuiteGroupOwnershipTest(unittest.TestCase):
             "import os, subprocess, sys, time, signal\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)")
         argv = (sys.executable, "-B", "-c", script, *argv[3:])
         sentinel = KeyboardInterrupt("interrupt actual TERM grace once")
-        captured, owners, terms, injections = [], [], [], []
+        captured, owners, terms, injections, delivered, repeats = [], [], [], [], [], []
         decoy = self._decoy()
-        real_wait, real_killpg = run_suites._SuiteProcess.wait, os.killpg
+        real_wait, real_killpg, probe = run_suites._SuiteProcess.wait, os.killpg, run_suites._exit_probe()
         def started(process):
             owners.append(process)
             captured.extend(self._capture(process, ready, marker))
             gate.touch()
+        def leader_exited(pid):
+            try:
+                return probe(pid)
+            except ChildProcessError:
+                return True
         def signal_group(group, sig):
+            mine = bool(owners) and group == owners[0].pid
+            # macOS refuses a group KILL (EPERM) while an earlier delivered one is taking effect, until the leader
+            # can be waited for, and the runner records that refusal as unconfirmed cleanup
+            # (docs/local-validation-journal.md, round 7, F27).
+            if mine and sig == signal.SIGKILL and delivered and not leader_exited(group):
+                repeats.append(group)
             result = real_killpg(group, sig)
-            if owners and group == owners[0].pid and sig == signal.SIGTERM:
+            if mine and sig == signal.SIGTERM:
                 terms.append(group)
+            if mine and sig == signal.SIGKILL:
+                delivered.append(group)
             return result
         def wait(process, timeout=None):
             if owners and process is owners[0] and timeout == 1 and terms and not injections:
@@ -1730,6 +1743,8 @@ class SuiteGroupOwnershipTest(unittest.TestCase):
                 self.assertTrue(all(record[0] > 0 for record in captured))
                 self.assertEqual(injections, [owners[0].pid])
                 self.assertTrue(terms, "injection must follow actual TERM delivery")
+                self.assertEqual(repeats, [], "a group KILL was repeated before its leader was seen exited; macOS "
+                                 "answers that EPERM and the runner records unconfirmed cleanup")
                 stopped = self._until(lambda: not any(self._alive(r) for r in captured), 10)
                 closed = all(s is not None and s.closed for s in (owners[0].stdout, owners[0].stderr))
                 self.assertEqual((stopped, closed), (True, True),

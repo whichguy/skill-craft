@@ -4204,6 +4204,10 @@ Asked "Stop the last idle leftover process from 2026-11-18 too?", the owner: "Ye
   at the moment of stopping to be the process listed and was stopped by `stop_named.py`; the script's output, whole,
   is in the evidence file. With it none of the four parentless processes of R155 is left: two were stopped at the
   owner's word (R172), one had gone by itself, and this one.
+  [2026-11-22, evening: where it came from was found while another question was looked into. It is very likely one
+  of six workers that a test tier left on 2026-11-18, run inside a sandbox in which `ps` could not start, so that the
+  fixture's own cleanup sent no signal; the other five were still alive. `docs/local-validation-journal.md`, round 7,
+  F30.]
 - **How.** One Sonnet worker ran one script written here: the stop, a check that the process is gone, and only then
   the commit and push of this record. Checked here afterwards.
 

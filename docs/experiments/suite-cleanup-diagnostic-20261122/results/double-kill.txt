@@ -1,0 +1,40 @@
+== d0-1000.txt
+{"trials": 1000, "delay_seconds": 0.0, "seconds": 78.0, "python": "3.15.1", "load": 6.25341796875}
+964 | probe=not-exited killpg=ok | quiet | reap: probe=not-exited probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": [], "group_states_after_second": null}
+36 | probe=not-exited killpg=PermissionError | WARNING | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 20, "warnings": ["signal 9: PermissionError; group cleanup unconfirmed"], "group_states_after_second": ["Z"]}
+exit 0
+== d0.00002-250.txt
+{"trials": 250, "delay_seconds": 2e-05, "seconds": 23.6, "python": "3.15.1", "load": 6.67431640625}
+246 | probe=not-exited killpg=PermissionError | WARNING | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": ["signal 9: PermissionError; group cleanup unconfirmed"], "group_states_after_second": ["Z"]}
+4 | probe=not-exited killpg=ok | quiet | reap: probe=not-exited probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 26, "warnings": [], "group_states_after_second": null}
+exit 0
+== d0.00005-250.txt
+{"trials": 250, "delay_seconds": 5e-05, "seconds": 22.1, "python": "3.15.1", "load": 7.162109375}
+249 | probe=not-exited killpg=PermissionError | WARNING | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": ["signal 9: PermissionError; group cleanup unconfirmed"], "group_states_after_second": ["Z"]}
+1 | probe=not-exited killpg=ok | quiet | reap: probe=not-exited probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 91, "warnings": [], "group_states_after_second": null}
+exit 0
+== d0.0001-250.txt
+{"trials": 250, "delay_seconds": 0.0001, "seconds": 22.5, "python": "3.15.1", "load": 6.53466796875}
+250 | probe=not-exited killpg=PermissionError | WARNING | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": ["signal 9: PermissionError; group cleanup unconfirmed"], "group_states_after_second": ["Z"]}
+exit 0
+== d0.0002-250.txt
+{"trials": 250, "delay_seconds": 0.0002, "seconds": 22.3, "python": "3.15.1", "load": 5.763671875}
+250 | probe=not-exited killpg=PermissionError | WARNING | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": ["signal 9: PermissionError; group cleanup unconfirmed"], "group_states_after_second": ["Z"]}
+exit 0
+== d0.0005-250.txt
+{"trials": 250, "delay_seconds": 0.0005, "seconds": 22.5, "python": "3.15.1", "load": 6.0126953125}
+226 | probe=exited killpg=PermissionError | quiet | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": [], "group_states_after_second": null}
+24 | probe=not-exited killpg=PermissionError | WARNING | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 9, "warnings": ["signal 9: PermissionError; group cleanup unconfirmed"], "group_states_after_second": ["Z"]}
+exit 0
+== d0.001-250.txt
+{"trials": 250, "delay_seconds": 0.001, "seconds": 22.3, "python": "3.15.1", "load": 6.26708984375}
+250 | probe=exited killpg=PermissionError | quiet | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": [], "group_states_after_second": null}
+exit 0
+== d0.002-250.txt
+{"trials": 250, "delay_seconds": 0.002, "seconds": 22.3, "python": "3.15.1", "load": 5.66748046875}
+250 | probe=exited killpg=PermissionError | quiet | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": [], "group_states_after_second": null}
+exit 0
+== d0.005-250.txt
+{"trials": 250, "delay_seconds": 0.005, "seconds": 23.6, "python": "3.15.1", "load": 4.86376953125}
+250 | probe=exited killpg=PermissionError | quiet | reap: probe=exited probe=exited killpg=PermissionError | quiet | {"trial": 0, "warnings": [], "group_states_after_second": null}
+exit 0

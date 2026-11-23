@@ -513,10 +513,14 @@ def _abort_process(process: _SuiteProcess) -> None:
     except BaseException:
         failed = True
     # A failed TERM/wait must not prevent the final owned KILL attempt.
-    try:
-        process._signal_group(signal.SIGKILL)
-    except BaseException:
-        failed = True
+    # Only then (docs/local-validation-journal.md, round 7, F27): a completed termination has just sent this KILL;
+    # macOS answers a second one EPERM while the group it reached is still exiting and its leader not yet waitable,
+    # which _signal_group records as unconfirmed cleanup; the reap's KILL (_internal_poll) covers what the first missed.
+    if failed:
+        try:
+            process._signal_group(signal.SIGKILL)
+        except BaseException:
+            failed = True
     try:
         process.communicate(timeout=5)
     except subprocess.TimeoutExpired:

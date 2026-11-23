@@ -1,0 +1,37 @@
+A1 fail-first: the repeat detector in test/test-groups.test.py, with test/run_suites.py unchanged
+base: 4758480e40c646c0d09eaf394ec6b00feaaf82a1 (origin/main); python3 3.15.1; Darwin 27.2.0
+command (5 times): python3 -B test/test-groups.test.py SuiteGroupOwnershipTest.test_timeout_grace_interrupt_finishes_owned_group_before_escape
+expected: FAILED each time, on the new repeats assertion only
+
+run1: FAILED (failures=1); failures on the new assertion (line 1746): 1; other FAIL/ERROR: 0; stderr "suite cleanup" lines: 0; repeated group: 96799
+run2: FAILED (failures=1); failures on the new assertion (line 1746): 1; other FAIL/ERROR: 0; stderr "suite cleanup" lines: 1; repeated group: 96853
+run3: FAILED (failures=1); failures on the new assertion (line 1746): 1; other FAIL/ERROR: 0; stderr "suite cleanup" lines: 1; repeated group: 96908
+run4: FAILED (failures=1); failures on the new assertion (line 1746): 1; other FAIL/ERROR: 0; stderr "suite cleanup" lines: 0; repeated group: 96970
+run5: FAILED (failures=1); failures on the new assertion (line 1746): 1; other FAIL/ERROR: 0; stderr "suite cleanup" lines: 0; repeated group: 97079
+
+result: 5 of 5 FAILED, each on the new assertion and nothing else
+
+== full output of run1
+F
+======================================================================
+FAIL: test_timeout_grace_interrupt_finishes_owned_group_before_escape (__main__.SuiteGroupOwnershipTest.test_timeout_grace_interrupt_finishes_owned_group_before_escape)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dadleet/src/skill-craft/.claude/worktrees/suite-cleanup-f52050/test/test-groups.test.py", line 1746, in test_timeout_grace_interrupt_finishes_owned_group_before_escape
+    self.assertEqual(repeats, [], "a group KILL was repeated before its leader was seen exited; macOS "
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     "answers that EPERM and the runner records unconfirmed cleanup")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [96799] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+96799
+
+- [96799]
++ [] : a group KILL was repeated before its leader was seen exited; macOS answers that EPERM and the runner records unconfirmed cleanup
+
+----------------------------------------------------------------------
+Ran 1 test in 1.316s
+
+FAILED (failures=1)
