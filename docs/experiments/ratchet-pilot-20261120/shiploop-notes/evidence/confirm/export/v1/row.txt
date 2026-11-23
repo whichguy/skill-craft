@@ -1,0 +1,1 @@
+4. R-3 How are operators able to populate the file before activation? Decided: Start the candidate with display off. Startup atomically backfills and new tickets save their deadlines during staging. Otherwise: Run a separate offline migration command while the service is stopped.

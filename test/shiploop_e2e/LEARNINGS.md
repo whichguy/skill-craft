@@ -9617,3 +9617,54 @@ efficiency claim, no marketplace result. Every value above with the file it was 
 from `read_round.py`, `wave.txt` and `wave.json` from `read_wave.py`, `k4-two-starts.txt`, `packet-identity.txt`,
 and each Sol delivery's specification and printed rows). Evidence root (outside the repository, may be pruned):
 `~/e2e-runs/r-20261122-ffb3fb/`, with each run's `result.json`, `metrics.json`, native events and delivery bundle.
+
+## 2026-11-22 — Owner notes are accounted for by a row in a result: one whole delivery of `ticket-due-times` on the accepted change takes a plain note in and delivers it (Codex Sol 6.2 medium), after six registered ones on the candidate
+
+What ran. The E2E round of the release that carries the accepted owner-notes change (ShipLoop 2.7.0). The change is
+judged on seven real deliveries of `ticket-due-times` with `test/shiploop_e2e/run.py --source checkout --effort
+medium`, each beside the stand-in requester, which sends one plain owner note that contradicts a choice the
+specification made where the request was silent:
+
+- six on the candidate at `053732c219ae2dbd528ffb6d21428f50ff9b5e31`, registered before they ran (journal section 29,
+  `docs/ratchet-pilot-journal.md`): `g1`, `g2`, `g3` (Sol 6.2 medium) and `k1` (Sonnet 5.5 medium) with the note when the
+  first `implement` packet prints; `h1`, `h2` (Sol 6.2 medium) with the note when the list of choices prints;
+- one on the final tree (`4786c55845838f0e3f1e2c89fe95c22e880b45ba`, the tree the 130 suites passed on): `v1`, Sol 6.2
+  medium, the note at `implement`, because the final tree changes two standing duties (`step-plan`, and `document`
+  restored) and the gate's handling of unreadable notes, review imports and placeholders.
+
+Results.
+- Accounted for, 7 of 7: each session met one refusal naming the note, its first line reached the model in 7 of 7 and
+  so did the note's words; every note ends settled.
+- Taken in, 7 of 7: the delivered service does what the note asks. In six of seven the note was the opposite of what
+  the checks expect, so the five start-up checks of the case fail with the service's own refusal in their output, and
+  the recorded requirement states the note's wish; in the seventh (`g2`) the note was the owner's ruling and all
+  checks pass, 8 of 8.
+- `v1`, the confirming one: the note is applied at `step-plan` (rewrote `R-3` and `AD-1`, replanned the step and added
+  the backfill command as a second step), 18.9 minutes. It put its row on the `send-back` result twice before it
+  sent it without the row. On `v1` the first five verdicts hold; the five start-up checks fail as the note asks.
+- The released engine, the control: on Sol a plain note during the build was given to the model in 0 of 3 deliveries.
+
+What the sessions do with a note during the build. All five that got one sent the step back to `step-plan` and
+rewrote the requirement there (four on Sol, one on Sonnet), which the standing duty of `step-plan` forbade until this
+change. Nobody used the route the design built (carry to `carry-forward`, which rewrites the requirement and queues a
+new item).
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: the harness's readers of saved runs of an engine from before rows now say "not
+   applicable" for the note check, and count no held callback as a refusal, so saved evidence is graded as before. The
+   case's own five checks read a choice of the request the stand-in may contradict: a run of the opposite wish reads
+   "3 of 8 checks" and is right. A verdict for "the note's wish is what the service does" exists only in the
+   experiment's reader, not in the harness.
+2. More to learn on later passes: a note that arrives at `document`, at `carry-forward`, in a later work item or after
+   the build; two notes at once; a note the run cannot do; and whether a session on Grok (no run here) reads the first
+   line of a refusal.
+3. More evaluation criteria: whether the host's last message tells the requester what happened to the note. On Sol it
+   never does (0 of 6 deliveries here, since the closing packet's lines do not reach the model); on Sonnet it did (1 of
+   1); the report holds the note either way.
+
+Limits: one case, one Sonnet delivery, no Grok delivery, no promotion or efficiency claim, no marketplace result. Every
+value above is in `docs/experiments/ratchet-pilot-20261120/shiploop-notes/evidence/rungs/` (the six) and
+`evidence/confirm/` (`v1`: the reader's output, the export, what the model was given). Evidence root (outside the
+repository, may be pruned): `~/e2e-runs/r-20261122-5d2cbc/` and `~/e2e-runs/r-20261122-2a32f1/`, with each run's
+`result.json`, native events and delivery bundle.

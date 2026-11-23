@@ -5370,3 +5370,17 @@ carry-forward's loop rule and the list of allowed keys. A reviewer of the other 
 noted that the short form of carry-forward's duty, the usual one since 2.4.0, has no owner-note exception; left as it
 is, because that form has no rule to report blocked, and the owed-notes block in the same packet says the rule
 whenever a note is owed there.
+
+### The wide tests and the confirming delivery (2026-11-22, 19:28 to 20:09; written 20:09)
+
+- **Wide tests, once, on the final tree** (`4786c55845838f0e3f1e2c89fe95c22e880b45ba`, the merge of main at
+  `bfbd04ff188e2e5acf444de80fa9a203c7cecad3` with the fixes of `7409bb6efcd0a65d124259f4d21ed184a178d9de`): 130 suites
+  (quick, python-floor and those the change affects), all passed, 1,242 s at 8 jobs. No suite was retried.
+- **One confirming delivery** on that commit (`v1`, Sol 6.2 medium, the note at the first `implement` packet; evidence
+  `shiploop-notes/evidence/confirm/`). It took the note in: the note settled `applied` at `step-plan` (R-3 and AD-1
+  rewritten, the backfill command added as a second step), the service refuses to start and names its command, the
+  final requirement states the note's wish, five verdicts hold, 18.9 minutes. The session put its row on the `send-back`
+  result twice before sending it without the row. No process was left behind.
+- **The decision it served:** a failure would have stopped the release. It did not fail, so the release goes ahead by
+  the owner's "Yes, accept" (section above). Seven deliveries of seven now have the note taken in.
+- The round's entry is in `test/shiploop_e2e/LEARNINGS.md`.

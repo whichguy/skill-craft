@@ -1,0 +1,16 @@
+== v1
+   words: "Do not fill in due times when the service starts." (from ~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-runs/work-20261123-034950-369d18/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-2a32f1/v1/home/.codex/sessions/2026/11/22/rollout-2026-11-22T19-49-35-01a20685-ff25-78a0-a726-9a2328cf70fb.jsonl (742 lines)
+   1. event_msg lines holding the words: 3 (3 are a command's printed output)
+      item_completed/CommandExecution, output 1635 chars: "tes this stage owes (verbatim, oldest first): N1 03:55Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 1150 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 31392 chars: "t first; each is a file in RUN/owner-notes/): N1 03:55Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   2. response_item lines holding the words: 2: tool outputs given to the model 2, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1729 chars: "tes this stage owes (verbatim, oldest first): N1 03:55Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      given (tool output) custom_tool_call_output, 8609 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   3. for each command that printed the words, the output the model was given for it:
+      line 256 (1635 chars printed) -> line 257 custom_tool_call_output (1705 chars given), by position: inside call call_6c33f300, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 257
+      line 265 (1150 chars printed) -> line 266 custom_tool_call_output (8585 chars given), by position: inside call call_b845bd9f, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 266
+      line 282 (31392 chars printed) -> line 283 custom_tool_call_output (430 chars given), by position: inside call call_970d99f3, whose output is found by call_id: words False, N1 False, "owner note" False; no later tool output holds the words
+== summary
+   v1: printed by 3 commands; given to the model in 2 outputs; the model was given the note's words

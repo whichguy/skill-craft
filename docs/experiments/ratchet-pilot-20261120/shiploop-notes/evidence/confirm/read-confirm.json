@@ -1,0 +1,217 @@
+[
+ {
+  "name": "v1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "FAILED",
+  "basis": "engine done; at least one verdict failed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks": [
+   {
+    "check": "base_tests.py suite node-tickets",
+    "pass": true
+   },
+   {
+    "check": "base_tests.py pristine node-tickets",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py migrate",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py restart",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py switch",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py rollback",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py off",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py cli",
+    "pass": false
+   }
+  ],
+  "startup": {
+   "migrate": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-8gnk7smw/tickets.json: ticket T-0001 has no due time. Stop the service and run node scripts/backfill-due-times.js with DATA_FILE set.\n(the delivery DUE_TIMES=on server did not start)\nmigrate: 1 expectation(s) failed"
+   },
+   "restart": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "8:33.322Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-ccelfdm8/tickets.json: ticket T-0001 has no due time. Stop the service and run node scripts/backfill-due-times.js with DATA_FILE set.\n(the first start server did not start)\nrestart: 1 expectation(s) failed"
+   },
+   "switch": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "8:33.865Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-tw5207p2/tickets.json: ticket T-0001 has no due time. Stop the service and run node scripts/backfill-due-times.js with DATA_FILE set.\n(the DUE_TIMES=on server did not start)\nswitch: 1 expectation(s) failed"
+   },
+   "rollback": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": " cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-qytx33h0/on/tickets.json: ticket T-0001 has no due time. Stop the service and run node scripts/backfill-due-times.js with DATA_FILE set.\n(the delivery, DUE_TIMES=on server did not start)\nrollback: 1 expectation(s) failed"
+   },
+   "cli": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "28Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-22vgifnr/tickets.json: ticket T-0001 has no due time. Stop the service and run node scripts/backfill-due-times.js with DATA_FILE set.\n(the delivery DUE_TIMES=on server did not start)\ncli: 1 expectation(s) failed"
+   }
+  },
+  "started": "2026-11-23 03:49:35Z",
+  "ended_at": "2026-11-23 04:08:27Z",
+  "ended_ts": 1795406907.251,
+  "minutes": 18.9,
+  "turns": 198,
+  "model_calls": 105,
+  "output_tokens": 41036,
+  "cost_usd": null,
+  "spec_seconds": 57.0,
+  "strategy_seconds": 38.0,
+  "stand_in": {
+   "mode": "note-at",
+   "stage_waited_for": "implement",
+   "stage_seen_at": "2026-11-23T03:55:06Z",
+   "chosen": 4,
+   "row": "4. R-3 How are operators able to populate the file before activation? Decided: Start the candidate with display off. Startup atomically backfills and new tickets save their deadlines during staging. Otherwise: Run a separate offline migration command while the service is stopped.",
+   "requirement": "R-3",
+   "row_class": "start",
+   "row_class_note": null,
+   "note_sent": "command",
+   "note_id": "N1",
+   "note_exit": 0,
+   "note_reply": "Owner note N1 written: ~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-runs/work-20261123-034950-369d18/run/owner-notes/N1.md.\nThe run is at W1 implement (action nav-d196f55c8cf643fe8df3076b1bc85506); N1 is accounted for by its done result, which ShipLoop checks for a row when it is next checked or completed (a result already being read leaves it to the next stage's).",
+   "ended": null
+  },
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-runs/work-20261123-034950-369d18/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 38,
+  "defaults": [
+   "1. R-1 How are hours supplied? Decided: Set the per-priority DUE_HOURS variables at startup. Unset uses defaults, and invalid values stop startup with the setting name. Otherwise: Use a separate JSON configuration file, adding another file to manage.",
+   "2. R-2 How does the feature treat the exact deadline and non-true filters? Decided: Deadline must strictly precede now. False leaves the list alone, other values return 400 when enabled. Existing filters narrow overdue results. Otherwise: Treat the deadline as inclusive and silently ignore unknown values.",
+   "3. R-2 Where does the CLI show the deadline? Decided: Enabled human list and show display persisted due. Raw report lines remain four columns. Otherwise: Add a fifth tab-separated column, with possible impact on other consumers.",
+   "4. R-3 How are operators able to populate the file before activation? Decided: Start the candidate with display off. Startup atomically backfills and new tickets save their deadlines during staging. Otherwise: Run a separate offline migration command while the service is stopped."
+  ],
+  "end_from": "result.json span",
+  "last_command": {
+   "verb": "complete",
+   "stage": "handoff",
+   "exit": 0,
+   "at": "2026-11-23T04:08:10Z",
+   "gate_refusal": false
+  },
+  "gate": [
+   {
+    "at": "2026-11-23T03:56:08Z",
+    "stage": "implement",
+    "verb": "check",
+    "notes": [
+     "N1"
+    ],
+    "gate": true,
+    "first_line": "owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-runs/work-20261123-034950-369d18/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-runs/work-20261123-034950-369d18/run/inbox/nav-d196f55c8cf643fe8df3076b1bc85506.md, then run this again."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-23T03:55:06Z",
+    "words": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command.",
+    "sent_by_stand_in": true,
+    "in_trace": "2026-11-23 03:55:06Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-ca2d0b166f1a42c3ae6f470c01c5c88e",
+     "accepted_at": "2026-11-23 03:55:05Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-d196f55c8cf643fe8df3076b1bc85506",
+     "from": "the trace's note command"
+    },
+    "ledger": [
+     {
+      "did": "applied",
+      "detail": "Updated R-3 and AD-1, S1 criteria/proof for startup refusal, and added S2's command, proof and test for explicit offline backfill.",
+      "step": 12,
+      "stage": "step-plan",
+      "workitem": "W1",
+      "action": "nav-cd38b7a1910144db88346737b77a48db"
+     }
+    ],
+    "standing": "settled",
+    "owed_by": null,
+    "seconds_from_list": 171.1,
+    "minutes_to_end": 13.3,
+    "refusals": 1,
+    "refusals_before_first_row": 1,
+    "refusals_before_settled": 1,
+    "given": {
+     "source": "Codex rollout",
+     "words": "Do not fill in due times when the service starts.",
+     "printed_by": 3,
+     "given_in": 2,
+     "summary": "printed by 3 commands; given to the model in 2 outputs; the model was given the note's words",
+     "first_naming_it": {
+      "kind": "custom_tool_call_output",
+      "start": "Script completed\nWall time 0.8 seconds\nOutput:\n\nShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-runs/work-20261123-034950-369d18/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-run"
+     }
+    },
+    "requirement": "R-3",
+    "entry_when_written_from": "commit a92a7cb, the newest of docs/shiploop/spec.md at or before the note, unverified",
+    "entry_when_written": "### R-3 Persist historical deadlines before serving\n\n- Based on S6–S8. Default of 2026-11-22: the upgraded service assigns missing deadlines on startup independently of display. It derives each from the stored creation timestamp and priority, preserves existing deadlines and saves atomically before accepting requests. Tickets created during the disabled phase also save their deadline. Test the actual data file before listening and after edits and restarts. A failure to persist prevents startup.\n- Keep the old document version. Start the release 1.4.0 HTTP service on a file produced by the candidate and compare all ticket IDs and legacy fields. Audit, outbox, IDs and existing ticket fields survive the backfill. Operators own actual production rollout. The old writer's treatment of new fields limits rollback and is documented.",
+    "entry_at_end": "### R-3 Persist historical deadlines before serving\n\n- Based on S6–S8. Owner instruction N1 (2026-11-22): stop the service and run `DATA_FILE=path/to/tickets.json node scripts/backfill-due-times.js`. It derives each missing deadline from the stored creation timestamp and priority, preserves existing deadlines and saves atomically. The server performs no startup backfill. With `DUE_TIMES=on`, it refuses to start if a ticket lacks a deadline and names the command. Tickets created with display disabled still save their deadline. Verify the file at each step and after restarts.\n- Keep the old document version. Start the release 1.4.0 HTTP service on a file produced by the candidate and compare all ticket IDs and legacy fields. Audit, outbox, IDs and existing ticket fields survive the backfill. Operators own actual production rollout. The old writer's treatment of new fields limits rollback and is documented.\n\n- TC-3 checks the enabled startup error and unchanged file bytes before the explicit migration (W1/S1).\n\n- TC-5 in test/due-times.test.js runs the actual backfill, then checks the version-1 file and refires enabled startup. TC-4 verifies human and raw CLI views (W1/S2).",
+    "entry_at_end_is": "current",
+    "differ": true,
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-2a32f1/v1/.shiploop-runs/work-20261123-034950-369d18/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 7,
+     "same_second": 0,
+     "touching_spec": [
+      "feat(W1/S2): Added the offline backfill command and human CLI display",
+      "feat(W1/S1): Implemented persisted due times, enabled startup validation and API filtering",
+      "docs(shiploop): record this-directory-is-an-existing-node-83689a knowledge after step-plan"
+     ],
+     "touching_src_or_bin": 2,
+     "touching_test": 2
+    },
+    "new_items": {
+     "added": [],
+     "untimed_results": 0
+    }
+   }
+  ],
+  "told": {
+   "done_packet_lines": [
+    "Your notes: 1 owner note. In your last message tell the user what happened to each; the report's section \"Your notes\" has each note's words and every row:",
+    "- N1: applied at step-plan of W1: Updated R-3 and AD-1, S1 criteria/proof for startup refusal, and added S2's command, proof and test for explicit offline backfill."
+   ],
+   "report_has_section": true,
+   "report_section": "Your notes What you wrote to the run while it ran, and what each stage's result said it did with it. ShipLoop checks that each note has a row; it does not check that the work does what the row says. N1, written 2026-11-23T03:55:06Z: settled Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command. Step Stage Work item Did Detail Item 12 step-plan W1 applied Updated R-3 and AD-1, S1 criteria/proof for startup refusal, and added S2's command, proof and test for explicit offline backfill. —",
+   "last_message_sentences": []
+  }
+ }
+]
