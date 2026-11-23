@@ -1249,6 +1249,9 @@ accepted plan result and in the `architecture.md` and `spec.md` the plan stage w
 
 **Prediction ("at least 6 of 8"): right, 8 of 8.**
 
+*Added 2026-11-22 16:17 (the third review, checked in the two readings): the 8 of 8 is the registered union. By
+part, the token is in the accepted plan result in 5 of 8, in `architecture.md` in 7 of 8 and in `spec.md` in 1 of 8.*
+
 **This is the route the study had not run where it matters, and it works at the plan stage without any change to
 ShipLoop.** Against section 23: the card only named 0 to 1 of 8; the entries printed 7 of 8; the fact in the
 request 8 of 8; the fact in the project's knowledge file 8 of 8.
@@ -1298,7 +1301,8 @@ products), the code, the README. No plan packet held the entry, and no session o
 what the second review asked a design to do ("put the fact at the first decision that needs it and then carry the
 decision in the records ShipLoop already has"), and the released route already does it.
 
-**It costs nothing extra.** Sol took 9.9 and 11.1 minutes (10.0 and 10.1 in rung 6, 12.1 and 9.5 in rung 6b);
+**No extra time shows in three deliveries** (first written as "It costs nothing extra", which three runs cannot
+carry; corrected 2026-11-22 16:17). Sol took 9.9 and 11.1 minutes (10.0 and 10.1 in rung 6, 12.1 and 9.5 in rung 6b);
 Sonnet 17.4 minutes and $6.83 (16.4 and 15.9 minutes in rung 6, 21.7 in rung 6b).
 
 **Scope, as in section 31.** Sol put the header on the new route only; Sonnet put it on every route, and added a
@@ -1741,7 +1745,8 @@ entry's `X-Org-Request-Id`** (the check run for the local header; the shared hea
 
 **Rule ("the local fact wins on a driver when every product of that driver passes with the local header"): it wins
 on Sol (2 of 2) and on Sonnet (1 of 1). Prediction ("at least 2 of 3"): right, 3 of 3.** No product sets the shared
-header.
+header on the two answers the check samples for it (the valid call and the 400 path); it is outside the pass
+criterion.
 
 **Were the sessions given the block?** Read in each session's own record: the lead ("read from ShipLoop's guide at
 this run") was given at the spec stage in 6 of 6, between 57 and 127 seconds after the start (for the four Sol
@@ -1767,10 +1772,15 @@ mention the shared entries at all. So no shared text was copied in 6 of 6, and S
 2 of 2. An id reference keeps scope apart and makes the link traceable; I should have registered the rule on text
 and reported ids beside it.
 
-**Other readings.** Five of the six sessions opened the card's file (r03 did not), and the arm asks for nothing of
-the kind. In T1 the two Sol sessions opened it within half a minute after the block named it. In T2, where the
-project's own file names the card, all three opened it before the block arrived (r06 five times), so they had the
-shared entry from the card itself as well; section 43 follows this up. Sol put the header on the new route, Sonnet
+**Other readings.** Five of the six sessions consulted the card's file once (r03 did not), and the arm asks for
+nothing of the kind. In T1 the two Sol sessions printed the whole card within half a minute after the block named
+it. In T2, where the project's own file names the card, all three consulted it before the block arrived (r04
+printed it whole; r05 and r06 searched it for the header's words), so they had the shared entry from the card
+itself as well; section 43 follows this up. *Corrected 2026-11-22 16:17: I first wrote "r06 five times". The
+reader counts every call that names the card's path, and four of r06's five are its own notes and edits that
+mention the path; it searched the card once. The third review caught this (section 44). And the local bullet of
+T2 itself says "the shared platform notes still name the old header", which is a reason to go and look that a
+card which is only named does not give.* Sol put the header on the new route, Sonnet
 on every route, as in every earlier rung. Time and cost are those of the other arms (Sol 10.0 to 15.8 minutes; Sonnet 21.5 and 22.5 minutes, $7.70 and
 $8.02).
 
@@ -1824,4 +1834,102 @@ found before anything is concluded from them.
 
 **Limits known before the runs.** Three deliveries on one service. The released build on this branch differs from
 main in the card's experiment-only sections, as in every rung.
+
+## 44. The third Sol max review: keep the two repositories, defer the default change, grade rung 11 first (2026-11-22, sent 16:06, returned 16:15)
+
+Asked of `gpt-6.2-sol` at max, read-only, on a neutral copy of this journal through section 43, the candidate
+applied to ShipLoop with its diff, the benches and the readings. Served as asked, no fallback. Question:
+`review/QUESTION-3.md`; answer, word for word: `review/sol-max-answer-3.md` (1,900 words).
+
+**Its verdict, in its words.** "Keep the common and local repositories. Defer the ShipLoop default change. Start
+with an explicit target-to-guide binding on released ShipLoop and grade rung 11 first. Spec-stage delivery is the
+strongest fallback tested so far. It earned a matched trial, with two Sol runs and one Sonnet run per case on one
+Node service. The canary was a deployment contract planted in a general-purpose card."
+
+**Corrections it made, each checked before it was accepted.**
+
+1. *Rung 7a's 8 of 8 is a union.* By part: plan result 5 of 8, `architecture.md` 7 of 8, `spec.md` 1 of 8. Checked
+   in the readings and noted in section 32.
+2. *"r06 five times"* counted calls that name the card's path, not reads. Checked and corrected in section 42.
+3. *"It costs nothing extra"* (section 33) says more than three deliveries can. Reworded there.
+4. *The shared header's absence in T2* rests on two sampled answers a delivery and is outside the pass criterion.
+   Said so in section 42.
+5. *"The first delivery checks them against the repository"* (section 36, the copy's words): what was checked is
+   whether each starter fact applies; the gateway itself stayed unverified in all three, and q03 says so.
+6. *The spec lead in 6 of 6* is the lead. The entry's own lines given before the spec was accepted is the stronger
+   measure; I had it for the Sol sessions and have now read it for the two Sonnet ones: 6 of 6.
+7. *Shape (rung 8):* "Drop the forty-fact cutoff and 'buys nothing.'" The registered token favours the pages 4 of 4
+   to 2 of 4, the hand reading 4 of 4 to 3 of 4; "Pages may improve precision or save reads on narrower tasks. Two
+   samples per cell on one all-topics request leave both possibilities open." Accepted: what rung 8 shows is that
+   both shapes are read whole and that pages did not save context on this request, not that pages buy nothing.
+8. *Scope of code changes is unmeasured:* "Sonnet added headers to all 18 pre-existing HTTP cases, which passed
+   because preservation compared status and body." Reported in every rung as "every route"; not graded.
+
+**On the design.**
+
+- *Selection:* "Explicit bindings are the best first design." `platform_cards()` flattens paths across targets,
+  matches a path even inside a negation and silently drops a card that is missing; the file-pattern rule selects
+  Express for a service on `node:http`; the Salesforce card has no `## Applies when`. A binding belongs under
+  `## Targets and runtimes`, one a target: runtime and version, the shared sets selected, the evidence for it, with
+  an explicit "none" and "unresolved".
+- *Where to hand a shared entry over.* First the released route with the card named (rung 11): "If rung 11
+  repeatedly gets the applicable entry before spec and delivers its consequence on both drivers, use the binding
+  and keep the engine." It notes that the Node card has no `## Testing` heading, so nothing in the released script
+  pushes a session toward the card in rung 11. Second, printing at the spec stage, "for a verified constraint that
+  changes observable behavior", bounded in size, with a stable placement (the candidate splices by matching the
+  duty's prose and fails when that prose changes) and with the local facts explicitly reopened in a cold spec
+  session. Third, a generated file: "no demonstrated early-read advantage", and both commit paths would sweep it
+  into the product.
+- *Precedence:* prose for a pilot; if the script ever resolves it, by explicit replacement keyed on target, set and
+  entry id, with both sources kept in the run's record. "A key resolves identity and intent. Actual target evidence
+  resolves truth."
+- *Reading live against replay:* pin the shared version within a run and record the package revision, the binding,
+  the entry ids and the exact text given.
+- *Upkeep:* it reproduced the stale Salesforce claim of section 16 from the source and says to fix the card on its
+  own. An entry needs a stable id, applicability, source and version, a verification date, the decision and a
+  check that discriminates. "Following a printed canary establishes influence, which makes stale guidance more
+  consequential."
+- *Gates before any default:* (1) grade rung 11 with a tighter check (no superseded header on any tested answer;
+  headers preserved on routes the request does not touch; exposure traced through requirement, check and product),
+  and, if the named route falls short, compare an exact look-up line and a bounded printed block at the spec stage
+  **on the same named fixture** (rung 10's T1 started without a knowledge home); (2) deterministic contracts for
+  bindings, mixed targets, both directions of precedence, a guide updated between runs; (3) matched whole
+  deliveries on both drivers on a second platform, with a wrong shared entry and an unaffected target. "Do not ship
+  the default if it yields no repeatable material gain over the named route, or if it silently applies a stale or
+  wrong-target fact, widens scope, loses the decision on recovery, or leaks shared facts into the project record."
+
+**What it could not check** (its own list): rung 11, the raw sessions, the delivered trees, preregistration
+times, the connector effects.
+
+**What I take from it.** The order of the argument changes. Before printing is weighed at all, the released route
+with an explicit binding is the thing to beat, and rung 11 is its first measurement. And if rung 11 fails, the fair
+comparison is the printed block on rung 11's own fixture, not rung 10's T1.
+
+## 45. Amendment 11, rung 12, registered before its runs: the printed block on rung 11's own starting repository (2026-11-22, 16:18)
+
+**Why, and why now.** The third review asks for the named route and the spec-stage block to be compared "on the
+same named fixture": rung 10's T1 started from a repository with no knowledge home, rung 11 from one that names the
+card, so the two are not a matched pair. Rung 11 is still running and not read by its rule. A look at its sessions
+seven minutes in, recorded here because it is why I start the matched arm without waiting: one of the three (t02)
+has printed the card to itself, entry included; none of the three specs holds the header yet. Whatever rung 11's
+products turn out to be, the pair is what tells what printing adds once a binding exists, so it runs either way.
+
+**Rung 12.** Rung 11's own starting repository (`prior-nodeplain-named`: the project's file names the card, says
+nothing of the gateway) with the read-live build of rung 10 (`arm-live-spec`: the card's planning entries printed
+at the spec stage with the lead of section 38). That build selects a card by a file pattern as well as by its name
+in the project's file; here both apply, so the card is selected as it is in rung 11. Two deliveries on Sol medium and one on Sonnet medium:
+`familiar/runs/rung12.tsv`, u01 to u03, in `~/e2e-runs-pk/20261122-r/`.
+
+**Reading.** The tightened product check with the default header, as in rung 11; beside it the card reads and the
+scope reading by text (whole lines and word runs; ids reported, not counted).
+
+**Rules.** The printed block **holds on Sol** on this repository when both Sol products pass. Printing **adds over
+the named route** when it holds on Sol and rung 11 does not. **Prediction:** at least 2 of 3 pass.
+
+**What each outcome would mean.** Rung 11 fails and rung 12 holds: a binding alone does not deliver a shared entry
+on a platform the model knows; the printed block does, on the same repository. Both hold: the binding is enough
+and the engine stays as it is. Both fail: rung 10's T1 does not carry over to a repository with a knowledge home,
+and the reason has to be found before anything is concluded.
+
+**Limits known before the runs.** Three deliveries; one service; the same three shared entries.
 
