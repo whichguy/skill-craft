@@ -825,7 +825,7 @@ class StageModelGroupTests(unittest.TestCase):
         self.assertIs(anatomy.stage_groups(["plan", "step-plan", "baseline"]), anatomy.STAGE_GROUPS_V4)
         self.assertEqual(anatomy.V4_ONLY_STAGES, {"get-next-work-item", "select-work", "test-author", "baseline", "skill-assess",
                                                  "skill-validate", "test-red", "test-green", "test-refine", "regression",
-                                                 "static-checks", "integrate", "integration-verify"})
+                                                 "static-checks", "integrate", "integration-verify", "carry-forward"})
 
 
 class CurrentEngineTests(unittest.TestCase):

@@ -1,6 +1,8 @@
 # The inner loop
 
-Split from the ShipLoop skill card (`../SKILL.md`). Read when an inner stage (`step-plan` through `reflect-and-revise`) needs the rule behind its packet, or a stage reports `send-back`.
+Split from the ShipLoop skill card (`../SKILL.md`). Read when an inner stage
+(`step-plan` through `reflect-and-revise`) needs the rule behind its packet, or
+a stage reports `send-back`.
 
 Each work item runs 7 stages in 4 phases (`INNER` in
 `scripts/shiploop_stage_spec.py`):
@@ -32,9 +34,9 @@ Each work item runs 7 stages in 4 phases (`INNER` in
   and reruns what its edits could affect. Improve then reviews the step, tracing
   each changed entry point, and ShipLoop commits it
   ([commit stage](navigator.md#step-commits)). `verify` is retired.
-- `reflect-and-revise` updates the knowledge home and the queue and records a
-  [skill decision](#reflect-and-revise-skill-decision). A queue it replaces keeps every
-  primary requirement in some work item's `follows`.
+- `reflect-and-revise` updates the knowledge home and queue and records a
+  [skill decision](#reflect-and-revise-skill-decision). A replaced queue keeps every
+  primary requirement in some item's `follows`.
 
 From `test-spec` through `document`, a goal that proves wrong goes back to the
 step plan ([Send-back](#send-back-back-to-the-step-plan)).
@@ -98,7 +100,7 @@ that commit. A wrong check, an unknown fix or a fact that changes the plan is
 
 ## Reflect-and-revise skill decision
 
-A done `reflect-and-revise` records `"skill": {"decision": "none" | "reuse" | "update" | "create", "reason", "path", "evidence"}`.
+A done result records `"skill": {"decision": "none" | "reuse" | "update" | "create", "reason", "path", "evidence"}`.
 For `update` and `create` ShipLoop refuses a `path` that is not an existing
 `SKILL.md` with `name` and `description` frontmatter, or empty repeat `evidence`,
 and on accept commits the skill's directory. When to create or update a skill:
@@ -122,9 +124,8 @@ due at a done step stay as accepted. ShipLoop refuses any reopening.
 
 ## After reflect-and-revise
 
-After the navigator accepts `reflect-and-revise` and imports its bound Improve completion, the
-locked state transaction marks the completed item, retains its evidence, and
-either creates the next item's `step-plan` action or returns ownership to
-`system-test-author`. Root status and queue remain global. At a PRELUDE or OUTER
+After the navigator accepts `reflect-and-revise` and imports its Improve
+completion, the locked transaction marks the item done, keeps its evidence, and
+opens the next item's `step-plan` or returns ownership to `system-test-author`. Root status and queue remain global. At a PRELUDE or OUTER
 stage an active Improve child resumes through its own recorded state. A blocked child or producer keeps the parent action
 incomplete rather than creating a hidden success edge.

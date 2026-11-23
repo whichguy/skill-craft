@@ -124,7 +124,7 @@ class NarrativeTests(unittest.TestCase):
         item's `reflect-and-revise`, and the outer outcomes; every other stage carries the one-line status instead."""
         # The rule's membership, stated once: a boundary shows the narrative, every other stage does not.
         self.assertEqual(sorted(navigator._MILESTONE_STAGES),
-                         ["reflect-and-revise", "handoff", "prepare", "product-acceptance", "release"])
+                         ["handoff", "prepare", "product-acceptance", "reflect-and-revise", "release"])
         # A stage that is not a boundary carries no narrative: test-spec follows step-plan inside the item's Plan group.
         mid_item = self.driver.advance_to(self.driver.planned(ROWS), "test-spec")
         self.assertFalse(navigator.narrative_facts(mid_item)["milestone"])

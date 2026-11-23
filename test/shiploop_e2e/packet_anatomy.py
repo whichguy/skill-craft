@@ -517,7 +517,7 @@ STAGE_GROUPS_V4 = (
     ("baseline/skill-assess/skill-validate", ("baseline", "skill-assess", "skill-validate")),
     ("test-red/green/refine/regression", ("test-red", "test-green", "test-refine", "regression")),
     ("implement", ("implement",)), ("document/static-checks/verify", ("document", "static-checks", "verify")),
-    ("integrate/integration-verify/reflect-and-revise", ("integrate", "integration-verify", "reflect-and-revise")),
+    ("integrate/integration-verify/carry-forward", ("integrate", "integration-verify", "carry-forward")),
     ("system-test-author/system-test/product-acceptance", ("system-test-author", "system-test", "product-acceptance")),
     ("release-plan", ("release-plan",)), ("release-check/release/release-verify/operations",
                                            ("release-check", "release", "release-verify", "operations")),

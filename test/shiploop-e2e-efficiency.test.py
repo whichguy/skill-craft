@@ -106,7 +106,7 @@ class ClaudeReadingPathTests(SavedRuns):
         opens = self.path["packet_file_opens"]
         self.assertEqual((opens["count"], opens["of"]), (3, 8))
         self.assertEqual({r["stage"]: r["mode"] for r in opens["stages"] if r["mode"] != "none"},
-                         {"step-plan": "whole", "test-spec": "slice", "reflect-and-revise": "slice"})
+                         {"step-plan": "whole", "test-spec": "slice", "carry-forward": "slice"})
 
     def test_four_gates_did_not_run_and_each_is_named(self) -> None:
         gates = self.path["skipped_gates"]
