@@ -1,0 +1,22 @@
+Source: run.py --source checkout from branch fix/carry-forward-spec-47da85 at 1a5526c9cfb830febb9dcf521b160fbab7fd1bc5; output root /Users/dadleet/e2e-runs/cf-spec-20261122-8df724 (outside the repository).
+
+run: /Users/dadleet/e2e-runs/cf-spec-20261122-8df724/sol-ticket
+  carry-forward knowledge commits: 1
+    403ceba54f changed: docs/shiploop/architecture.md | 2 ++; 1 file changed, 2 insertions(+)
+  spec.md commit f426bc0688 before it | docs(shiploop): record this-directory-is-an-existing-node-5026ae knowledge after spec
+run: /Users/dadleet/e2e-runs/cf-spec-20261122-8df724/sonnet-csv
+  carry-forward knowledge commits: 1
+    c6617d8e34 changed: docs/shiploop/environment.md | 3 ++-; 1 file changed, 2 insertions(+), 1 deletion(-)
+  spec.md commit 0e4aab4c1a before it | docs(shiploop): pin down invalid-row reasons and unreadable-file stderr in the spec
+  spec.md commit 74d830e5eb before it | feat(W1/S1): report.py written; S1 proof exits 0 and lint is clean
+run: /Users/dadleet/e2e-runs/cf-spec-20261122-8df724/sonnet-expenses
+  carry-forward knowledge commits: 0
+  spec.md commit 812bb6522e  | docs(spec): add replayable examples, tie cases and non-functional note
+  spec.md commit b7f81f1248  | docs(spec): add a replayable exact-split example to R-5
+  spec.md commit 8df2b92a2d  | feat(W1/S1): lib.js and server.js built; proof and an extra concurrency/restart/413 check pass
+
+delivery          pass  seconds  minutes  checks  cost_usd
+sol-ticket        True    667.7    11.1  3 of 3  None
+sonnet-csv        True    874.8    14.6  5 of 5  5.3294
+sonnet-expenses   True   1254.1    20.9  6 of 6  6.2028
+sol-ticket quality: {"observed": true, "declared": ["acceptance"], "hosts_used": ["codex"], "mixed_host": false, "delivered_files": 64, "acceptance": {"observed": true, "source": "hand-written from the request and the base's documents, never shown to the model, run in the harness process after the host ended (SPEC: Del

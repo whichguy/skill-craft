@@ -452,7 +452,7 @@ deliveries) the count was 9 of 78, with step-plan rewriting an R-n in 2 of the 3
   (`~/e2e-runs/r-20261122-5d2cbc/`, another session's), especially `g2`, where a requirement changed at the last
   carry-forward with no item left to re-plan it. Did that delivery still meet the new requirement?
 
-## 10. Fixing the three defects (2026-11-22; owner: "Yes, fix them"; in progress)
+## 10. Fixing the three defects (2026-11-22; owner: "Yes, fix them")
 
 The owner answered "Yes, fix them" to the three defects of section 5, and later asked to check in whatever there was so
 far (about 19:15). Design, its outside review and the decisions: `docs/experiments/end-of-inner-loop-20261122/fix-design.md`
@@ -473,9 +473,17 @@ far (about 19:15). Design, its outside review and the decisions: `docs/experimen
   worker at xhigh from an exact brief, no commit by the worker; diff read by the main session). carry-forward's duty 1,
   the queue refusal at carry-forward, one sentence and one clause in the two references, the end-of-work hand-off, tests
   that fail on the old text, a patch note. The plan's refusal stays byte-identical. Quick tier on the final bytes: 35
-  of 35 suites, 1,418 tests; the carry-forward packet grows by 30 characters. No model has run on it. Not on main: the
-  owner-note exception must be added after the candidate lands, then an E2E round on Sol 6.2 medium and Sonnet 5.5
-  medium (release preflight), then the release.
+  of 35 suites, 1,418 tests; the carry-forward packet grows by 30 characters. No model has run on it. The candidate landed
+  at about 20:10 (ShipLoop 2.7.0, f8c05c8a11423a5e9eea0c6bdeefe34541b8feea); the branch was rebased onto it without
+  conflict and the owner-note exception added in the four places (second commit of the branch), so no text of it
+  contradicts the released rule. Tests: quick tier 36 suites on the final bytes (two path-bound ones under an ordinary
+  temp folder), the packet grows by 168 characters over released main, head_table.json left alone.
+- **E2E round, 20:59 to 21:20** (`test/shiploop_e2e/LEARNINGS.md`, entry of 2026-11-22; `fix-round/`): three whole deliveries on
+  the branch pass every verdict and every case check (Sol 6.2 medium ticket-assignment 3 of 3 and 18 of 18 held-out, 11.1
+  minutes; Sonnet 5.5 medium csv-report 5 of 5, 14.6 minutes, $5.33; shared-expenses 6 of 6, 20.9 minutes, $6.20).
+  carry-forward changed spec.md in 0 of 3 (0 of 2 on Sonnet, where the old rate was 19 of 50). That agrees with the fix and
+  does not prove it: two Sonnet runs without an edit would occur 38% of the time at the old rate. The fix then goes to main
+  and a release.
 - **Defect 3, decided by a census, nothing built** (`open-items/`; details in the design): 255 runs, 313 open rows, 312
   settled, 1 not due yet, 0 dropped; the approved guard by item ID would have refused 42 of 68 due-stage results with no
   right catch, because IDs are local to one result. Recorded as a real code gap with no cost on record; the owner can

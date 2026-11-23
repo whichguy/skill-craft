@@ -9668,3 +9668,52 @@ value above is in `docs/experiments/ratchet-pilot-20261120/shiploop-notes/eviden
 `evidence/confirm/` (`v1`: the reader's output, the export, what the model was given). Evidence root (outside the
 repository, may be pruned): `~/e2e-runs/r-20261122-5d2cbc/` and `~/e2e-runs/r-20261122-2a32f1/`, with each run's
 `result.json`, native events and delivery bundle.
+
+## 2026-11-22 — carry-forward leaves spec.md to the steps: three whole deliveries on the changed text pass every verdict and every case check, and carry-forward changes spec.md in none of them (Codex Sol 6.2 medium, Claude Sonnet 5.5 medium twice)
+
+What ran. The E2E round of the change that takes `spec.md` out of carry-forward's duty (branch
+`fix/carry-forward-spec-47da85`, commits `cdd6dd2614d1f8fc828b9f0904d108dc0ab6fa87` and
+`1a5526c9cfb830febb9dcf521b160fbab7fd1bc5`, on top of ShipLoop 2.7.0 and the docs commit
+`e511aac6d1102d8262034f961e62d306e8e7d993`). Three deliveries from that worktree with `test/shiploop_e2e/run.py --source
+checkout --effort medium`, an external output and baseline file, planning review at the default, started together at
+20:59 on a quiet machine (load about 3): `ticket-assignment` on Codex Sol 6.2, `csv-report` and `shared-expenses` on
+Claude Sonnet 5.5. Nothing else of this repository ran live.
+
+| Delivery | Verdicts | Checks | Held-out | Time | Host-reported cost |
+|---|---|---|---|---|---|
+| Sol 6.2 medium, `ticket-assignment` | pass | 3 of 3 | 18 of 18 | 667.7 s (11.1 min) | not reported |
+| Sonnet 5.5 medium, `csv-report` | pass | 5 of 5 | none declared | 874.8 s (14.6 min) | $5.33 |
+| Sonnet 5.5 medium, `shared-expenses` | pass | 6 of 6 | none declared | 1254.1 s (20.9 min) | $6.20 |
+
+The deciding reading, registered in the design before the runs: carry-forward's own knowledge commit does not change
+`docs/shiploop/spec.md`. Read from each product repository's git log (`fix-round/cfspec.py`, `readings.txt`):
+
+- Sol, `ticket-assignment`: one carry-forward knowledge commit, `architecture.md` only. The spec's one commit is from
+  the spec stage.
+- Sonnet, `csv-report`: one carry-forward knowledge commit, `environment.md` only. The two `spec.md` commits are from
+  the spec stage's review and from the step.
+- Sonnet, `shared-expenses`: no carry-forward knowledge commit at all. The three `spec.md` commits are from the spec
+  stage's review and from the step.
+
+So 0 of 3 carry-forwards changed `spec.md`, 0 of 2 on Sonnet. The old rates in the census of ShipLoop 2.4.0 and later
+(`docs/experiments/end-of-inner-loop-20261122/census/`) were 8 of 95 on Sol medium and 19 of 50 on Sonnet medium, so two
+Sonnet runs without an edit agree with the change and do not prove it: by chance alone two of two would occur 38% of the
+time at the old rate. Function holds in every run.
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: the only record of whether carry-forward edited the spec is the product
+   repository's git log, which the runner keeps as `work`. `cfspec.py` reads it; a verdict in the harness would be a
+   small addition. Not built, since the census reader already counts it.
+2. More to learn on later passes: the case classes this round does not hold, in order: a Sonnet delivery with more than
+   one work item (carry-forward with a queue, where the old text edited most); an owner note at carry-forward, whose
+   exception the new text keeps and no delivery exercised; and the end-of-work Improve review, which is now told to leave
+   spec.md alone.
+3. More evaluation criteria: a check that reads the three stages' spec edits (document, carry-forward, its review) from
+   one command, so the rate is counted the same way as in the census.
+
+Limits: one delivery per cell, one host a driver, no Grok delivery, no marketplace result, no promotion or efficiency
+claim, no multi-item or owner-note case. No model ran on the branch before this round; the hermetic evidence is in the two
+commits' messages. Every value above: `docs/experiments/end-of-inner-loop-20261122/fix-round/` (`cfspec.py`, `readings.txt`,
+`commit.txt`). Evidence root (outside the repository, may be pruned): `~/e2e-runs/cf-spec-20261122-8df724/`, with each
+run's `result.json`, `metrics.json`, native events and delivery bundle.
