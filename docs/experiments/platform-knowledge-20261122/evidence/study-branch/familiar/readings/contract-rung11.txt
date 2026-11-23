@@ -1,0 +1,627 @@
+== t01 (node contract_check.js t01/work --fixture test/shiploop_e2e/fixtures/pk-nodeplain-named)
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/t01/work",
+ "fixture": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/test/shiploop_e2e/fixtures/pk-nodeplain-named",
+ "started": true,
+ "factory": {
+  "product": "src/app.js createServer",
+  "fixture": "src/app.js createServer"
+ },
+ "checks": {
+  "a": {
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "cc-52eddbee-bc48-45e9-9d64-e1e63a90b86d",
+   "status": 200,
+   "header": false,
+   "value": null,
+   "body": {
+    "items": [
+     {
+      "id": "P-1001",
+      "stock": 420
+     },
+     {
+      "id": "P-1002",
+      "stock": 1310
+     }
+    ],
+    "missing": []
+   },
+   "echoed": false,
+   "pass": false
+  },
+  "b": {
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": null,
+   "status": 200,
+   "header": false,
+   "value": null,
+   "body": {
+    "items": [
+     {
+      "id": "P-1001",
+      "stock": 420
+     },
+     {
+      "id": "P-1002",
+      "stock": 1310
+     }
+    ],
+    "missing": []
+   },
+   "looks_like_uuid": false,
+   "pass": false
+  },
+  "c": {
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": false,
+   "value": null,
+   "body": {
+    "error": "ids must contain from 1 to 50 item IDs"
+   },
+   "pass": false
+  },
+  "c_echo": {
+   "request": "GET /stock",
+   "sent": "cc-ebd8cb88-6ebf-4be5-8174-522c321b3d27",
+   "status": 400,
+   "header": false,
+   "value": null,
+   "body": {
+    "error": "ids must contain from 1 to 50 item IDs"
+   },
+   "echoed": false
+  },
+  "d": {
+   "pass": true,
+   "compared": 18,
+   "differing": [],
+   "cases": [
+    {
+     "request": "GET /items",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=2",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=0",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=101",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=2.5",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=ten",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1003",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-9999",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /nothing-here",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1001",
+     "server": "broken",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=100",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=1",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1006",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/%E0%A4%A",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1001/extra",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "POST /items",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    }
+   ]
+  }
+ },
+ "scope": {
+  "carrying": 0,
+  "of": 18,
+  "pre_existing_routes_carry_header": "none"
+ },
+ "bench_gaps": [],
+ "route_missing": false,
+ "summary": {
+  "a": false,
+  "b": false,
+  "c": false,
+  "d": true,
+  "e": "none"
+ },
+ "verdict": "fail"
+}
+
+== t02 (node contract_check.js t02/work --fixture test/shiploop_e2e/fixtures/pk-nodeplain-named)
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/t02/work",
+ "fixture": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/test/shiploop_e2e/fixtures/pk-nodeplain-named",
+ "started": true,
+ "factory": {
+  "product": "src/app.js createServer",
+  "fixture": "src/app.js createServer"
+ },
+ "checks": {
+  "a": {
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "cc-22ea8b4c-8f00-4b03-a89f-df0c7da7faf1",
+   "status": 200,
+   "header": false,
+   "value": null,
+   "body": {
+    "items": [
+     {
+      "id": "P-1001",
+      "stock": 420
+     },
+     {
+      "id": "P-1002",
+      "stock": 1310
+     }
+    ],
+    "missing": []
+   },
+   "echoed": false,
+   "pass": false
+  },
+  "b": {
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": null,
+   "status": 200,
+   "header": false,
+   "value": null,
+   "body": {
+    "items": [
+     {
+      "id": "P-1001",
+      "stock": 420
+     },
+     {
+      "id": "P-1002",
+      "stock": 1310
+     }
+    ],
+    "missing": []
+   },
+   "looks_like_uuid": false,
+   "pass": false
+  },
+  "c": {
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": false,
+   "value": null,
+   "body": {
+    "error": "ids must contain from 1 to 50 part IDs"
+   },
+   "pass": false
+  },
+  "c_echo": {
+   "request": "GET /stock",
+   "sent": "cc-9993fcab-84ca-44d6-b876-5af8aaccee50",
+   "status": 400,
+   "header": false,
+   "value": null,
+   "body": {
+    "error": "ids must contain from 1 to 50 part IDs"
+   },
+   "echoed": false
+  },
+  "d": {
+   "pass": true,
+   "compared": 18,
+   "differing": [],
+   "cases": [
+    {
+     "request": "GET /items",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=2",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=0",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=101",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=2.5",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=ten",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1003",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-9999",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /nothing-here",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1001",
+     "server": "broken",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=100",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=1",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1006",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/%E0%A4%A",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1001/extra",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "POST /items",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    }
+   ]
+  }
+ },
+ "scope": {
+  "carrying": 0,
+  "of": 18,
+  "pre_existing_routes_carry_header": "none"
+ },
+ "bench_gaps": [],
+ "route_missing": false,
+ "summary": {
+  "a": false,
+  "b": false,
+  "c": false,
+  "d": true,
+  "e": "none"
+ },
+ "verdict": "fail"
+}
+
+== t03 (node contract_check.js t03/work --fixture test/shiploop_e2e/fixtures/pk-nodeplain-named)
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/t03/work",
+ "fixture": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/test/shiploop_e2e/fixtures/pk-nodeplain-named",
+ "started": true,
+ "factory": {
+  "product": "src/app.js createServer",
+  "fixture": "src/app.js createServer"
+ },
+ "checks": {
+  "a": {
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "cc-9d46f3c0-5fb9-4db0-a032-040214822766",
+   "status": 200,
+   "header": false,
+   "value": null,
+   "body": {
+    "items": [
+     {
+      "id": "P-1001",
+      "stock": 420
+     },
+     {
+      "id": "P-1002",
+      "stock": 1310
+     }
+    ],
+    "missing": []
+   },
+   "echoed": false,
+   "pass": false
+  },
+  "b": {
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": null,
+   "status": 200,
+   "header": false,
+   "value": null,
+   "body": {
+    "items": [
+     {
+      "id": "P-1001",
+      "stock": 420
+     },
+     {
+      "id": "P-1002",
+      "stock": 1310
+     }
+    ],
+    "missing": []
+   },
+   "looks_like_uuid": false,
+   "pass": false
+  },
+  "c": {
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": false,
+   "value": null,
+   "body": {
+    "error": "ids must list 1 to 50 item ids"
+   },
+   "pass": false
+  },
+  "c_echo": {
+   "request": "GET /stock",
+   "sent": "cc-3672bef4-fc46-4037-9b57-045afee491c2",
+   "status": 400,
+   "header": false,
+   "value": null,
+   "body": {
+    "error": "ids must list 1 to 50 item ids"
+   },
+   "echoed": false
+  },
+  "d": {
+   "pass": true,
+   "compared": 18,
+   "differing": [],
+   "cases": [
+    {
+     "request": "GET /items",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=2",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=0",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=101",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=2.5",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=ten",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1003",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-9999",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /nothing-here",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1001",
+     "server": "broken",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=100",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=1",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items?limit=",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1006",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/%E0%A4%A",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "GET /items/P-1001/extra",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    },
+    {
+     "request": "POST /items",
+     "server": "default",
+     "same": true,
+     "product_header": false
+    }
+   ]
+  }
+ },
+ "scope": {
+  "carrying": 0,
+  "of": 18,
+  "pre_existing_routes_carry_header": "none"
+ },
+ "bench_gaps": [],
+ "route_missing": false,
+ "summary": {
+  "a": false,
+  "b": false,
+  "c": false,
+  "d": true,
+  "e": "none"
+ },
+ "verdict": "fail"
+}
+

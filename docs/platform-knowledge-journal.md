@@ -2129,3 +2129,186 @@ page.
 script's own link to a named card (the testing look-up at four later stages) never printed here; a card that has
 one gets that push.
 
+## 51. Rung 12: on rung 11's own repository the printed block delivers, 3 of 3 (2026-11-22, 16:20 to 16:39; read 16:40)
+
+Three whole deliveries, `~/e2e-runs-pk/20261122-r/u01` to `u03`, from `prior-nodeplain-named` with the read-live
+build of rung 10 (the card's three entries printed at the spec stage with the lead). Apparatus at candidate commit
+bcc8da739ebe8da77cc7fb6a0fca001450945ded. Readings on the candidate branch: `familiar/readings/contract-rung12.txt`,
+`rung12-product-token.txt`, `rung12-scope-leak.txt`.
+
+| Run | Driver | ShipLoop | Minutes | Sent id echoed, id generated, 400 path | The 18 existing answers unchanged | Existing routes carrying the header | Block given at the spec stage | The requirement's stated basis |
+|---|---|---|---|---|---|---|---|---|
+| u01 | Sol | done | 11.2 | pass, pass, pass | pass | none | yes, 104 seconds in | "Basis: N-GATEWAY in ShipLoop's Node deployment guide, loaded for this release." |
+| u02 | Sol | done | 10.1 | pass, pass, pass | pass | none | yes, 95 seconds in | "Basis is the production platform guide (N-GATEWAY)." |
+| u03 | Sonnet | done | 18.9 ($6.83) | pass, pass, pass | pass | all 18 | yes, 65 seconds in | "Basis: platform planning fact N-GATEWAY (this deployment's gateway drops any response lacking `X-Org-Request-Id`; ShipLoop's node-express platform guide, as of 2026-09-26); decision AD-3." |
+
+**Rules. The printed block holds on Sol on this repository (2 of 2), and printing adds over the named route (rung
+11: 0 of 2 on Sol, 0 of 3 in all). Prediction ("at least 2 of 3"): right, 3 of 3.**
+
+**The matched pair, one starting repository, the project's file naming the card in both:**
+
+| | Sol | Sonnet |
+|---|---|---|
+| Released: nothing printed (rung 11) | 0 of 2 | 0 of 1 |
+| The entries printed at the spec stage (rung 12) | 2 of 2 | 1 of 1 |
+
+**Beside it.** Each session consulted the card once or twice right after the block named it. Scope by text: no
+whole line of an entry and no run of an entry's words beyond 3 in any of the three project files; the Sonnet file
+cites two entry ids, the two Sol files none. u03 dates the entry ("as of 2026-09-26"), taking the date from the
+card's own "Current facts" heading.
+
+**What the pair shows, and how far.** On a platform the model knows, a binding in the project's file does not by
+itself deliver a shared entry; the same binding with the entries handed over by the script at the spec stage does,
+on both drivers. Six deliveries, one service, one request, and a canary that is a deployment fact (section 50).
+With rung 10's first test this makes six deliveries of six in which the shared entry, standing alone, reached the
+product (four on Sol), beside the three of rung 10's second test where a local fact overrode it; all six Sol
+sessions of the nine were given the block. Four of the twelve Sol sessions of section 47 gave themselves under a
+third of a spec packet, so six of six is not yet a rate.
+
+## 52. Rung 13: a directive that points is enough here, 3 of 3 (2026-11-22, 16:39 to 17:11; read 17:12)
+
+Three whole deliveries, `~/e2e-runs-pk/20261122-r/v01` to `v03`, from `prior-nodeplain-named` with the build
+`arm-live-spec-lookup` (candidate commit 0b58ca3135f7851cfe8e90f0f459a36a8beb348c). Where rung 12's spec packet
+holds the three entries, this one holds one line (`familiar/packets/pk-nodeplain-named-spec-lookup.md`, line 28):
+"Platform planning facts: read <guide>/platforms/node-express.md#planning (lines 29-44); read from ShipLoop's guide
+at this run, not this project's own record. [...] For each one that bears on this request, write a requirement with
+the check that proves it. Copy none of them into KNOWLEDGE/environment.md." Readings on the candidate branch:
+`familiar/readings/contract-rung13.txt`, `rung13-product-token.txt`, `rung13-scope-leak.txt`.
+
+| Run | Driver | ShipLoop | Minutes | Sent id echoed, id generated, 400 path | The 18 existing answers unchanged | Existing routes carrying the header | Directive given at the spec stage | How the section was read | The requirement's stated basis |
+|---|---|---|---|---|---|---|---|---|---|
+| v01 | Sol | done | 11.2 | pass, pass, pass | pass | none | yes, 108 seconds in | it had printed the whole page five seconds earlier, in the script that fetched the spec packet | "Basis: the production Node platform guide selected in environment.md (N-GATEWAY)." |
+| v02 | Sol | done | 10.5 | pass, pass, pass | pass | none | yes, 99 seconds in | `sed -n '29,44p'` on the page 16 seconds later: the directive's own range | "Basis: the Node platform guide's N-GATEWAY deployment requirement." |
+| v03 | Sonnet | done | 31.9 ($10.62) | pass, pass, pass | pass | all 18 | yes, 69 seconds in | a read of the page with offset 29 and limit 16, two seconds later: the directive's own range | "Basis: the platform guide's N-GATEWAY (GUIDES/platforms/node-express.md [...])" |
+
+**Rules. The directive holds on Sol (2 of 2) and is enough (the Sonnet product passes too): 3 of 3. Predictions:
+"the line is given in 3 of 3" right; "the section is read in at least 2 of 3" right (3); "at least 2 of 3 pass"
+right (3).**
+
+**The three arms on one starting repository, the project's file naming the page in each:**
+
+| What the script puts in the spec packet | Sol | Sonnet |
+|---|---|---|
+| Nothing (released, rung 11) | 0 of 2 | 0 of 1 |
+| One line that points to the section and says what to do with it (rung 13) | 2 of 2 | 1 of 1 |
+| The entries themselves, with the same sentences (rung 12) | 2 of 2 | 1 of 1 |
+
+**What the line did, seen in one pair.** v01 had the page's text from a read of its own, as t02 of rung 11 had.
+t02 declined the entry ("No evidence binds this service to the gateway"); v01 adopted it. What v01 had and t02
+did not is the script's line saying what to do with what is found. So in that pair it was the instruction, not the
+text, that turned a shared entry into a requirement. One pair of sessions.
+
+**Context.** The line is 512 characters where the printed block is 1,832. Over a whole session the page's text
+given to the model was 1,957, 6,612 and 6,612 characters under the directive (v02, v01, v03) and 4,923, 6,612 and
+1,661 under the printed block (u02, u01, u03): in both arms sessions went on to read the page, so neither arm is
+the cheaper one here.
+
+**Cost.** v03 took 31.9 minutes and $10.62 where u03 took 18.9 and $6.83. One run each; I did not look for the
+reason.
+
+**Limits.** Three deliveries, one service, a page of 77 lines. The directive names the exact page and line range
+because the script knew the platform; this says nothing of a directive that leaves the finding to an index or a
+search, which is the public pattern of section 48. And all six Sol sessions of rungs 12 and 13 printed the part of
+the spec packet that holds the line or the block; section 47's four of twelve that printed under a third of a spec
+packet are the reason a line in "Done when" or a check by the script is still worth having.
+
+## 53. Conclusion (2026-11-22, 17:13; the owner closed the study at 16:50 with "Yes, close it")
+
+**The question, as it ended.** The owner wants two stores kept apart in ShipLoop (sections 38, 41, 46): a default
+wiki that ships inside ShipLoop, and a local one in the product's repository that ShipLoop's operations modify and
+add to; shared entries read live and never copied; ShipLoop's own script looking entries up and handing them to
+the session at planning. This journal's part was to measure what gets an entry from each store in front of Sol
+medium and Sonnet medium so that it is used. The design is the copy session's document for his approval
+(`docs/shiploop-two-wikis-design-2026-11-22.md` on branch `shiploop-wikis-design-3ee3c0`); nothing is built.
+
+**What the measurements say.**
+
+1. *The local store works as released* (firm at the plan stage, interim end to end). A fact under
+   `## Platform facts` in the product's `docs/shiploop/environment.md` reached the plan in 8 of 8 slices (as a
+   union: plan result 5, `architecture.md` 7, `spec.md` 1) and the product in 3 of 3 whole deliveries; sessions
+   read the file in their first seconds, weigh the fact, and carry it as a requirement. Forty facts in that file
+   were given whole in 8 of 8; topic pages behind an index were read whole too and saved no context (sections 32,
+   33, 37, 39).
+2. *A default store that is only shipped, or only named, is not delivered on a platform the model knows* (firm).
+   No Sol, Terra or Sonnet run of 290 saved ones ever named a card; a card named in the project's file reached the
+   plan in 1 of 8 slices; whole deliveries: 0 of 2 with nothing naming it, 0 of 3 with the project's file naming
+   it, where one session of three opened the page and refused its entry (sections 3, 23, 26, 50).
+3. *An entry handed over by ShipLoop's script at the spec stage is delivered* (interim: one service, one request).
+   Printed by value: 6 of 6 whole deliveries (four on Sol), from a brand-new repository and from one with a
+   knowledge home. As one line that points to the section and says what to do with it: 3 of 3. On one starting
+   repository the three arms read 0 of 3, 3 of 3 and 3 of 3 (sections 42, 51, 52).
+4. *The place matters on Sol* (firm for these runs). The same entries printed at the plan stage were never given
+   to the Sol session in the one whole delivery that tried it. Over twelve Sol deliveries, what the script prints
+   is received at intake and discovery (12 of 12), in 7 of 12 at spec, 6 of 12 at plan, and under a third of it in
+   7 of 12 at test-strategy and 7 of 13 at test-spec (sections 26, 47).
+5. *What makes an entry binding is the script's instruction, not the text* (interim; hand readings). An entry read
+   by choice is weighed and may be refused; the same text with the script's sentence "write a requirement with the
+   check that proves it" is adopted, and the spec names the shared entry in 11 of the 12 deliveries of rungs 10, 12
+   and 13, as the requirement's basis or, where a local fact overrode it, as the entry overridden (sections 21,
+   23, 42, 50, 52).
+6. *Local wins by one sentence, and scope stays apart without enforcement* (interim). Where the project's own fact
+   contradicted the shared entry, 3 of 3 products followed the local one and none set the shared header. In 12
+   deliveries no shared text was copied into the project's file; Sonnet cites entry ids there, Sol does not
+   (sections 42, 51, 52).
+7. *A directive costs no less context than the text here* (interim). In both arms sessions went on to read the
+   page (section 52). The pointer's value is that the script need not carry the text, not that the session reads
+   less.
+8. *The default store has to be kept true* (firm for one case). One sentence of the released Salesforce card no
+   longer matches the scripts (sections 16, 44); a printed or directed entry is acted on, so a wrong one would be
+   too. An entry needs an id, where it applies, a source and a date, the decision and a check that discriminates.
+   The fix of that sentence was started by the owner as a session of its own at 16:52.
+
+**What they do not show.** Every whole delivery is one small Node service and one request, with one Sonnet sample
+a test. The canary is a deployment fact planted in a general card, which a careful session may rightly refuse.
+Not run: Salesforce end to end; forty entries printed in a packet; a wrong shared entry with nothing local to
+correct it; a stale local fact against a right shared one; an unaffected target in a repository with two; a host
+that clears context between stages; the hand-over at step planning, test planning and the review cycle, three of
+the owner's four planning points; a directive that names no page and leaves the finding to an index or a search;
+the Ratchet pilot. Selection in every run was a file pattern or a line I wrote; the third review's explicit
+binding a target is untested.
+
+**For the design.** What it can rest on: findings 1 to 6, with their counts. What it has to treat as open: where
+and how entries are handed over at the other three planning points (finding 4 says test planning is the hardest
+on Sol; a line in "Done when" and a check run by the script are the two carriers the session records suggest);
+selection; size in a packet. The third review's order of work stands (section 44): binding first, hand-over at the
+spec stage as the first step, its gates before any default.
+
+**Every run of the day, and the decision it served.** 68 plan-stage slices, 34 whole deliveries and three outside
+reviews; the ten Sonnet deliveries on the Node service cost about $76 by the harness's record, and the Sol runs
+carry no cost figure.
+
+| Runs | The decision it served | What it changed |
+|---|---|---|
+| The count over saved runs and the audit of saved Salesforce deliveries (no model) | Does naming a card already work? | No: the study began |
+| Rungs 1 and 2: 12 slices on an invented platform | Is printing needed? | Not on a platform no model knows; the bench overstated pick-up, so the test moved to platforms the models know |
+| Rung 3: 6 whole deliveries on the invented platform | The same, end to end | **Nothing.** Rungs 1 and 2 had already shown the card was read there. I would not run it again |
+| Rung 4: 32 slices on two known platforms | Which hand-over gets a fact into a plan | Naming fails; printing and the request work: the direction of everything after |
+| Rung 4L: 8 slices | Text or a pointer | A pointer in the duty works at the plan stage; became rung 13 |
+| Rungs 6 and 6b: 7 deliveries | Does plan-stage printing reach the product | No on Sol; the place has to be one Sol reads |
+| Rungs 7a and 7b: 8 slices, 3 deliveries | Does the local store need any change | No |
+| Rung 8: 8 slices | One file or pages (the owner's question) | Both are read whole; pages save no context; no change of shape. Its repeat on Sol was withdrawn unlaunched |
+| Rung 9: 3 deliveries | Can a new project get facts with no change to ShipLoop | Yes, by a copy. **Overtaken an hour later** by "Read live"; it stands as the fallback |
+| Rung 10: 6 deliveries | Can shared entries be read live, and does local win | Yes and yes: the basis of the design's first step |
+| Rung 11: 3 deliveries | With a binding, is the script's hand-over needed at all | Yes: 0 of 3 without it |
+| Rung 12: 3 deliveries | Does rung 10 hold on rung 11's own repository (the review's condition) | Yes, 3 of 3 |
+| Rung 13: 3 deliveries | By value or a directive (the owner's idea) | A directive is enough here |
+| The packet reading over 12 deliveries (no model) | Where the script can hand entries over | Not at test planning as packets are read today |
+| Three Sol max reviews | Whether to propose a change at each point | Twice "not yet"; the second set rung 7 and the third set rung 12 |
+
+One of these did not earn its place: rung 3. Rung 9 was material when it ran and was overtaken by a decision.
+
+**Decisions that are the owner's.**
+
+1. The design: approve or change the copy session's document, with its two open points (a bad or unresolved
+   binding gives a notice or a stop; entries by value or by a directive, on which rung 13 now says either works at
+   the spec stage).
+2. Building its first step, in a fresh session, with the third review's gates as acceptance.
+3. Whether test sessions keep the account's connectors (section 40 and the copy session's own file).
+4. Pushing this journal: section 40 and one commit message name the connected services, so either they stay or
+   the unpushed history is rewritten first. The candidate branch holds planted facts and stays off `main`.
+
+**State at the close.** Journal and evidence on branch `platform-knowledge-7f36bd`; the apparatus, fixtures,
+switches and readings on `pk-candidate-0d73cf`, kept as they are because the design's gates run on them; runs
+under `~/e2e-runs-pk/20261122*`, outside the repository. Nothing is pushed, nothing is on `main`, and no default of
+ShipLoop was changed.
+

@@ -1,0 +1,8 @@
+g01	codex	gpt-6.2-sol	medium	pk-node-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json
+g02	claude	claude-sonnet-5-5	medium	pk-sf-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json
+g03	codex	gpt-6.2-sol	medium	pk-sf-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json
+g04	claude	claude-sonnet-5-5	medium	pk-node-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json
+g05	codex	gpt-6.2-sol	medium	pk-node-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json
+g06	claude	claude-sonnet-5-5	medium	pk-sf-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json
+g07	codex	gpt-6.2-sol	medium	pk-sf-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json
+g08	claude	claude-sonnet-5-5	medium	pk-node-plan-named	docs/experiments/platform-knowledge-20261122/harbor/overlays/route-lookup.json

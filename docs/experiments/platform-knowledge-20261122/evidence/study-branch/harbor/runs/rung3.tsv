@@ -1,0 +1,8 @@
+d01	codex	gpt-6.2-sol	medium	$ROOT/prior-card	$ROOT/arm-off/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
+d02	claude	claude-sonnet-5-5	medium	$ROOT/prior-card	$ROOT/arm-inline/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
+d03	codex	gpt-6.2-sol	medium	$ROOT/prior-card	$ROOT/arm-inline/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
+d04	claude	claude-sonnet-5-5	medium	$ROOT/prior-card	$ROOT/arm-off/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
+d05	codex	gpt-6.2-sol	medium	$ROOT/prior-card	$ROOT/arm-inline/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
+d06	claude	claude-sonnet-5-5	medium	$ROOT/prior-card	$ROOT/arm-off/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
+d07	codex	gpt-6.2-sol	medium	$ROOT/prior-card	$ROOT/arm-off/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
+d08	claude	claude-sonnet-5-5	medium	$ROOT/prior-card	$ROOT/arm-inline/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/harbor/request.txt
