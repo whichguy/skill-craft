@@ -1,0 +1,3 @@
+run.py --source checkout --effort medium from the branch at 09fec60c854c56f51885d789f69135d4c8204357; output root /Users/dadleet/e2e-runs/spr-round-20261122-5613dc
+sol-ticket       pass True  704.0 s  checks 3 of 3  cost_usd None  send-backs 0
+sonnet-expenses  pass True  1450.0 s  checks 6 of 6  cost_usd 6.3365  send-backs 0

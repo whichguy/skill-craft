@@ -1,0 +1,137 @@
+== P  replay-ticket-comments-late-send-back #1  (/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sol)
+   codex gpt-6.2-sol medium  ref 0e1184c102dc56c98a1c799db0b569733a05abfc, ShipLoop 2.7.1, build c35626010ad8  0.8 min  process stage-complete, outcome done (parked), run active
+   refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+   yes   accepted
+   yes   spec byte-identical
+   yes   failing Proof repaired
+   yes   no product file changed
+   summary: Changed S2 proof quoting for the exact author and body expectations. S1 stays done and its store and persistence assumptions still hold. S3, criteria, concerns, paths, expectations and test commands carry over. Retained the Node HTTP and isolated file suite de
+   the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True}
+   product files changed: []; knowledge files changed: []
+   VERDICT P: met
+== T  send-back-revises-r9 #1  (/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sol)
+   codex gpt-6.2-sol medium  ref 0e1184c102dc56c98a1c799db0b569733a05abfc, ShipLoop 2.7.1, build c35626010ad8  1.1 min  process stage-complete, outcome done (parked), run active
+   refusals before acceptance: 1 (fix forward 1); fix forward on the first callback: no (steps S1 are done (reviewed and committed) and stay as they are: fix forward never reruns a done step. Start steps with the done steps exactly as below, each with "done": true, then the steps still to)
+     refused check: steps S1 are done (reviewed and committed) and stay as they are: fix forward never reruns a done step. Start steps with the done steps exactly as below, each with "done": true, then the steps still to
+   yes   accepted
+   yes   normative clause states the new meaning
+   yes   old clause gone
+   yes   ID kept
+   yes   sibling clauses byte-identical
+   yes   every other R-n byte-identical
+   yes   no R-n added, removed or retired
+   yes   entry gives a source
+   yes   entry gives a reason
+   yes   summary begins 'Revised R-9'
+   yes   follows names it
+   yes   criterion of a step not done states it
+   yes   no product file changed
+   normative: - The delivered message body is exactly `<author> commented on <ticket> (no preview).` and excludes the comment text.
+   old clause: gone; basis line changed False, says revised True, rest of spec.md identical True
+     new in the entry: - The delivered message body is exactly `<author> commented on <ticket> (no preview).` and excludes the comment text.
+     new in the entry: Revised because the lobby display relays notifications to visitors and permits only ticket IDs, ticket titles and people's names as user-provided content (docs/operations.md, Notifications).
+     new in the entry: Confirm by exact equality in a worker delivery test.
+     criterion C3 (steps ['S2']): R-9 the delivered body is exactly `<author> commented on <ticket> (no preview).` and excludes the comment text. The subject starts with the bracketed ticket ID, and failed delivery retries then goes dead without losing t
+   summary: Revised R-9: comment alerts use the exact author and ticket message with no preview, because docs/operations.md says the mail relay displays notifications in the visitor lobby and restricts what user text may appear there. C3 and S2 now enforce the exact messa
+   the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+   product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+   VERDICT T: met
+== P  replay-ticket-comments-late-send-back #1  (/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sonnet)
+   claude claude-sonnet-5-5 medium  ref 0e1184c102dc56c98a1c799db0b569733a05abfc, ShipLoop 2.7.1, build c35626010ad8  0.8 min  process stage-complete, outcome done (parked), run active
+   refusals before acceptance: 1 (fix forward 0); fix forward on the first callback: read (the first check was refused by another gate, which may run before fix forward: step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph)
+     refused check: step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph
+   yes   accepted
+   yes   spec byte-identical
+   yes   failing Proof repaired
+   yes   no product file changed
+   summary: Amended the plan after send-back 1: only S2's proof changed (JS strings now double-quoted inside the single-quoted node -e, so author and body expectations are JSON strings, assertions unchanged; the docstring check uses rg after &&). Verified in the worktree 
+   the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True}
+   product files changed: []; knowledge files changed: []
+   VERDICT P: met
+== T  send-back-revises-r9 #1  (/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sonnet)
+   claude claude-sonnet-5-5 medium  ref 0e1184c102dc56c98a1c799db0b569733a05abfc, ShipLoop 2.7.1, build c35626010ad8  1.0 min  process stage-complete, outcome done (parked), run active
+   refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+   yes   accepted
+   yes   normative clause states the new meaning
+   yes   old clause gone
+   yes   ID kept
+   yes   sibling clauses byte-identical
+   yes   every other R-n byte-identical
+   yes   no R-n added, removed or retired
+   yes   entry gives a source
+   yes   entry gives a reason
+   yes   summary begins 'Revised R-9'
+   yes   follows names it
+   yes   criterion of a step not done states it
+   yes   no product file changed
+   normative: - The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (author name, ticket ID) and holds none of the comment's content: docs/operations.md (Notifications) says the rela
+   old clause: gone; basis line changed True, says revised True, rest of spec.md identical True
+     new in the entry: Basis: request S6, revised after the implement send-back (docs/operations.md Notifications: lobby wall display); src/templates.js, src/notifier.js and CONTRIBUTING.md.
+     new in the entry: - The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (author name, ticket ID) and holds none of the comment's content: docs/operations.md (Notifications) says the relay shows every message on the lobby wall display where visitors read it, and no t
+     new in the entry: Confirm by a worker delivery test that compares the delivered body exactly, with a distinctive comment body absent from the whole message and from the queued event.
+     criterion C3 (steps ['S2']): R-9 the message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).`, holds none of the comment's content, and its subject begins with `[<ticket>]`; a failed delivery is retried. Co
+   summary: Revised R-9: the comment notification's body is exactly `<author> commented on <ticket> (no preview).` and holds none of the comment's content, because docs/operations.md (Notifications) says the relay shows every message on the lobby wall display and no text 
+   the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+   product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+   VERDICT T: met
+== C  send-back-revises-r9 #1  (/Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sol)
+   codex gpt-6.2-sol medium  ref c06157c947ce9646bbe7528110a12b68ed8fbca8, ShipLoop 2.7.1, build 2e5558da8e0c  1.2 min  process stage-complete, outcome done (parked), run active
+   refusals before acceptance: 0 (fix forward 0); fix forward on the first callback: yes (the first check was accepted)
+   yes   accepted
+   yes   normative clause states the new meaning
+   yes   old clause gone
+   yes   ID kept
+   yes   sibling clauses byte-identical
+   yes   every other R-n byte-identical
+   yes   no R-n added, removed or retired
+   yes   entry gives a source
+   yes   entry gives a reason
+   no    summary begins 'Revised R-9'
+   yes   follows names it
+   yes   criterion of a step not done states it
+   yes   no product file changed
+   normative: - The delivered message body is exactly `<author> commented on <ticket> (no preview).`, where `<ticket>` is the ticket ID.
+   old clause: gone; basis line changed False, says revised False, rest of spec.md identical True
+     new in the entry: - The delivered message body is exactly `<author> commented on <ticket> (no preview).`, where `<ticket>` is the ticket ID.
+     new in the entry: The body holds none of the comment's content because the relay also displays messages in the lobby (docs/operations.md, Notifications).
+     new in the entry: Confirm the exact body in a worker delivery test.
+     criterion C3 (steps ['S2']): R-9 delivers a comment notice to the assigned agent with the exact body `<author> commented on <ticket> (no preview).` and no comment content, and the subject begins with the bracketed ticket ID. Confirm by: TC_Comments_
+   summary: Changed R-9, C3 and S2 to send the exact preview-free body documented in the amended spec. The relay displays notification bodies to lobby visitors (docs/operations.md, Notifications), and the user requires notification without specifying a preview. A ticket I
+   the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+   product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+   VERDICT C: not met
+== C  send-back-revises-r9 #1  (/Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sonnet)
+   claude claude-sonnet-5-5 medium  ref c06157c947ce9646bbe7528110a12b68ed8fbca8, ShipLoop 2.7.1, build 2e5558da8e0c  1.1 min  process stage-complete, outcome done (parked), run active
+   refusals before acceptance: 2 (fix forward 0); fix forward on the first callback: read (the first check was refused by another gate, which may run before fix forward: step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph)
+     refused check: step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph
+     refused check: step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph
+   yes   accepted
+   yes   normative clause states the new meaning
+   yes   old clause gone
+   yes   ID kept
+   yes   sibling clauses byte-identical
+   yes   every other R-n byte-identical
+   yes   no R-n added, removed or retired
+   yes   entry gives a source
+   yes   entry gives a reason
+   no    summary begins 'Revised R-9'
+   yes   follows names it
+   yes   criterion of a step not done states it
+   yes   no product file changed
+   normative: - The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (the ticket's ID in place of `<ticket>`) and holds none of the comment's content, because docs/operations.md (Noti
+   old clause: gone; basis line changed False, says revised False, rest of spec.md identical True
+     new in the entry: - The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (the ticket's ID in place of `<ticket>`) and holds none of the comment's content, because docs/operations.md (Notifications) says the relay shows every message on the lobby wall display and no t
+     new in the entry: Confirm by a worker delivery test that compares the delivered body exactly and finds no comment text in it.
+     criterion C3 (steps ['S2']): R-9 the message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` and none of the comment's content, the ticket ID first in the subject in square brackets, and a failed delivery 
+   summary: Amended after implement's send-back 1: R-9 rewritten in place in KNOWLEDGE/spec.md (body exactly `<author> commented on <ticket> (no preview).`, no comment content; ID kept) because docs/operations.md puts every notification on the lobby wall. Changed: C3 text
+   the stage suite's own checks (exact text only; for reading): {'P1': True, 'P2': True, 'P3': True}
+   product files changed: []; knowledge files changed: ['docs/shiploop/spec.md']
+   VERDICT C: not met
+
+cell  host    verdict  scenario #sample
+P     codex   met      replay-ticket-comments-late-send-back #1
+T     codex   met      send-back-revises-r9 #1
+P     claude  met      replay-ticket-comments-late-send-back #1
+T     claude  met      send-back-revises-r9 #1
+C     codex   not met  send-back-revises-r9 #1
+C     claude  not met  send-back-revises-r9 #1

@@ -9717,3 +9717,48 @@ claim, no multi-item or owner-note case. No model ran on the branch before this 
 commits' messages. Every value above: `docs/experiments/end-of-inner-loop-20261122/fix-round/` (`cfspec.py`, `readings.txt`,
 `commit.txt`). Evidence root (outside the repository, may be pruned): `~/e2e-runs/cf-spec-20261122-8df724/`, with each
 run's `result.json`, `metrics.json`, native events and delivery bundle.
+
+## 2026-11-22 — Step-plan revises a requirement a step sent back: six replayed step-plans as registered (T and P met on Sol 6.2 medium and Sonnet 5.5 medium; the released text rewrites it too, unannounced), then two whole deliveries pass every verdict and every case check
+
+What ran. The change of branch `fix/step-plan-revise-36a8a9` (`0e1184c102dc56c98a1c799db0b569733a05abfc`; the owner, 2026-11-22:
+"Let step-plan rewrite"): a step that finds a requirement must change sends back, and step-plan revises it and re-plans.
+Registered before any sample in `09fec60c854c56f51885d789f69135d4c8204357`; nothing was rerun or rescored.
+
+1. Six step-plan samples with the stage suite (`stages.py live`, one fresh session a cell, about a minute each, 22:58 to 23:02):
+
+| Cell | Sol 6.2 medium | Sonnet 5.5 medium |
+|---|---|---|
+| T, the branch, a send-back that says R-9 must change | met (one refusal: the done row lacked its mark) | met |
+| P, the branch, an ordinary Proof send-back | met, spec byte-identical, Proof repaired | met, spec byte-identical, Proof repaired |
+| C, ShipLoop 2.7.1, T's send-back | rewrote R-9 in place as T did; summary does not begin "Revised R-9" | the same |
+
+   In T and in C the named clause says the new meaning, its two sibling clauses and every other requirement are byte-identical,
+   the ID stays, the entry gives source and reason, a criterion of an unfinished step states the new text. The main session read
+   three of the entries by hand.
+2. Two whole deliveries (`run.py --source checkout --effort medium`, from the branch, started together at 23:02):
+   `ticket-assignment` on Codex Sol 6.2, pass, 3 of 3 checks, 18 of 18 held-out, 704.0 s; `shared-expenses` on Claude Sonnet 5.5,
+   pass, 6 of 6, 1450.0 s, $6.34. Neither had a send-back, so they show function only, and the report rightly has no
+   "Requirements revised during the work" section. carry-forward changed spec.md in neither (0 of 5 over this round and the
+   one before it, 0 of 3 on Sonnet, against 19 of 50 before 2.7.1; by chance 24% at the old rate).
+
+Reading, as registered. T and P met on both drivers: the wording ships. C rewrote the entry in 2 of 2, so **the permission was
+not the lever**: both models take the route under a text that forbids it. What the change is worth is that the requester is
+told of each rewrite (under 2.7.1 nothing says so), that the texts no longer contradict one another, that the review of the
+redone plan does not undo it, and that document's own refusal names a route that works (a bug until now, shown by a CLI test
+that fails on the base). No claim that a model rewrites better, or more often.
+
+The harness, asked the standing three questions.
+
+1. Retain or keep state differently: a step-plan sample leaves the revised spec in the seed worktree and the reader takes it
+   from there; nothing else is needed. The stage suite's own PASS is a script check on the exact text and passed C as well:
+   the reader decides.
+2. More to learn on later passes: a send-back written by a model (the builder injects it), the review and import after the
+   redone plan, test-spec and a later work item, and a requirement change a step really meets in a delivery.
+3. More evaluation criteria: a run-level count of requirements whose entry lost a line after the plan, beside the rewrites a
+   plan announced, so an unannounced one is seen.
+
+Limits: one sample a cell; R-9, its new text and the fact were made for the check, and the send-back states the new text
+exactly; the seed prompt says the request is the specification, which a real run does not; the sample ends at step-plan.
+Evidence: `docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/` (`results/reader.txt`, `samples.json`, `round.txt`),
+the design with its registration, and the outside review (`gpt-6.2-astra` at xhigh). Roots outside the repository, may be
+pruned: `~/e2e-runs/spr-20261122-9a927c/`, `~/e2e-runs/spr-round-20261122-5613dc/`.

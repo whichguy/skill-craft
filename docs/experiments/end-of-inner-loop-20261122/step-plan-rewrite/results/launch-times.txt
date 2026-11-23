@@ -1,0 +1,9 @@
+cases copied to /Users/dadleet/e2e-runs/spr-cases-5d41b9
+22:58:52
+TP-sonnet exit 0 at 23:00:07
+TP-sol exit 0 at 23:00:14
+C-sonnet exit 0 at 23:01:31
+C-sol exit 0 at 23:01:37
+reader exit 0
+
+[exited with code 0]

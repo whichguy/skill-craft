@@ -1,0 +1,762 @@
+[
+ {
+  "root": "/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sol",
+  "scenario": "replay-ticket-comments-late-send-back",
+  "sample": "1",
+  "cell": "P",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "text": {
+   "ref": "0e1184c102dc56c98a1c799db0b569733a05abfc",
+   "overlay": false,
+   "shiploop": "2.7.1",
+   "plugin_sha256": "c35626010ad8"
+  },
+  "process": "stage-complete",
+  "minutes": 0.8,
+  "result_source": "parked",
+  "outcome": "done",
+  "run_status": "active",
+  "accepted": "yes",
+  "callbacks": {
+   "callbacks": 3,
+   "refusals": 0,
+   "refused": [],
+   "fix_forward_refusals": 0,
+   "fix_forward_first": "yes",
+   "fix_forward_first_why": "the first check was accepted"
+  },
+  "plan": {
+   "summary_begins_revised": "no",
+   "summary_names": false,
+   "follows_names": "no",
+   "criterion": "no",
+   "criteria_stating": [],
+   "criteria_changed_without_the_text": [],
+   "steps": [
+    {
+     "id": "S1",
+     "done": true,
+     "criteria": [
+      "C1"
+     ]
+    },
+    {
+     "id": "S2",
+     "done": false,
+     "criteria": [
+      "C2",
+      "C4"
+     ]
+    },
+    {
+     "id": "S3",
+     "done": false,
+     "criteria": [
+      "C3"
+     ]
+    }
+   ],
+   "summary": "Changed S2 proof quoting for the exact author and body expectations. S1 stays done and its store and persistence assumptions still hold. S3, criteria, concerns, paths, expectations and test commands carry over. Retained the Node HTTP and isolated file suite decisions: existing local Node, helpers and fixtures cover API input limits and errors, synchronous store ownership, audit, retry through the outbox and version-1 restart behavior. No browser or remote service is needed.",
+   "headline": "Repair the HTTP proof quoting and verify the API with exact response assertions",
+   "failing_step": "S2",
+   "proof_repaired": "yes",
+   "failing_step_proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),v=require('\"'\"'./src/tickets/validate'\"'\"'),{withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"');for(const b of [{author:'\"'\"''\"'\"',body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"''\"'\"'},{author:'\"'\"'a'\"'\"'.repeat(65),body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'.repeat(2001)},{author:3,body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"',extra:1}])a.throws(()=>v.comment(b));a.equal(v.comment({author:'\"'\"'a'\"'\"'.repeat(64),body:'\"'\"'x'\"'\"'.repeat(2000)}).body.length,2000);withService({},async api=>{const t=await api.post('\"'\"'/tickets'\"'\"',ticketBody());a.deepEqual((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments,[]);const c=await api.post('\"'\"'/tickets/'\"'\"'+t.body.id+'\"'\"'/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'hello'\"'\"'});a.equal(c.status,201);a.ok(c.body.id);a.equal(c.body.author,'\"'\"'a'\"'\"');a.equal(c.body.body,'\"'\"'hello'\"'\"');a.ok(!Number.isNaN(Date.parse(c.body.created)));a.equal((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments[0].body,'\"'\"'hello'\"'\"');a.equal((await api.post('\"'\"'/tickets/missing/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'})).status,404)}).catch(e=>{console.error(e);process.exitCode=1});' && rg 'POST /tickets/:id/comments' src/tickets/validate.js"
+  },
+  "product_files_changed": [],
+  "knowledge_files_changed": [],
+  "spec": {
+   "read": true,
+   "spec_identical": true,
+   "others_changed": [],
+   "removed": [],
+   "added": [],
+   "retired": [],
+   "rest_identical": null
+  },
+  "start_is_the_scenarios": true,
+  "suite": {
+   "pass": true,
+   "caught": {
+    "P1": true,
+    "P2": true
+   },
+   "verdicts": {
+    "process": true,
+    "accepted": true,
+    "no_overshoot": true,
+    "oracle": true
+   }
+  },
+  "blocked_summary": null,
+  "measures": {
+   "accepted": "yes",
+   "spec byte-identical": "yes",
+   "failing Proof repaired": "yes",
+   "no product file changed": "yes"
+  },
+  "verdict": "met",
+  "stop": []
+ },
+ {
+  "root": "/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sol",
+  "scenario": "send-back-revises-r9",
+  "sample": "1",
+  "cell": "T",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "text": {
+   "ref": "0e1184c102dc56c98a1c799db0b569733a05abfc",
+   "overlay": false,
+   "shiploop": "2.7.1",
+   "plugin_sha256": "c35626010ad8"
+  },
+  "process": "stage-complete",
+  "minutes": 1.1,
+  "result_source": "parked",
+  "outcome": "done",
+  "run_status": "active",
+  "accepted": "yes",
+  "callbacks": {
+   "callbacks": 4,
+   "refusals": 1,
+   "refused": [
+    {
+     "verb": "check",
+     "fix_forward": true,
+     "error": "steps S1 are done (reviewed and committed) and stay as they are: fix forward never reruns a done step. Start steps with the done steps exactly as below, each with \"done\": true, then the steps still to"
+    }
+   ],
+   "fix_forward_refusals": 1,
+   "fix_forward_first": "no",
+   "fix_forward_first_why": "steps S1 are done (reviewed and committed) and stay as they are: fix forward never reruns a done step. Start steps with the done steps exactly as below, each with \"done\": true, then the steps still to"
+  },
+  "plan": {
+   "summary_begins_revised": "yes",
+   "summary_names": true,
+   "follows_names": "yes",
+   "criterion": "yes",
+   "criteria_stating": [
+    {
+     "id": "C3",
+     "owners": [
+      "S2"
+     ],
+     "text": "R-9 the delivered body is exactly `<author> commented on <ticket> (no preview).` and excludes the comment text. The subject starts with the bracketed ticket ID, and failed delivery retries then goes dead without losing the comment. Confirm by: TC_Comments_Notify; pass when the assigned agent receives the exact body and matching subject and the retry, self and unassigned assertions succeed."
+    }
+   ],
+   "criteria_changed_without_the_text": [],
+   "steps": [
+    {
+     "id": "S1",
+     "done": true,
+     "criteria": [
+      "C1"
+     ]
+    },
+    {
+     "id": "S2",
+     "done": false,
+     "criteria": [
+      "C3"
+     ]
+    },
+    {
+     "id": "S3",
+     "done": false,
+     "criteria": [
+      "C2",
+      "C4"
+     ]
+    }
+   ],
+   "summary": "Revised R-9: comment alerts use the exact author and ticket message with no preview, because docs/operations.md says the mail relay displays notifications in the visitor lobby and restricts what user text may appear there. C3 and S2 now enforce the exact message, and security maps to S2 as well as S3. E4 records that the accepted S1 tests now exist. C1, C2, C4, S1, S3, E1–E3, paths, follows and all test command rows carry over. The S1 proof checks the event and state without asserting the previous message. Keep the Node CommonJS harness, manual clock, temporary version-1 fixture and existing worker route. The store owns synchronous state, audit and enqueue; the worker renders for the assigned agent and owns retries. Assert the exact output and retry/dead transitions with local notifier seams, then verify HTTP and the full suite. Node v26.12.1 ran all three already committed focused cases successfully.",
+   "headline": "Use the exact lobby-safe comment notification and verify it at delivery"
+  },
+  "product_files_changed": [],
+  "knowledge_files_changed": [
+   "docs/shiploop/spec.md"
+  ],
+  "spec": {
+   "read": true,
+   "spec_identical": false,
+   "others_changed": [],
+   "removed": [],
+   "added": [],
+   "retired": [],
+   "rest_identical": true,
+   "normative": "yes",
+   "normative_why": "- The delivered message body is exactly `<author> commented on <ticket> (no preview).` and excludes the comment text.",
+   "old_clause_gone": "yes",
+   "old_clause_why": "gone",
+   "id_kept": "yes",
+   "siblings_lost": [],
+   "basis_line_changed": false,
+   "source": "yes",
+   "reason": "yes",
+   "says_revised": true,
+   "changed_sentences": [
+    "- The delivered message body is exactly `<author> commented on <ticket> (no preview).` and excludes the comment text.",
+    "Revised because the lobby display relays notifications to visitors and permits only ticket IDs, ticket titles and people's names as user-provided content (docs/operations.md, Notifications).",
+    "Confirm by exact equality in a worker delivery test."
+   ],
+   "entry_after": "### R-9 Comment notification message\nBasis: request S6; src/templates.js, src/notifier.js and CONTRIBUTING.md. Pending implementation and checks:\n- The delivered message body is exactly `<author> commented on <ticket> (no preview).` and excludes the comment text. Revised because the lobby display relays notifications to visitors and permits only ticket IDs, ticket titles and people's names as user-provided content (docs/operations.md, Notifications). Confirm by exact equality in a worker delivery test.\n- Its subject begins with the ticket ID in square brackets, as every other notification's does. Confirm by the same test.\n- A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test."
+  },
+  "start_is_the_scenarios": true,
+  "suite": {
+   "pass": true,
+   "caught": {
+    "P1": true,
+    "P2": true,
+    "P3": true
+   },
+   "verdicts": {
+    "process": true,
+    "accepted": true,
+    "no_overshoot": true,
+    "oracle": true
+   }
+  },
+  "blocked_summary": null,
+  "measures": {
+   "accepted": "yes",
+   "normative clause states the new meaning": "yes",
+   "old clause gone": "yes",
+   "ID kept": "yes",
+   "sibling clauses byte-identical": "yes",
+   "every other R-n byte-identical": "yes",
+   "no R-n added, removed or retired": "yes",
+   "entry gives a source": "yes",
+   "entry gives a reason": "yes",
+   "summary begins 'Revised R-9'": "yes",
+   "follows names it": "yes",
+   "criterion of a step not done states it": "yes",
+   "no product file changed": "yes"
+  },
+  "verdict": "met",
+  "stop": []
+ },
+ {
+  "root": "/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sonnet",
+  "scenario": "replay-ticket-comments-late-send-back",
+  "sample": "1",
+  "cell": "P",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "text": {
+   "ref": "0e1184c102dc56c98a1c799db0b569733a05abfc",
+   "overlay": false,
+   "shiploop": "2.7.1",
+   "plugin_sha256": "c35626010ad8"
+  },
+  "process": "stage-complete",
+  "minutes": 0.8,
+  "result_source": "parked",
+  "outcome": "done",
+  "run_status": "active",
+  "accepted": "yes",
+  "callbacks": {
+   "callbacks": 3,
+   "refusals": 1,
+   "refused": [
+    {
+     "verb": "check",
+     "fix_forward": false,
+     "error": "step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph"
+    }
+   ],
+   "fix_forward_refusals": 0,
+   "fix_forward_first": "read",
+   "fix_forward_first_why": "the first check was refused by another gate, which may run before fix forward: step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph"
+  },
+  "plan": {
+   "summary_begins_revised": "no",
+   "summary_names": false,
+   "follows_names": "no",
+   "criterion": "no",
+   "criteria_stating": [],
+   "criteria_changed_without_the_text": [],
+   "steps": [
+    {
+     "id": "S1",
+     "done": true,
+     "criteria": [
+      "C1"
+     ]
+    },
+    {
+     "id": "S2",
+     "done": false,
+     "criteria": [
+      "C2",
+      "C4"
+     ]
+    },
+    {
+     "id": "S3",
+     "done": false,
+     "criteria": [
+      "C3"
+     ]
+    }
+   ],
+   "summary": "Amended the plan after send-back 1: only S2's proof changed (JS strings now double-quoted inside the single-quoted node -e, so author and body expectations are JSON strings, assertions unchanged; the docstring check uses rg after &&). Verified in the worktree with S2's implementation present: the proof exits 0 (RUN/scratch/s2proof.sh). S1 carried over exactly as done; S3, criteria, expectations, concerns, paths and test_commands carried over unchanged. Test decisions retained: node:test with test/helpers.js.",
+   "headline": "Amended plan: S2 proof requoted so C2 is achievable; S1 done, S3 unchanged",
+   "failing_step": "S2",
+   "proof_repaired": "yes",
+   "failing_step_proof": "node -e 'const a=require(\"node:assert/strict\"),v=require(\"./src/tickets/validate\"),{withService,ticketBody}=require(\"./test/helpers\");for(const b of [{author:\"\",body:\"x\"},{author:\"a\",body:\"\"},{author:\"a\".repeat(65),body:\"x\"},{author:\"a\",body:\"x\".repeat(2001)},{author:3,body:\"x\"},{author:\"a\",body:\"x\",extra:1}])a.throws(()=>v.comment(b));a.equal(v.comment({author:\"a\".repeat(64),body:\"x\".repeat(2000)}).body.length,2000);withService({},async api=>{const t=await api.post(\"/tickets\",ticketBody());a.deepEqual((await api.get(\"/tickets/\"+t.body.id)).body.comments,[]);const c=await api.post(\"/tickets/\"+t.body.id+\"/comments\",{author:\"a\",body:\"hello\"});a.equal(c.status,201);a.ok(c.body.id);a.equal(c.body.author,\"a\");a.equal(c.body.body,\"hello\");a.ok(!Number.isNaN(Date.parse(c.body.created)));a.equal((await api.get(\"/tickets/\"+t.body.id)).body.comments[0].body,\"hello\");a.equal((await api.post(\"/tickets/missing/comments\",{author:\"a\",body:\"x\"})).status,404)}).catch(e=>{console.error(e);process.exitCode=1});' && rg \"POST /tickets/:id/comments\" src/tickets/validate.js"
+  },
+  "product_files_changed": [],
+  "knowledge_files_changed": [],
+  "spec": {
+   "read": true,
+   "spec_identical": true,
+   "others_changed": [],
+   "removed": [],
+   "added": [],
+   "retired": [],
+   "rest_identical": null
+  },
+  "start_is_the_scenarios": true,
+  "suite": {
+   "pass": true,
+   "caught": {
+    "P1": true,
+    "P2": true
+   },
+   "verdicts": {
+    "process": true,
+    "accepted": true,
+    "no_overshoot": true,
+    "oracle": true
+   }
+  },
+  "blocked_summary": null,
+  "measures": {
+   "accepted": "yes",
+   "spec byte-identical": "yes",
+   "failing Proof repaired": "yes",
+   "no product file changed": "yes"
+  },
+  "verdict": "met",
+  "stop": []
+ },
+ {
+  "root": "/Users/dadleet/e2e-runs/spr-20261122-9a927c/TP-sonnet",
+  "scenario": "send-back-revises-r9",
+  "sample": "1",
+  "cell": "T",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "text": {
+   "ref": "0e1184c102dc56c98a1c799db0b569733a05abfc",
+   "overlay": false,
+   "shiploop": "2.7.1",
+   "plugin_sha256": "c35626010ad8"
+  },
+  "process": "stage-complete",
+  "minutes": 1.0,
+  "result_source": "parked",
+  "outcome": "done",
+  "run_status": "active",
+  "accepted": "yes",
+  "callbacks": {
+   "callbacks": 2,
+   "refusals": 0,
+   "refused": [],
+   "fix_forward_refusals": 0,
+   "fix_forward_first": "yes",
+   "fix_forward_first_why": "the first check was accepted"
+  },
+  "plan": {
+   "summary_begins_revised": "yes",
+   "summary_names": true,
+   "follows_names": "yes",
+   "criterion": "yes",
+   "criteria_stating": [
+    {
+     "id": "C3",
+     "owners": [
+      "S2"
+     ],
+     "text": "R-9 the message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).`, holds none of the comment's content, and its subject begins with `[<ticket>]`; a failed delivery is retried. Confirm by: TC_Comments_Notify delivering through the worker with a distinctive multi-line comment body; pass when body equals the exact string, the distinctive text is absent from the whole message, a failing delivery stays pending with retry, and self/unassigned cases do not enqueue."
+    }
+   ],
+   "criteria_changed_without_the_text": [
+    {
+     "id": "C5",
+     "text": "R-9 the queued ticket.commented event holds none of the comment's content. Confirm by: TC_Comments_Notify reading s.outboxReport() and GET /admin/outbox after a comment with a distinctive body; pass when the distinctive text appears nowhere in the event while author and ticket ID remain."
+    }
+   ],
+   "steps": [
+    {
+     "id": "S1",
+     "done": true,
+     "criteria": [
+      "C1"
+     ]
+    },
+    {
+     "id": "S2",
+     "done": false,
+     "criteria": [
+      "C3",
+      "C5"
+     ]
+    },
+    {
+     "id": "S3",
+     "done": false,
+     "criteria": [
+      "C2",
+      "C4"
+     ]
+    }
+   ],
+   "summary": "Revised R-9: the comment notification's body is exactly `<author> commented on <ticket> (no preview).` and holds none of the comment's content, because docs/operations.md (Notifications) says the relay shows every message on the lobby wall display and no text someone typed but a ticket's title may be in one. Changed: C3 reworded, C5 added (event data carries no comment text), S2 now also edits src/store.js (a fix to S1's event data as new work, S1 row unchanged and done), S2 proof rewritten, E1/E3 restated, security concern also owned by S2. Carried over: C1, C2, C4, S3, test_commands, paths, follows, S1 row. R-9 rewritten in place in docs/shiploop/spec.md; AD-4 unchanged. Test decisions retained: component layer with test/helpers.js, TC_Comments_Notify now asserts the exact body and absence of a distinctive body in event and message. Open item: none; S2's uncommitted draft in src/templates.js is replaced by S2.",
+   "headline": "Amended plan: comment notifications say only author and ticket (no preview), S1 stays done"
+  },
+  "product_files_changed": [],
+  "knowledge_files_changed": [
+   "docs/shiploop/spec.md"
+  ],
+  "spec": {
+   "read": true,
+   "spec_identical": false,
+   "others_changed": [],
+   "removed": [],
+   "added": [],
+   "retired": [],
+   "rest_identical": true,
+   "normative": "yes",
+   "normative_why": "- The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (author name, ticket ID) and holds none of the comment's content: docs/operations.md (Notifications) says the relay shows every message on the lobby wall display where visitors read it, and no text someone typed but a ticket's title may be in one.",
+   "old_clause_gone": "yes",
+   "old_clause_why": "gone",
+   "id_kept": "yes",
+   "siblings_lost": [],
+   "basis_line_changed": true,
+   "source": "yes",
+   "reason": "yes",
+   "says_revised": true,
+   "changed_sentences": [
+    "Basis: request S6, revised after the implement send-back (docs/operations.md Notifications: lobby wall display); src/templates.js, src/notifier.js and CONTRIBUTING.md.",
+    "- The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (author name, ticket ID) and holds none of the comment's content: docs/operations.md (Notifications) says the relay shows every message on the lobby wall display where visitors read it, and no text someone typed but a ticket's title may be in one.",
+    "Confirm by a worker delivery test that compares the delivered body exactly, with a distinctive comment body absent from the whole message and from the queued event."
+   ],
+   "entry_after": "### R-9 Comment notification message\nBasis: request S6, revised after the implement send-back (docs/operations.md Notifications: lobby wall display); src/templates.js, src/notifier.js and CONTRIBUTING.md. Pending implementation and checks:\n- The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (author name, ticket ID) and holds none of the comment's content: docs/operations.md (Notifications) says the relay shows every message on the lobby wall display where visitors read it, and no text someone typed but a ticket's title may be in one. Confirm by a worker delivery test that compares the delivered body exactly, with a distinctive comment body absent from the whole message and from the queued event.\n- Its subject begins with the ticket ID in square brackets, as every other notification's does. Confirm by the same test.\n- A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test."
+  },
+  "start_is_the_scenarios": true,
+  "suite": {
+   "pass": true,
+   "caught": {
+    "P1": true,
+    "P2": true,
+    "P3": true
+   },
+   "verdicts": {
+    "process": true,
+    "accepted": true,
+    "no_overshoot": true,
+    "oracle": true
+   }
+  },
+  "blocked_summary": null,
+  "measures": {
+   "accepted": "yes",
+   "normative clause states the new meaning": "yes",
+   "old clause gone": "yes",
+   "ID kept": "yes",
+   "sibling clauses byte-identical": "yes",
+   "every other R-n byte-identical": "yes",
+   "no R-n added, removed or retired": "yes",
+   "entry gives a source": "yes",
+   "entry gives a reason": "yes",
+   "summary begins 'Revised R-9'": "yes",
+   "follows names it": "yes",
+   "criterion of a step not done states it": "yes",
+   "no product file changed": "yes"
+  },
+  "verdict": "met",
+  "stop": []
+ },
+ {
+  "root": "/Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sol",
+  "scenario": "send-back-revises-r9",
+  "sample": "1",
+  "cell": "C",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "text": {
+   "ref": "c06157c947ce9646bbe7528110a12b68ed8fbca8",
+   "overlay": false,
+   "shiploop": "2.7.1",
+   "plugin_sha256": "2e5558da8e0c"
+  },
+  "process": "stage-complete",
+  "minutes": 1.2,
+  "result_source": "parked",
+  "outcome": "done",
+  "run_status": "active",
+  "accepted": "yes",
+  "callbacks": {
+   "callbacks": 3,
+   "refusals": 0,
+   "refused": [],
+   "fix_forward_refusals": 0,
+   "fix_forward_first": "yes",
+   "fix_forward_first_why": "the first check was accepted"
+  },
+  "plan": {
+   "summary_begins_revised": "no",
+   "summary_names": true,
+   "follows_names": "yes",
+   "criterion": "yes",
+   "criteria_stating": [
+    {
+     "id": "C3",
+     "owners": [
+      "S2"
+     ],
+     "text": "R-9 delivers a comment notice to the assigned agent with the exact body `<author> commented on <ticket> (no preview).` and no comment content, and the subject begins with the bracketed ticket ID. Confirm by: TC_Comments_Notify; pass when another author's comment renders that exact body and subject prefix, a failed delivery stays pending and is retried, and self/unassigned cases do not enqueue."
+    }
+   ],
+   "criteria_changed_without_the_text": [],
+   "steps": [
+    {
+     "id": "S1",
+     "done": true,
+     "criteria": [
+      "C1"
+     ]
+    },
+    {
+     "id": "S2",
+     "done": false,
+     "criteria": [
+      "C3"
+     ]
+    },
+    {
+     "id": "S3",
+     "done": false,
+     "criteria": [
+      "C2",
+      "C4"
+     ]
+    }
+   ],
+   "summary": "Changed R-9, C3 and S2 to send the exact preview-free body documented in the amended spec. The relay displays notification bodies to lobby visitors (docs/operations.md, Notifications), and the user requires notification without specifying a preview. A ticket ID and author name are allowed there. Security now also maps to S2. S1 is committed and carried forward exactly with its done marker, and E1/E4 describe its current verified baseline. C1, C2, C4, S3, E2/E3, file scope and command rows are carried over. The local Node 26.12.1 runtime, Node >=22 CommonJS contract, node:test harness and existing HTTP helper remain appropriate. Revalidated S1's three tests. The HTTP requester submits text to the synchronous ticket store, which owns version-1 JSON, audit and outbox. The worker sends a notice to the assigned agent via the existing notifier and retries transient failures. S3 keeps the established 400/404/409 envelope and existing HTTP body limit. Manual-clock ties, restart and legacy fixtures verify ordering and recovery.",
+   "headline": "Revise comment notifications for lobby privacy and verify exact wording, recipient and retry through the worker"
+  },
+  "product_files_changed": [],
+  "knowledge_files_changed": [
+   "docs/shiploop/spec.md"
+  ],
+  "spec": {
+   "read": true,
+   "spec_identical": false,
+   "others_changed": [],
+   "removed": [],
+   "added": [],
+   "retired": [],
+   "rest_identical": true,
+   "normative": "yes",
+   "normative_why": "- The delivered message body is exactly `<author> commented on <ticket> (no preview).`, where `<ticket>` is the ticket ID.",
+   "old_clause_gone": "yes",
+   "old_clause_why": "gone",
+   "id_kept": "yes",
+   "siblings_lost": [],
+   "basis_line_changed": false,
+   "source": "yes",
+   "reason": "yes",
+   "says_revised": false,
+   "changed_sentences": [
+    "- The delivered message body is exactly `<author> commented on <ticket> (no preview).`, where `<ticket>` is the ticket ID.",
+    "The body holds none of the comment's content because the relay also displays messages in the lobby (docs/operations.md, Notifications).",
+    "Confirm the exact body in a worker delivery test."
+   ],
+   "entry_after": "### R-9 Comment notification message\nBasis: request S6; src/templates.js, src/notifier.js and CONTRIBUTING.md. Pending implementation and checks:\n- The delivered message body is exactly `<author> commented on <ticket> (no preview).`, where `<ticket>` is the ticket ID. The body holds none of the comment's content because the relay also displays messages in the lobby (docs/operations.md, Notifications). Confirm the exact body in a worker delivery test.\n- Its subject begins with the ticket ID in square brackets, as every other notification's does. Confirm by the same test.\n- A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test."
+  },
+  "start_is_the_scenarios": true,
+  "suite": {
+   "pass": true,
+   "caught": {
+    "P1": true,
+    "P2": true,
+    "P3": true
+   },
+   "verdicts": {
+    "process": true,
+    "accepted": true,
+    "no_overshoot": true,
+    "oracle": true
+   }
+  },
+  "blocked_summary": null,
+  "measures": {
+   "accepted": "yes",
+   "normative clause states the new meaning": "yes",
+   "old clause gone": "yes",
+   "ID kept": "yes",
+   "sibling clauses byte-identical": "yes",
+   "every other R-n byte-identical": "yes",
+   "no R-n added, removed or retired": "yes",
+   "entry gives a source": "yes",
+   "entry gives a reason": "yes",
+   "summary begins 'Revised R-9'": "no",
+   "follows names it": "yes",
+   "criterion of a step not done states it": "yes",
+   "no product file changed": "yes"
+  },
+  "verdict": "not met",
+  "stop": []
+ },
+ {
+  "root": "/Users/dadleet/e2e-runs/spr-20261122-9a927c/C-sonnet",
+  "scenario": "send-back-revises-r9",
+  "sample": "1",
+  "cell": "C",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "text": {
+   "ref": "c06157c947ce9646bbe7528110a12b68ed8fbca8",
+   "overlay": false,
+   "shiploop": "2.7.1",
+   "plugin_sha256": "2e5558da8e0c"
+  },
+  "process": "stage-complete",
+  "minutes": 1.1,
+  "result_source": "parked",
+  "outcome": "done",
+  "run_status": "active",
+  "accepted": "yes",
+  "callbacks": {
+   "callbacks": 4,
+   "refusals": 2,
+   "refused": [
+    {
+     "verb": "check",
+     "fix_forward": false,
+     "error": "step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph"
+    },
+    {
+     "verb": "check",
+     "fix_forward": false,
+     "error": "step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph"
+    }
+   ],
+   "fix_forward_refusals": 0,
+   "fix_forward_first": "read",
+   "fix_forward_first_why": "the first check was refused by another gate, which may run before fix forward: step-plan accepts only done, blocked; the bound Until Loop repeats the work, not the graph"
+  },
+  "plan": {
+   "summary_begins_revised": "no",
+   "summary_names": true,
+   "follows_names": "yes",
+   "criterion": "yes",
+   "criteria_stating": [
+    {
+     "id": "C3",
+     "owners": [
+      "S2"
+     ],
+     "text": "R-9 the message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` and none of the comment's content, the ticket ID first in the subject in square brackets, and a failed delivery is retried. Confirm by: TC_Comments_Notify; pass when the assigned recipient's delivered body equals `guest commented on T-0001 (no preview).` exactly for a comment whose text and the ticket title appear nowhere in the message, the subject starts with `[T-0001]`, a failing delivery stays pending, and self/unassigned cases do not enqueue."
+    }
+   ],
+   "criteria_changed_without_the_text": [],
+   "steps": [
+    {
+     "id": "S1",
+     "done": true,
+     "criteria": [
+      "C1"
+     ]
+    },
+    {
+     "id": "S2",
+     "done": false,
+     "criteria": [
+      "C3"
+     ]
+    },
+    {
+     "id": "S3",
+     "done": false,
+     "criteria": [
+      "C2",
+      "C4"
+     ]
+    }
+   ],
+   "summary": "Amended after implement's send-back 1: R-9 rewritten in place in KNOWLEDGE/spec.md (body exactly `<author> commented on <ticket> (no preview).`, no comment content; ID kept) because docs/operations.md puts every notification on the lobby wall. Changed: C3 text, S2 task and proof (exact-body and no-leak asserts), E1/E3 restated. Carried over unchanged: S1 (done), S3, C1/C2/C4, concerns, paths, test_commands, E2. The planned TC_Comments_Notify must assert the exact body and absence of comment text and title. S1's outbox event still stores author/title/body in data (visible only via /admin/outbox, not delivered); left as built. No open items.",
+   "headline": "Plan stored comments, HTTP validation and notifications with focused and regression checks"
+  },
+  "product_files_changed": [],
+  "knowledge_files_changed": [
+   "docs/shiploop/spec.md"
+  ],
+  "spec": {
+   "read": true,
+   "spec_identical": false,
+   "others_changed": [],
+   "removed": [],
+   "added": [],
+   "retired": [],
+   "rest_identical": true,
+   "normative": "yes",
+   "normative_why": "- The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (the ticket's ID in place of `<ticket>`) and holds none of the comment's content, because docs/operations.md (Notifications) says the relay shows every message on the lobby wall display and no text someone typed but a ticket's title may be in one.",
+   "old_clause_gone": "yes",
+   "old_clause_why": "gone",
+   "id_kept": "yes",
+   "siblings_lost": [],
+   "basis_line_changed": false,
+   "source": "yes",
+   "reason": "yes",
+   "says_revised": false,
+   "changed_sentences": [
+    "- The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (the ticket's ID in place of `<ticket>`) and holds none of the comment's content, because docs/operations.md (Notifications) says the relay shows every message on the lobby wall display and no text someone typed but a ticket's title may be in one.",
+    "Confirm by a worker delivery test that compares the delivered body exactly and finds no comment text in it."
+   ],
+   "entry_after": "### R-9 Comment notification message\nBasis: request S6; src/templates.js, src/notifier.js and CONTRIBUTING.md. Pending implementation and checks:\n- The message delivered for a comment has the body exactly `<author> commented on <ticket> (no preview).` (the ticket's ID in place of `<ticket>`) and holds none of the comment's content, because docs/operations.md (Notifications) says the relay shows every message on the lobby wall display and no text someone typed but a ticket's title may be in one. Confirm by a worker delivery test that compares the delivered body exactly and finds no comment text in it.\n- Its subject begins with the ticket ID in square brackets, as every other notification's does. Confirm by the same test.\n- A message that cannot be delivered is retried and then dead under the existing outbox rules, and the comment itself stays. Confirm by a failing-notifier test."
+  },
+  "start_is_the_scenarios": true,
+  "suite": {
+   "pass": true,
+   "caught": {
+    "P1": true,
+    "P2": true,
+    "P3": true
+   },
+   "verdicts": {
+    "process": true,
+    "accepted": true,
+    "no_overshoot": true,
+    "oracle": true
+   }
+  },
+  "blocked_summary": null,
+  "measures": {
+   "accepted": "yes",
+   "normative clause states the new meaning": "yes",
+   "old clause gone": "yes",
+   "ID kept": "yes",
+   "sibling clauses byte-identical": "yes",
+   "every other R-n byte-identical": "yes",
+   "no R-n added, removed or retired": "yes",
+   "entry gives a source": "yes",
+   "entry gives a reason": "yes",
+   "summary begins 'Revised R-9'": "no",
+   "follows names it": "yes",
+   "criterion of a step not done states it": "yes",
+   "no product file changed": "yes"
+  },
+  "verdict": "not met",
+  "stop": []
+ }
+]

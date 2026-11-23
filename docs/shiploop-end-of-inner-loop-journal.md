@@ -500,3 +500,27 @@ far (about 19:15). Design, its outside review and the decisions: `docs/experimen
 - **Method notes.** Sol's second review cited candidate runs as `k1` and `g3` (step-plan after a send-back) and `g2`
   (carry-forward), correcting the summary in section 9. The open-items agent's and the build worker's numbers were
   recounted or diffed by the main session before use (total rows, classes, the guard count; the source diff).
+
+## 11. A requirement that must change mid-step: step-plan rewrites it (2026-11-22; owner: "Let step-plan rewrite")
+
+The owner chose this over stopping to ask, which both outside reviews of section 10 had preferred, and moved this design's
+review from Sol at max to Astra at extra high ("change sol max review to astra extra high review"). Design, its revision and
+registration: `docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite-design.md`; review `review/astra-step-plan-review.md`.
+
+- **What the review changed** (each point checked in the code first): document's refusal opened a send-back that was then
+  refused (`check_terminal` honoured the marker at implement only: a bug on main); document's loop could stop only for what
+  cannot be observed; the review of the redone plan was told to undo a weakened requirement; a done step's frozen case can
+  prove the old clause (blocked with both named, rare, nothing more built); a line comparison for the requester's notice would
+  flag a rewrap and miss an appended exception, so the notice is the plan's own "Revised R-n: ..." line, listed by the script.
+- **Built** by an Opus worker at xhigh (`0e1184c102dc56c98a1c799db0b569733a05abfc`): tests that fail on the base, 45 of 45 quick
+  suites and 56 further ones; packets grow by 702 characters at step-plan, about 200 at five others.
+- **The deciding check** (registered in `09fec60c854c56f51885d789f69135d4c8204357`, six samples, about a minute each): with the
+  change both drivers rewrite the named clause in place, plan for it and say so (T 2 of 2), and an ordinary send-back leaves the
+  spec byte-identical (P 2 of 2). **With ShipLoop 2.7.1 both drivers rewrote it too (C 2 of 2), against its text and without
+  saying so.** So the permission was not the lever; the change buys the notice to the requester, agreement between the texts,
+  and the repaired document route. Registered as a reading beforehand and kept.
+- **Round:** two whole deliveries pass (Sol 6.2 medium 3 of 3 and 18 of 18 held-out, 11.7 minutes; Sonnet 5.5 medium 6 of 6, 24.2
+  minutes, $6.34); neither met a send-back.
+- **Limits kept on record:** a rewrite the plan does not announce is not listed; a requirement the spec lacks has no new route (the
+  `follows` refusal still says its entry may be added, against duty 10); carry-forward still blocks on a requirement change first
+  found there with no owner note; the inline test packet of the two-item fixture passes 20,000 characters (Grok).
