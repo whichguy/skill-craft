@@ -3,7 +3,7 @@
 docs/experiments/ratchet-pilot-20261120/shiploop-notes/DESIGN.md, section 2; the tests of section 5).
 
 A done result of any producer stage carries ``notes``: one {"note", "did", "detail"} per note it owes (``item`` too on an
-applied row at plan and carry-forward).  ShipLoop refuses ``done`` while a row is missing, extra or malformed, before
+applied row at plan and reflect-and-revise).  ShipLoop refuses ``done`` while a row is missing, extra or malformed, before
 every other gate, and the refusal's first line names the notes, their folder and the result file.  Where a note stands
 (open, carried, settled) is read from the rows of every accepted done result in order.
 
@@ -303,9 +303,9 @@ class RefusalTests(NoteRun):
                  "owner note N2 is not accounted for: read ",
                  ('- N2\'s row "detail" still holds a placeholder ("...", a text in angle brackets or the template\'s '
                   "own): write what this stage did with the note")),
-                ("an item outside plan and carry-forward", [row(), row("N2", "applied", item="W1")],
+                ("an item outside plan and reflect-and-revise", [row(), row("N2", "applied", item="W1")],
                  "owner note N2 is not accounted for: read ",
-                 '- N2\'s row "item" goes only on an applied row at plan or carry-forward: remove it'),
+                 '- N2\'s row "item" goes only on an applied row at plan or reflect-and-revise: remove it'),
                 ("an unknown key", [row(), row("N2", why="x")], "owner note N2 is not accounted for: read ",
                  "- N2's row has the unknown 'why'"),
                 ("a list that is not one", "N1", '"notes" is not a list: give it in ',
@@ -344,7 +344,7 @@ class RefusalTests(NoteRun):
 
     def test_carry_forward_settles_with_a_pending_item_and_may_not_carry(self) -> None:
         run, _head = self.new_run("prepare", results=THREE_ITEMS)
-        self.walk(run, self.at("carry-forward", "W2"), results=THREE_ITEMS)
+        self.walk(run, self.at("reflect-and-revise", "W2"), results=THREE_ITEMS)
         self.note(run)
         head = self.next(run)
         self.assertNotIn('"carried"', head.split("Owner notes this stage must account for", 1)[1].split("Goal:", 1)[0])
@@ -355,12 +355,12 @@ class RefusalTests(NoteRun):
         good = self.result(head)
         for label, bad, fault in (
                 ("carried", row(did="carried", detail="needs W3"),
-                 ('"did" is "carried", which carry-forward may not give: it settles every note it owes (applied, '
+                 ('"did" is "carried", which reflect-and-revise may not give: it settles every note it owes (applied, '
                   'already or declined); a note that needs a later work item is "applied" with that item')),
                 ("no item", row(did="applied", detail="W3 reuses it"), ('"item" is missing: an applied row at '
-                 "carry-forward names the work item of the future queue this result leaves that does it (W3)")),
+                 "reflect-and-revise names the work item of the future queue this result leaves that does it (W3)")),
                 ("the current item", row(did="applied", detail="done here", item="W2"),
-                 '"item" is W2, the item this carry-forward closes'),
+                 '"item" is W2, the item this reflect-and-revise closes'),
                 ("a finished item", row(did="applied", detail="done there", item="W1"), '"item" is W1, a finished item'),
                 ("an item of no queue", row(did="applied", detail="W9 does it", item="W9"),
                  "\"item\" 'W9' is not in the future queue this result leaves (W3)")):
@@ -415,8 +415,8 @@ class LedgerTests(NoteRun):
                 packet = self.next(run)
                 self.assertEqual(self.owes(packet), [])
                 self.assertIn("N1 carried by implement of W1 (step ", packet)
-                self.assertIn(", for W1 carry-forward;", packet)
-        self.walk(run, self.at("carry-forward"))
+                self.assertIn(", for W1 reflect-and-revise;", packet)
+        self.walk(run, self.at("reflect-and-revise"))
         head = self.next(run)
         self.assertEqual(self.owes(head), ["N1"])
         self.assertIn("      Carried here by implement of W1 (step ", head)
@@ -859,7 +859,7 @@ class DisplayTests(NoteRun):
         run, _head = self.new_run("prepare", results=THREE_ITEMS)
         self.note(run, WORDS)
         self.note(run, SECOND)
-        self.walk(run, self.at("carry-forward", "W2"), results=THREE_ITEMS,
+        self.walk(run, self.at("reflect-and-revise", "W2"), results=THREE_ITEMS,
                   rows={"prepare": [row(), row("N2", "carried", "the date is the items' work")]})
         head = self.next(run)
         self.accept(head, self.result(head, row("N2", "applied", "W3 prints the date", item="W3")))
@@ -872,14 +872,14 @@ class DisplayTests(NoteRun):
                       "Your notes: 3 owner notes. In your last message tell the user what happened to each; the "
                       "report's section \"Your notes\" has each note's words and every row:\n"
                       "- N1: already at prepare: src/dates.py is already the only date code.\n"
-                      "- N2: applied at carry-forward of W2 (item W3, completed): W3 prints the date\n"
+                      "- N2: applied at reflect-and-revise of W2 (item W3, completed): W3 prints the date\n"
                       "- N3: declined at handoff: The build already named its file.\n", done)
         report = (run / "report.html").read_text(encoding="utf-8")
         section = report[report.index("<h2>Your notes</h2>"):report.index("<h2>Accepted transitions</h2>")]
         self.assertLess(report.index("<h2>Original request</h2>"), report.index("<h2>Your notes</h2>"))
         self.assertIn("<pre>Name it &lt;b&gt;out.txt&lt;/b&gt; &amp; keep it.</pre>", section)
         self.assertNotIn("<b>out.txt</b>", section)
-        self.assertIn("<td>carry-forward</td><td>W2</td><td>applied</td><td>W3 prints the date</td>"
+        self.assertIn("<td>reflect-and-revise</td><td>W2</td><td>applied</td><td>W3 prints the date</td>"
                       "<td>W3 (completed)</td>", section)
         self.assertIn("<td>prepare</td><td>\u2014</td><td>carried</td><td>the date is the items&#x27; work</td>", section)
         model = trace.build(run)
@@ -1073,7 +1073,7 @@ class PageTests(NoteRun):
 
 EXCEPTION = ("unless an owner note this stage owes asks for the requirement change: then rewrite the requirement in "
              "place, queue the work and report done")
-# carry-forward's duty 1 keeps spec.md as the steps wrote it (2026-11-22); its one exception is the rewrite EXCEPTION allows.
+# reflect-and-revise's duty 1 keeps spec.md as the steps wrote it (2026-11-22); its one exception is the rewrite EXCEPTION allows.
 SPEC_EXCEPTION = ("except a requirement that an owner note this stage owes asks to change (rewrite that entry in place, as "
                   "the owner notes block says)")
 # document's duty: six real deliveries of six that got a note during the build sent the step back to step-plan; none
@@ -1094,7 +1094,7 @@ def flat(text: str) -> str:
 
 
 class StandingTextTests(unittest.TestCase):
-    """Fix brief item 3, accept brief item H and item K: the carry-forward duty and the carry-forward loop's rule carry
+    """Fix brief item 3, accept brief item H and item K: the reflect-and-revise duty and the reflect-and-revise loop's rule carry
     the owner-note exception in their standing text, whatever notes are on file (that stage cannot send back); document's
     duty says no word of a note, so a stage of a work item whose step a note changes may send it back; and step-plan's
     knowledge duty lets it rewrite the requirement such a note changes, which is where every such delivery did it."""
@@ -1108,9 +1108,9 @@ class StandingTextTests(unittest.TestCase):
                 self.assertIn(DOCUMENT_SENTENCE + " ", document)
                 self.assertNotIn("owner note", document.lower())
                 self.assertIn("stop the loop and report blocked; it is no queue edit, " + EXCEPTION,
-                              flat(prompts.duty("carry-forward", delegation=route)))
+                              flat(prompts.duty("reflect-and-revise", delegation=route)))
                 self.assertIn(STEP_PLAN_EXCEPTION, flat(prompts.duty("step-plan", delegation=route)))
-        self.assertIn("that is not a queue edit, " + EXCEPTION + ".", loops.REPEAT["carry-forward"])
+        self.assertIn("that is not a queue edit, " + EXCEPTION + ".", loops.REPEAT["reflect-and-revise"])
         for stage in ("step-plan", "test-spec", "validate-existing", "implement", "test", "document"):
             with self.subTest(stage=stage):
                 self.assertNotIn("finished as planned", flat(owner_notes.duty(stage)))
@@ -1119,8 +1119,8 @@ class StandingTextTests(unittest.TestCase):
 
 class StandingTextPacketTests(NoteRun):
     """Fix brief item 3 and accept brief item H, as a run with no note prints it (the parity claim narrowed to these
-    clauses): the document packet names no owner note, the carry-forward packet names one only in its two standing
-    clauses (duty 1's spec line and duty 2), and the carry-forward loop's contract carries the rule.  The carry-forward of
+    clauses): the document packet names no owner note, the reflect-and-revise packet names one only in its two standing
+    clauses (duty 1's spec line and duty 2), and the reflect-and-revise loop's contract carries the rule.  The reflect-and-revise of
     a run with one step in one item prints its queue duty in a short form with no rule to block on a changed requirement,
     so no exception there either; a run with items still to come prints the whole duty."""
 
@@ -1134,7 +1134,7 @@ class StandingTextPacketTests(NoteRun):
         packet = flat(self.next(run))
         self.assertIn(DOCUMENT_SENTENCE, packet)
         self.assertNotIn("owner note", packet.lower())
-        self.walk(run, self.at("carry-forward", "W1"), results=THREE_ITEMS)
+        self.walk(run, self.at("reflect-and-revise", "W1"), results=THREE_ITEMS)
         packet = flat(self.next(run))
         action = nav.current_action(self.state(run))["id"]
         rule = json.loads((run / nav.loops.contract_path(action)).read_text(encoding="utf-8"))["repeat_condition"]
@@ -1172,15 +1172,15 @@ class FirstLineTests(NoteRun):
 
 
 class CurrentItemMessageTests(NoteRun):
-    """Fix brief item 13: the refusal of an item that is the one this carry-forward closes lists the pending items."""
+    """Fix brief item 13: the refusal of an item that is the one this reflect-and-revise closes lists the pending items."""
 
     def test_the_current_item_refusal_lists_the_queue(self) -> None:
         run, _head = self.new_run("prepare", results=THREE_ITEMS)
-        self.walk(run, self.at("carry-forward", "W2"), results=THREE_ITEMS)
+        self.walk(run, self.at("reflect-and-revise", "W2"), results=THREE_ITEMS)
         self.note(run)
         head = self.next(run)
         refused = self.refuse(run, head, self.result(head, row(did="applied", detail="done here", item="W2")))
-        self.assertIn('"item" is W2, the item this carry-forward closes: name a pending item of the future queue this '
+        self.assertIn('"item" is W2, the item this reflect-and-revise closes: name a pending item of the future queue this '
                       'result leaves that does the work (W3), or say "already" when the run already does it', refused)
         self.assertNotIn("{listed}", refused)
 
@@ -1456,8 +1456,8 @@ class RouteRun(NoteRun):
 class RouteTests(RouteRun):
     """The route every real delivery took (accept brief, "Tests"), pinned through the CLI: a note written while
     implement is open is refused there; the step goes back to step-plan with a send-back that holds no row; step-plan
-    owes the row and is accepted with applied; the item's later stages and its carry-forward owe nothing.  And the
-    other shape seen: carried at step-plan, then already at that item's carry-forward."""
+    owes the row and is accepted with applied; the item's later stages and its reflect-and-revise owe nothing.  And the
+    other shape seen: carried at step-plan, then already at that item's reflect-and-revise."""
 
     def test_a_note_during_implement_goes_back_to_step_plan_and_is_settled_there(self) -> None:
         run, head = self.new_run("implement")
@@ -1490,7 +1490,7 @@ class RouteTests(RouteRun):
         head = self.finish_review(run)
         self.assertIn(self.NEW_R1, self.spec_of(run, "HEAD"))
         self.assertNotIn(self.OLD_R1, self.spec_of(run, "HEAD"))
-        for stage in ("test-spec", "implement", "test", "document", "carry-forward"):
+        for stage in ("test-spec", "implement", "test", "document", "reflect-and-revise"):
             with self.subTest(stage):
                 if "ShipLoop navigator | improve |" in head:
                     head = self.finish_review(run)
@@ -1500,7 +1500,7 @@ class RouteTests(RouteRun):
                     (self.repo_of(run) / "built.txt").write_text("hello\n")
                 done = self.accept(head, self.result(head))
                 head = done if "ShipLoop navigator |" in done else self.next(run)
-        self.finish_review(run)                   # the last item's carry-forward waits for its review
+        self.finish_review(run)                   # the last item's reflect-and-revise waits for its review
         ledger = owner_notes.ledger(self.state(run))
         self.assertEqual([(entry["stage"], entry["did"]) for entry in ledger["N1"]], [("step-plan", "applied")])
 
@@ -1510,15 +1510,15 @@ class RouteTests(RouteRun):
         head = self.next(run)
         self.accept(head, self.result(head, row(did="carried", detail="the requirement is the item's to change")))
         self.finish_review(run)
-        self.walk(run, self.at("carry-forward"))
+        self.walk(run, self.at("reflect-and-revise"))
         head = self.next(run)
         self.assertEqual(self.owes(head), ["N1"])
         self.assertIn("      Carried here by step-plan of W1 (step ", head)
         self.accept(head, self.result(head, row(detail="the item already does what N1 asks")))
-        self.finish_review(run)                   # the last item's carry-forward waits for its review
+        self.finish_review(run)                   # the last item's reflect-and-revise waits for its review
         ledger = owner_notes.ledger(self.state(run))
         self.assertEqual([(entry["stage"], entry["did"]) for entry in ledger["N1"]],
-                         [("step-plan", "carried"), ("carry-forward", "already")])
+                         [("step-plan", "carried"), ("reflect-and-revise", "already")])
 
 
 class RequirementRouteTests(RouteRun):
@@ -1604,7 +1604,7 @@ class RequirementRouteTests(RouteRun):
         run, _head = self.new_run("prepare", results=THREE_ITEMS)
         self.commit_spec(run)
         self.rewrite_r1(run)                                              # as W1's step plan left R-1
-        self.walk(run, self.at("carry-forward", "W1"), results={**THREE_ITEMS, "step-plan": {"summary": self.SUMMARY}})
+        self.walk(run, self.at("reflect-and-revise", "W1"), results={**THREE_ITEMS, "step-plan": {"summary": self.SUMMARY}})
         head = self.next(run)
         packet = flat(contract.full_packet_text(head))
         self.assertIn("one that follows a requirement this item's step plan revised included", packet)

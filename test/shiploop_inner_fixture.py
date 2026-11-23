@@ -2,7 +2,7 @@
 
 The quality, lint and test-loop suites walk a run through ``complete`` with synthetic results.  Since 2026-10-10 every
 inner stage's ``complete`` checks the stage's Until Loop receipt and the stage's own gates (step-plan expectations and
-step skills, test-spec cases, carry-forward's skill decision).  ``fill`` adds the fields a correct model would write and
+step skills, test-spec cases, reflect-and-revise's skill decision).  ``fill`` adds the fields a correct model would write and
 leaves every field the caller set alone; ``loop`` runs the stage's loop through the real runtime
 (``shiploop_loop_support.finish_loop``), so no receipt is ever written by hand.
 """
@@ -187,7 +187,7 @@ def fill(state: Mapping[str, Any], stage: str, result: Mapping[str, Any],
         result.setdefault("test_cases", test_cases_for(plan))
     elif stage == "document":
         result.setdefault("knowledge", dict(KNOWLEDGE_NONE))
-    elif stage == "carry-forward":
+    elif stage == "reflect-and-revise":
         result.setdefault("skill", dict(SKILL_NONE))
     if stage in assumptions.OPEN_ITEM_STAGES:
         result.setdefault("assumptions", [])

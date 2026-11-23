@@ -109,7 +109,7 @@ EXPECTED_READS = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
     "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
     "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A),
-    "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
+    "reflect-and-revise": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
     "handoff": (),
 }
@@ -1049,7 +1049,7 @@ class HandoffShapeTests(unittest.TestCase):
                          [])
 
     def test_open_items_are_allowed_at_the_new_stages_and_an_owner_only_there(self) -> None:
-        self.assertEqual(assumptions.STAGES, frozenset(("plan", "test-spec", "document", "carry-forward",
+        self.assertEqual(assumptions.STAGES, frozenset(("plan", "test-spec", "document", "reflect-and-revise",
                                                         "system-test-author", "system-test", "release-plan",
                                                         "release-verify")))
         row = {"id": "A1", "assumption": "The tab renders.", "disposition": "open", "settle": "open it",
@@ -1576,7 +1576,7 @@ class PrimaryGateTests(RepoCase):
 class PlanCoverageTests(RepoCase):
     """F3 of docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md (owner, 2026-10-28): coverage of the primary
     requirements is a property of the plan, not of the last test-spec.  Each work item names in ``follows`` the R-<n> it
-    serves (and the AD-<n> it follows); a done plan, and a done carry-forward that replaces the future queue, leave every
+    serves (and the AD-<n> it follows); a done plan, and a done reflect-and-revise that replaces the future queue, leave every
     primary requirement in some work item's follows, each ID there with an entry in the living files.  TS1, which asked
     the last test-spec for a case or a suite row per primary requirement, is gone."""
 
@@ -1630,12 +1630,12 @@ class PlanCoverageTests(RepoCase):
         self.assertTrue(message.startswith("work_items follows names R-9, AD-2, with no entry"), message)
         self.assertIn(str(self.repo / knowledge.HOME / "spec.md") + " (R-)", message)
         self.assertIn(str(self.repo / knowledge.HOME / "architecture.md") + " (AD-)", message)
-        # plan may add an AD-<n> under ## Decisions before it cites it; carry-forward may add no requirement (a missing one
+        # plan may add an AD-<n> under ## Decisions before it cites it; reflect-and-revise may add no requirement (a missing one
         # is a scope change), so its refusal names no entry to write.
         self.assertTrue(message.endswith(": cite only IDs with an entry, or write the entry first"), message)
-        later = self.state_at("carry-forward", primary_ids=["R-1"],
+        later = self.state_at("reflect-and-revise", primary_ids=["R-1"],
                               work_items=[{"id": "W1", "title": "one", "follows": ["R-1"]}])
-        message = self.refused(lambda: primary.check_queue(later, "carry-forward", self.done(
+        message = self.refused(lambda: primary.check_queue(later, "reflect-and-revise", self.done(
             [{"id": "W2", "title": "two", "follows": ["R-9"]}])))
         self.assertTrue(message.startswith("work_items follows names R-9, with no entry"), message)
         self.assertTrue(message.endswith(": cite only IDs with an entry"), message)
@@ -1645,17 +1645,17 @@ class PlanCoverageTests(RepoCase):
 
     def test_a_carry_forward_that_replaces_the_queue_keeps_each_primary_requirement_followed(self) -> None:
         queue = [{"id": "W1", "title": "one", "follows": ["R-1"]}, {"id": "W2", "title": "two", "follows": ["R-2"]}]
-        state = self.state_at("carry-forward", primary_ids=["R-1", "R-2"], work_items=queue, work_index=0)
-        message = self.refused(lambda: primary.check_queue(state, "carry-forward", self.done(
+        state = self.state_at("reflect-and-revise", primary_ids=["R-1", "R-2"], work_items=queue, work_index=0)
+        message = self.refused(lambda: primary.check_queue(state, "reflect-and-revise", self.done(
             [{"id": "W3", "title": "three"}])))
         self.assertIn("no work item of the queue this result leaves (the completed and current items, then the "
                       "work_items given) names R-2.", message)
-        primary.check_queue(state, "carry-forward", self.done([{"id": "W3", "title": "three", "follows": ["R-2"]}]))
-        primary.check_queue(state, "carry-forward", self.done())       # no work_items: the queue stays as it was
+        primary.check_queue(state, "reflect-and-revise", self.done([{"id": "W3", "title": "three", "follows": ["R-2"]}]))
+        primary.check_queue(state, "reflect-and-revise", self.done())       # no work_items: the queue stays as it was
         # The completed and current items count: W1 already serves both.
         both = [dict(queue[0], follows=["R-1", "R-2"]), queue[1]]
-        primary.check_queue(self.state_at("carry-forward", primary_ids=["R-1", "R-2"], work_items=both),
-                            "carry-forward", self.done([]))
+        primary.check_queue(self.state_at("reflect-and-revise", primary_ids=["R-1", "R-2"], work_items=both),
+                            "reflect-and-revise", self.done([]))
 
     def test_no_primary_list_another_stage_or_another_outcome_is_not_asked(self) -> None:
         bare = [{"id": "W1", "title": "one"}]
@@ -1671,8 +1671,8 @@ class PlanCoverageTests(RepoCase):
         self.assertEqual(primary.packet_lines(self.root, state, "plan"),
                          ["Primary requirements (spec primary), each in a work item's follows: R-1 R-2."])
         queue = [{"id": "W1", "title": "one", "follows": ["R-1"]}, {"id": "W2", "title": "two", "follows": ["R-1", "R-2"]}]
-        later = self.state_at("carry-forward", primary_ids=["R-1", "R-2"], work_items=queue)
-        self.assertEqual(primary.packet_lines(self.root, later, "carry-forward"),
+        later = self.state_at("reflect-and-revise", primary_ids=["R-1", "R-2"], work_items=queue)
+        self.assertEqual(primary.packet_lines(self.root, later, "reflect-and-revise"),
                          ["Primary requirements (spec primary) and the work items following each now: R-1 W1, W2; R-2 W2. "
                           "The queue you leave keeps each in some work item's follows."])
         many = self.state_at("plan", primary_ids=["R-" + str(n) for n in range(1, 10)])
@@ -1777,7 +1777,7 @@ class HandoffGateTests(GateCase):
                       navigator._result_template(bare, "release-verify"))
         # The aggressive re-cut (2026-10-11) puts each required hand-off key in the template itself; the fill line says a
         # blocked or other outcome drops them. implement's optional not_covered stays out.
-        for stage in ("test-spec", "implement", "document", "carry-forward"):
+        for stage in ("test-spec", "implement", "document", "reflect-and-revise"):
             printed = navigator._result_template(bare, stage)
             for key in ("test_cases", "not_covered", "assumptions", "lessons", "follows"):
                 self.assertEqual('"' + key + '"' in printed, key in navigator._required_handoff_keys(stage),
@@ -1801,10 +1801,10 @@ class HandoffGateTests(GateCase):
                 message = self.refusal(state, stage, result)
                 self.assertTrue(message.startswith("Add assumptions to "), message)
                 later = [name for name in stage_spec.OUTER if stage_spec.STAGES.index(name) > stage_spec.STAGES.index(stage)]
-                allowed = later + (["carry-forward"] if stage in ("test-spec", "document") else [])
+                allowed = later + (["reflect-and-revise"] if stage in ("test-spec", "document") else [])
                 for due_stage in allowed:
                     self.accepts(state, stage, dict(result, assumptions=[dict(row, due_stage=due_stage)]))
-                for due_stage in ("W1", stage, "carry-forward", "intake"):
+                for due_stage in ("W1", stage, "reflect-and-revise", "intake"):
                     if due_stage in allowed:
                         continue
                     message = self.refusal(state, stage, dict(result, assumptions=[dict(row, due_stage=due_stage)]))
@@ -1851,7 +1851,7 @@ EXPECTED_CONSUMES = {
     "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
     "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
     "document": ("follows", "test_cases", "spec_diff"),
-    "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
+    "reflect-and-revise": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
     "system-test": ("system_commands", "assumptions"),
     "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
     "release-plan": ("system_commands", "assumptions"), "release-check": ("assumptions",),
@@ -2037,7 +2037,7 @@ class CaseRowTests(GateCase):
         self.assertEqual(notices(self.plan_with_two_criteria([regression], ["C1"]), result), [])
         unrelated = {"command": "npm test", "suite": "focused", "ids": ["TC-9"], "criteria": ["C2"]}
         self.assertEqual(len(notices(self.plan_with_two_criteria([unrelated], ["C1"]), result)), 1)   # focused: no proof
-        item = open_row("A1", "carry-forward", assumption="C2 is confirmed by reading the build log.")
+        item = open_row("A1", "reflect-and-revise", assumption="C2 is confirmed by reading the build log.")
         self.assertEqual(notices(self.plan_with_two_criteria(), dict(result, assumptions=[item])), [])
         both = dict(self.DONE, test_cases=[dict(CASE, id="TC-1", criterion="C1"), dict(CASE, id="TC-2", criterion="C2")])
         self.assertEqual(notices(self.plan_with_two_criteria(), both), [])
@@ -2083,12 +2083,12 @@ class ConsumesTests(RepoCase):
                                            "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-1"]}]}),
             row("ts1", "test-spec", "W1", {"test_cases": [case1], "assumptions": [open_row("B1", "system-test")]}),
             row("im1", "implement", "W1", {"not_covered": []}),
-            row("do1", "document", "W1", {"assumptions": [open_row("B2", "carry-forward")], "knowledge": KNOWLEDGE}),
-            row("cf1", "carry-forward", "W1", {"assumptions": []}),
+            row("do1", "document", "W1", {"assumptions": [open_row("B2", "reflect-and-revise")], "knowledge": KNOWLEDGE}),
+            row("cf1", "reflect-and-revise", "W1", {"assumptions": []}),
             row("sp2", "step-plan", "W2", {"follows": ["R-1", "AD-1", "R-7"], "criteria": [{"id": "C3", "text": "c"}],
                                            "test_commands": [{"command": "t", "suite": "focused", "ids": ["TC-3"]},
                                                              {"command": "lint", "suite": "check"}]}),
-            row("ts2", "test-spec", "W2", {"test_cases": [case3], "assumptions": [open_row("C1", "carry-forward"),
+            row("ts2", "test-spec", "W2", {"test_cases": [case3], "assumptions": [open_row("C1", "reflect-and-revise"),
                                                                                     open_row("C2", "release-verify")]}),
             row("im2", "implement", "W2", {"not_covered": [{"behaviour": "b1", "reason": "r1"}]}),
             row("im3", "implement", "W2", {}),
@@ -2139,8 +2139,8 @@ class ConsumesTests(RepoCase):
         found, = self.source(navigator.handoff_sources(self.root, state, "system-test"), "assumptions")
         self.assertEqual(ids(found), [("test-spec", "W1", "B1")])
         everything = [("plan", None, "A1"), ("plan", None, "A9"), ("test-spec", "W1", "B1"), ("test-spec", "W2", "C1"),
-                      ("test-spec", "W2", "C2")]      # B2 is settled by W1's later carry-forward
-        for stage in ("product-acceptance", "handoff", "carry-forward"):
+                      ("test-spec", "W2", "C2")]      # B2 is settled by W1's later reflect-and-revise
+        for stage in ("product-acceptance", "handoff", "reflect-and-revise"):
             found, = self.source(navigator.handoff_sources(self.root, state, stage), "assumptions")
             self.assertEqual(ids(found), everything, stage)
         self.assertEqual([item.row for item in assumptions.open_items(state) if item.stage == "plan"],
@@ -2172,27 +2172,27 @@ class ConsumesTests(RepoCase):
 
     def test_each_steps_document_keeps_its_open_items_until_its_items_carry_forward(self) -> None:
         # Design T §9.1 2b-3 (option C, owner 2026-10-28): a step's document records the follow-up work it found outside
-        # the item as an open item due at the item's carry-forward.  An item runs document once per step, and the latest
+        # the item as an open item due at the item's reflect-and-revise.  An item runs document once per step, and the latest
         # result per (item, stage) is the current one, so the earlier steps' rows must not drop out when a later step's
         # document is accepted (Astra's review, 2026-10-28).
-        self.assertEqual(assumptions.allowed_due_stages("document")[0], "carry-forward")
+        self.assertEqual(assumptions.allowed_due_stages("document")[0], "reflect-and-revise")
         rows = [row("sp1", "step-plan", "W1", {"follows": []}),
-                row("dc1", "document", "W1", {"assumptions": [open_row("S1-F1", "carry-forward")]}),
-                row("dc2", "document", "W1", {"assumptions": [open_row("S2-F1", "carry-forward")]})]
+                row("dc1", "document", "W1", {"assumptions": [open_row("S1-F1", "reflect-and-revise")]}),
+                row("dc2", "document", "W1", {"assumptions": [open_row("S2-F1", "reflect-and-revise")]})]
         state = {"history": [entry for entry, _ in rows], "accepted": {entry["action"]: result for entry, result in rows}}
         found = lambda state: [(i.stage, i.action, i.row["id"]) for i in assumptions.open_items(state)]  # noqa: E731
         self.assertEqual(found(state), [("document", "dc1", "S1-F1"), ("document", "dc2", "S2-F1")])
-        # The item's carry-forward settles both.
-        cf = row("cf1", "carry-forward", "W1", {"assumptions": []})
+        # The item's reflect-and-revise settles both.
+        cf = row("cf1", "reflect-and-revise", "W1", {"assumptions": []})
         settled = dict(state, history=state["history"] + [cf[0]], accepted=dict(state["accepted"], cf1=cf[1]))
         self.assertEqual(found(settled), [])
         # Fix forward (owner 2026-11-12): a send-back keeps the done steps, so their open items stay through the amended
-        # plan that marks them done, until the item's carry-forward.  A plan that marks none starts again (every plan
+        # plan that marks them done, until the item's reflect-and-revise.  A plan that marks none starts again (every plan
         # before fix forward; ShipLoop now refuses one after a send-back that left a done step).
         back = row("im3", "implement", "W1", {}, outcome="send-back")
         amended = row("sp2", "step-plan", "W1", {"follows": [], "steps": [
             {"id": "S1", "task": "t", "done": True}, {"id": "S2", "task": "t", "done": True}, {"id": "S3", "task": "t"}]})
-        again = row("dc3", "document", "W1", {"assumptions": [open_row("S3-F1", "carry-forward")]})
+        again = row("dc3", "document", "W1", {"assumptions": [open_row("S3-F1", "reflect-and-revise")]})
         kept = dict(state, history=state["history"] + [back[0], amended[0], again[0]],
                     accepted=dict(state["accepted"], im3=back[1], sp2=amended[1], dc3=again[1]))
         self.assertEqual(found(kept), [("document", "dc1", "S1-F1"), ("document", "dc2", "S2-F1"),
@@ -2202,7 +2202,7 @@ class ConsumesTests(RepoCase):
                          accepted=dict(state["accepted"], im3=back[1], sp3=fresh[1], dc3=again[1]))
         self.assertEqual(found(restarted), [("document", "dc3", "S3-F1")])
         # Another item's document rows are its own.
-        other = row("dc9", "document", "W2", {"assumptions": [open_row("W2-F1", "carry-forward")]})
+        other = row("dc9", "document", "W2", {"assumptions": [open_row("W2-F1", "reflect-and-revise")]})
         both = dict(state, history=state["history"] + [other[0]], accepted=dict(state["accepted"], dc9=other[1]))
         self.assertEqual([entry[2] for entry in found(both)], ["S1-F1", "S2-F1", "W2-F1"])
 
@@ -2446,7 +2446,7 @@ class ContentsTests(LongHomeCase):
 
     def test_a_new_file_the_packet_does_not_list_is_a_pointer_with_its_contents(self) -> None:
         # The stages that print the spec diff and list no living file (verify, which listed no spec, is retired).
-        for stage in ("carry-forward", "release-verify"):
+        for stage in ("reflect-and-revise", "release-verify"):
             with self.subTest(stage=stage):
                 part = self.diff_part(self.block(stage))
                 spec = next(i for i, line in enumerate(part) if line.startswith("KNOWLEDGE/spec.md: new since"))
@@ -2614,7 +2614,7 @@ class SameBlockDuplicateTests(LongHomeCase):
 # to its criteria and test cases and names the step plan's result file (its action id written as nav-<id>, see walked_blocks),
 # with the later wording units on top; the other 32 blocks are unchanged.  Re-pinned 2026-10-17 by the packet review's U1
 # (knowledge by locator, owner decision D1): the 26 blocks of the stages that read a knowledge file list it by contents and
-# quote each followed entry by value; the 7 blocks of the stages that read none (discovery, research, spec, carry-forward,
+# quote each followed entry by value; the 7 blocks of the stages that read none (discovery, research, spec, reflect-and-revise,
 # release-verify, handoff) are unchanged.  Re-pinned 2026-10-18 by decision 19 (S1.2): the same 26 blocks name the knowledge
 # files KNOWLEDGE/<file> where they said HOME/<file>; with KNOWLEDGE written back as HOME every block hashes as before.
 # Renumbered 2026-10-19 by rule first-item: a later item's step-plan and test-spec start no Improve packet, so the
@@ -2648,14 +2648,14 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "21-implement": "84d5d7f4412f",
     "22-test": "47512f89e19d",
     "23-document": "a3f2ed5a00c3",
-    "25-carry-forward": "1b56bb9895e1",
+    "25-reflect-and-revise": "1b56bb9895e1",
     "26-step-plan": "6d1756f3cf4b",
     "27-test-spec": "a6f458c2ef70",
     "28-validate-existing": "fd56ae387ab8",
     "29-implement": "7f5ec4c052ae",
     "30-test": "3aa81f32adf2",
     "31-document": "f58024eafdd1",
-    "33-carry-forward": "fcf610ff5c20",
+    "33-reflect-and-revise": "fcf610ff5c20",
     "35-system-test-author": "9c09062ca617",
     "37-system-test": "5c1876049e88",
     "38-product-acceptance": "b6f629a51612",
@@ -3676,8 +3676,8 @@ class StepAggregateTests(RepoCase):
                  if line.startswith("- W1")]
         self.assertEqual(lines, ["- W1 step-plan result: RUN/results/sp.md", "- W1 test-spec result: RUN/results/ts.md",
                                  "- W1 test S1 result: RUN/results/te1.md", "- W1 test S2 result: RUN/results/te2.md"])
-        state = self.two_step_item("carry-forward")
-        lines = [line for line in navigator._builds_on_lines(self.root, state, "carry-forward", "W1")
+        state = self.two_step_item("reflect-and-revise")
+        lines = [line for line in navigator._builds_on_lines(self.root, state, "reflect-and-revise", "W1")
                  if line.startswith("- W1")]
         for label, action in (("test S1", "te1"), ("test S2", "te2"), ("document S1", "dc1"), ("document S2", "dc2")):
             self.assertIn("- W1 " + label + " result: RUN/results/" + action + ".md", lines)
@@ -3776,7 +3776,7 @@ class RequestAndReviewedInputTests(unittest.TestCase):
                 self.assertNotIn(navigator.HANDOFF_HEAD, handoff)
                 self.assertEqual("----- BEGIN ORIGINAL REQUEST " in handoff, child["stage"] in ("spec", "plan"))
                 self.assertNotIn("Revisit: ", handoff)                     # a first visit
-        self.assertTrue({"spec", "plan", "step-plan", "document", "carry-forward"} <= set(seen), seen)
+        self.assertTrue({"spec", "plan", "step-plan", "document", "reflect-and-revise"} <= set(seen), seen)
         self.assertNotIn("implement", seen)                                # the step's review follows document (T §8)
         self.assertNotIn("test-spec", seen)                                # no Improve stage since 2026-10-26
 

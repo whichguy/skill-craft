@@ -30,7 +30,7 @@ the Run Review page with the run's data.
 **History before changes (owner decision, 2026-10-30).** Before each subsequent change and commit, inspect the full
 messages of relevant earlier commits, including empty learning-only commits. Recent messages and the harness's source,
 comparison and record-linked anchors are starting context, not a complete history review. Search older history for the affected behavior, paths and
-referenced decisions. Carry forward measured wins, rejected approaches, contrary evidence and unresolved questions;
+referenced decisions. Reflect and revise measured wins, rejected approaches, contrary evidence and unresolved questions;
 explain with new evidence or an explicit owner decision any departure from an earlier decision.
 
 Every completed unit of work gets a very verbose learning commit: what was learned, the baseline and candidate,
@@ -332,7 +332,7 @@ In every mode, a changed step proceeds through implement, test and document,
 then an Improve review of that step's code, tests and documentation before its
 commit and the next step. A document result with `changed: false` starts no
 review. This replaces the earlier implement-stage and once-per-work-item review
-placements. `system-test-author`, `release-plan` and the last `carry-forward`
+placements. `system-test-author`, `release-plan` and the last `reflect-and-revise`
 retain their Improve reviews in every mode. Source: the owner's per-step design
 in docs/shiploop-review-after-tests-design-2026-10-27.md, section 2b-2, landed in
 `ddaf9076`; the first-item schedule is recorded in `f368dfa2`.
@@ -1583,7 +1583,7 @@ target reuse; a fresh product folder is not a deployed-system reset.
      commits (events 731, 776 and 779). Only the fidelity detectors unwrap such a string.
   4. There is no pass or fail table. No row of the block is a clause verdict until a style has a baseline for it and a later dated amendment says
      which rows are verdicts. An earlier design that scored eight clauses was set aside because S-10 as written would have failed 2 of the 11
-     saved Claude and Grok runs (a work item's first carry-forward has no Improve child by design), S-9 would have passed null counts, S-4
+     saved Claude and Grok runs (a work item's first reflect-and-revise has no Improve child by design), S-9 would have passed null counts, S-4
      would have passed beside wrapper scripts, and S-15 says narratives are not a verdict.
   5. What no script checks stays with a reviewer, and the README names it: whether one call carries one step (S-2), whether the cards agree with the
      scripts (S-3), packet size (S-7), technology-agnostic wording (S-8), one implementation of each mechanism (S-12) and generality (S-13), and also

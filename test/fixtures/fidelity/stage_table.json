@@ -16,7 +16,7 @@
     "item:test-spec"
    ]
   },
-  "carry-forward": {
+  "reflect-and-revise": {
    "complete_runs": [],
    "improve": "last-item",
    "reads": [
@@ -355,7 +355,7 @@
   "verify",
   "integrate",
   "integration-verify",
-  "carry-forward",
+  "reflect-and-revise",
   "system-test-author",
   "system-test",
   "product-acceptance",

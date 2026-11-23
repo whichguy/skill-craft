@@ -460,7 +460,7 @@ class RevisionTests(DefaultsCase):
         # W1 is sent back and its plan revises R-1 again: the first plan is superseded and stays listed.
         state = nav.apply(state, nav.current_action(state)["id"], {"outcome": "send-back", "summary": "R-1 again."})
         nav.save(run, state)
-        state = self.drive(run, "carry-forward", [AGAIN])
+        state = self.drive(run, "reflect-and-revise", [AGAIN])
         # W2's step plan revises nothing: it is not listed, and its words elsewhere in the summary do not count.
         state = self.drive(run, "system-test-author", ["Keeps the plan. Revised R-9 is only named here.", "unused"])
         state = self.drive(run, "handoff", [])

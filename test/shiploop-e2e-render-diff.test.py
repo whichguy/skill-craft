@@ -186,7 +186,7 @@ class TextRenderTests(unittest.TestCase):
                     self.assertFalse(row["head"])
                     self.assertEqual(self.text[name][key + ".printed.txt"],
                                      self.text[name][key + ".whole.txt"] + navigator.HEAD_END + "\n")
-        for key in ("01-step-plan", "03-test-spec", "05-implement", "06-test", "07-document", "09-carry-forward"):
+        for key in ("01-step-plan", "03-test-spec", "05-implement", "06-test", "07-document", "09-reflect-and-revise"):
             printed = self.text["a83"][key + ".printed.txt"]
             for needed in ("Current stage guidance", "Result template", "References (symbols"):
                 self.assertIn(needed, printed, f"the {key} print must carry {needed}")
@@ -535,7 +535,7 @@ class ShippedFilesTests(unittest.TestCase):
             self.assertEqual(set(values), stages, key)
             self.assertTrue(all(isinstance(v, int) and 1000 < v < 40_000 for v in values.values()), key)
         self.assertIn("step-plan", stages)
-        self.assertIn("carry-forward-improve", stages)
+        self.assertIn("reflect-and-revise-improve", stages)
 
     def test_two_real_renders_of_this_tree_compare_clean_and_a_planted_line_in_a_real_head_fails(self):
         with tempfile.TemporaryDirectory() as temp:

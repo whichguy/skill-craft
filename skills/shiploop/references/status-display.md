@@ -11,7 +11,7 @@ carries one progress block: the narrative at a milestone, otherwise a one-line
 === ShipLoop status ===
 Where:     Work items > W2 "Add --version flag" (2 of 4) > Build > test
 Run:       Preparation ✓ | Work items 1/4 ▶ | Release ·
-Item:      Plan ✓ | Validate existing ✓ | Build ▶ | Carry forward ·
+Item:      Plan ✓ | Validate existing ✓ | Build ▶ | Reflect and revise ·
 Done:      W2 implement: --version added to the cli.py argparse; checks pass.
 Next:      test: write the specified tests and make every recorded command pass
 Item plan: Add --version to cli.py argparse; tests in test_cli.py.
@@ -25,11 +25,11 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 |---|---|
 | Where | Phase, then item (N of M) and its stage group, then the stage. `> improve` follows it while the Improve stage owns the step. |
 | Run | Preparation, work items (completed/total) and Release. |
-| Item / Stages | During a work item, its 7 stages in four phases: Plan, Validate existing, Build, Carry forward. In preparation and release, each stage. |
+| Item / Stages | During a work item, its 7 stages in four phases: Plan, Validate existing, Build, Reflect and revise. In preparation and release, each stage. |
 | Done | The latest accepted result's first sentence, marked when Improve reviewed it or the outcome was blocked, send-back, add-work or reconcile. While a child is parked, the result it is reviewing. |
 | Next / Stopped | The current stage and its one-line purpose, or, at the Improve stage, `improve: run the improve skill on the <stage> result`. A paused, blocked or halted run shows its reason; the packet prints the resume command. |
 | Item plan | The first sentence of the item's accepted `step-plan` summary, or of the item's `context` before that. Omitted when neither exists. |
-| Completed | Completed items, the three most recent with the first sentence of their `carry-forward` summary. |
+| Completed | Completed items, the three most recent with the first sentence of their `reflect-and-revise` summary. |
 
 ## Live HTML progress view
 
@@ -329,7 +329,7 @@ reported as read by no stage.
   row per note it owes, `{"note", "did", "detail"}`, where `did` is `applied`
   (this stage did it), `already` (the run already does it), `carried` (it needs
   something this stage may not change) or `declined` (it cannot be done in this
-  run). At `plan` and `carry-forward` an applied row also names in `item` the
+  run). At `plan` and `reflect-and-revise` an applied row also names in `item` the
   work item that does the work. ShipLoop refuses `done` while a row is missing,
   extra or malformed; the refusal's first line names the notes, their folder and
   the result file.
@@ -339,7 +339,7 @@ reported as read by no stage.
   `declined`; a settled note stays settled, a rewind included).
 - **Who owes a row.** A done result owes one for every open note and every
   carried one, except that a note a work item's step carried (step-plan to
-  document) is owed by that item's carry-forward. `carry-forward` and `handoff`
+  document) is owed by that item's reflect-and-revise. `reflect-and-revise` and `handoff`
   settle every note they owe, and `handoff` owes every note not settled. A
   blocked, send-back or add-work result holds no rows; a stage the script
   records owes none. An Improve review keeps the rows of the result it reviews.
@@ -429,7 +429,7 @@ At milestones a packet carries a script-rendered narrative between
 the status line: the goal, a
 progress bar per phase, what has been achieved, what is happening now, what
 comes next and the run's observed pace. A milestone is the first producer packet
-after one of these: the start of a run, `prepare`, a work item's `carry-forward`,
+after one of these: the start of a run, `prepare`, a work item's `reflect-and-revise`,
 `product-acceptance`, `release` and `handoff`; and every paused, blocked,
 awaiting, halted or done packet. That set is the boundaries a reader looks for,
 not every prelude and outer stage: asked at 20 of 23 stages, a live corpus of 102
@@ -462,7 +462,7 @@ packets until 2026-10-17). Other packets carry no narrative.
 - **Achieved** lists each accepted step's `headline`: one line that the step
   writes for the user in its result, of any length; the row shows its first 100
   characters. A result without one falls back to its summary's first sentence. During work items it lists
-  the completed items with their `carry-forward` headline and the current
+  the completed items with their `reflect-and-revise` headline and the current
   item's latest step; during release, the accepted release stages.
 - **Ahead** names the next stages with their purpose, then the remaining
   groups, work items and release.

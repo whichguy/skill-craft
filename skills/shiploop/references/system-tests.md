@@ -95,11 +95,11 @@ owner and the released target as its environment.
 
 ## Reassessment, change, and closure
 
-Every `carry-forward` reassesses whether the catalog still matches the
+Every `reflect-and-revise` reassesses whether the catalog still matches the
 delivery: no change, with the relevant case IDs and rationale, or a revision. A
 revision that needs new fixture or setup work revises the future queue in that
-same `carry-forward` result so the producer precedes its consumer. The last
-carry-forward's Improve review covers the executed items together, including
+same `reflect-and-revise` result so the producer precedes its consumer. The last
+reflect-and-revise's Improve review covers the executed items together, including
 their system-test implications. At outer stages, a needed catalog change is
 corrective work through `add-work`.
 

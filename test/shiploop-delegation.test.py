@@ -196,7 +196,7 @@ class DelegationStateTests(unittest.TestCase):
         # Improve is a stage of its own (owner, 2026-10-11): its header names the stage `improve` and the result.
         self.assertTrue(improve.startswith("ShipLoop navigator | improve | revision "), improve[:80])
         self.assertTrue(improve.splitlines()[0].endswith("| the step-plan result"), improve.splitlines()[0])
-        for stage in ("step-plan", "implement", "carry-forward"):
+        for stage in ("step-plan", "implement", "reflect-and-revise"):
             with self.subTest(stage=stage):
                 packet = self.render(advance(state, stage))
                 self.assertTrue(packet.startswith("Continue in this context and execute the prompt. Delegation: inline"))
@@ -485,7 +485,7 @@ class StepTests(DelegationStateTests):
         """N5: Improve starts only on a done result.  Before it, a blocked result at a planning stage parked an Improve
         child as well; now it blocks the run with none, and the same stage's done result still parks one."""
         wait = {"kind": "answer", "question": "Which of the two?", "no_default": "Both readings are consistent with the request."}
-        reviewed = sorted(nav.guidance.PLANNING_REVIEW_STAGES) + ["document", "carry-forward"]
+        reviewed = sorted(nav.guidance.PLANNING_REVIEW_STAGES) + ["document", "reflect-and-revise"]
         for stage in reviewed:
             with self.subTest(stage=stage):
                 # document: the step's review follows its document stage (rule item, design T §8)
@@ -802,7 +802,7 @@ class PacketContractTests(DelegationStateTests):
                 self.assertNotIn("Recovery command, then the printed Resume", packet)
         self.assertIn("Optional work_items replaces the whole queue", self.render(advance(self.state(), "plan")))
         self.assertIn("replaces the queue after this item",
-                      self.render(advance(self.state(), "carry-forward")))
+                      self.render(advance(self.state(), "reflect-and-revise")))
         outer = self.render(advance(self.state(), "system-test-author"))
         self.assertIn("Allowed outcomes: done | blocked | add-work (product work is missing: corrective work_items", outer)
         self.assertIn('\nadd-work: {"outcome": "add-work", "summary": "<what the corrective items fix>", "work_items": [', outer)
@@ -863,7 +863,7 @@ class PacketContractTests(DelegationStateTests):
     def test_final_result_must_list_the_reviewed_queue(self):
         receipt = {"summary": "Synthetic receipt; no review claim."}
         queue = [{"id": "W1", "title": "Reviewed item"}, {"id": "W2", "title": "Second item"}]
-        for stage, proposal in (("plan", queue), ("carry-forward", [])):
+        for stage, proposal in (("plan", queue), ("reflect-and-revise", [])):
             with self.subTest(stage=stage):
                 state = advance(self.state(), stage)
                 action = nav.current_action(state)["id"]
@@ -1086,7 +1086,7 @@ class PacketContractTests(DelegationStateTests):
                         # An Improve child reviews every accepted step (owner decision 2026-10-10), so the
                         # packet must not say the result advances with no child.
                         self.assertNotIn("no Improve child runs for this stage", packet)
-                    elif stage not in planning and stage != "carry-forward":
+                    elif stage not in planning and stage != "reflect-and-revise":
                         # The blocked route is the outcome shapes' (the trailing sentence is gone, 2026-10-11 dedupe).
                         self.assertNotIn("advances directly", packet)
                         self.assertNotIn("If work cannot continue, submit outcome 'blocked'", packet)
@@ -1115,7 +1115,7 @@ class PacketContractTests(DelegationStateTests):
         self.assertEqual(argv[4].startswith("--action=nav-"), True, argv)
         self.assertNotEqual(argv[4], "--action=" + reviewed)  # the Improve stage's id, not the reviewed action's
         self.assertTrue(any(line.startswith("Evidence: write each review pass to ") for line in lines))
-        if stage == "carry-forward":
+        if stage == "reflect-and-revise":
             self.assertIn("End-of-work review: this is the run's single Improve", packet)
             self.assertNotIn("Planning review focus", packet)
         elif stage == "document":   # the step's review follows its document stage (design T §8)

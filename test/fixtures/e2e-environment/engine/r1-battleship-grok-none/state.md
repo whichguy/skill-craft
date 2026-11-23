@@ -22,7 +22,7 @@
     {
       "action": "nav-0dcd6a29a56340d388dc56cb1ceade78",
       "outcome": "done",
-      "stage": "carry-forward",
+      "stage": "reflect-and-revise",
       "summary": "The future queue holds nothing after W1, so work_items is omitted. Lessons live in the feature plan (ten randomInt(10) d",
       "workitem": "W1"
     },

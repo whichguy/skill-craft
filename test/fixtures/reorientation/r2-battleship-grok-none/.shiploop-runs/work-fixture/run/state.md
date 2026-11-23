@@ -152,7 +152,7 @@
    "action": "nav-93328cd95c3a4e50bde681e1795a5323"
   },
   {
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "outcome": "done",
    "workitem": "W1",
    "action": "nav-41cd83d9314045ce8412c3c69c8a678b"
@@ -260,7 +260,7 @@
    "action": "nav-32d54722a362467ebcee631cb56221ed"
   },
   {
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "outcome": "done",
    "workitem": "W2",
    "action": "nav-ab53b78955604309b3ac93d0f2569b47"

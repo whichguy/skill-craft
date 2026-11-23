@@ -89,10 +89,10 @@ class IndexTests(unittest.TestCase):
 
     def test_document_carry_forward_and_handoff_read_the_evidence_they_judge(self) -> None:
         # Verify is retired (design T §9.1 2b-4c): each step's document stage closes the step on the step's plan, cases,
-        # build and tests, and carry-forward closes the item on the last test result and every step's reflection.
+        # build and tests, and reflect-and-revise closes the item on the last test result and every step's reflection.
         self.assertTrue({"item:step-plan", "item:test-spec", "item:implement", "item:test"}
                         <= set(context_index.STAGE_READS["document"]))
-        self.assertTrue({"item:test", "item:document"} <= set(context_index.STAGE_READS["carry-forward"]))
+        self.assertTrue({"item:test", "item:document"} <= set(context_index.STAGE_READS["reflect-and-revise"]))
         self.assertNotIn("verify", context_index.STAGE_READS)
         self.assertTrue({"product-acceptance", "operations"} <= set(context_index.STAGE_READS["handoff"]))
 

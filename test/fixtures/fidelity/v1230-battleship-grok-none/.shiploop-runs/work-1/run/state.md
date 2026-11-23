@@ -671,7 +671,7 @@
   {
    "action": "nav-d3730b64c014441eae6566e1eb8b6fcc",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "W1 is done at 78e7e48. The same random stream places the same fleet, and an off\u2026",
    "workitem": "W1"
   },
@@ -811,7 +811,7 @@
   {
    "action": "nav-29ad842c12b74175984b460c791b25ae",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "The future queue was already empty. No third item is required: W2 is committed \u2026",
    "workitem": "W2"
   },

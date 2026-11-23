@@ -35,7 +35,7 @@ and returns the prompt for the current step together with the one callback that
 completes it. The host is a library call: it performs that one step and runs the
 printed callback, then follows the packet the callback returns. It never chooses
 a successor itself. Navigator protocol 4 is the only protocol. At a planning
-stage the run's `planning_review` option reviews, after each step's `document` stage, or at the last carry-forward, the script parks that
+stage the run's `planning_review` option reviews, after each step's `document` stage, or at the last reflect-and-revise, the script parks that
 same parent action while the selected actual Improve skill runs its own bound Until Loop
 cycle. `state.md` owns SDLC traversal; the Improve child owns its iterations and runtime
 state. The host follows one current owner at a time. The initial plan child (a `stage` run;
@@ -202,7 +202,7 @@ to run without planning reviews) ([run options](references/run-options.md)).
 ## Inner stages
 
 Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement`, `test` and `document` (once per step)
-and `carry-forward`, each inside one Until Loop started with the packet's literal command; the packet prints
+and `reflect-and-revise`, each inside one Until Loop started with the packet's literal command; the packet prints
 its rule. The rules behind it: [the inner loop](references/inner-loop.md) and
 [test loop and confirmation](references/test-loop.md).
 

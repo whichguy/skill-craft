@@ -64,7 +64,7 @@ STEP_REVIEW_STAGE = "document"
 STEP_FOCUS_LIMIT = 5_600
 # The walk prints short paths; a real install prints these lengths (the E2E render uses the same: run dir 83, CLI 96).
 RUN_LENGTH, WORKTREE_LENGTH, ROUTE_LENGTH, CLI_LENGTH = 83, 95, 105, 96
-KINDS = ("spec", "test-strategy", "plan", "step-plan", STEP_REVIEW_STAGE, "carry-forward")   # plan U18 exit 2; test-spec has no review (2026-10-26)
+KINDS = ("spec", "test-strategy", "plan", "step-plan", STEP_REVIEW_STAGE, "reflect-and-revise")   # plan U18 exit 2; test-spec has no review (2026-10-26)
 
 FILES = {"router": ROUTER, "standalone": STANDALONE, "policy": POLICY, "evidence": EVIDENCE, "adapter": ADAPTER}
 
@@ -427,7 +427,7 @@ class HandoffTests(unittest.TestCase):
                     self.assertLess(text.index("\n", complete), limit)
                     # the focus is the stage's own, and Code craft stays verbatim beside the action
                     body = text[focus:commit]
-                    if stage == "carry-forward":
+                    if stage == "reflect-and-revise":
                         self.assertIn(prompts.END_REVIEW_FOCUS_HEAD.strip(), body)
                     elif stage == STEP_REVIEW_STAGE:
                         self.assertIn("Implementation step review focus.", body)
@@ -436,7 +436,7 @@ class HandoffTests(unittest.TestCase):
                         self.assertIn("Follow route and user/repo history rules.", flat(body))
                         self.assertIn("Reuse other history and green checks only with unchanged inputs "
                                       "and no finding or rule requiring a repeat.", flat(body))
-                    if stage in (STEP_REVIEW_STAGE, "carry-forward"):
+                    if stage in (STEP_REVIEW_STAGE, "reflect-and-revise"):
                         self.assertIn("## Code craft\n" + prompts.CODE_CRAFT.rstrip(), text)
 
     def test_what_is_the_same_in_every_review_left_the_handoff_for_the_route(self):

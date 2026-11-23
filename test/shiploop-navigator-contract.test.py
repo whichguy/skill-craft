@@ -68,7 +68,7 @@ EXPECTED_PRELUDE = (
 )
 # Verify retired (design T §9.1 2b-4c): each step's document stage and review close it, and ShipLoop commits it.
 EXPECTED_INNER = (
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "reflect-and-revise",
 )
 GENERIC_ACCESS_STORE_BOUNDARY = (
     "For identity or access discovery, use supported non-mutating probes and sanitized "
@@ -362,7 +362,7 @@ class NavigatorContractTests(unittest.TestCase):
         action = self._action(state)
         after = navigator.apply(state, action["id"], result(**extra))
         if after.get("active_improve") is None:
-            # Not a planning/contract stage (or non-final carry-forward): the
+            # Not a planning/contract stage (or non-final reflect-and-revise): the
             # result advances directly, with no Improve child to complete.
             return after
         self.assertEqual(navigator.current_stage(after), stage)
@@ -430,7 +430,7 @@ class NavigatorContractTests(unittest.TestCase):
         )
 
     def _advance_to_carry_forward(self, state: dict) -> dict:
-        while navigator.current_stage(state) != "carry-forward":
+        while navigator.current_stage(state) != "reflect-and-revise":
             state = self._produce(state, navigator.current_stage(state))
         return state
 
@@ -521,12 +521,12 @@ class NavigatorContractTests(unittest.TestCase):
             [(stage, "producer", item) for item in (0, 1) for stage in EXPECTED_INNER],
         )
         # Inner Improve children exist at the first item's step-plan (rule first-item, 2026-10-19), after each step's
-        # document stage (rule item, design T §8; one step per item here) and at the final carry-forward; test-spec
+        # document stage (rule item, design T §8; one step per item here) and at the final reflect-and-revise; test-spec
         # has none.
         self.assertEqual(
             [entry for entry in observed if entry[1] == "improve"],
             [("step-plan", "improve", 0), ("document", "improve", 0),
-             ("document", "improve", 1), ("carry-forward", "improve", 1)],
+             ("document", "improve", 1), ("reflect-and-revise", "improve", 1)],
         )
         self.assertFalse(navigator.render(None, root, state).startswith(prefix))
 
@@ -575,7 +575,7 @@ class NavigatorContractTests(unittest.TestCase):
     def test_every_stage_carries_generic_policy_content_in_both_packet_views(self) -> None:
         """Producer and Improve-pending packets keep the same policy routing.
 
-        Only planning/contract stages and the end-of-work carry-forward start
+        Only planning/contract stages and the end-of-work reflect-and-revise start
         an actual Improve child, so only they have a pending view.
         """
         state = self.state()
@@ -583,7 +583,7 @@ class NavigatorContractTests(unittest.TestCase):
         improved: list[str] = []
         root = self.repo / ".shiploop"
         backchain_stages = {
-            "spec", "plan", "step-plan", "carry-forward", "product-acceptance",
+            "spec", "plan", "step-plan", "reflect-and-revise", "product-acceptance",
         }
         while state["status"] != "done":
             stage = navigator.current_stage(state)
@@ -638,7 +638,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(
             tuple(improved),
             tuple(stage for stage in EXPECTED_STAGES
-                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in ("document", "carry-forward")),
+                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in ("document", "reflect-and-revise")),
         )
         self.assertEqual(state["status"], "done")
         self.assertEqual(len(state["history"]), 23)
@@ -661,11 +661,11 @@ class NavigatorContractTests(unittest.TestCase):
     def test_carry_forward_rejects_legacy_skill_result_carriers_without_mutation(self) -> None:
         """ShipLoop retains reusable-skill evidence in its generic envelope only.
 
-        skill-assess's skill decision is carry-forward's `skill` field since the 8-stage inner loop; the legacy
+        skill-assess's skill decision is reflect-and-revise's `skill` field since the 8-stage inner loop; the legacy
         carriers stay refused there.
         """
         state = self.state()
-        while navigator.current_stage(state) != "carry-forward":
+        while navigator.current_stage(state) != "reflect-and-revise":
             stage = navigator.current_stage(state)
             extra = {}
             if stage == "plan":
@@ -685,7 +685,7 @@ class NavigatorContractTests(unittest.TestCase):
                 with self.assertRaisesRegex(navigator.NavigatorError, "unsupported fields"):
                     navigator.apply(state, action["id"], result(**{field: value}))
                 self.assertEqual(state, before)
-                self.assertEqual(navigator.current_stage(state), "carry-forward")
+                self.assertEqual(navigator.current_stage(state), "reflect-and-revise")
                 self.assertEqual(self._action(state), action)
 
     def test_the_retired_outcomes_are_refused_at_every_stage_and_name_the_four_outcomes(self) -> None:
@@ -994,7 +994,7 @@ class NavigatorContractTests(unittest.TestCase):
         for legacy in legacy_carriers:
             self.assertNotIn(legacy, navigator_section)
         planning_stages = {
-            "spec", "plan", "step-plan", "carry-forward", "product-acceptance",
+            "spec", "plan", "step-plan", "reflect-and-revise", "product-acceptance",
         }
         self.assertEqual(prompts.BACKCHAIN_STAGES, frozenset(planning_stages))
         for stage in EXPECTED_STAGES:
@@ -1158,13 +1158,13 @@ class NavigatorContractTests(unittest.TestCase):
             self.assertRegex(packet, r"(?m)^- test-strategy stage result: RUN/results/")
         self.assertIn(
             "harness and case locators; fixture lifecycle",
-            " ".join(prompts.prompt("carry-forward").split()),
+            " ".join(prompts.prompt("reflect-and-revise").split()),
         )
         self.assertIn("Run-wide test strategy source", prompts.improve_prompt("test"))
         decision_stages = {"step-plan", "test-spec", "test"}
         self.assertEqual(prompts.TEST_DECISION_STAGES, decision_stages)
         for stage in decision_stages:
-            with self.subTest(stage=stage, check="current item decision carry-forward"):
+            with self.subTest(stage=stage, check="current item decision reflect-and-revise"):
                 instruction = " ".join(prompts.prompt(stage).split())
                 if stage == "test-spec":
                     # U25: the summary's content moved from duty 7 to the template's summary placeholder (printed
@@ -1613,7 +1613,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("Work items planned: 3", cold)
 
     def test_carry_forward_omission_retains_all_pending_items(self) -> None:
-        """Omitting work_items at carry-forward completes only the current item."""
+        """Omitting work_items at reflect-and-revise completes only the current item."""
         rows = [
             {"id": "W1", "title": "Feature item"},
             {"id": "W2", "title": "Integration item"},
@@ -1632,7 +1632,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(completed), "step-plan")
 
     def test_carry_forward_replaces_only_future_queue_and_rejects_prior_ids(self) -> None:
-        """An explicit carry-forward array replaces future work; it cannot reuse prior IDs."""
+        """An explicit reflect-and-revise array replaces future work; it cannot reuse prior IDs."""
         rows = [
             {"id": "W1", "title": "Feature item"},
             {"id": "W2", "title": "Integration item"},
@@ -1642,7 +1642,7 @@ class NavigatorContractTests(unittest.TestCase):
         state = self._advance_to_carry_forward(self._planned_queue(rows))
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
         action = self._action(state)
-        # The replacement queue is not empty, so this carry-forward is not the
+        # The replacement queue is not empty, so this reflect-and-revise is not the
         # run's last-item review; it advances directly, with no Improve child.
         revised = navigator.apply(state, action["id"], result(work_items=replacement))
 
@@ -1660,7 +1660,7 @@ class NavigatorContractTests(unittest.TestCase):
             empty_state, empty_action["id"], result(work_items=[])
         )
         cleared = navigator.finish_improve(
-            empty_waiting, empty_action["id"], receipt("carry-forward")
+            empty_waiting, empty_action["id"], receipt("reflect-and-revise")
         )
         self.assertEqual([item["id"] for item in cleared["work_items"]], ["W1"])
         self.assertEqual(cleared["completed_work_items"], ["W1"])
@@ -1668,7 +1668,7 @@ class NavigatorContractTests(unittest.TestCase):
 
         # These two rejections exercise finish_improve's own work_items
         # validation. A seed that clears the future queue makes the
-        # carry-forward the run's last-item review, so a real child parks.
+        # reflect-and-revise the run's last-item review, so a real child parks.
         current_state = self._advance_to_carry_forward(self._planned_queue(rows))
         current_action = self._action(current_state)
         current_waiting = self._pending(current_state, work_items=[])
@@ -1679,7 +1679,7 @@ class NavigatorContractTests(unittest.TestCase):
             navigator.finish_improve(
                 current_waiting,
                 current_action["id"],
-                receipt("carry-forward"),
+                receipt("reflect-and-revise"),
                 result(work_items=[{"id": "W1", "title": "Duplicate current item"}]),
             )
         self.assertEqual(current_waiting, before_current)
@@ -1699,7 +1699,7 @@ class NavigatorContractTests(unittest.TestCase):
             navigator.finish_improve(
                 prior_waiting,
                 prior_action["id"],
-                receipt("carry-forward"),
+                receipt("reflect-and-revise"),
                 result(work_items=[{"id": "W1", "title": "Duplicate completed item"}]),
             )
         self.assertEqual(prior_waiting, before_prior)
@@ -1746,7 +1746,7 @@ class NavigatorContractTests(unittest.TestCase):
 
             state = self._produce(state, stage)
             completed_stages[item_id].append(stage)
-            if item_id == "INTEGRATION" and stage == "carry-forward":
+            if item_id == "INTEGRATION" and stage == "reflect-and-revise":
                 self.assertEqual(navigator.current_stage(state), "step-plan")
                 self.assertEqual(
                     state["work_items"][state["work_index"]]["id"], "AUDIT"
@@ -1801,7 +1801,7 @@ class NavigatorContractTests(unittest.TestCase):
             set(plan_template["work_items"][0]), {"id", "title", "follows", "context"}
         )   # follows: the R-<n> the item serves (F3 of the 2026-10-28 plan)
         self.assertNotIn(
-            "work_items", store.loads(navigator._result_template(plan, "carry-forward"))
+            "work_items", store.loads(navigator._result_template(plan, "reflect-and-revise"))
         )
 
         plan_action = self._action(plan)
@@ -1850,7 +1850,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("No item follows DRAFT: omit `work_items`.", " ".join(carry_packet.split()))
 
         carry_action = self._action(state)
-        # Only a carry-forward that leaves no work pending starts a child.
+        # Only a reflect-and-revise that leaves no work pending starts a child.
         carry_child = self._bind_synthetic_child(self._pending(state, work_items=[]))
         self._assert_two_instruction_improve_packet(navigator.render(None, root, carry_child))
         navigator.save(root, carry_child)
@@ -1858,7 +1858,7 @@ class NavigatorContractTests(unittest.TestCase):
         self._assert_two_instruction_improve_packet(cold_child_packet)
         cold_child_packet += "\n" + navigator.improve_handoff_path(carry_child["active_improve"]).read_text(
             encoding="utf-8")
-        with self.subTest(check="carry-forward child view locates the queues"):
+        with self.subTest(check="reflect-and-revise child view locates the queues"):
             self.assertIn(proposed_queue_locator, self._improve_view(root, carry_child))
             self.assertIn(queue_locator, cold_child_packet)
             self.assertIn(proposed_queue_locator, cold_child_packet)
@@ -1960,7 +1960,7 @@ class NavigatorContractTests(unittest.TestCase):
             ("host-chosen next stage", action_id, result(next_stage="plan"), "unsupported fields"),
             ("work queue outside plan", action_id,
              result(work_items=[{"id": "W2", "title": "Forged item"}]),
-             "work_items are allowed only at plan or carry-forward"),
+             "work_items are allowed only at plan or reflect-and-revise"),
             ("document choice outside document", action_id,
              result(choices={"skill_required": True}), "choices are allowed only at document"),
         )
@@ -2124,7 +2124,7 @@ class NavigatorContractTests(unittest.TestCase):
         rows = [{"id": "W1", "title": "Create the first small capability"},
                 {"id": "W2", "title": "Finish the second small capability"}]
         state = self._advance_to_carry_forward(self._planned_queue(rows))
-        state = self._produce(state, "carry-forward")
+        state = self._produce(state, "reflect-and-revise")
         self.assertEqual(navigator._current_work_item(state), "W2")
         # W2's test stage: an inner stage between two others (verify was this probe until it retired, design T 2b-4c).
         while navigator.current_stage(state) != "test":
@@ -2158,7 +2158,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertNotIn("test", self._stages(progress, "Current item stages completed"))
         self.assertNotIn("test", self._stages(progress, "Current item stages pending"))
         self.assertIn("document", self._stages(progress, "Current item stages pending"))
-        self.assertIn("carry-forward", self._stages(progress, "Current item stages pending"))
+        self.assertIn("reflect-and-revise", self._stages(progress, "Current item stages pending"))
 
         # A fresh CLI process recovers the same compact context, read-only.
         navigator.save(root, state)
@@ -2247,7 +2247,7 @@ class NavigatorContractTests(unittest.TestCase):
                            for index in range(1, 6)]
         finished = self._planned_queue(completed_items)
         for _ in range(4):
-            finished = self._produce(self._advance_to_carry_forward(finished), "carry-forward")
+            finished = self._produce(self._advance_to_carry_forward(finished), "reflect-and-revise")
         completed_line = next(line for line in self._progress(finished).splitlines()
                               if line.startswith("Completed work items:"))
         self.assertEqual(completed_line.count(marker), 3)
@@ -3102,7 +3102,7 @@ class PlanningReviewNoneTest(unittest.TestCase):
                             self.assertNotIn("If work cannot continue, submit outcome 'blocked'", packet)
 
     def test_the_improve_schedule_is_stated_once_by_each_stage_line_and_not_in_a_shared_sentence(self) -> None:
-        """The COMMON schedule sentence (planning results, each implement step, the last carry-forward) went in the
+        """The COMMON schedule sentence (planning results, each implement step, the last reflect-and-revise) went in the
         2026-10-11 dedupe, and the per-stage Improve lines with the packet re-cut: a producer packet names no
         Improve schedule at all, in either mode (owner decision 5, 2026-10-10: none keeps the per-step Improve, which
         is ShipLoop's to start, not the producer packet's to announce)."""
@@ -3112,13 +3112,13 @@ class PlanningReviewNoneTest(unittest.TestCase):
                     with self.subTest(mode=mode, delegation=delegation, stage=stage):
                         text = self.flat(prompts.prompt(stage, delegation=delegation, planning_review=mode))
                         self.assertNotIn("ShipLoop starts an Improve stage after planning results", text)
-                        self.assertNotIn("after the carry-forward that leaves no work item pending", text)
+                        self.assertNotIn("after the reflect-and-revise that leaves no work item pending", text)
                 with self.subTest(mode=mode, delegation=delegation, line="implement"):
                     self.assertNotIn("starts this step's Improve stage",
                                      self.flat(self.packet("implement", mode, delegation)))
-                with self.subTest(mode=mode, delegation=delegation, line="carry-forward"):
+                with self.subTest(mode=mode, delegation=delegation, line="reflect-and-revise"):
                     self.assertNotIn("end-of-work Improve stage",
-                                     self.flat(self.packet("carry-forward", mode, delegation)))
+                                     self.flat(self.packet("reflect-and-revise", mode, delegation)))
 
     def test_each_swapped_sentence_is_in_the_stage_text_once_and_the_none_text_in_its_place(self) -> None:
         rows = prompts._NO_REVIEW_SWAPS
@@ -3311,7 +3311,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
     QUALIFIED = re.compile(r"planning_review|--planning-review|planning review option|`none`|`stage`"
                            r"|when the run has one|where the stage has one")
     # A sentence about a child that starts in every mode promises nothing the option removes.
-    EVERY_MODE = "about a child that starts in every mode (release-plan, system-test-author, the last carry-forward)"
+    EVERY_MODE = "about a child that starts in every mode (release-plan, system-test-author, the last reflect-and-revise)"
     DESCRIBES_THE_CONTENT = ("says what a planning Improve review challenges when the run has one; SKILL.md "
                              "'Planning review option' scopes it")
     PLAN_CHILD = ("describes the Plan Improve child's own mechanics; a `none` run has no such child and "
@@ -3331,7 +3331,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             DESCRIBES_THE_CONTENT,
         ("references/consumer-delivery.md", "release planning and its Improve review may refresh affected prechecks"):
             EVERY_MODE,
-        ("references/environment-lifecycle.md", "`carry-forward` and the affected Improve reviews reconcile"): EVERY_MODE,
+        ("references/environment-lifecycle.md", "`reflect-and-revise` and the affected Improve reviews reconcile"): EVERY_MODE,
         ("references/navigator.md", "Pre-update checks can be refreshed during release planning and its Improve review"):
             EVERY_MODE,
         ("references/navigator.md", "continue to `product-acceptance` and the release-plan Improve review"): EVERY_MODE,
@@ -3340,7 +3340,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "the per-step review after document starts in every mode; the list item says so",
         ("README.md", "(and, for the last item, its Improve child is imported), the script selects the next item's "
                       "`step-plan`"): EVERY_MODE,
-        ("references/carry-forward.md", "I[End-of-work Improve stage, then system-test-author]"): EVERY_MODE,
+        ("references/reflect-and-revise.md", "I[End-of-work Improve stage, then system-test-author]"): EVERY_MODE,
         ("references/navigator.md", "each step is built, tested and documented and then reviewed by one Improve stage "
                                     "before the next step starts"):
             "the per-step review after document starts in every mode (rule item, design T section 8); the sentence "
@@ -3349,10 +3349,10 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
                                                "`release-plan` child have been imported)"): EVERY_MODE,
         # R4 (2026-10-24) names the schedule "Improve stage", so the scan reads that phrase too; these sentences use it.
         ("references/navigator.md", "The Improve stages after each step's `document` stage, `system-test-author`, "
-                                    "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
+                                    "`release-plan` and the last `reflect-and-revise` start in both modes"): EVERY_MODE,
         ("references/run-options.md", "The Improve stages after each step's `document` stage, `system-test-author`, "
-                                      "`release-plan` and the last `carry-forward` start in both modes"): EVERY_MODE,
-        ("references/navigator.md", "R -->|Reviewed planning stage, a step's document stage or last carry-forward| I[Improve stage"):
+                                      "`release-plan` and the last `reflect-and-revise` start in both modes"): EVERY_MODE,
+        ("references/navigator.md", "R -->|Reviewed planning stage, a step's document stage or last reflect-and-revise| I[Improve stage"):
             "a diagram edge taken only by a stage the option reviews ('Reviewed planning stage'); the text after the "
             "diagram states both schedules",
         ("references/planning-experiments.md", "imports it with the Improve stage's `complete`"):
@@ -3432,7 +3432,7 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
         option = section("run-options.md", "## Planning review option")
         self.assertIn("`planning_review`", when)
         self.assertIn("`none`", when)
-        for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `carry-forward`",
+        for stated in ("`--planning-review none`", "`system-test-author`", "`release-plan`", "last `reflect-and-revise`",
                        "`improve-reconcile`", "plan-time experiments", "no Improve review covers",
                        "its first `implement` step starts an Improve stage", "docs/shiploop", "`--improve-skill=<absolute selected Improve SKILL.md>`",
                        "refuse `--planning-review none` without"):
@@ -3693,7 +3693,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(self.settle(), "implement")
         (self.repo / "notes.md").write_text("# Notes\n")
         self.accept(result(summary="Wrote notes.md."))
-        self.assertEqual(self.settle(), "carry-forward")  # the last step's document closes the item (verify retired)
+        self.assertEqual(self.settle(), "reflect-and-revise")  # the last step's document closes the item (verify retired)
         outcomes = self.item_stage_outcomes()
         self.assertTrue(outcomes["document"].startswith(item_scope.NOT_APPLICABLE), outcomes["document"])
         self.assertIn("touch no code or test path: notes.md", outcomes["document"])
@@ -3710,7 +3710,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(self.settle(), "implement")
         (self.repo / "notes.md").write_text("# Notes\n")
         self.accept(result(summary="Wrote notes.md."))
-        self.assertEqual(self.settle(), "carry-forward")
+        self.assertEqual(self.settle(), "reflect-and-revise")
         state = self.state()
         entry = next(row for row in state["history"] if row["stage"] == "document" and row.get("workitem") == "W1")
         record = state["accepted"][entry["action"]]
@@ -3847,7 +3847,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(stages, ["implement", "test", "document"] * 3)
         documents = [row["action"] for row in state["history"] if row["stage"] == "document" and row["workitem"] == "W1"]
         self.assertEqual([action for action in documents if action in state["improve_results"]], documents)
-        self.assertEqual(navigator.current_stage(state), "carry-forward")  # the last step's document closes the item
+        self.assertEqual(navigator.current_stage(state), "reflect-and-revise")  # the last step's document closes the item
 
     def test_each_step_is_committed_alone_and_the_next_step_starts_from_its_commit(self) -> None:
         # Design T §8: one commit per iteration, holding only its step's change; the next step's base is recaptured after
@@ -4262,12 +4262,12 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
                     document = child["action_id"]
                     self.finish_improve()
                     self.assertIn(document, self.state()["improve_results"])
-                self.assertEqual(self.settle(), "carry-forward")
+                self.assertEqual(self.settle(), "reflect-and-revise")
 
 class StepReflectionCliTests(inner_fixture.RunDriver):
     """Design T §9.1 2b-3, option C (owner 2026-10-28, "Go with C"): no knowledge stage.  Each step's document stage is
     its one place to reflect: it records in the knowledge home what the step showed, names each living file with what it
-    changed or why nothing, and records work found outside the item as an open item due at the item's carry-forward.
+    changed or why nothing, and records work found outside the item as an open item due at the item's reflect-and-revise.
     Its spec gate runs at its complete and again at its review's import, so the step's commit holds the tree a gate ran
     on (Astra's review, 2026-10-28: the review's edits are part of that tree)."""
 
@@ -4298,22 +4298,22 @@ class StepReflectionCliTests(inner_fixture.RunDriver):
         self.assertIn("Add knowledge to", refusal.splitlines()[0])
         self.assertIn('"spec"', refusal)
         self.assertIn("why it needed no change", refusal)
-        # Work found outside the item is an open item due at the item's carry-forward; an inner stage is not a due stage.
+        # Work found outside the item is an open item due at the item's reflect-and-revise; an inner stage is not a due stage.
         stray = self.refused(dict(done, knowledge=dict(self.RECORD), assumptions=[{
             "id": "F1", "assumption": "entry() needs a caller-side check.", "disposition": "open",
             "settle": "add the check where entry() is called", "reason": "outside this item", "due_stage": "implement"}]))
         self.assertIn("F1 names 'implement'", stray)
-        self.assertIn("carry-forward", stray)
+        self.assertIn("reflect-and-revise", stray)
         follow_up = {"id": "F1", "assumption": "entry() needs a caller-side check.", "disposition": "open",
                      "settle": "add the check where entry() is called", "reason": "outside this item",
-                     "due_stage": "carry-forward"}
+                     "due_stage": "reflect-and-revise"}
         self.complete(inner_fixture.loop(self.run_dir, self.state(),
                                          dict(done, knowledge=dict(self.RECORD), assumptions=[follow_up])),
                       prepare_inner=False)
         self.assertEqual(self.state()["active_improve"]["stage"], "document")
         self.finish_improve()
         found = [(item.stage, item.row["id"], item.row["due_stage"]) for item in assumptions.open_items(self.state())]
-        self.assertIn(("document", "F1", "carry-forward"), found)
+        self.assertIn(("document", "F1", "reflect-and-revise"), found)
         body = inner_fixture.git(self.repo, "log", "-1", "--format=%b", self.step_commit_sha())
         self.assertIn("Knowledge home:\n- spec: R-1 gains how entry() treats its argument (W1/S1).\n"
                       "- architecture: none: entry() follows the existing module layout\n"
@@ -4396,7 +4396,7 @@ class StepReflectionCliTests(inner_fixture.RunDriver):
         for phrase in ("**Reflect.**", "a vague clause this step made precise", "the files and test file that now meet it",
                        "a new AD-<n>", "## Commands", "report send-back naming the R-<n>",
                        "work a later step already holds: leave it to that step",
-                       "work outside this item: an open item in `assumptions` due at carry-forward",
+                       "work outside this item: an open item in `assumptions` due at reflect-and-revise",
                        "In `knowledge` give `spec`, `architecture` and `environment`"):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, duties)

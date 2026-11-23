@@ -1091,7 +1091,7 @@ class HookTests(Fixture):
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "carry-forward")
+            state = drive(self.run_dir, "reflect-and-revise")
             action = nav.current_action(state)["id"]
             complete(self.run_dir, state)
             state = store.read_record(self.run_dir / "state.md")
@@ -1147,7 +1147,7 @@ class HookTests(Fixture):
         self.commit({"a.py": "x = 1\n"})
         self.start()
         with self.patched_env():
-            state = drive(self.run_dir, "carry-forward")
+            state = drive(self.run_dir, "reflect-and-revise")
             action = nav.current_action(state)["id"]
             complete(self.run_dir, state)
             state = store.read_record(self.run_dir / "state.md")
@@ -1177,7 +1177,7 @@ class HookTests(Fixture):
         payload = self.run_pass(mode="report")
         for relative, text in lint.record_writes(payload).items():
             store.atomic_write_text(self.run_dir / relative, text)
-        lines = lint.render_lines(self.run_dir, "A1", stage="carry-forward", run_option="report",
+        lines = lint.render_lines(self.run_dir, "A1", stage="reflect-and-revise", run_option="report",
                                   repo=str(self.repo), command=str(CLI))
         parts = lint._parts(payload["block"])
         self.assertGreater(len(parts), 1)
@@ -1193,7 +1193,7 @@ class HookTests(Fixture):
         self.assertEqual("".join(shown), payload["block"])
 
 
-    def stored_lines(self, edit: dict, *, tools_failed: bool = False, stage: str = "carry-forward") -> tuple:
+    def stored_lines(self, edit: dict, *, tools_failed: bool = False, stage: str = "reflect-and-revise") -> tuple:
         """A report-mode pass over ``edit`` (run at a gate stage, document, so its block carries the gate rule), stored
         as the action's own record, and the packet lines ``render_lines`` prints for it at ``stage``, a stage that reads
         that record rather than a gate's: (payload, lines)."""
@@ -2402,7 +2402,7 @@ class GateTests(Fixture):
         waivers = [{"id": "L0123456789", "reason": "r"}]
         self.assertEqual(lint.GATE_STAGES, ("implement", "test", "document"))
         with self.assertRaisesRegex(nav.NavigatorError, "only on a done implement, test, document result"):
-            nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="carry-forward")
+            nav._canonical_result(dict(DONE, lint_waivers=waivers), stage="reflect-and-revise")
         # A blocked result carrying them is refused for the fields it must not carry (the refusal names them and says
         # to delete them); the stage-specific sentence above applies to a done result at another stage.
         with self.assertRaisesRegex(nav.NavigatorError, "a blocked result does not carry lint_waivers"):
@@ -2445,7 +2445,7 @@ class CoverageLineTests(Fixture):
         # The packet leaves the per-file Coverage section to the record, and keeps this line beside the verdict.
         for relative, text in lint.record_writes(payload).items():
             store.atomic_write_text(self.run_dir / relative, text)
-        packet = "\n".join(lint.render_lines(self.run_dir, "A1", stage="carry-forward", run_option="report",
+        packet = "\n".join(lint.render_lines(self.run_dir, "A1", stage="reflect-and-revise", run_option="report",
                                              repo=str(self.repo), command=str(CLI), commands=False))
         self.assertNotIn("\nCoverage:", packet)
         self.assertIn(payload["result_line"] + "\n" + expected, packet)
@@ -2505,7 +2505,7 @@ class CoverageLineTests(Fixture):
             with self.subTest(stage=stage):
                 self.assertEqual(lint.command_lines(self.run_dir, "A1", stage=stage, run_option="off", command="x"),
                                  [off])
-        self.assertEqual(lint.command_lines(self.run_dir, "A1", stage="carry-forward", run_option="off", command="x"),
+        self.assertEqual(lint.command_lines(self.run_dir, "A1", stage="reflect-and-revise", run_option="off", command="x"),
                          [])
         self.commit({"a.py": "x = 1\n"})
         self.assertIn(off, nav.render(CORE, self.run_dir, self.start("off")))

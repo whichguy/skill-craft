@@ -649,7 +649,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("plan-return", packet)
         self.assertNotIn("working branch", packet)
 
-    # -- efficiency plan U16: document and carry-forward (rows TD-8, VR-2, VR-3, VR-7) ----------------------------------
+    # -- efficiency plan U16: document and reflect-and-revise (rows TD-8, VR-2, VR-3, VR-7) ----------------------------------
 
     def drive_with_change(self, stage: str) -> dict:
         """``drive_to`` with a code change made at implement, so the item's diff touches code and document is issued."""
@@ -802,7 +802,7 @@ class TestLoopTests(unittest.TestCase):
                 item_scope.commit_item(self.run_dir, state, "W1", "feat: W1")
 
     def test_no_stage_lists_an_item_commit_since_every_route_commits_step_by_step(self):
-        """VR-7 (the carry-forward reference 'W1 verify item commit' printed even when nothing was committed) came from the
+        """VR-7 (the reflect-and-revise reference 'W1 verify item commit' printed even when nothing was committed) came from the
         ask-agent route's single ``feat: <item> <title>`` commit.  Design T §9.1 2c-1 retired it: every route commits
         each step under ``feat(<item>/<step>)``, which no document product names, and nothing builds the locator."""
         self.assertFalse(hasattr(nav, "_item_commit_product"))
@@ -810,18 +810,18 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("item commit", [name for name, _locator, _purpose in nav._PRODUCTS["document"]])
         self.start()
         self.drive_with_change("document")
-        self.drive_to("carry-forward")
+        self.drive_to("reflect-and-revise")
         self.assertNotIn("item commit", self.packet())
 
     def test_a_one_step_one_item_carry_forward_prints_the_short_queue_and_skill_duties(self):
         """VR-2: one step in one item and no pending item, proved from state: the short duties, the path-only queue
         line and a Work line without the trial clause (the short duty 3 names the trial file)."""
         self.start()
-        state = self.drive_to("carry-forward")
+        state = self.drive_to("reflect-and-revise")
         self.assertEqual(loops.one_step_run(state), "W1")
         packet = self.packet()
         flat = " ".join(packet.split())
-        self.assertIn("2. **Queue** (Carry-forward mapping guidance). No item follows W1: omit `work_items`.", flat)
+        self.assertIn("2. **Queue** (Reflect-and-revise mapping guidance). No item follows W1: omit `work_items`.", flat)
         self.assertIn("this run has 1 step in 1 item and no pending item, so no procedure repeated.", flat)
         self.assertIn("write the trial to RUN/notes/<action>-skill-trial.md.", flat)
         self.assertIn("(and a created or updated skill, item 3)", flat)
@@ -835,9 +835,9 @@ class TestLoopTests(unittest.TestCase):
 
     def test_carry_forward_names_the_passed_commands_environment_md_lacks_and_its_notice_never_refuses(self):
         """VR-3: the commands that passed at the item's test stage (its last step runs every command) and
-        KNOWLEDGE/environment.md does not name, in the packet, and one counted notice when carry-forward is accepted."""
+        KNOWLEDGE/environment.md does not name, in the packet, and one counted notice when reflect-and-revise is accepted."""
         self.start()
-        state = self.drive_to("carry-forward")
+        state = self.drive_to("reflect-and-revise")
         environment = self.repo / "docs/shiploop/environment.md"
         environment.parent.mkdir(parents=True, exist_ok=True)
         environment.write_text("# Environment\n\n## Commands\n\n- `sh check.sh fixed.txt`\n")
@@ -847,8 +847,8 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(line, nav.PASSED_UNNAMED + "`test -f retained.txt`. Write each under ## Commands, or say in "
                                "the summary why one does not belong.")
         self.complete(DONE)
-        after = self.settle()  # the carry-forward row is recorded when its Improve child finishes
-        self.assertNotEqual(nav.current_stage(after), "carry-forward")  # accepted: a notice, not a refusal
+        after = self.settle()  # the reflect-and-revise row is recorded when its Improve child finishes
+        self.assertNotEqual(nav.current_stage(after), "reflect-and-revise")  # accepted: a notice, not a refusal
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):  # what the CLI's Improve-stage complete prints after it saves
             nav._knowledge_close(state, after, self.run_dir)
@@ -861,11 +861,11 @@ class TestLoopTests(unittest.TestCase):
     def test_the_carry_forward_duty_is_unchanged_without_the_one_step_item(self):
         """VR-2: multi-step, multi-item and pending-item runs keep today's text byte for byte."""
         for route in prompts.DELEGATIONS:
-            self.assertEqual(prompts.duty("carry-forward", delegation=route),
-                             prompts.duty("carry-forward", delegation=route, one_step_item=None))
-            self.assertIn("2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items`",
-                          prompts.duty("carry-forward", delegation=route))
-            self.assertIn("item 3.7", prompts.duty("carry-forward", delegation=route))
+            self.assertEqual(prompts.duty("reflect-and-revise", delegation=route),
+                             prompts.duty("reflect-and-revise", delegation=route, one_step_item=None))
+            self.assertIn("2. **Queue** (Reflect-and-revise mapping guidance). Read RUN/state.md `work_items`",
+                          prompts.duty("reflect-and-revise", delegation=route))
+            self.assertIn("item 3.7", prompts.duty("reflect-and-revise", delegation=route))
 
     def test_the_commit_lists_are_absent_when_the_changes_are_unknown_and_say_none_changed_when_none(self):
         self.start()
@@ -993,7 +993,7 @@ class TestLoopTests(unittest.TestCase):
         step = next(row for row in state["history"] if row["stage"] == "step-plan")
         self.assertTrue((self.run_dir / "results" / (step["action"] + ".md")).is_file())
 
-    # -- carry-forward's skill decision (it replaced skill-assess and skill-validate, 2026-10-10) -------------------
+    # -- reflect-and-revise's skill decision (it replaced skill-assess and skill-validate, 2026-10-10) -------------------
 
     def skill_file(self, text: str = "---\nname: review\ndescription: Review a change.\n---\n") -> str:
         path = self.repo / ".claude" / "skills" / "review" / "SKILL.md"
@@ -1003,17 +1003,17 @@ class TestLoopTests(unittest.TestCase):
 
     def test_carry_forward_needs_a_skill_decision_with_its_reason(self):
         self.start()
-        self.drive_to("carry-forward")
+        self.drive_to("reflect-and-revise")
         refused = lambda result, message: self.assert_refused(result, message, loop=True, fill=False)  # noqa: E731
-        refused(DONE, r"carry-forward needs skill: \{\"decision\"")
-        refused(dict(DONE, skill={"decision": "maybe", "reason": "x"}), "carry-forward needs skill")
-        refused(dict(DONE, skill={"decision": "none", "reason": " "}), "carry-forward needs skill")
+        refused(DONE, r"reflect-and-revise needs skill: \{\"decision\"")
+        refused(dict(DONE, skill={"decision": "maybe", "reason": "x"}), "reflect-and-revise needs skill")
+        refused(dict(DONE, skill={"decision": "none", "reason": " "}), "reflect-and-revise needs skill")
         self.complete(dict(DONE, skill={"decision": "reuse", "reason": "The review skill already covers it."}))
-        self.assertNotEqual(nav.current_stage(self.settle()), "carry-forward")
+        self.assertNotEqual(nav.current_stage(self.settle()), "reflect-and-revise")
 
     def test_a_created_skill_must_exist_with_frontmatter_and_repeat_evidence(self):
         self.start()
-        self.drive_to("carry-forward")
+        self.drive_to("reflect-and-revise")
         refused = lambda result, message: self.assert_refused(result, message, loop=True, fill=False)  # noqa: E731
         create = {"decision": "create", "reason": "The same review ran in two steps.", "path": ".claude/skills/review/SKILL.md",
                   "evidence": ["S1 and S2 ran the same review"]}
@@ -1024,7 +1024,7 @@ class TestLoopTests(unittest.TestCase):
         refused(dict(DONE, skill=dict(create, evidence=[])), "a create skill decision lists its repeat evidence")
         refused(dict(DONE, skill=dict(create, path="README.md")), "names a SKILL.md that does not exist")
         before = git(self.repo, "rev-parse", "HEAD").strip()
-        # A follow-up item keeps this carry-forward from being the last item's, so no end review runs first.
+        # A follow-up item keeps this reflect-and-revise from being the last item's, so no end review runs first.
         output = self.complete(dict(DONE, skill=create, work_items=[{"id": "W2", "title": "Follow-up"}]))
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
         # ShipLoop commits the created skill; the model commits nothing.
@@ -1036,18 +1036,18 @@ class TestLoopTests(unittest.TestCase):
         self.assertNotIn("SKILL.md", git(self.repo, "status", "--porcelain"))
 
     def test_the_last_items_created_skill_is_committed_after_its_end_review(self):
-        """The last item's carry-forward is accepted when its end-of-work Improve child completes; the skill it created
+        """The last item's reflect-and-revise is accepted when its end-of-work Improve child completes; the skill it created
         must be committed then, as it is when no child runs."""
         self.start()
-        self.drive_to("carry-forward")
+        self.drive_to("reflect-and-revise")
         self.skill_file()
         before = git(self.repo, "rev-parse", "HEAD").strip()
         self.complete(dict(DONE, skill={"decision": "create", "reason": "The same review ran in two steps.",
                                         "path": ".claude/skills/review/SKILL.md", "evidence": ["S1 and S2"]}))
-        self.assertEqual(self.state()["active_improve"]["stage"], "carry-forward")
+        self.assertEqual(self.state()["active_improve"]["stage"], "reflect-and-revise")
         self.settle()
         self.assertNotEqual(git(self.repo, "rev-parse", "HEAD").strip(), before,
-                            "the skill was not committed after the end review accepted carry-forward")
+                            "the skill was not committed after the end review accepted reflect-and-revise")
         self.assertNotIn("SKILL.md", git(self.repo, "status", "--porcelain"))
 
     def test_document_is_issued_when_the_changes_cannot_be_read(self):
@@ -1069,7 +1069,7 @@ class TestLoopTests(unittest.TestCase):
         (self.repo / "docs" / "fleet.md").write_text("# Fleet\n")
         self.complete(DONE)
         state = self.settle()
-        self.assertEqual(nav.current_stage(state), "carry-forward")
+        self.assertEqual(nav.current_stage(state), "reflect-and-revise")
         row = next(row for row in state["history"] if row["stage"] == "document")
         self.assertTrue(row["summary"].startswith(NOT_APPLICABLE), row["summary"])
 
@@ -3666,7 +3666,7 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
 
 class ItemScopePathClassTests(unittest.TestCase):
     def test_a_skill_file_is_classified_by_its_path_class(self):
-        """GUARD: the skill-stage N/A machinery is gone (carry-forward's skill decision replaced it); a skill's card is
+        """GUARD: the skill-stage N/A machinery is gone (reflect-and-revise's skill decision replaced it); a skill's card is
         documentation and its script is code, so document runs for a script change and not for a card change alone."""
         self.assertEqual(item_scope.classify("skills/x/scripts/run.py"), "code")
         self.assertEqual(item_scope.classify("skills/x/SKILL.md"), "docs")

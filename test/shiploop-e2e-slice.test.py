@@ -115,7 +115,7 @@ FAKE_HOST = textwrap.dedent('''
             (worktree / "src" / "feature.js").write_text("module.exports = 1;\\n")
             subprocess.run([*git, "add", "src/feature.js"], check=True, capture_output=True)
             subprocess.run([*git, "commit", "-qm", "feature"], check=True, capture_output=True)
-        if stage == "carry-forward" and mode == "grow":
+        if stage == "reflect-and-revise" and mode == "grow":
             extra["work_items"] = [{"id": "W2", "title": "A follow-up the review found"}]
         state = nav.apply(state, action, {"outcome": "done", "summary": "Fake host", **extra})
         if state.get("active_improve") is not None:
@@ -305,7 +305,7 @@ class StopTests(SliceCase):
         result = step_slice.grade(self.out, Path(seeded["run_dir"]), seeded, CASE, [process])
         self.assertTrue(result["pass"], result)
         self.assertEqual(result["overshoot"], [])
-        self.assertEqual(result["item_history"][-1], {"stage": "carry-forward", "outcome": "done"})
+        self.assertEqual(result["item_history"][-1], {"stage": "reflect-and-revise", "outcome": "done"})
         self.assertEqual(result["stage_at_stop"], "system-test-author")
 
     def test_an_overrun_past_the_stop_fails_no_overshoot(self):
@@ -335,7 +335,7 @@ class StopTests(SliceCase):
         # from it, and the archive the poll still writes covers only the packets the trace never printed.
         self.assertTrue(report["emissions_source"].startswith("run trace"), report["emissions_source"])
         stages = {row["stage"] for row in report["packets"]}
-        inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward"}
+        inner = {"step-plan", "test-spec", "validate-existing", "implement", "test", "document", "reflect-and-revise"}
         self.assertTrue(inner <= stages, stages)  # every inner stage printed at least once
         self.assertGreaterEqual(len(archived), len(inner))
         self.assertTrue((self.out / packets.REPORT_MD).is_file())
@@ -395,7 +395,7 @@ class RealCompleteDriver(SliceCase):
 
 
 class SeededRunsRunTheGatesTests(RealCompleteDriver):
-    """X-2 / TD-5, end to end: a harness-seeded item driven through the real `complete` to carry-forward.
+    """X-2 / TD-5, end to end: a harness-seeded item driven through the real `complete` to reflect-and-revise.
 
     The base run, the mutation check and the item commit run for real once the seed has recorded the item base; on a run seeded
     the way main did (no base) the same drive records both gates as skipped and commits nothing.
@@ -410,7 +410,7 @@ class SeededRunsRunTheGatesTests(RealCompleteDriver):
         self.start_driver(run.seed_run(CLI, self.work, self.out, "Make a.x equal 3.", "step-plan",
                                        work_item={"id": "W1", "title": "Make a.x equal 3"}, delegation="inline",
                                        checks=["sh check.sh fixed.txt"]), base=base)
-        self.drive_to("carry-forward", each=lambda state: nav.current_stage(state) == "implement"
+        self.drive_to("reflect-and-revise", each=lambda state: nav.current_stage(state) == "implement"
                       and (self.repo / "a.py").write_text("x = 2 + 1\n"))
         return self.gate_records()
 
@@ -469,7 +469,7 @@ class SeededCaseFixtureRunsTheGatesTests(RealCompleteDriver):
                 tests = self.repo / "test" / "paginate.test.js"
                 tests.write_text(tests.read_text() + NODE_REGRESSION_TEST)
 
-        self.drive_to("carry-forward", step_plan=plan, each=fix)
+        self.drive_to("reflect-and-revise", step_plan=plan, each=fix)
         base = next(record for record in self.gate_records() if record["schema"] == "shiploop-test-base/v1")
         self.assertNotIn("skipped", base, base)
         # The new test fails on the item's base, as a regression test for the bug must; the suite around it passes.
@@ -1158,7 +1158,7 @@ class ClearThroughMainTests(unittest.TestCase):
 
     def test_three_positions_with_the_prompt_withheld_give_three_records_a_flow_and_the_unfired_one_named(self):
         result = self.main(["implement", "implement"], "--clear-at", "implement", "--clear-at", "implement:inside",
-                           "--clear-at", "improve", "--clear-at", "carry-forward:inside", "--resume-prompt", "withheld")
+                           "--clear-at", "improve", "--clear-at", "reflect-and-revise:inside", "--resume-prompt", "withheld")
         records = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
         self.assertEqual([(r["n"], r["stage"], r["inside"], r["stopped"]["stage"]) for r in records],
                          [(1, "implement", False, "implement"), (2, "implement", True, "implement"),
@@ -1166,7 +1166,7 @@ class ClearThroughMainTests(unittest.TestCase):
         self.assertEqual([s["status"] for s in result["sessions"]], ["cleared", "cleared", "cleared", "slice-complete"])
         self.assertTrue(result["verdicts"]["no_redo"], result["clear"])
         self.assertEqual([c["pass"] for c in result["clear"]], [True, True, True])
-        self.assertEqual(result["clear_unfired"], ["carry-forward:inside"])
+        self.assertEqual(result["clear_unfired"], ["reflect-and-revise:inside"])
         # The condition reached the host, three times and never the opening, and the record says nothing was named.
         sent = self.sent()
         self.assertEqual(len(sent), 4)
@@ -1175,7 +1175,7 @@ class ClearThroughMainTests(unittest.TestCase):
         self.assertEqual([s["told"] for s in sessionlog.read(self.out)][1:], [None, None, None])
         invocation = json.loads((self.out / "invocation.json").read_text())
         self.assertEqual((invocation["clear_at"], invocation["resume_prompt"]),
-                         (["implement", "implement:inside", "improve", "carry-forward:inside"], "withheld"))
+                         (["implement", "implement:inside", "improve", "reflect-and-revise:inside"], "withheld"))
         flow = json.loads((self.out / "flow.json").read_text())
         self.assertEqual([(c["n"], c["stage"], c["inside"], c["pass"]) for c in flow["clear"]],
                          [(1, "implement", False, True), (2, "implement", True, True), (3, "improve", False, True)])

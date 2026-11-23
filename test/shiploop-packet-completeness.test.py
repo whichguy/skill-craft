@@ -111,7 +111,7 @@ class PacketCompletenessTests(unittest.TestCase):
         self.assertEqual(stages, set(stage_spec.STAGE_SPEC))
         reviewed = {stage for stage, kind in self.found if kind == "improve"}
         # implement's rule is "step": an Improve child after every accepted step (owner, 2026-10-10).
-        self.assertEqual(reviewed, set(stage_spec.reviewed_stages("stage")) | {"carry-forward"}
+        self.assertEqual(reviewed, set(stage_spec.reviewed_stages("stage")) | {"reflect-and-revise"}
                          | stage_spec.with_improve("item"))
 
     def test_a_producer_packet_states_purpose_operation_check_output_and_recovery(self) -> None:
@@ -230,7 +230,7 @@ class PacketCompletenessTests(unittest.TestCase):
     # skill_na is gone with the skill stages.
     GATE_WORDS = {
         # The plan's assumptions, and the open items of the later stages (consumer contract X10, 2026-10-11).
-        "assumption": {"plan", "test-spec", "document", "carry-forward", "system-test-author", "system-test",
+        "assumption": {"plan", "test-spec", "document", "reflect-and-revise", "system-test-author", "system-test",
                        "release-plan", "release-verify"},
         "criterion": {"step-plan"},
         "deps": {"step-plan"},
@@ -341,7 +341,7 @@ class ObservedHarmPacketTests(unittest.TestCase):
             text = json.dumps(template_of(packet))
             # An inner stage's template prefills its Until Loop receipt locator: a run file, not product content.
             text = text.replace(str(next(iter(re.findall(r'"([^"]*/loops/[^"]*-terminal\.json)"', text)), "")), "")
-            # The carry-forward template's skill.index placeholder (packet re-cut) says "outside KNOWLEDGE/ and SHIPLOOP.md":
+            # The reflect-and-revise template's skill.index placeholder (packet re-cut) says "outside KNOWLEDGE/ and SHIPLOOP.md":
             # SHIPLOOP.md is ShipLoop's own run file named inside placeholder prose, not a product file.
             text = text.replace("SHIPLOOP.md", "<run file>")
             with self.subTest(stage):

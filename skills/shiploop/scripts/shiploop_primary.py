@@ -17,7 +17,7 @@ deferred assumptions: nothing executed showed it.  The owner's answer is structu
 Coverage of the primary requirements is a property of the plan (F3 of docs/shiploop-planning-speed-and-caps-plan-
 2026-10-28.md; owner, 2026-10-28: a test covers "the primary requirements for that particular stage of the build").
 Each work item names in ``follows`` the R-<n> it serves and the AD-<n> it follows.  A done plan, and a done
-carry-forward that replaces the future queue, leave every primary requirement in some work item's ``follows``, each ID
+reflect-and-revise that replaces the future queue, leave every primary requirement in some work item's ``follows``, each ID
 there with an entry in the living files; the exit is to widen a work item or add one.  A test-spec stays relative to its
 step: one case per ID its step plan's focused commands list.  This replaces TS1 (2026-10-26), which asked the last work
 item's test-spec for a case naming every primary requirement: in the D7 follow-on run (ticket-escalation, 2026-10-28)
@@ -45,9 +45,9 @@ import shiploop_test_loop as test_loop
 STAGE = "spec"
 FIELD = "primary"
 ACCEPTANCE = "product-acceptance"
-# The stages whose done result sets the work queue: plan writes it whole, carry-forward may replace its future part.
-QUEUE_STAGES = ("plan", "carry-forward")
-# Display: how many primary IDs one plan or carry-forward packet lists; a spec with more says so and names where the rest are.
+# The stages whose done result sets the work queue: plan writes it whole, reflect-and-revise may replace its future part.
+QUEUE_STAGES = ("plan", "reflect-and-revise")
+# Display: how many primary IDs one plan or reflect-and-revise packet lists; a spec with more says so and names where the rest are.
 PRIMARY_SHOWN = 6
 # The template's one entry, which states the bar; a text wrapped in angle brackets is a placeholder.
 PLACEHOLDER = "<R-<n> that carries an outcome the user asked for directly>"
@@ -154,11 +154,11 @@ def _follows(row: Any) -> List[str]:
 
 def queue_after(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> Optional[List[Mapping[str, Any]]]:
     """The work queue a done ``result`` at ``stage`` leaves, or None when it leaves the queue as it was: at plan, its
-    ``work_items`` (the retained queue when it gives none); at carry-forward, the completed and current items and then
+    ``work_items`` (the retained queue when it gives none); at reflect-and-revise, the completed and current items and then
     the future queue it gives."""
     if stage == "plan":
         rows = result.get("work_items", state.get("work_items"))
-    elif stage == "carry-forward" and "work_items" in result:
+    elif stage == "reflect-and-revise" and "work_items" in result:
         index = state.get("work_index")
         kept = list(state.get("work_items") or ())[: index + 1] if isinstance(index, int) else []
         rows = [*kept, *(result.get("work_items") or ())]
@@ -177,7 +177,7 @@ def followers(queue: List[Mapping[str, Any]]) -> Dict[str, List[str]]:
 
 
 def check_queue(state: Mapping[str, Any], stage: str, result: Any) -> None:
-    """A done plan, or a done carry-forward that replaces the future queue: each ``follows`` ID its work items give has
+    """A done plan, or a done reflect-and-revise that replaces the future queue: each ``follows`` ID its work items give has
     an entry in the living files, and every primary requirement is in the ``follows`` of some work item of the queue it
     leaves (see the module docstring)."""
     if stage not in QUEUE_STAGES or not isinstance(result, Mapping) or result.get("outcome") != "done":
@@ -192,7 +192,7 @@ def check_queue(state: Mapping[str, Any], stage: str, result: Any) -> None:
                                 if ident not in known))
     _need(not absent, "work_items follows names " + ", ".join(absent) + ", with no entry (a line that starts with the "
           "ID) in " + str(_spec_path(repo)) + " (R-) or " + str(architecture) + " (AD-): cite only IDs with an entry"
-          + ("" if stage == "carry-forward" else ", or write the entry first"))
+          + ("" if stage == "reflect-and-revise" else ", or write the entry first"))
     ids = primary_ids(state)
     if not ids:
         return
@@ -251,7 +251,7 @@ def check_unverified(root: Path, state: Mapping[str, Any], stage: str, result: A
 
 def packet_lines(root: Path, state: Mapping[str, Any], stage: str) -> List[str]:
     """The required lines of the stages whose gate reads the primary requirements, so the rule is read before the result
-    is written: plan and carry-forward get them with the work items whose follows name each so far; product-acceptance
+    is written: plan and reflect-and-revise get them with the work items whose follows name each so far; product-acceptance
     gets them with the tests that passed for each."""
     if state.get("status") != "active" or state.get("active_improve"):
         return []

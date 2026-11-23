@@ -1,9 +1,9 @@
 {
-  "stage": "carry-forward",
-  "about": "In a one-step run with an owed owner note N1 requesting wrap-around keyboard navigation, carry-forward settles N1 as applied, queues the follow-up work item with follows, revises R-1 in place in docs/shiploop/spec.md, and leaves R-2 and product source files untouched.",
+  "stage": "reflect-and-revise",
+  "about": "In a one-step run with an owed owner note N1 requesting wrap-around keyboard navigation, reflect-and-revise settles N1 as applied, queues the follow-up work item with follows, revises R-1 in place in docs/shiploop/spec.md, and leaves R-2 and product source files untouched.",
   "tags": [
     "owner-notes",
-    "carry-forward",
+    "reflect-and-revise",
     "one-step"
   ],
   "tiers": [
@@ -93,14 +93,14 @@
   "planted": [
     {
       "id": "P1",
-      "what": "One-step carry-forward settles owed owner note N1 with did='applied' and item, queues the follow-up work item in work_items carrying follows, and revises R-1 in place in docs/shiploop/spec.md without altering R-2.",
+      "what": "One-step reflect-and-revise settles owed owner note N1 with did='applied' and item, queues the follow-up work item in work_items carrying follows, and revises R-1 in place in docs/shiploop/spec.md without altering R-2.",
       "signature": "notes row N1 applied with item matching queued work_items entry and R-1 revised in docs/shiploop/spec.md"
     }
   ],
   "controls": [
     {
       "id": "C1",
-      "what": "carry-forward finishes done, keeps R-2 unchanged in docs/shiploop/spec.md, and makes no product source edits outside docs/shiploop/**."
+      "what": "reflect-and-revise finishes done, keeps R-2 unchanged in docs/shiploop/spec.md, and makes no product source edits outside docs/shiploop/**."
     }
   ],
   "render": [
@@ -108,7 +108,7 @@
       "packet_issued": true
     },
     {
-      "current_stage": "carry-forward"
+      "current_stage": "reflect-and-revise"
     },
     {
       "proves": "P1",
@@ -132,7 +132,7 @@
     },
     {
       "proves": "P1",
-      "command": "python3 \"$STAGE_ORACLE/check_carry_forward.py\" P1",
+      "command": "python3 \"$STAGE_ORACLE/check_reflect_and_revise.py\" P1",
       "exit": 0
     },
     {
@@ -143,7 +143,7 @@
     },
     {
       "proves": "C1",
-      "command": "python3 \"$STAGE_ORACLE/check_carry_forward.py\" C1",
+      "command": "python3 \"$STAGE_ORACLE/check_reflect_and_revise.py\" C1",
       "exit": 0
     },
     {

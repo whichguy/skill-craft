@@ -11,7 +11,7 @@
       "id": "A1",
       "assumption": "TC-LAYOUT in wide and dark contexts remains unobserved.",
       "disposition": "open",
-      "due_stage": "carry-forward",
+      "due_stage": "reflect-and-revise",
       "owner": "next implementer",
       "reason": "Only a narrow light observation was captured.",
       "settle": "Run the remaining browser contexts and retain their records."

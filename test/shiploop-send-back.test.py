@@ -149,7 +149,7 @@ class SendBackTests(unittest.TestCase):
         self.assertEqual(spec.with_outcome("send-back"),
                          ("test-spec", "validate-existing", "implement", "test", "document", "system-test",
                           "release-verify"))
-        for stage in ("intake", "plan", "step-plan", "carry-forward", "system-test-author", "release-plan", "release"):
+        for stage in ("intake", "plan", "step-plan", "reflect-and-revise", "system-test-author", "release-plan", "release"):
             with self.subTest(stage=stage):
                 state = drive_to(stage)
                 with self.assertRaisesRegex(nav.NavigatorError, "send-back sends a result back to the stage that wrote "
@@ -206,7 +206,7 @@ class SendBackTests(unittest.TestCase):
         self.assertIn('"failed_expectations": [{"id": "E1"', "\n".join(nav._outcome_shape_lines("validate-existing")))
         self.assertEqual(nav._STAGE_SEND_BACK_FIELDS, {"validate-existing": ("failed_expectations",)})
         # As printed, cold: in the packet of every inner stage that sends back, in no other packet.
-        for stage in ("intake", "plan", "step-plan", "test-spec", "implement", "test", "document", "carry-forward",
+        for stage in ("intake", "plan", "step-plan", "test-spec", "implement", "test", "document", "reflect-and-revise",
                       "system-test", "release-verify", "handoff"):
             with self.subTest(stage=stage):
                 packet = nav.render(dry_run.CORE, dry_run.RUN, drive_to(stage))
@@ -294,7 +294,7 @@ class SendBackTests(unittest.TestCase):
         state = walk(state, rows[step_plan:test_spec])
         self.assertEqual(nav.current_stage(state), "test-spec")
         # W2 reaches its own step plan once W1 finishes: nothing of W1's plans or send-back result is named.
-        first_carry = next(i for i, row in enumerate(rows) if row["at"] == "carry-forward")
+        first_carry = next(i for i, row in enumerate(rows) if row["at"] == "reflect-and-revise")
         second_item = next(i for i, row in enumerate(rows) if i > first_carry and row["at"] == "step-plan")
         state = walk(state, rows[test_spec:second_item])
         self.assertEqual(state["work_items"][state["work_index"]]["id"], "W2")

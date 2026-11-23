@@ -26,7 +26,7 @@ BLOCKS = frozenset({
     "reconciliation",          # selected-case reconciliation
     "code-craft",              # the full Code craft rubric: implement only (owner, 2026-10-11)
     "interaction-design",      # actors, channels, events and UI planning
-    "work-items",              # how a plan or carry-forward records work-item context
+    "work-items",              # how a plan or reflect-and-revise records work-item context
 })
 
 # Assistive tool runs the script performs around a stage.
@@ -334,7 +334,7 @@ _ROWS = (
     # ------------------------------------------------------------------ inner
     # Seven stages in four phases (owner decision 2026-10-10, eight in five; design T §8 and §9.1 2b-4, 2026-10-28: verify
     # retired): Plan (step-plan, test-spec); Validate existing; Build (implement, test and document once per step, an
-    # Improve stage after each document, then ShipLoop's commit of the step); Carry forward.  Each stage's work
+    # Improve stage after each document, then ShipLoop's commit of the step); Reflect and revise.  Each stage's work
     # runs as one Until Loop with a ShipLoop-written contract (entry run loop-contract); its exit conditions are the
     # done_when lines below, and the gate rechecks by script what it can.  Evidence and the coverage review of the
     # seventeen stages this replaces: docs/experiments/inner-loop-redesign-20261010/.
@@ -477,9 +477,9 @@ _ROWS = (
         blocks=frozenset(),        outcomes=("done", "blocked"),
     ),
     Stage(
-        "carry-forward", "inner",
+        "reflect-and-revise", "inner",
         goal='Close the item: update the knowledge home; the future queue in `work_items`; the reusable-skill decision in `skill`.',
-        short_goal="carry this item's learning forward",
+        short_goal="reflect on the item and revise knowledge and the queue",
         done_when=(
             "every still-required future item is in the queue, in prerequisite order",
             "learnings and durable knowledge are recorded in the knowledge home, not in run notes",
@@ -692,7 +692,7 @@ def with_improve(rule: str) -> frozenset[str]:
 # Improve stage.  A value is registered together with the behaviour it selects, so no commit records
 # a value the engine ignores.  ``stage`` is today's behaviour: every stage whose rule is ``always``
 # starts its own Improve stage.  ``none`` starts none at the five planning stages the option covers; the
-# Improve stages after system-test-author and release-plan and the last carry-forward's rule are not the
+# Improve stages after system-test-author and release-plan and the last reflect-and-revise's rule are not the
 # option's, so they keep running.  New CLI-created runs record DEFAULT_PLANNING_REVIEW; a saved run
 # without the key is refused (one supported version), and no verb changes it mid-run.
 PLANNING_REVIEW_MODES = ("stage", "none")

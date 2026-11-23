@@ -111,7 +111,7 @@ or annotation as a safe writer.
 At cold resume and immediately before an external operation, recheck the
 selected interface, non-secret target role and required authority with the
 documented safe probe. Never execute a probe merely because a tool description
-suggests it is harmless. A changed or failed result becomes a carry-forward
+suggests it is harmless. A changed or failed result becomes a reflect-and-revise
 observation, a revised future queue when compatible, or a pause for new
 authority. It cannot silently rewrite the accepted baseline.
 

@@ -109,7 +109,7 @@ its commit.
   returned neither text nor a tool call. Grok dispatched only the `shutdown` Stop, never `end_turn`, so the
   pre-installed keepalive (5 decisions, all allow) could not refuse; the harness's resume kept the run alive.
 - Foreground rule worked: test-refine's callback, which killed run 2, was accepted in 58 s; regression,
-  verify (reruns every step-plan command), integrate, carry-forward and all 9 outer stages followed.
+  verify (reruns every step-plan command), integrate, reflect-and-revise and all 9 outer stages followed.
 - Context: 33 K to 399 K tokens per call, then Grok auto-compacted at ~400 K to 56 K; the model re-read the
   skill and references (+54 K in two minutes). 15 host-truncated outputs (25-50 KB ShipLoop packets).
 - Product: 10/10 node:test, all harness checks; shots after the win rejected with 400 {error} (documented as
@@ -132,7 +132,7 @@ its commit.
 - Outcome: PASS in one Grok session, no resumes: 4,291 s (71.5 min), 314 turns, $25.09 reported; done at
   revision 52; all four checks pass in work/. The handoff returned the game as working-tree changes, not a commit.
 - Timeline: preparation ~28 min (spec 8, test-strategy 6: checks are "planned until they actually run"),
-  W1 through carry-forward ~26 min with three implement steps, outer stages ~18 min (release-plan 7.3).
+  W1 through reflect-and-revise ~26 min with three implement steps, outer stages ~18 min (release-plan 7.3).
 - Intake's new interaction/state questions went to discovery, not the user; no awaiting stall.
 - Context: one compaction at ~392 K (-> 52 K); 17 truncated outputs, including Improve's SKILL.md (~49 KB
   printed with cat) and Improve bind packets up to 52.6 KB.
@@ -155,7 +155,7 @@ its commit.
   stopped-child restart route; one more at start. A refused tool call ends a headless turn; resume recovered
   every time. Fixed on the unreleased branch: workspace start bootstraps an empty directory, and
   `improve-start --restart-stopped` archives a stopped child itself.
-- Costliest stages (turns/minutes): carry-forward 76/17.7 (the end-of-work Improve), system-test-author
+- Costliest stages (turns/minutes): reflect-and-revise 76/17.7 (the end-of-work Improve), system-test-author
   63/16.9 (a headless-browser check that first could not load the page; its Improve child stopped), product-
   acceptance 31/6.9, release-plan 29/6.0, spec 26/7.7. Implement steps: 5 + 21 turns.
 - Context: peak ~400 K twice. Each Improve child's start contract (~6 KB) was hand-written by the model, and
@@ -187,7 +187,7 @@ its commit.
   when integrate is accepted.
 - Also refused once: workspace start ("workspace root parent does not exist" for .shiploop-runs/<name>),
   fixed on the branch; three refused `complete` calls, all recovered.
-- Costliest stages: implement 37 turns (the scoring step), spec 34, test-strategy 26, carry-forward 22,
+- Costliest stages: implement 37 turns (the scoring step), spec 34, test-strategy 26, reflect-and-revise 22,
   research 20. No system-test struggle this time: run 6's browser check was reused (6 turns).
 - Harness: the retention checks worked and would have caught a rebuild. Next evaluation criterion to add:
   "source ends committed" (HEAD moved, nothing untracked) as a scored check, not only a fact.
@@ -204,7 +204,7 @@ its commit.
 - The 3 remaining cancellations were the model's own inline probes and checks (a heredoc Node server for a
   planning experiment, a `node -e` check in the end-of-work review), not mechanical steps. Hypothesis to
   test: packets that say "write probe scripts to a file and run the file" draw fewer auto-mode refusals.
-- Costliest stages: spec 40 turns/10.9 min, carry-forward 32/6.0 (run 6: 76), integration-verify 22,
+- Costliest stages: spec 40 turns/10.9 min, reflect-and-revise 32/6.0 (run 6: 76), integration-verify 22,
   integrate 17, research 16. System-test-author 14 (run 6: 63).
 - Release CI of 1.5.0 failed on two tests not updated for improve-start (Grok adapter allowlist, Improve
   schedule lead line) plus the adapter-hash-bound trace fixtures; the local quick tier had not selected
@@ -522,7 +522,7 @@ harness-FAIL, 7 cancelled; 8b on 1.6.0 PASS committed, 4 cancelled, 0 ShipLoop f
   compare Luna max's spec 79 m on 2026-09-27. 475 turns, 16 Improve children, 0 ShipLoop command failures,
   0 model glue.
 - Session handling: the first session was killed at 1798 s by the 30-minute background-task limit,
-  mid carry-forward Improve; `--resume-run` finished the run in place in 266 s ($1.79 for the resumed
+  mid reflect-and-revise Improve; `--resume-run` finished the run in place in 266 s ($1.79 for the resumed
   session; a killed session reports no cost, so the total is unknown). Launch long runs as background
   tasks and resume after each kill; never detach with nohup (owner preference). On Claude the resume
   prompt names bare `shiploop next`, so the model spent ~17 s finding the CLI.
@@ -782,7 +782,7 @@ recovers the chain without a person; every verdict passes, including `recovery`.
   the completion packet reads "Left in your repository: 6 branch(es) from this run, including 2 kept
   attempt worktree(s)".
 
-### Backchain ledger — Luna max battleship, 1.16.1 — 2026-10-04 — status: interim (run still active; the carry-forward and product-acceptance loops are not reached yet)
+### Backchain ledger — Luna max battleship, 1.16.1 — 2026-10-04 — status: interim (run still active; the reflect-and-revise and product-acceptance loops are not reached yet)
 
 Question: what did the two Backchain loops add, and what did they cost? Evidence: `scratch/backchain-plan/` and `scratch/backchain-step-plan/`
 in `/Users/dadleet/e2e-runs/20261003/v1161-battleship-luna/.shiploop-runs/work-20261003-225401-173a04/run/` (`review-records/`, `backchain-result.md`,
@@ -845,7 +845,7 @@ candidate recovered from `pass-reports/pass-01-audit-input.md` (the script kept 
 Question (owner): the planning stages look excessively large; is a planning prompt wrong? Evidence: `graph-dry-run` per release, the Luna 1.16.1 and Sonnet 1.16.0 battleship runs.
 
 - **Packets barely regressed.** Producer packets (KB), full packet at spec / test-strategy / plan / test-spec / step-plan stays 29-44 at 1.0.0 and 37 / 31 / 50 / 49 / 28 at 1.16.1 (20-24% over the whole range). The printed head shrank tenfold at 1.5.0 (ff1e33b5 split head and file) and grew about 0.9 KB at 1.12.0 (91915885, the S-15 narrative).
-- **The named reading grew 40% at 1.16.0.** `db61a4a7` (2026-09-28, "select installed Backchain and Until Loop resources explicitly", a justified fix for stalled planning) prints the six-file resource list at every `BACKCHAIN_STAGES` stage (spec, plan, step-plan, carry-forward, product-acceptance): reading per planning stage 220 KB at 1.15.0, 306 KB at 1.16.0. Before it the loop was probably unreachable (it required an Until Loop SKILL.md the bundle does not ship).
+- **The named reading grew 40% at 1.16.0.** `db61a4a7` (2026-09-28, "select installed Backchain and Until Loop resources explicitly", a justified fix for stalled planning) prints the six-file resource list at every `BACKCHAIN_STAGES` stage (spec, plan, step-plan, reflect-and-revise, product-acceptance): reading per planning stage 220 KB at 1.15.0, 306 KB at 1.16.0. Before it the loop was probably unreachable (it required an Until Loop SKILL.md the bundle does not ship).
 - **A packet invited a route it forbids.** The step-plan caller packet names action `plan`, stage `draft`; step-plan allows audit and, after a finding, repair or revise. The loop cost 136 of 592 planning minutes (23%). **Superseded in part, 2026-10-04 (the text is inconsistent, but it is not shown to be the cause):** the Luna events show the model chose a whole `plan`/`draft` loop before reading any step-plan packet text. The 5,250 B head it received after the select-work `complete` (events.jsonl) never mentions Backchain, and its next message announces the Backchain planning skill before it opens the full packet. The likelier source is context carried over from the plan-stage loop and the stage-less "whole `plan`/`draft`" wording in SKILL.md; cause unproven (one run). I2b therefore claims measured size and a consistent gate, not a loop fix (`docs/shiploop-i2b-trim-planning-prompts-plan-2026-10-04.md`).
 - **Time by cause, Luna first work item, 592 min (inferred from timestamps):** step-plan loop 136 (23%), plan loop 128 (22%), Improve review loops 186 (31%), Improve opening files 35 (6%), producer stage work 107 (18%). Sonnet got the same packets and planned in about 4 minutes (stages 0.3-1.4 min; whole run 19 min), so packet size is not the driver; effort and the loops are. Luna ran at effort max (`invocation.json`).
 - **Same request, planning artifacts (KB), Luna / Sonnet:** spec 20.8 / 2.0, test-strategy 42.6 / 3.5, plan 32.1 / 0.8, test-spec 27.3 / 2.3; Improve passes per stage 4/11/3/3/5 against 3/3/3/1/3. Luna's loop instructions scale with the number of outcomes (a criterion and confirmation each), the 42-lens screen and the exact-replay rule do not.
@@ -859,7 +859,7 @@ Question (owner): the planning stages look excessively large; is a planning prom
 - `export.py` on the active Luna 1.16.1 run, Sonnet battleship and Sonnet hello: 36, 48 and 35 accepted actions; wall time 1024, 19.1 and 13.4 min; planning documents 146 KB, 15 KB and 8.5 KB; Improve 7 children and 21 passes, 10 and 24, 8 and 12. Stage minutes come from accept deltas: Luna test-strategy 94.3 and plan 196.4 where the harness metric reports 223.6 and 39.2 (confirmed again). Its plan-loop pass minutes (11, 15, 26, 18, 17, 12, 4) and step-plan passes (42, 55, 6, 4) match the hand-built ledger.
 - **Defect:** `metrics.json` `improve_children` counts each child's directory and its `-bind.md` file (16 for 8 children), so earlier notes saying "14 children" for the Luna run meant 7. The exporter counts directories.
 - **Defect (fixed, 04af25ba):** a regrade of a finished run was refused by the version gate whenever the branch had unpushed commits, and `test_resume_run_on_a_finished_run_regrades_it_without_starting_a_host` depended on real git state. A regrade starts no host, so the gate no longer applies and the test patches the gate to a failing value.
-- **Caveat:** for an active run `metrics.json` is stale (refusals and glue as of the harness's last write), so the page's Luna run uses the live counts; `carry-forward` belongs to Integrate in the stage spec, so Luna reads Integrate running.
+- **Caveat:** for an active run `metrics.json` is stale (refusals and glue as of the harness's last write), so the page's Luna run uses the live counts; `reflect-and-revise` belongs to Integrate in the stage spec, so Luna reads Integrate running.
 
 ### Backchain graph check, I1 and I2 — 2026-10-04 — status: measured on a recorded corpus (88 verdicts)
 
@@ -915,7 +915,7 @@ Next: when the Luna run ends, re-run `callback_failures.py` at the new cutoffs i
 
 ### I2b prompt trim, built locally - 2026-10-04 - status: built, live behaviour unverified
 
-Question: can the Backchain loop text and its resource list print only at `plan`, the one stage that may request a whole `plan`/`draft`, while spec, step-plan, carry-forward and product-acceptance keep the read-only audit route, without dropping a justified obligation? Anchors: S-7, S-6, S-3, S-5 and the owner rule "concise, aimed at meaningful change" (2026-10-04). Plan: `docs/shiploop-i2b-trim-planning-prompts-plan-2026-10-04.md`. Base f9096bb1 (tip of f3-budget-all-backchain-stages-f05ed2: it holds the validator verb and `BACKCHAIN_CHECK` line, the contract budget text 112b239c and the exporter). Built in worktree i2b-cd98de, branch i2b-trim-planning-prompts-cd98de, one local commit; not pushed, not released, no E2E run started.
+Question: can the Backchain loop text and its resource list print only at `plan`, the one stage that may request a whole `plan`/`draft`, while spec, step-plan, reflect-and-revise and product-acceptance keep the read-only audit route, without dropping a justified obligation? Anchors: S-7, S-6, S-3, S-5 and the owner rule "concise, aimed at meaningful change" (2026-10-04). Plan: `docs/shiploop-i2b-trim-planning-prompts-plan-2026-10-04.md`. Base f9096bb1 (tip of f3-budget-all-backchain-stages-f05ed2: it holds the validator verb and `BACKCHAIN_CHECK` line, the contract budget text 112b239c and the exporter). Built in worktree i2b-cd98de, branch i2b-trim-planning-prompts-cd98de, one local commit; not pushed, not released, no E2E run started.
 
 **What changed (symbols, not line numbers).**
 - `shiploop_prompts.py`: `_backchain_guidance` is assembled from four constants, `_BACKCHAIN_ROUTE` (all stages), `_BACKCHAIN_PLAN_CALL` (plan only: resource gate, record rules, plan-only child, and the E4 sentence that sends capability, old-custom-loop and no-fallback rules to the guide's "Source-aware native caller"), `_BACKCHAIN_AUDIT` (the four audit stages; E1 adds "A whole `plan`/`draft` is requested only at `plan`" and "A MISSING loop resource blocks repair/revise; no other install substitutes") and `_BACKCHAIN_IMPROVE_OWNER`. `BACKCHAIN_AUDIT_RESOURCE` is the one definition of the audit resource's label inside `resolved_backchain_resources`; `backchain_skills_root()` is the one resolver of the skills root.
@@ -932,7 +932,7 @@ Question: can the Backchain loop text and its resource list print only at `plan`
 | spec | 688 / 301 | 5,099 / 2,106 | 35,185 / 31,379 | yes / no | no / yes |
 | plan | 707 / 480 | 5,303 / 3,397 | 46,715 / 44,809 | yes / yes | no / no |
 | step-plan | 688 / 301 | 5,099 / 2,106 | 46,592 / 42,786 | yes / no | no / yes |
-| carry-forward | 688 / 301 | 5,099 / 2,106 | 33,130 / 29,324 | yes / no | no / yes |
+| reflect-and-revise | 688 / 301 | 5,099 / 2,106 | 33,130 / 29,324 | yes / no | no / yes |
 | product-acceptance | 688 / 301 | 5,099 / 2,106 | 31,031 / 27,225 | yes / no | no / yes |
 
 Improve-owner text, every Backchain stage: 509 to 132 words, 3,846 to 946 bytes. Each audit-stage packet is 3,806 B smaller (8-12%), plan 1,906 B (4%). The before figures equal the plan's measurement of 1.18.0-era text plus the local budget and check line (688/5,099 and 707/5,303), so the base is the one the plan assumed. The after figures run above the plan's patch-only 454/281/132 by E4 (+26 words at plan) and E1 plus the status-line wording (+20 words at the audit stages), as the plan expected. Word and byte counts are recorded, not pinned.
@@ -974,7 +974,7 @@ Related commits: db61a4a7 (resource list at every Backchain stage), 112b239c (co
   | 1.19.0 gate | 194 | $5.37 | 8 / 14 | 5 of 8 |
   | 1.19.0 repeat | 254 | $7.33 | 11 / 19 | 7 of 11 |
 
-  The rise starts before this batch (1.18.0 is already 17% above 1.16.1), the repeat split the request into two work items, and the largest per-stage growth is in the Improve-wrapped stages (carry-forward 4, 8, 18 and 12 turns; spec 18, 24, 24 and 36) *[superseded 2026-10-04: those stage figures were attributed from result-file times; A2 attributes from the engine's accept stamps, which gives carry-forward 5, 8, 13 and 12 and spec 19, 30, 26 and 40 for the same four runs, totals unchanged; see "A1 to A3 landing and review"]*. With one or two samples per release only the direction is established. The earlier expectation of 143 to 155 turns and $3.3 to $3.7 was a band inferred from two runs; it is removed with its reason on the page (iteration I2r), and action a14 asks what Improve's first pass changes before any text is touched. Evidence for all four runs: `test/shiploop_e2e/evidence/` (the 1.18.0 run is a checkout of the published commit, not a marketplace install).
+  The rise starts before this batch (1.18.0 is already 17% above 1.16.1), the repeat split the request into two work items, and the largest per-stage growth is in the Improve-wrapped stages (reflect-and-revise 4, 8, 18 and 12 turns; spec 18, 24, 24 and 36) *[superseded 2026-10-04: those stage figures were attributed from result-file times; A2 attributes from the engine's accept stamps, which gives reflect-and-revise 5, 8, 13 and 12 and spec 19, 30, 26 and 40 for the same four runs, totals unchanged; see "A1 to A3 landing and review"]*. With one or two samples per release only the direction is established. The earlier expectation of 143 to 155 turns and $3.3 to $3.7 was a band inferred from two runs; it is removed with its reason on the page (iteration I2r), and action a14 asks what Improve's first pass changes before any text is touched. Evidence for all four runs: `test/shiploop_e2e/evidence/` (the 1.18.0 run is a checkout of the published commit, not a marketplace install).
 - **Not verified live by this run.** A Sonnet hello starts no Backchain loop, so the `backchain-check` receipt, the size guard inside a looped stage and the I2b trim are covered by tests only until the next looped Luna run; the step-plan whole-loop question stays observational (observation o32).
 - **Baseline rows:** the two 1.19.0 marketplace rows (194 and 254 turns) are committed with this entry; the 1.18.0 checkout row is not (it is a checkout, kept in its evidence file).
 
@@ -1011,7 +1011,7 @@ record: `docs/shiploop-graph-engineering-comparison-2026-10-04.md`.
 - **An unfinished run now attributes the stage it never accepted** (an `incomplete` row), which is
   the stage an attrition question is about. Of the 11 recorded protocol-4 runs, 7 reached
   `handoff`, 1 blocked at `plan` and 3 were left active; the worst now reports
-  `carry-forward never accepted`. *[superseded 2026-10-04: that snapshot was taken while the Luna battleship run was still in flight; it ended `blocked` at `system-test` (see "Luna max battleship on 1.16.1, final"), so that run is no longer one of the active ones (the design document, section 4.2, counts two abandoned runs that stay active in the record) and its unaccepted stage is `system-test`.]*
+  `reflect-and-revise never accepted`. *[superseded 2026-10-04: that snapshot was taken while the Luna battleship run was still in flight; it ended `blocked` at `system-test` (see "Luna max battleship on 1.16.1, final"), so that run is no longer one of the active ones (the design document, section 4.2, counts two abandoned runs that stay active in the record) and its unaccepted stage is `system-test`.]*
 - **`result.json` and each baseline row carry `termination`**: process status and return code,
   each session's own stop reason, why the driver stopped resuming, and the engine's status and
   unaccepted stage. `unknown` is kept rather than guessed, and a ShipLoop refusal is never
@@ -1040,9 +1040,9 @@ Question: do the landed A1 to A3 changes hold up under adversarial review, inclu
 
 **What this commit fixes (docs and journal only).** Retrospective admission records for A2 and A3 and a corrected A1 record in the design document; symbol citations instead of line numbers; test count 7 (not 6); the two attributions (metrics and exporter) stated with what each is used for (first stage 16.0 s in the exporter, 21.3 s in `metrics.json` on the 1.19.0 hello gate run); the README's per-stage, baseline-identity and termination text; and the superseded marks below. Baseline rows: `baselines.jsonl` held 13 rows at A2's commit (not 12) and holds 15 now; none names host, model or effort, so none is a baseline.
 
-**Superseded by this entry (2026-10-04, marked in place above).** The 1.19.0 hello per-stage figures attributed from file times (carry-forward 4, 8, 18, 12 turns; spec 18, 24, 24, 36) become 5, 8, 13, 12 and 19, 30, 26, 40 under A2's attribution, recomputed here on the same four run directories with `metrics.collect`; totals are unchanged. The "Measurement caveats" bullet's mtime and `cost_share_usd` statements, the "Harness contract change" bullets (12 rows; three runs left active with the worst at carry-forward; a non-zero `could_not_run` is an environment problem, not a product one) are marked with their reasons.
+**Superseded by this entry (2026-10-04, marked in place above).** The 1.19.0 hello per-stage figures attributed from file times (reflect-and-revise 4, 8, 18, 12 turns; spec 18, 24, 24, 36) become 5, 8, 13, 12 and 19, 30, 26, 40 under A2's attribution, recomputed here on the same four run directories with `metrics.collect`; totals are unchanged. The "Measurement caveats" bullet's mtime and `cost_share_usd` statements, the "Harness contract change" bullets (12 rows; three runs left active with the worst at reflect-and-revise; a non-zero `could_not_run` is an environment problem, not a product one) are marked with their reasons.
 
-**Not fixed, by decision** (design document, section 10.4): whole-second engine stamps move the closing turn of a stage into the next one (a recount on four hello runs: a turn within the second after the stamp at 50 of 157 boundaries, so read stage turns as plus or minus one); a recreated `timeline.json` looks like real stamps; a timeout whose partial output already shows failing tests is `could-not-run`; a command that fails to start inside `/bin/sh -c` (126 or 127) counts as a product failure; a harness killed with its host writes no termination record. The exporter's separate stage minutes and the wall-clock inclusion of interruption gaps are documented, not changed. An owner decision the skills follow-up left open: the end-of-work review gate (`carry-forward`, which allows only done, repeat and blocked) has no remedy outcome for a command that cannot run.
+**Not fixed, by decision** (design document, section 10.4): whole-second engine stamps move the closing turn of a stage into the next one (a recount on four hello runs: a turn within the second after the stamp at 50 of 157 boundaries, so read stage turns as plus or minus one); a recreated `timeline.json` looks like real stamps; a timeout whose partial output already shows failing tests is `could-not-run`; a command that fails to start inside `/bin/sh -c` (126 or 127) counts as a product failure; a harness killed with its host writes no termination record. The exporter's separate stage minutes and the wall-clock inclusion of interruption gaps are documented, not changed. An owner decision the skills follow-up left open: the end-of-work review gate (`reflect-and-revise`, which allows only done, repeat and blocked) has no remedy outcome for a command that cannot run.
 
 **Unverified.** The follow-up fixes (two implementer branches, not merged when this was written: the dispositions in the evidence README say "see follow-up"); every behaviour above in a live run; the 9 rejected candidates, which the export does not carry. The integrator updates this entry and the evidence README after merging the follow-ups.
 
@@ -1395,7 +1395,7 @@ Base: `c895d921` on origin/main. Commits: R10 `ebc68f00`, R11 `3ad31bf8`, R15 th
 - *Compaction facts.* 34 main-thread compactions (15 + 19) and 6 in the sub-agent. Every one is preceded directly by its request. The sub-agent file also holds a seventh `compacted` record, stamped at the fork, whose request is in the parent's file: inherited history, not counted (a compaction counts only when its request is a record in the same file). The `token_count` after a `compacted` record reports the shrunken context (input 0, first one 12,298) and is not a call; 35 other `token_count` events (12 + 19 + 4) repeat the previous event's cumulative total.
 - *Main thread against sub-agents.* A stage window cannot tell a sub-agent's work from the thread waiting for it, so headline and per-stage figures are the main thread's and the sub-agent's are summed once under `subagents` (Luna: 314 calls, peak 217,302, 6 compactions). The resumed session is a second root thread in a new file and adds up.
 - *Peak is `total_tokens` of the heaviest call: its input plus its own output.* Luna: 251,867 of 258,400 (97.5%), in the resumed session's `static-checks` stage; the first file's own peak is 250,042 (96.8%), the number first reported. The input side alone, which is what Claude's `input_peak` measures, peaks at 244,669 (94.7%), so a Codex peak reads higher than a Claude one by up to the call's output: compare within a host.
-- *Real run, `metrics.collect` over `20261003/v1161-battleship-luna` (reads 168 MB in 0.6 s, the reader about 0.3 s; memory holds a few thousand tuples):* `model_calls` 2,565, `window_tokens` 258,400, `input_peak` 251,867, `compactions` 34, `unmeasured` = [cancelled_tool_calls, knowledge_reads, stage_turns, truncated_outputs] (compactions left it). Per stage: system-test-author 106 calls, peak 246,167 (95.3%), 2 compactions; carry-forward 184 calls, peak 246,408 (95.4%), 3 compactions; the heaviest stage is static-checks, 251,867 (97.5%). Per-stage calls sum to 2,562: three main-thread calls come after the last accepted stage (0.5, 8.7 and 56.6 s after the blocked `system-test` result) and belong to no window; all 34 compactions are in a window.
+- *Real run, `metrics.collect` over `20261003/v1161-battleship-luna` (reads 168 MB in 0.6 s, the reader about 0.3 s; memory holds a few thousand tuples):* `model_calls` 2,565, `window_tokens` 258,400, `input_peak` 251,867, `compactions` 34, `unmeasured` = [cancelled_tool_calls, knowledge_reads, stage_turns, truncated_outputs] (compactions left it). Per stage: system-test-author 106 calls, peak 246,167 (95.3%), 2 compactions; reflect-and-revise 184 calls, peak 246,408 (95.4%), 3 compactions; the heaviest stage is static-checks, 251,867 (97.5%). Per-stage calls sum to 2,562: three main-thread calls come after the last accepted stage (0.5, 8.7 and 56.6 s after the blocked `system-test` result) and belong to no window; all 34 compactions are in a window.
 - *Hermetic proof:* RolloutContextTest (8), StageWindowsTest (1), CodexRolloutMetricsTest (4) and one run-level test through `run.main` with a fake Codex that writes a rollout. A synthetic two-thread fixture fixes the calls, peak, peakPct, compactions and per-stage splits, including a call exactly at a window end and a half-written last line. `per_stage` was refactored onto the new `stage_windows`; 20,000 random scenarios give identical rows to the old code.
 
 **Superseded by this entry:** the plan's "Luna 2,919 calls, 34 compactions in the main thread" (2,919 includes the sub-agent and the compaction requests; the main thread has 2,565); any reading of the Luna peak as 250,042 (the first file only); the plan's note that Codex shows calls, context and compactions as not measured (they are measured when its rollouts exist).
@@ -1464,7 +1464,7 @@ Implemented (I1, the option with its one registered value; no behaviour change):
 Related: 9747d769, a89135f7, 0df9b0c4, a34a6ee6, 2f091a35, a9f592a3, 4484b25a, e11b86ef, 6db8ef7a.
 
 Implemented (I2, `none`):
-- **The mode.** `PLANNING_REVIEW_MODES = ("stage", "none")`; `PLANNING_CHOICE_STAGES` (the five stages the option covers: `spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`); `reviewed_stages("none")` is `with_improve("always")` minus those five, so `system-test-author` and `release-plan` keep their child and the last `carry-forward`'s rule is not the option's. `_improve_checkpoint` (the one place that decides whether a result parks a child) and the validator's required-record set read `reviewed_stages(recorded_planning_review(state))`. `guidance.PLANNING_REVIEW_STAGES` (the seven; it feeds `STEP_PLANNING_STAGES`, which drives which packets print the accepted spec and plan sources) and `_IMPROVE_STAGES` (the allow-list for where a record may sit) stay static: a record at an unreviewed stage can only come from a hand edit, and the required set and the active-child check carry the rule. Two refusals are reworded for every mode: "including every planning-stage result this run's planning_review option reviews", and "a stage that does not start an Improve child in this run (planning_review: X)" (the stage-mode text changed too, so `test/shiploop-improve-schedule.test.py` and `test/shiploop-workspace.test.py` pin the new words). Walks of a two-item run: `stage` starts 10 children, `none` starts 3 (the last item's `carry-forward`, `system-test-author`, `release-plan`) and none in the planning window.
+- **The mode.** `PLANNING_REVIEW_MODES = ("stage", "none")`; `PLANNING_CHOICE_STAGES` (the five stages the option covers: `spec`, `test-strategy`, `plan`, `step-plan`, `test-spec`); `reviewed_stages("none")` is `with_improve("always")` minus those five, so `system-test-author` and `release-plan` keep their child and the last `reflect-and-revise`'s rule is not the option's. `_improve_checkpoint` (the one place that decides whether a result parks a child) and the validator's required-record set read `reviewed_stages(recorded_planning_review(state))`. `guidance.PLANNING_REVIEW_STAGES` (the seven; it feeds `STEP_PLANNING_STAGES`, which drives which packets print the accepted spec and plan sources) and `_IMPROVE_STAGES` (the allow-list for where a record may sit) stay static: a record at an unreviewed stage can only come from a hand edit, and the required set and the active-child check carry the rule. Two refusals are reworded for every mode: "including every planning-stage result this run's planning_review option reviews", and "a stage that does not start an Improve child in this run (planning_review: X)" (the stage-mode text changed too, so `test/shiploop-improve-schedule.test.py` and `test/shiploop-workspace.test.py` pin the new words). Walks of a two-item run: `stage` starts 10 children, `none` starts 3 (the last item's `reflect-and-revise`, `system-test-author`, `release-plan`) and none in the planning window.
 - **Packet text, one table.** `_NO_REVIEW_SWAPS` in `shiploop_prompts.py`: seven `(stage, old, new)` rows applied only for the recorded mode `none` (`*` is the sentence every packet carries): COMMON's handoff sentence (its list is built from `reviewed_stages("none")`), the plan duty's promise, the two Backchain-call sentences of the plan packet that name the review (`cannot clear ordinary Improve`, `not the separate Improve executor's authority`), and the step plan's three promises (delegated paragraph, inline paragraph, and "the next review is the packet's automatic Improve handoff"). `_check_swaps` runs at import: each `old` must occur exactly once in every stage-mode text it occurs in (both delegations, the plan's Backchain call) and in at least one, so an edit to the text above that leaves a row matching nothing or twice fails the import. The test-facility sentence uses the existing mechanism with `improves` read from the mode. In the navigator: `_improve_line(state, stage)` says no child starts and ShipLoop's checks at `complete` are the only gate; the plan's purpose line drops "its Improve child evaluates whether the evidence supports it"; the experiment guide, notebook and "keep detailed experiment prompts" lines are not printed (at `discovery` and `research` too: they locate the plan child's notebook); the plan's work-queue rule drops "including after reconciliation" and "or Improve final_result".
 - **Byte identity, proven.** Every packet the dry-run renders (574, every scenario, every stage, the plan Improve packet included) and every catalog text (204: prompt, duty and Improve prompt of the 34 stages), both delegations, captured before the first edit of this increment at `7317f458` and again after: 778 of 778 identical, the two 17.1 MB capture files `cmp`-equal, and the baseline rendered twice was equal. The in-repo pins are content pins: each swapped sentence is in the stage render exactly once and absent from the none render, naming `stage` equals omitting it, and the catalog renders the default.
 - **The scan.** `PlanningReviewNoneTest` renders the real packet of every planning stage for each mode and delegation (and `--backchain-passes one|converge|none`) and requires that the Improve line promises a child exactly where the mode starts one and that every other sentence naming Improve at an unreviewed stage is on a reasoned list (twelve entries: the nested-review prohibition, the generic retention rules, the status and progress rules, the chain-precedence rule, and the none texts themselves). The first run of the scan flagged the chain-precedence sentence of an ask-agent packet and the new none sentences, none of which the design's inventory had listed, so the list, not a shorter scan, took them. A document scan (`PlanningReviewDocumentsTest`) requires every document that says a planning result is followed by an Improve review to name the option or sit on a reasoned list (six reference documents that only describe what a review challenges), plus content pins for the documents that state the schedule.
@@ -1479,7 +1479,7 @@ Related: 9747d769, a89135f7, 0df9b0c4, a34a6ee6, 2f091a35, a9f592a3, 4484b25a, 7
 Implemented (R1, review fixes on I3, I1 and I2; 2026-10-05):
 - **What the review found, and what was done.** A review of `e11b86ef`, `7ad157cb`, `6db8ef7a`, `7317f458` and `f6ed230f` by four lenses (engine, tests, identity, rules) gave 4 actionable findings and 15 minor ones; each was reproduced before it was accepted or rejected. Accepted and fixed: **E1/T1** (major) the test-author probe accepted a Python unittest module that cannot be imported as a RED test (see below); **F1** (blocker) a `--planning-review none` run started without `--improve-skill` blocked at its first `static-checks` (see below); **F2** (major) the document scan was scoped by document, so any document that named the option once could carry any false sentence, and several did; **E2** the probe's refusal header and its not-red reason said no test ran, or told the author to make a passing test fail, for a run in which tests ran; **E3** and the identity lens's F1 two sentences promised a review in a none run in words the packet scan could not see ("Each reviewed step's ...", "the normal Improve handoff"); **T2** the none CLI helper looped without a bound, so a schedule regression hung the suite for 30 minutes instead of failing in seconds; **T3** three behaviours had no pinning assertion (mutants P15, P16, R7 survived); **T4** (the document scan's scope, answered by F2); **F3** (rules) the oracle note, and **F3** (identity) the record, mis-stated what the change does; **F4** the record and this heading still described the tree at the I0 commit; **F5** the Sonnet catch was called "the same class" as Luna's defect. Rejected, with the reason: **F2** (identity) and **T5**, no committed stage-mode golden (the owner rule keeps the byte-identity golden a verification, not a committed whole-text test; the finding itself says it is not required, and identity was proved again, below); **T6**, the workflow-review oracle test runs in the full apparatus group, which CI runs on release commits by its existing policy; **F6**, the branch base (`d1cca62f`, origin/main is a docs-only commit ahead): the integrator merges, a rebase here would rewrite landed commits; **F7**, a "Handoffs" section in the decision record: the handoffs are recorded accurately in this journal and in the commit messages and the report lists them, a new section is not a one-line contradiction fix; the one new handoff (F1) is below. **The identity lens's suggestion** to make the none-packet scan also flag "reviewed" generally is not taken: 20 sentences of the five none packets contain a review word without naming Improve, all about Backchain, Until Loop or the host's own checks, so a general flag would be an allowlist of 20 legitimate sentences; the two promising phrases are pinned at all 34 stages instead.
 - **Firm, E1/T1: the probe did not refuse an unloadable unittest module.** unittest's loader reports a module it cannot import as one synthetic test (`unittest.loader._FailedTest`) that errored; `Ran 1 test` and `FAILED (errors=1)` count it, so `shiploop_test_counts._unittest` read `ran=1 failed=1`, the judge said `red`, and the probe accepted it (reproduced through the CLI: `complete` outcome done with a focused command printing the recorded output and exiting 1, no ids; the same command with ids was refused). Every other runner's load-failure output was already read as no test (jest, pytest collection, node --test in both reporters, go build, mocha, vitest, rspec, cargo, dotnet, gradle): unittest was the one mis-accepted, and `test-red` and `test-green` inherited it, so the W1 defect class still reached `implement` for Python projects without IDs. Fixed in code, in the counts, not in prose (S-8): the loader's `ERROR: ... (unittest.loader._FailedTest...)` entries are taken out of both `ran` and `failed`, so an unloadable module reads `ran=0` and is refused as `no-tests`. Real output of Python 3.14 is the fixture, with the 3.8 to 3.11 spelling. The limit that remains, stated in the SPEC carve-out: a command that runs a failing test and also has a module that cannot load, with no ID listed for it, is accepted (a count cannot tell); `PROBE_CASES` pins it as a labelled known limit.
-- **Firm, F1: under `none` nothing binds the Improve card before the first item's loops read it.** `state["improve_skill"]` is first recorded by the first `improve-bind`; under `stage` that is at `spec`, under `none` at the last item's `carry-forward`. The quality loop (`static-checks`) and the test loops read it at every item, so in a default-init `none` run the first `static-checks` packet said "Unavailable: no Improve card is bound to this run ... Report outcome blocked", a host that reported done was accepted with no loop evidence, the test loops silently lost their Until Loop, and no verb binds a card without an active child. The design's claim that a missing card was "a recoverable stall at the end of the run" (A2-10) was wrong, and so were the places that said the card is first needed at the end (SKILL.md, the SPEC carve-out, the decision record in its modes table, quality list, alternatives, limits and A2-10 row, this journal's Attack 2 bullet, the change note). Reproduced on the pure navigator before the fix: stage prints "Bound Until Loop card", none prints "Unavailable". Built: `init` and `workspace start` refuse `--planning-review none` without `--improve-skill=<absolute selected Improve SKILL.md>` and resolve the card there (`standalone.resolve_skill`), before anything is created (a refused `workspace start` leaves no root, worktree or branch); an identical retry of an existing run is recovery and needs no flag. One helper, called at both entry points (S-12). The state API is not guarded: `new_state` still takes an empty card (the dry-run and the oracles build none states without one). The consequence for the default flip: with `none` as the default every new run must name its card, so the flip also makes `--improve-skill` required; the record says so at I5. Tests: the CLI refusals and the recovery through the shipped CLI, and a labelled guard that a none run started with the card has both loops bound and refuses done without the loop terminal packet.
+- **Firm, F1: under `none` nothing binds the Improve card before the first item's loops read it.** `state["improve_skill"]` is first recorded by the first `improve-bind`; under `stage` that is at `spec`, under `none` at the last item's `reflect-and-revise`. The quality loop (`static-checks`) and the test loops read it at every item, so in a default-init `none` run the first `static-checks` packet said "Unavailable: no Improve card is bound to this run ... Report outcome blocked", a host that reported done was accepted with no loop evidence, the test loops silently lost their Until Loop, and no verb binds a card without an active child. The design's claim that a missing card was "a recoverable stall at the end of the run" (A2-10) was wrong, and so were the places that said the card is first needed at the end (SKILL.md, the SPEC carve-out, the decision record in its modes table, quality list, alternatives, limits and A2-10 row, this journal's Attack 2 bullet, the change note). Reproduced on the pure navigator before the fix: stage prints "Bound Until Loop card", none prints "Unavailable". Built: `init` and `workspace start` refuse `--planning-review none` without `--improve-skill=<absolute selected Improve SKILL.md>` and resolve the card there (`standalone.resolve_skill`), before anything is created (a refused `workspace start` leaves no root, worktree or branch); an identical retry of an existing run is recovery and needs no flag. One helper, called at both entry points (S-12). The state API is not guarded: `new_state` still takes an empty card (the dry-run and the oracles build none states without one). The consequence for the default flip: with `none` as the default every new run must name its card, so the flip also makes `--improve-skill` required; the record says so at I5. Tests: the CLI refusals and the recovery through the shipped CLI, and a labelled guard that a none run started with the card has both loops bound and refuses done without the loop terminal packet.
 - **F2, the document scan.** `PlanningReviewDocumentsTest` is scoped by sentence: a sentence that promises an Improve review at a planning stage must itself name the option (`planning_review`, `--planning-review`, a `stage` or `none` run, "when the run has one", "where the stage has one") or be on a per-sentence reasoned list (24 entries; five of them are sentences about children that start in every mode, which are listed one by one because a category regex let a sentence that also named the end-of-work review pass). The first run on the unchanged documents flagged 39 sentences. Qualified in place: `repeatable-test-suites.md` ("reviews each planning result" was false under none), three README table rows, the README example, the plan's dependency check (the obligation stays at `plan` in every mode and gains the review only in `stage`), `research-loop.md`'s dependency-check obligation (now "before the plan is accepted"), the `navigator.md` row, `behavioral-requirements.md` and `project-knowledge.md`, `backchain-planning.md`, and the e2e-audit harness README and SKILL and MOCK-REPLAY. Mutations killed: a new unqualified sentence appended to `navigator.md`, one inserted under "When Improve runs" in SKILL.md, and the original `repeatable-test-suites.md` sentence restored (the first mutant is the review's; the third survived a first version of the scan that exempted any sentence naming `end-of-work`).
 - **E2, E3 and the small ones.** The probe refusal header is "did not show a usable test run"; a non-zero exit with only passing tests is told "exit 0 when its tests pass, or fail inside a test" (test-red keeps "fail on the missing behaviour"). Two rows join the none swap table for every stage the text is printed at (the inline step directive "Each reviewed step's" becomes "Each step's"; the interaction guide's "and the normal Improve handoff" is dropped), with the guard extended to the inline handoff and the interaction guide; the stale allowlist reason for the second sentence went with its entry. T3: assertions for the no-verdict probe attempt (no placeholder rule, "test or fixture") and the validator refusal's new words; the mutants P15 and P16 now fail. T2: `advance_to` stops after 60 steps naming the stage it stuck at. Wording corrections that a landed message or entry cannot carry: the oracle note and the I2 bullet above said `workflow_review` reports a state that records none as unverified; it reports a state that records **no** `planning_review` as unverified, and judges a `none` state against the `none` schedule (`test_the_inventory_follows_the_recorded_planning_review` pins both); I3 added three sentences to the duties (two at `test-author`, one at `step-plan`), not one each; `none` packets are shorter in bytes at all five planning stages but longer by 5 and 1 words at `step-plan` and `test-spec` (review measurement at `f6ed230f`); the I3 header "did not run a test" is the old header.
 - **Byte identity, proved again.** Captured before the first edit of this commit (`f6ed230f`) and after: 574 dry-run packets (every scenario, every stage, the plan Improve packet included) and 204 catalog texts (prompt, duty and Improve prompt of each of the 34 stages), both delegations, stage mode: 778 of 778 identical, the two 17.1 MB capture files `cmp`-equal. In none mode the only change in 506 dry-run packets and 136 catalog texts is the two intended sentences (84 renders of the inline directive, 74 of the interaction-guide phrase).
@@ -1493,7 +1493,7 @@ Related: 9747d769, a89135f7, 0df9b0c4, a34a6ee6, 2f091a35, a9f592a3, 4484b25a, e
 
 **Question.** The owner asked to continue the E2E runs and watch the expected flow of building Battleship from one prompt (they meant Google Apps Script; the main harness has only the Node.js `battleship` case, so that case ran first and the GAS case is below). **Conditions.** `python3 test/shiploop_e2e/run.py --case battleship --host claude --source checkout` from a clean checkout of `81e0502f` (the marketplace gate refuses while run-review notes are pending, so a checkout build was the only route), skill-craft 1.22.0 / ShipLoop 0.54.0, planning review `stage` (the default), output `/Users/dadleet/e2e-runs/20261006/v1220-battleship-sonnet`, started 15:05Z. Related commits: the harness at `81e0502f`, the release `45f163d0`.
 
-**Result (expected against achieved).** Expected: the flow tests first, then implementation, then verification, and a planning window under the owner's 30 minutes. Achieved: invoked, plugin, process, shiploop, committed and all four product checks pass; 1059.8 s, $6.5405, 238 turns counted from events (134 reported by the host), one session, no resume, 18 `node --test` tests, 18 commits. Planning (intake to the first test-spec accept) took about 7.3 stage-minutes (intake 0.2, discovery 0.1, research 0.1, spec 3.8, test-strategy 0.7, plan 0.7, prepare 0.3, select-work 0.1, step-plan 0.7, test-spec 0.6) with all five planning Improve children run; the whole run held 10 Improve children and 25 passes (at most 3 per child). Flow: baseline, test-author, test-red, three implement steps, test-green, test-refine, a second pass through step-plan, test-spec and the build stages, then regression, document, skill-assess, skill-validate, static-checks, verify, integrate, integration-verify, carry-forward, system-test-author, system-test, product-acceptance, release-plan, release-check, release, release-verify, operations and handoff (46 accepted stage records). Script verifications 14 of 15 passed; compactions, truncated outputs, cancelled tool calls and ShipLoop command failures are unmeasured on this host. Narrative: emitted 4, shown 0 (the same as the hello run on 1.20.0: emitted 8, shown 0); S-15 records it, it is not a verdict. The baseline line says nothing was compared, because no earlier row has this host, model and effort.
+**Result (expected against achieved).** Expected: the flow tests first, then implementation, then verification, and a planning window under the owner's 30 minutes. Achieved: invoked, plugin, process, shiploop, committed and all four product checks pass; 1059.8 s, $6.5405, 238 turns counted from events (134 reported by the host), one session, no resume, 18 `node --test` tests, 18 commits. Planning (intake to the first test-spec accept) took about 7.3 stage-minutes (intake 0.2, discovery 0.1, research 0.1, spec 3.8, test-strategy 0.7, plan 0.7, prepare 0.3, select-work 0.1, step-plan 0.7, test-spec 0.6) with all five planning Improve children run; the whole run held 10 Improve children and 25 passes (at most 3 per child). Flow: baseline, test-author, test-red, three implement steps, test-green, test-refine, a second pass through step-plan, test-spec and the build stages, then regression, document, skill-assess, skill-validate, static-checks, verify, integrate, integration-verify, reflect-and-revise, system-test-author, system-test, product-acceptance, release-plan, release-check, release, release-verify, operations and handoff (46 accepted stage records). Script verifications 14 of 15 passed; compactions, truncated outputs, cancelled tool calls and ShipLoop command failures are unmeasured on this host. Narrative: emitted 4, shown 0 (the same as the hello run on 1.20.0: emitted 8, shown 0); S-15 records it, it is not a verdict. The baseline line says nothing was compared, because no earlier row has this host, model and effort.
 
 **Finding 1 (engine, open): `node --test` is uncounted.** `skills/shiploop/scripts/shiploop_test_counts.py` reads jest, vitest, pytest, unittest, mocha, cargo, go and dotnet, not node:test. The one failed verification is `run/tests/nav-4964e120cef043bda1bce0dcb834ddc4-verify1.md` (stage test-refine, item W1, 15:15:31Z): both focused suites passed with their listed IDs, but the regression run `node --test` printed `ℹ tests 13`, `ℹ pass 13`, `ℹ fail 0` and was recorded `uncounted` (counts null, minimum 12), so the verification failed and the step plan was revised after implementation; the second pass cost about two minutes. The 1.22.0 test-author probe refuses an uncounted run as well, so a node:test project whose focused command lists no IDs would be refused there. Fix (not built; the batch rule): a `_node_test` reader for the spec reporter's `ℹ` summary and TAP's `# pass`/`# fail`, a fail-first test on this captured output, a `skills/shiploop` patch note. Status: firm for the mechanism, interim for the cost (n=1).
 
@@ -1505,7 +1505,7 @@ Related: 9747d769, a89135f7, 0df9b0c4, a34a6ee6, 2f091a35, a9f592a3, 4484b25a, e
 
 **Question and conditions.** The owner asked to run the Google Apps Script Battleship one-shot case end to end and watch the expected flow. Audit harness `skills/shiploop-e2e-audit/harness/run.py run --step battleship-create` from a clean checkout of `4dc6dae8`, Grok 1.0.46, `grok-4.7` at `medium`, `--timeout 7200`, the real Grok profile, ShipLoop 0.54.0 (the Claude marketplace clone, which Grok reads), planning review `stage`, Backchain one pass; launched 20:57:41Z after `grok login` (the first launch, before the login, exited silently: see the entry above). Output `/Users/dadleet/e2e-runs/20261006/gas-battleship-audit/battleship-create-2`; compact record `docs/experiments/gas-battleship-audit-20261006/evidence.json`. The owner authorized one dedicated deployment and the spend.
 
-**Result (expected against achieved).** Expected: a full one-shot (planning, two work items, system test, release and deployment) inside the allowance. Achieved: the harness killed the builder at 7203.9 s (`exit -9`, `timed_out`); overall `invalid-trial`, process `failed-or-budget-exhausted`, protocol `incomplete-active`, product `unverified`. 990 tool calls (25 failed), reported usage null so the cost is unknown, 9 compactions (the first four took about 1.5 minutes each; the other five were not timed), 7 Improve children. 42 stages were accepted. Minutes since launch: intake 4.6, discovery 7.7, research 9.5, spec 27.5, test-strategy 38.3, plan 56.3, test-spec 63.8 (the planning window, intake to the first test-spec accept, is about 64 minutes, 2.1 times the 30-minute ceiling; the earlier Grok medium Node run took 72.7), work item W1 "Rules module and the 21 local cases" from 57.8 to carry-forward 85.4, work item W2 "Page, doGet, and manifest" from 85.8 to integration-verify 117.3, then its carry-forward Improve review was pending at the cap. Not reached: system-test-author, system-test, product-acceptance, release-plan, release-check, release, release-verify, operations, handoff. The flow before the cap held in the expected order for both items (baseline, test-author, test-red, implement, test-green, test-refine, regression, document, skill assessment, static-checks, verify, integrate, carry-forward).
+**Result (expected against achieved).** Expected: a full one-shot (planning, two work items, system test, release and deployment) inside the allowance. Achieved: the harness killed the builder at 7203.9 s (`exit -9`, `timed_out`); overall `invalid-trial`, process `failed-or-budget-exhausted`, protocol `incomplete-active`, product `unverified`. 990 tool calls (25 failed), reported usage null so the cost is unknown, 9 compactions (the first four took about 1.5 minutes each; the other five were not timed), 7 Improve children. 42 stages were accepted. Minutes since launch: intake 4.6, discovery 7.7, research 9.5, spec 27.5, test-strategy 38.3, plan 56.3, test-spec 63.8 (the planning window, intake to the first test-spec accept, is about 64 minutes, 2.1 times the 30-minute ceiling; the earlier Grok medium Node run took 72.7), work item W1 "Rules module and the 21 local cases" from 57.8 to reflect-and-revise 85.4, work item W2 "Page, doGet, and manifest" from 85.8 to integration-verify 117.3, then its reflect-and-revise Improve review was pending at the cap. Not reached: system-test-author, system-test, product-acceptance, release-plan, release-check, release, release-verify, operations, handoff. The flow before the cap held in the expected order for both items (baseline, test-author, test-red, implement, test-green, test-refine, regression, document, skill assessment, static-checks, verify, integrate, reflect-and-revise).
 
 **Nothing was deployed.** The builder reached the deployment MCP only through `search_tool` and `use_tool` (12 calls, all read-only: `auth status`, three `guide` reads, `setup settings`, an `ls` for "battleship", and searches for the deploy schema); no create, push, deploy or promote call. The partial product (`app/Code.gs`, `app/Index.html`, `app/Rules.html`, `app/appsscript.json`, `test/rules.test.js`, `test/page.test.js`) passes its own 26 `node --test` tests when run locally afterwards; that is not an independent verification.
 
@@ -2143,7 +2143,7 @@ Evidence: `test/shiploop_e2e/evidence/step-slices-8stage-2026-10-10.json` agains
 
 Findings:
 - **Firm (4 of 4): correct end to end.** Each item ran step-plan, test-spec, validate-existing, implement, test, document,
-  verify and carry-forward, every one done on the first submission. Every stage left a contract and a receipt under
+  verify and reflect-and-revise, every one done on the first submission. Every stage left a contract and a receipt under
   `loops/`.
 - **Firm (4 of 4): validate-existing ran by script.** ShipLoop ran the expectation checks and recorded the stage with no
   model turn. In node-fix-bug the "broken" expectation reproduced the reported bug (exit 0 on the failure check), and the
@@ -2167,12 +2167,12 @@ Findings:
 Next:
 - per-stage timing from flow.json;
 - whether `--check-only` and the per-stage loop start can be cheaper for one-pass stages (planning, document,
-  carry-forward) without losing the receipt check;
+  reflect-and-revise) without losing the receipt check;
 - the full hello and Checkers pair (E2E session) on this build.
 
 ## The four fact files get named sections, the 8-stage writers keep them up to date, and a close counts the missing sections as a notice (2026-10-10, batch 1012 task A2) — status: firm for the offline counts (`docs/experiments/knowledge-sections-20261010/`); interim for what they mean (no live run has seen the notice)
 
-No live run: the engine side of the inner-loop session's request that `spec.md`, `environment.md` and `architecture.md` be referenced at every stage that uses them and generated in place (`skills/shiploop/scripts/shiploop_knowledge_home.py`: `SECTIONS`, the new `STAGE_FILES` entries, `section_notices`, `NOTICE_PREFIX`; `_knowledge_close` in `shiploop_navigator.py` prints the lines). `SECTIONS` holds the headings of spec (Requirements, Non-functional requirements, Retired), environment (Targets and runtimes, Commands, Access and accounts, Platform facts; **Skills added by the fix round below**), architecture (Stack, Structure, Conventions, Interfaces and boundaries, Decisions, Superseded) and test strategy (Harnesses and suites, Commands, ID convention, Real-boundary checks) for packets to quote. research, validate-existing, implement, test and carry-forward now keep `environment.md` and/or `architecture.md` up to date (verify reads and writes nothing); a test pins every `STAGE_FILES` key to `shiploop_stage_spec.STAGES`. At the four closes ShipLoop prints one `ShipLoop knowledge notice: ` line per section a fact file lacks or leaves empty, names the file by absolute path first, and accepts the close.
+No live run: the engine side of the inner-loop session's request that `spec.md`, `environment.md` and `architecture.md` be referenced at every stage that uses them and generated in place (`skills/shiploop/scripts/shiploop_knowledge_home.py`: `SECTIONS`, the new `STAGE_FILES` entries, `section_notices`, `NOTICE_PREFIX`; `_knowledge_close` in `shiploop_navigator.py` prints the lines). `SECTIONS` holds the headings of spec (Requirements, Non-functional requirements, Retired), environment (Targets and runtimes, Commands, Access and accounts, Platform facts; **Skills added by the fix round below**), architecture (Stack, Structure, Conventions, Interfaces and boundaries, Decisions, Superseded) and test strategy (Harnesses and suites, Commands, ID convention, Real-boundary checks) for packets to quote. research, validate-existing, implement, test and reflect-and-revise now keep `environment.md` and/or `architecture.md` up to date (verify reads and writes nothing); a test pins every `STAGE_FILES` key to `shiploop_stage_spec.STAGES`. At the four closes ShipLoop prints one `ShipLoop knowledge notice: ` line per section a fact file lacks or leaves empty, names the file by absolute path first, and accepts the close.
 
 What it showed:
 - **A refusal would fire at every first close, so it is a count.** On the 29 saved homes (`home_scan.json`) 273 notice lines, 8 to 11 a home, none without one: `Commands` is a heading in 0 of 29 `environment.md` and in 2 of 29 `test-strategy.md`, `Targets and runtimes`, `Access and accounts`, `ID convention`, `Real-boundary checks` and `Harnesses and suites` in 0, `Non-functional requirements` in 0, `Requirements` in 19, `Retired` in 24; `architecture.md` is in none of them (null). The models write `environment.md` as prose under its `# Environment` title (29 of 29). The main session's 27-home figures were text presence; these count headings.
@@ -2283,7 +2283,7 @@ The evidence is in `docs/experiments/packet-recut-20261011/live-slices.json`, an
 
 **Run.** `slice.py --case node-fix-bug` on Claude, with the default model.
 
-**Result.** PASS on every verdict: process, inner_loop, no_overshoot, assembled, checks. Every inner stage, step-plan through carry-forward, reported done.
+**Result.** PASS on every verdict: process, inner_loop, no_overshoot, assembled, checks. Every inner stage, step-plan through reflect-and-revise, reported done.
 
 Evidence: `/Users/dadleet/e2e-runs/20261011/slice-fixbug-8e1253de/` (slice-result.json, packet-report.md, flow.html).
 
@@ -2458,7 +2458,7 @@ Grok 4.7 medium on `chess-salesforce` against the owner's Developer Edition org,
 - **The platform scaffolding worked.** The guard governed the model's calls (140 logged over both segments, 2 denials); the cleanup restored the org (harness verification plus an
   independent query: no `SLChess*` or `slChess*` item).
 - **Time:** planning to test-spec took 77.7 min of engine time, Improve 41.2 min of it in 5 children; the first work item went through
-  step-plan, test-spec, implement, test (blocked once, then revised), document, verify and carry-forward before the second reached `test`. The efficiency plan
+  step-plan, test-spec, implement, test (blocked once, then revised), document, verify and reflect-and-revise before the second reached `test`. The efficiency plan
   targets the reading path and the review loops, not the platform.
 - **Both findings of the first segment held:** the classifier refusing the deploy (fixed with `host_allow` and an owner-chosen permission mode) and the version gate
   refusing a resume on a checkout build (fixed, `--source checkout`).
@@ -2488,9 +2488,9 @@ Evidence: `/Users/dadleet/e2e-runs/20261017/bs-sf-int-b7c77f/` (+ `.log`, `-resu
 
 Evidence: `/Users/dadleet/e2e-runs/20261018/bs-release-update-436528/` (+ `.log`, `-regrade.log`, `result.json`).
 
-## Full Battleship on Grok, stopped by the owner at W2 carry-forward: about 4 hours of mostly avoidable ceremony (2026-10-18, skill-craft 2.6.0 from the marketplace) — status: interim (n=1, one host)
+## Full Battleship on Grok, stopped by the owner at W2 reflect-and-revise: about 4 hours of mostly avoidable ceremony (2026-10-18, skill-craft 2.6.0 from the marketplace) — status: interim (n=1, one host)
 
-`run.py --case battleship --host grok --model grok-4.7 --effort medium --source marketplace --timeout 7200`, then `--resume-run` with the same timeout after the cap. Planning review on (`stage`, the harness default). Stopped by the owner at 232 min (last accept), with W1 done, W2 at carry-forward and the nine outer stages not started: 30 actions accepted, 17 Improve children, 6 host sessions, 1,511 host tool calls, about 836K output tokens. No delivery was returned, so every case check failed. That is not a product verdict; no baseline was written.
+`run.py --case battleship --host grok --model grok-4.7 --effort medium --source marketplace --timeout 7200`, then `--resume-run` with the same timeout after the cap. Planning review on (`stage`, the harness default). Stopped by the owner at 232 min (last accept), with W1 done, W2 at reflect-and-revise and the nine outer stages not started: 30 actions accepted, 17 Improve children, 6 host sessions, 1,511 host tool calls, about 836K output tokens. No delivery was returned, so every case check failed. That is not a product verdict; no baseline was written.
 
 - **Planning: 48 min against 17-20 in the Grok runs of 10-07/10-08, which had planning review off.** Drafting took 14 min; Improve took 34 (spec 3 passes, test-strategy 7, plan 4). The stop rule (a first unchanged pass, or two trivial passes in a row) forces at least two more passes after any edit, and the review focus has no materiality bar. Across 36 passes up to 174 min, 4 were material.
 - **Reading ShipLoop's source: 512 of 1,511 calls by the end (240 of 1,090 at 174 min, about 28 min).** The model predicted the result gate, how the test stage judges test IDs, and the Improve stop rule from the scripts. No `--check-only` was refused for its content, so the packets lacked the schema, an example and those rules (run-insights M1).
@@ -2517,7 +2517,7 @@ Before this run could start, the platform preflight refused once: org `de` alrea
 | `tests` (>=8 Apex methods) | PASS |
 | `rules` (perft, check, promotion, controller, two full games) | PASS |
 
-**Four work items, one resolved send-back — the SDLC's four-outcomes design held up live.** The plan stage split the build into 4 work items (not the 2 of run 2 / F9), and work item 1's `test` stage hit a failing base-gate check (`W1-root`, raising `AssertionError` before printing its marker). The model traced ShipLoop's own navigator/loop scripts to understand the mechanism and sent the step plan back — the first live instance of the four-outcomes `send-back` path (build plan S1.1/S1.3/S1.4, commit c6c82b16) observed in this case family. The next packet correctly resumed at the `step-plan` stage that had written the plan (the send-back-to-writing-stage design of commit c4fc5608), not a restart of the item or the run; the model fixed the check script itself (so it prints `FAILED W1-root` or the version string correctly on each path) and resubmitted, after which step-plan/test-spec/implement/test/document/verify/carry-forward all completed cleanly for W1. No `add-work` instance was observed: work item 4 was in the original plan from the start, not created live mid-run.
+**Four work items, one resolved send-back — the SDLC's four-outcomes design held up live.** The plan stage split the build into 4 work items (not the 2 of run 2 / F9), and work item 1's `test` stage hit a failing base-gate check (`W1-root`, raising `AssertionError` before printing its marker). The model traced ShipLoop's own navigator/loop scripts to understand the mechanism and sent the step plan back — the first live instance of the four-outcomes `send-back` path (build plan S1.1/S1.3/S1.4, commit c6c82b16) observed in this case family. The next packet correctly resumed at the `step-plan` stage that had written the plan (the send-back-to-writing-stage design of commit c4fc5608), not a restart of the item or the run; the model fixed the check script itself (so it prints `FAILED W1-root` or the version string correctly on each path) and resubmitted, after which step-plan/test-spec/implement/test/document/verify/reflect-and-revise all completed cleanly for W1. No `add-work` instance was observed: work item 4 was in the original plan from the start, not created live mid-run.
 
 **A session-boundary context gap recovered without incident.** At one resume the model noted that two state revisions ("35 and 36") were never shown to it directly (likely a compaction or session boundary that skipped packets), and it recovered by reading the saved packet/state from disk and continuing, rather than treating the gap as a failure — a small, live confirmation of the "context is cleared between stages" design tenet holding under a real session boundary, not just a planned one.
 
@@ -3865,9 +3865,9 @@ Setup:
 - **Improve time fell where P0 cut it, and the total target held on DeepSeek only.**
   - DeepSeek: −27% of Improve minutes. Implement and test-spec reviews fell from 38.0 to 10.4 min, and from 1,107 to
     473 turns. The harness's stage comparison shows implement 51→20 min and test-spec 22→3.2 min.
-  - Sonnet: −7%. Its implement and test-spec reviews fell 3.3→1.6 min, but its spec, carry-forward and release-plan
+  - Sonnet: −7%. Its implement and test-spec reviews fell 3.3→1.6 min, but its spec, reflect-and-revise and release-plan
     reviews ran longer. Those awake minutes include slow dark-wake periods (see Validity), so the −7% is indicative.
-  - Both runs: spec and carry-forward reviews ran longer than their baselines (DeepSeek 9.8→23.6 min), outside P0's
+  - Both runs: spec and reflect-and-revise reviews ran longer than their baselines (DeepSeek 9.8→23.6 min), outside P0's
     scope.
 - **TS1 and IN1 behaved as predicted.**
   - Sonnet's test-spec was refused once for R-6, with the `suite_requirements` remedy named. It was accepted on the next
@@ -3918,7 +3918,7 @@ Setup:
   item review's handoff names each step's diff and the component edges (URL parsing, option validation, concurrent
   UI requests), or keeps a per-step review for such items. Measure it on Sonnet battleship, where one item spans
   the app.
-- Watch spec and carry-forward review length (DeepSeek 9.8→23.6 min). They are outside P0's scope.
+- Watch spec and reflect-and-revise review length (DeepSeek 9.8→23.6 min). They are outside P0's scope.
 
 ## Why one item review missed on Sonnet: review count, not handoff detail (2026-10-27, analysis of the four battleship runs) — status: interim (n=1 per model; no new run)
 
@@ -4000,7 +4000,7 @@ Setup:
 - **Other gates.**
   - Mutation refused the test stage once (2 of 8 survivors), and the model fixed it.
   - Minor refusals: 3 criteria length caps at step-plan, one improve-pass with an invented action id, the
-    carry-forward `skill` field (check-only, then the real submit), one missing evidence file, and one unverified
+    reflect-and-revise `skill` field (check-only, then the real submit), one missing evidence file, and one unverified
     restatement at handoff.
   - TS1 and IN1 refused nothing. Mutation caught 48 of 58.
 
@@ -4121,8 +4121,8 @@ running the gates again.
 | B3, not counted | cut | 9 | 9 | 0 | 0 | 2 | 4 |
 
 B3 is not a result. At 15:11Z (08:11 PDT) the host got `API Error 429: you (dadleet) have reached your monthly usage
-limit` from Ollama, in carry-forward's Improve child; the verdicts `process` and `inner_loop` are false because of it. Its
-seven inner stages and carry-forward had been accepted, and the last check had said yes. The limit is account-wide, and
+limit` from Ollama, in reflect-and-revise's Improve child; the verdicts `process` and `inner_loop` are false because of it. Its
+seven inner stages and reflect-and-revise had been accepted, and the last check had said yes. The limit is account-wide, and
 no slice was rerun.
 
 **What it shows.**
@@ -4132,14 +4132,14 @@ no slice was rerun.
 - **`complete` takes the yes.** In each counted slice 4 records carry `reused.answer` (the test stage's base, candidate
   and mutation records, and the verify stage's rerun), and every stored answer is a yes. The accepted `complete` at
   test fell from a median 2,961 ms to 646 ms, at verify from 1,386 ms to 478 ms. At the other stages it did not fall
-  (step-plan 287 to 341, test-spec 888 to 1,362, implement 1,345 to 1,855, document 1,257 to 1,414, carry-forward 447 to
+  (step-plan 287 to 341, test-spec 888 to 1,362, implement 1,345 to 1,855, document 1,257 to 1,414, reflect-and-revise 447 to
   410); the data do not explain the rises.
 - **No refused `complete` followed a yes** (0 cases). The one refused `complete` in the counted slices had no check before
   it. The checks that said no did their job: a draft outcome the stage does not accept (the allowed-outcome rule the old
   dry run skipped), a missing result file, a malformed `retired_tests` and `red_na`.
 - **Commands to accept: the pre-registered bar was missed.** The plan predicted no change within one command per stage.
   Medians of commands, before (n = 3) and B arm (n = 2): step-plan 39, 35; test-spec 6, 8.5; implement 12, 14; test 10, 13;
-  document 6, 6; verify 7, 9; carry-forward 6, 8. Inner-stage commands per slice: before 89, 108, 86; B arm 95, 92.
+  document 6, 6; verify 7, 9; reflect-and-revise 6, 8. Inner-stage commands per slice: before 89, 108, 86; B arm 95, 92.
   The ranges overlap and most of the extra commands are ordinary ones (reads and edits), not ShipLoop or loop calls, so
   the data cannot tie them to the verb. The plan's stop rule applies all the same: **phase C stays paused until the
   cause is found.**
@@ -4222,7 +4222,7 @@ the branch).
   of run 1. The cases fit in the host's context (peak 157-160K), so "too big to read" is untested.
 - **Improve is 53-58% of every planning window.** The spec stage wrote for 0.5-1.4 min, and its review took 2.2-7.5 min.
 - **The follow-on's extra planning sits in the stages that work over growing living files.** Test-strategy took 16.1
-  min against 7.5, step-plan 12.0 against 5.3, carry-forward 14.7 against 9.5, while `environment.md` grew from 72 KB
+  min against 7.5, step-plan 12.0 against 5.3, reflect-and-revise 14.7 against 9.5, while `environment.md` grew from 72 KB
   to 87 KB. Its harness plan named only its own requirements (R-13 to R-20).
 - **Refusals, all recovered.** Size caps: 3-5 per run. Lint at Improve: 7 of 7 lint calls named the Improve action
   instead of the reviewed step's (fixed in c89c8c20; the harness now keeps such refusals' text, 47e99461). Repeated
@@ -5908,7 +5908,7 @@ Harness questions
 
 - learning retention: Keep the existing append-only ledger and full Git learning messages. History reconciliation is needed, not another state store. The authorized operator's learning record remains pending because this review is read-only.
   proposal: Record the clean delivery, exact build and driver, planning recovery, useful quality repairs, unknown served identity, contention and raw evidence locations.
-  proposal: Carry forward the focused-ID candidate's searched-criterion regression and limited live evidence; do not describe absent candidate code as a failed applied fix.
+  proposal: Reflect and revise the focused-ID candidate's searched-criterion regression and limited live evidence; do not describe absent candidate code as a failed applied fix.
   proposal: Record the self-contained final proofs as contrary evidence relevant to LR-20261101-bea142, without changing its owner disposition. LR-20261030-5dce01 remains unexercised here.
   proposal: Bind a fresh independent judge assessment to this review's exact bytes before discovery-qualified admission.
 - further learning: The most useful next observations concern the known planning mismatch, clean verification handoff and cold reuse of repository knowledge. This run establishes neither broad qualification nor exhausted learning.
@@ -5969,7 +5969,7 @@ R4b FAILED on one base test of its delivery (the failed check passes 15 of 15 on
   and 2.30.0 / 1.29.0 are in between, and none of them carries this change.
 - The patch-id (`git patch-id --stable`) was 8cf39729c9b94711faf1b7b2030b7a4adb7f8456 for the tested commit and every rebase until the first replay; since then it is
   9fe0d24b6aca6493b7f74f3b5867d060fc0b8d00, only because main edited test/shiploop_e2e/head_table.json (its `_comment` and the step-plan heads, +49) and the feature's change
-  to that file (carry-forward's four ceilings and its reason in `_comment`) was re-applied on top; the diffs of the other seven files are byte-identical to the tested
+  to that file (reflect-and-revise's four ceilings and its reason in `_comment`) was re-applied on top; the diffs of the other seven files are byte-identical to the tested
   commit's, file by file. Conflicts: this file whenever main and this entry both appended at its end (main's text stays first), and head_table.json at the first replay; the
   feature commit met test/shiploop-callback-contract.test.py (the Python 3.9 floor, 7a3d133fa70f2a7d565223efe1a0d22ceae6e419), shiploop_navigator.py and shiploop_prompts.py
   (the terms line 60dc376881d397d770874af16c8a6a8ed60956b2 and rule C 9870c6f68bfbd9375340c0e91ffdf4abfd76bd85) in other hunks and applied without a conflict.
@@ -6188,7 +6188,7 @@ Harness questions
   proposal: Record the exact checkout, plugin digest, requested driver, clean delivered identity, public and held-out results, measurements, known violations and unobserved coverage. Obtain a fresh independent judge assessment bound to these exact review bytes.
   proposal: Under S-6/S-9, retain the matching focused IDs and self-contained proof as successful observations alongside LR-20261101-f8c562 and LR-20261101-bea142; do not silently close their remaining owner questions.
   proposal: Under S-4/S-5/S-12, preserve the explicit dispositions of 6dbebfafe0cab0c6f3298f45e80106c95b26f9ba and b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d. This run predates their application in its ancestry and does not show their repair failed.
-  proposal: Under S-11, carry forward 589bc03ebe4bb31759a371e10bbc261bb071aab3's three-file consumer contract and d2c55b90c321d8eff214deb398ef0a240e7f9ac4's rejection of heading gates before addressing stale knowledge text.
+  proposal: Under S-11, reflect and revise 589bc03ebe4bb31759a371e10bbc261bb071aab3's three-file consumer contract and d2c55b90c321d8eff214deb398ef0a240e7f9ac4's rejection of heading gates before addressing stale knowledge text.
 - further learning: The useful remaining observations concern command handoffs, cold recovery and reuse of delivered knowledge. This single successful brownfield case does not establish broad qualification or exhausted learning.
   proposal: Under S-6, exercise fresh context at a stage boundary and inside a stage; test missing-completion continuation separately because neither occurred here.
   proposal: Under S-11, use a cold follow-on to distinguish harmless historical wording from rediscovery or incorrect decisions caused by environment.md's conflicting planned and completed descriptions.
@@ -6210,7 +6210,7 @@ Next
 
 ## Narrative at run boundaries, and relay-not-compose: live round on the Codex harness, Terra 6.1 high (2026-11-03) — status: firm for this run's verdicts; interim for compliance (n = 1)
 
-**Change under test.** d7734abe narrowed the run narrative to real boundaries (`prepare`, `carry-forward`,
+**Change under test.** d7734abe narrowed the run narrative to real boundaries (`prepare`, `reflect-and-revise`,
 `product-acceptance`, `release`, `handoff`, plus the run's start) and appended the run's goal to the status line; 55e87728
 rewrote the card's progress paragraph to say relay a progress block, never compose one. The question: does a real model
 show the progress it is asked for more often, now that it is asked about 6 times a run instead of 21?
@@ -6474,7 +6474,7 @@ carries no per-event timestamps to separate the two.
 - `implement` reported **send-back** at stage 11, after `step-plan` had already taken 265 s: the proof-order fault again
   (`step S1's Proof runs test/game.test.js, which the item base does not have`), the known path-named miss class.
 - `product-acceptance` reported **add-work**, and a second work item was planned and completed: `step-plan` through
-  `carry-forward` ran a second time (49/32/0/35/66/83/78 s), then `system-test-author`, `system-test` and
+  `reflect-and-revise` ran a second time (49/32/0/35/66/83/78 s), then `system-test-author`, `system-test` and
   `product-acceptance` again.
 - The run then reached `release-plan` and was killed there. Every stage before it had completed.
 
@@ -7347,7 +7347,7 @@ Co-Authored-By: Cursor Agent <agent@cursor.com>
 
 `m2-checkers`, shiploop 1.30.8, whole run PASS in about 25 min: 10 Improve children, 14 passes, **4 edited**, max passes 2.
 The four that edited span `spec`, `test-strategy`, `document` and a second `step-plan`; the six that did not span
-`carry-forward`, `plan`, `release-plan`, `system-test-author` and two step-plans.
+`reflect-and-revise`, `plan`, `release-plan`, `system-test-author` and two step-plans.
 
 Two findings from the earlier passes of this same run, both landed as commits: the spec lacked a replayable move sequence
 and malformed its API boundaries (`583e6a74`, +18 lines), and the test strategy assumed a browser connector that was absent
@@ -8858,10 +8858,10 @@ two whole deliveries on the exact tree, on the runner round 2 used (Codex gpt-6.
 | Case | Result | Hidden checks | Minutes | Steps |
 | --- | --- | --- | --- | --- |
 | csv-report s1 | pass | 5 of 5 | 18.1 | one: S1 |
-| shared-expenses s1 | pass | 6 of 6 | 25.4 | two: S1, then S2 (implement, test and document each), then carry-forward |
+| shared-expenses s1 | pass | 6 of 6 | 25.4 | two: S1, then S2 (implement, test and document each), then reflect-and-revise |
 
 Neither run had a refusal or a send-back, and neither session log holds a `Traceback`. The shared step cursor
-(`planning_revision.built_steps`) carried a real two-step item from S1 to S2 to carry-forward. Evidence:
+(`planning_revision.built_steps`) carried a real two-step item from S1 to S2 to reflect-and-revise. Evidence:
 `~/e2e-runs-sp/20261112/fix-forward-smoke/*/result.json` and `*.log`.
 
 What this round does not show:
@@ -8934,7 +8934,7 @@ Frozen source `4990932ee4a0e8f3e2c55bb8a16e4364ba24849e`, marketplace skill-craf
 
 Reassignment composes existing unchanged assignment; escalation reuses worker/outbox/notifier/persistence with a store-level marker, preserving public ticket fields. This supports bounded additive reuse. One unquoted-pipe test command caused exit127 and a recorded W2/S1 send-back; the revised whole-file command passed 4focused/130suite with 4red baseline cases. W1 remained complete and reissued implementation changed no source. No retained process/listener was reported.
 
-**Knowledge continuity is a supported gap.** Final R5–R8 still contain unqualified pending/not-yet-implemented statements beside completion annotations. Step-marked historical entries are legitimate and should remain. The add-only step guard plausibly contributes, but existing carry-forward/handoff already require reconciliation. The first-return checkpoint 906a3a19 is real; final 730b8b8 differs only in environment documentation. Its label should be historical, not an impossible self-referential final hash. An inherited omission also leaves no SHIPLOOP index or README link to maintained knowledge. No next-feature consumption failure or gain was measured.
+**Knowledge continuity is a supported gap.** Final R5–R8 still contain unqualified pending/not-yet-implemented statements beside completion annotations. Step-marked historical entries are legitimate and should remain. The add-only step guard plausibly contributes, but existing reflect-and-revise/handoff already require reconciliation. The first-return checkpoint 906a3a19 is real; final 730b8b8 differs only in environment documentation. Its label should be historical, not an impossible self-referential final hash. An inherited omission also leaves no SHIPLOOP index or README link to maintained knowledge. No next-feature consumption failure or gain was measured.
 
 **Audit apparatus finding:** the frozen workflow inventory treats every planning-stage acceptance as requiring Improve, ignoring first-item/outcome rules. Initial W2 correctly has no child, while its sent-back plan has one. Full history is retained. The analyst schema checker reports supported-gap, zero errors, with explicit inventory UNKNOWN. A separate schedule repair should cover first/later/sent-back/non-done/missing-required/unknown-protocol cases; no frozen validator or result was changed.
 
@@ -8988,7 +8988,7 @@ Read over the 15 samples an arm unless a population is named:
   pairs in 290 retained runs, 104 s of script time. On the test stage a repeat would cost about one more base, candidate
   and mutation run (median 5.1 s, 90th percentile 17.4 s over 679 retained checks).
 
-What this round does not cover: the test and carry-forward stages (the suite has no live scenario for them), a whole run,
+What this round does not cover: the test and reflect-and-revise stages (the suite has no live scenario for them), a whole run,
 other hosts or models, and a measured whole-stage saving. T is neither adopted nor rejected; the entry's owner question
 is whether about 1 call in 3 at the close, roughly 7 s a stage on Sol at medium, is material under the owner's rule of
 2026-11-14. If it is, two full deliveries a build (csv-report and shared-expenses) cover the missing stages.
@@ -9000,7 +9000,7 @@ Evidence: `docs/experiments/closeout-one-command-20261114/` (README, `analysis/`
 
 Round 2 of the registration in `docs/experiments/closeout-one-command-20261114/README.md`, run after the owner's "Yes" to
 "do you want that minute?" (a patch release if the round is clean). Round 1 (the stage suite, entry above) could not reach the
-test and carry-forward stages; this round runs whole deliveries of the earlier smoke cases, `csv-report` and `shared-expenses`,
+test and reflect-and-revise stages; this round runs whole deliveries of the earlier smoke cases, `csv-report` and `shared-expenses`,
 one run of each per arm, Codex gpt-6.1-sol at medium, `run.py --source checkout`, two lanes with one B and one T each.
 B = `3474addc6a2a40c0a13313c3409841831252fe12` (ShipLoop 1.34.2); T = the candidate `db725d10e31f869442f8ba0ec3b0401c4886b165`
 (no skill source changed between it and the commits the T runs launched from: `git diff` over `skills agents catalog changes
@@ -9215,7 +9215,7 @@ marketplace or publication result. The builders received the catalog request wit
 | Step plan | one item, 5 criteria in 2 steps: the service change (4 criteria, 6 product files), then the command line's formatter | W1: 16 criteria in 2 steps; W2, a corrective item its product-acceptance stage added: 5 criteria in 1 step |
 | Start to end | 01:49:09Z to 02:02:23Z, 13.2 minutes | 01:49:12Z to 02:38:00Z, 48.8 minutes |
 | Accepted revisions | 30 | 46 |
-| Improve reviews | 5: two step reviews, carry-forward, system-test-author, release-plan. The run recorded the planning-review option `none`, so spec, test-strategy, plan and step-plan had no review | 13 review packets from 12 Improve children: spec, test-strategy, plan, step-plan, three step reviews, two of carry-forward, three of system-test-author, release-plan (option `stage`) |
+| Improve reviews | 5: two step reviews, reflect-and-revise, system-test-author, release-plan. The run recorded the planning-review option `none`, so spec, test-strategy, plan and step-plan had no review | 13 review packets from 12 Improve children: spec, test-strategy, plan, step-plan, three step reviews, two of reflect-and-revise, three of system-test-author, release-plan (option `stage`) |
 | Refusals, all recovered in the session | 2: one seeded fault of 8 survived at `test`; a system-test command's `ids` shape | 6: three at step-plan (criteria with no focused test ID, a Proof naming a test file not yet written, step paths with no expectation), seeded faults at `test` twice (2 of 8, 1 of 8), release-plan evidence naming files that do not exist |
 | Turns, model calls | 187, 61; no dollar figure (subscription) | 430, 233; $15.04 reported |
 | Returned source | clean committed product `2ccac6dc1cfaffa334e2f74349d5003a609da6aa` | clean committed product `1ec0e2b1a0b96f807b2eefdd14390f8da5f7f9b1` |
@@ -9273,7 +9273,7 @@ at the start on 18 processors, 9.25 when the Sol run ended).
 | Step plan | one item, 4 criteria in 2 steps: the assignment write and its notification (2 criteria, 5 source files), then the filters and the command-line listing (2 criteria, 2 source files) | W1: 11 criteria in 1 step; W2: 12 criteria in 1 step; both items come from the plan stage and none was added later |
 | Start to end | 16:02:38Z to 16:19:08Z, 16.5 minutes | 16:02:37Z to 17:25:37Z, 83.0 minutes |
 | Accepted revisions | 34 | 37 |
-| Improve reviews | 9, one pass each, none changed anything: spec, test-strategy, plan, step-plan, two step reviews, carry-forward, system-test-author, release-plan (option `stage`) | 9 in 19 passes: spec 4, test-strategy 3, plan 4, step-plan 1, two step reviews (2 and 1), carry-forward 2, system-test-author 1, release-plan 1; 6 of the 9 changed something, all but step-plan, system-test-author and release-plan (option `stage`) |
+| Improve reviews | 9, one pass each, none changed anything: spec, test-strategy, plan, step-plan, two step reviews, reflect-and-revise, system-test-author, release-plan (option `stage`) | 9 in 19 passes: spec 4, test-strategy 3, plan 4, step-plan 1, two step reviews (2 and 1), reflect-and-revise 2, system-test-author 1, release-plan 1; 6 of the 9 changed something, all but step-plan, system-test-author and release-plan (option `stage`) |
 | Refusals, all recovered in the session | 5: test-strategy twice (a layer name; no unit or component row for the command line, the worker and the service), step-plan (its loop still active), implement (the shape of `not_covered`), seeded faults at `test` (2 of 8 survived) | 9: test-strategy (no unit or component row for `server.js`); step-plan three times (a Proof naming a test file not yet written, step paths with no expectation, plan assumptions due in W2 left unsettled); implement (a step Proof that did not pass); seeded faults at `test` twice (1 of 8, 2 of 8); document (a line added to `spec.md` without the step's mark); an Improve result (`added_tests` outside a done document result) |
 | Turns, model calls | 289, 79; no dollar figure (subscription) | 510, 286; $20.48 reported |
 | Returned source | clean committed product `7cfb37762f6c0553ec4130fd24c7f10063dceedb` | clean committed product `d4fdf5bf218e8af954775e2d5427a761c306fb05` |
@@ -9393,7 +9393,7 @@ simpler").
 | Step plan | one item, 2 criteria in 2 steps | one item, 11 criteria in 2 steps (5 and 6) | two items, both from the plan stage: 11 criteria in 2 steps (7 and 4), then 7 criteria in 2 steps (4 and 3) |
 | Start to end | 07:35:19Z to 07:49:16Z, 13.9 minutes | 07:35:19Z to 08:20:08Z, 44.8 minutes | 07:35:19Z to 08:17:35Z, 42.3 minutes |
 | Accepted revisions | 34 | 34 | 45 |
-| Improve reviews | 9, one pass each, none changed anything (option `stage`) | 9 in 12 passes; 4 changed something: spec, test-strategy and two document reviews (option `stage`) | 11 in 16 passes; 3 changed something: spec, test-strategy and carry-forward (option `stage`) |
+| Improve reviews | 9, one pass each, none changed anything (option `stage`) | 9 in 12 passes; 4 changed something: spec, test-strategy and two document reviews (option `stage`) | 11 in 16 passes; 3 changed something: spec, test-strategy and reflect-and-revise (option `stage`) |
 | Refusals, all recovered in the session | 3: test-strategy twice (a layer name; no unit or component row for the server and the command line), plan (the concerns map) | 13: a review hand-off twice; step-plan three times (the result's record twice, an open plan assumption); `test` six times (a test ID, seeded faults twice with 2 and 3 of 8 surviving, a failing suite, the base run, a failing check); document (a line added to `spec.md` outside the step's own); handoff (the unverified list) | 13: a review hand-off twice; plan (a concern's owner stage); step-plan twice (concerns the plan does not give it, a path with no expectation); `test` six times (seeded faults four times, a failing suite, failing focused tests); operations twice (an evidence file that did not exist) |
 | release-verify in the clean copy | one attempt, accepted. The release plan recorded `npm test` itself (123 tests pass) and one system-test file; nothing was added | one attempt, accepted. Its own check was one system-test file, 1 test; ShipLoop added `npm test`: 144 tests pass | one attempt, accepted. Its own checks were one system-test file, 2 tests, and `node bin/tickets.js --help`; ShipLoop added `npm test`: 158 tests pass |
 | Turns, model calls | 149, 69; no dollar figure (subscription) | 291, 162; $7.40 reported | 356, 210; $10.26 reported |
@@ -9646,7 +9646,7 @@ Results.
 
 What the sessions do with a note during the build. All five that got one sent the step back to `step-plan` and
 rewrote the requirement there (four on Sol, one on Sonnet), which the standing duty of `step-plan` forbade until this
-change. Nobody used the route the design built (carry to `carry-forward`, which rewrites the requirement and queues a
+change. Nobody used the route the design built (carry to `reflect-and-revise`, which rewrites the requirement and queues a
 new item).
 
 The harness, asked the standing three questions.
@@ -9656,7 +9656,7 @@ The harness, asked the standing three questions.
    case's own five checks read a choice of the request the stand-in may contradict: a run of the opposite wish reads
    "3 of 8 checks" and is right. A verdict for "the note's wish is what the service does" exists only in the
    experiment's reader, not in the harness.
-2. More to learn on later passes: a note that arrives at `document`, at `carry-forward`, in a later work item or after
+2. More to learn on later passes: a note that arrives at `document`, at `reflect-and-revise`, in a later work item or after
    the build; two notes at once; a note the run cannot do; and whether a session on Grok (no run here) reads the first
    line of a refusal.
 3. More evaluation criteria: whether the host's last message tells the requester what happened to the note. On Sol it
@@ -9669,10 +9669,10 @@ value above is in `docs/experiments/ratchet-pilot-20261120/shiploop-notes/eviden
 repository, may be pruned): `~/e2e-runs/r-20261122-5d2cbc/` and `~/e2e-runs/r-20261122-2a32f1/`, with each run's
 `result.json`, native events and delivery bundle.
 
-## 2026-11-22 — carry-forward leaves spec.md to the steps: three whole deliveries on the changed text pass every verdict and every case check, and carry-forward changes spec.md in none of them (Codex Sol 6.2 medium, Claude Sonnet 5.5 medium twice)
+## 2026-11-22 — reflect-and-revise leaves spec.md to the steps: three whole deliveries on the changed text pass every verdict and every case check, and reflect-and-revise changes spec.md in none of them (Codex Sol 6.2 medium, Claude Sonnet 5.5 medium twice)
 
-What ran. The E2E round of the change that takes `spec.md` out of carry-forward's duty (branch
-`fix/carry-forward-spec-47da85`, commits `cdd6dd2614d1f8fc828b9f0904d108dc0ab6fa87` and
+What ran. The E2E round of the change that takes `spec.md` out of reflect-and-revise's duty (branch
+`fix/reflect-and-revise-spec-47da85`, commits `cdd6dd2614d1f8fc828b9f0904d108dc0ab6fa87` and
 `1a5526c9cfb830febb9dcf521b160fbab7fd1bc5`, on top of ShipLoop 2.7.0 and the docs commit
 `e511aac6d1102d8262034f961e62d306e8e7d993`). Three deliveries from that worktree with `test/shiploop_e2e/run.py --source
 checkout --effort medium`, an external output and baseline file, planning review at the default, started together at
@@ -9685,31 +9685,31 @@ Claude Sonnet 5.5. Nothing else of this repository ran live.
 | Sonnet 5.5 medium, `csv-report` | pass | 5 of 5 | none declared | 874.8 s (14.6 min) | $5.33 |
 | Sonnet 5.5 medium, `shared-expenses` | pass | 6 of 6 | none declared | 1254.1 s (20.9 min) | $6.20 |
 
-The deciding reading, registered in the design before the runs: carry-forward's own knowledge commit does not change
+The deciding reading, registered in the design before the runs: reflect-and-revise's own knowledge commit does not change
 `docs/shiploop/spec.md`. Read from each product repository's git log (`fix-round/cfspec.py`, `readings.txt`):
 
-- Sol, `ticket-assignment`: one carry-forward knowledge commit, `architecture.md` only. The spec's one commit is from
+- Sol, `ticket-assignment`: one reflect-and-revise knowledge commit, `architecture.md` only. The spec's one commit is from
   the spec stage.
-- Sonnet, `csv-report`: one carry-forward knowledge commit, `environment.md` only. The two `spec.md` commits are from
+- Sonnet, `csv-report`: one reflect-and-revise knowledge commit, `environment.md` only. The two `spec.md` commits are from
   the spec stage's review and from the step.
-- Sonnet, `shared-expenses`: no carry-forward knowledge commit at all. The three `spec.md` commits are from the spec
+- Sonnet, `shared-expenses`: no reflect-and-revise knowledge commit at all. The three `spec.md` commits are from the spec
   stage's review and from the step.
 
-So 0 of 3 carry-forwards changed `spec.md`, 0 of 2 on Sonnet. The old rates in the census of ShipLoop 2.4.0 and later
+So 0 of 3 reflect-and-revises changed `spec.md`, 0 of 2 on Sonnet. The old rates in the census of ShipLoop 2.4.0 and later
 (`docs/experiments/end-of-inner-loop-20261122/census/`) were 8 of 95 on Sol medium and 19 of 50 on Sonnet medium, so two
 Sonnet runs without an edit agree with the change and do not prove it: by chance alone two of two would occur 38% of the
 time at the old rate. Function holds in every run.
 
 The harness, asked the standing three questions.
 
-1. Retain or keep state differently: the only record of whether carry-forward edited the spec is the product
+1. Retain or keep state differently: the only record of whether reflect-and-revise edited the spec is the product
    repository's git log, which the runner keeps as `work`. `cfspec.py` reads it; a verdict in the harness would be a
    small addition. Not built, since the census reader already counts it.
 2. More to learn on later passes: the case classes this round does not hold, in order: a Sonnet delivery with more than
-   one work item (carry-forward with a queue, where the old text edited most); an owner note at carry-forward, whose
+   one work item (reflect-and-revise with a queue, where the old text edited most); an owner note at reflect-and-revise, whose
    exception the new text keeps and no delivery exercised; and the end-of-work Improve review, which is now told to leave
    spec.md alone.
-3. More evaluation criteria: a check that reads the three stages' spec edits (document, carry-forward, its review) from
+3. More evaluation criteria: a check that reads the three stages' spec edits (document, reflect-and-revise, its review) from
    one command, so the rate is counted the same way as in the census.
 
 Limits: one delivery per cell, one host a driver, no Grok delivery, no marketplace result, no promotion or efficiency
@@ -9738,7 +9738,7 @@ Registered before any sample in `09fec60c854c56f51885d789f69135d4c8204357`; noth
 2. Two whole deliveries (`run.py --source checkout --effort medium`, from the branch, started together at 23:02):
    `ticket-assignment` on Codex Sol 6.2, pass, 3 of 3 checks, 18 of 18 held-out, 704.0 s; `shared-expenses` on Claude Sonnet 5.5,
    pass, 6 of 6, 1450.0 s, $6.34. Neither had a send-back, so they show function only, and the report rightly has no
-   "Requirements revised during the work" section. carry-forward changed spec.md in neither (0 of 5 over this round and the
+   "Requirements revised during the work" section. reflect-and-revise changed spec.md in neither (0 of 5 over this round and the
    one before it, 0 of 3 on Sonnet, against 19 of 50 before 2.7.1; by chance 24% at the old rate).
 
 Reading, as registered. T and P met on both drivers: the wording ships. C rewrote the entry in 2 of 2, so **the permission was
@@ -9763,21 +9763,21 @@ Evidence: `docs/experiments/end-of-inner-loop-20261122/step-plan-rewrite/` (`res
 the design with its registration, and the outside review (`gpt-6.2-astra` at xhigh). Roots outside the repository, may be
 pruned: `~/e2e-runs/spr-20261122-9a927c/`, `~/e2e-runs/spr-round-20261122-5613dc/`.
 
-## 2026-11-23 — Script-first testing and 2.8.0 reflection alignment: 4/4 direct browser scripts vs 3/4 MCP-wrapped on stage replay, 0/1 one-step carry-forward note refusals, and two whole deliveries pass every verdict and every case check (Codex Sol 6.2 medium)
+## 2026-11-23 — Script-first testing and 2.8.0 reflection alignment: 4/4 direct browser scripts vs 3/4 MCP-wrapped on stage replay, 0/1 one-step reflect-and-revise note refusals, and two whole deliveries pass every verdict and every case check (Codex Sol 6.2 medium)
 
 What ran. The changes of branch `cursor/shiploop-reflection-and-test-scripts-45e6` on top of `d0185ef5dd4cab7438834be1c3cf42b4006928b8` (ShipLoop 2.8.0):
-- `573001dde3b0507ba3fcb9b0ed5dc41e11a2ff89`: align `END_REVIEW_FOCUS_HEAD`, `references/carry-forward.md`, and `step-plan`'s `follows` refusal with ShipLoop 2.8.0's requirement-rewrite rules (leaving `_CARRY_FORWARD_ONE_STEP` unchanged after baseline verification).
+- `573001dde3b0507ba3fcb9b0ed5dc41e11a2ff89`: align `END_REVIEW_FOCUS_HEAD`, `references/reflect-and-revise.md`, and `step-plan`'s `follows` refusal with ShipLoop 2.8.0's requirement-rewrite rules (leaving `_REFLECT_AND_REVISE_ONE_STEP` unchanged after baseline verification).
 - `e69c9144e6c864fc04e948ec0f844995d4fef934` and `9cd411fefb8b701575d2f3c8355546004724e855`: prefer committed, executable test scripts over prompt-driven procedures, fragile inline shell pipelines, or MCP-wrapped harnesses across `shiploop_stage_spec.py`, `shiploop_prompts.py`, `references/testing-and-documentation.md`, `references/repeatable-test-suites.md`, and `skills/shiploop/README.md`.
-- `bd075d6d3517411cac14d870d026a249ce750a28`: E2E apparatus improvements (optional `owner-notes/` in `stage_build.py` and promoted stage scenarios `test-strategy/ui-devtools-mcp-available` and `carry-forward/one-step-owed-note`).
+- `bd075d6d3517411cac14d870d026a249ce750a28`: E2E apparatus improvements (optional `owner-notes/` in `stage_build.py` and promoted stage scenarios `test-strategy/ui-devtools-mcp-available` and `reflect-and-revise/one-step-owed-note`).
 
 1. Paired stage-replay experiments (`stages.py live`, Codex CLI 0.171.0, `gpt-6.2-sol` at `medium`, fresh session per sample):
    - `test-strategy/ui-devtools-mcp-available` (`web-choice` plain-JS fixture with both `chrome-devtools` MCP and local Node 26 + Chrome declared in `environment.md`):
      - Baseline (`d0185ef5d`): **3 of 4** samples (pilot + 3-sample confirmation) chose an MCP-wrapped harness (`Chrome DevTools MCP and Python stdlib`, `node:test with Chrome DevTools MCP`, `Chrome DevTools MCP`); 1 of 4 chose `node:test with headless Chrome CDP`.
      - Candidate (`e69c9144e`): **0 of 4** samples chose an MCP-wrapped harness; **4 of 4** selected a direct repo-native headless Chrome CDP script (`Standalone Node Chrome DevTools Protocol driver`, `Local Chrome CDP`, `node:test via isolated headless Chrome debugging pipe`, `Chrome CDP`).
    - `step-plan/ui-devtools-mcp-available`: 1/1 baseline and 1/1 candidate planned committed countable `node --test` scripts for `focused` and `regression` and kept `check` for lint/search.
-   - `carry-forward/one-step-owed-note` (1-step run with owed owner note `N1` revising `R-1` and requesting a follow-up item): 1/1 baseline (67 s, 0 refusals) and 1/1 candidate (60 s, 0 refusals) rewrote `R-1` in place, left `R-2` untouched, queued `W2` with valid `follows`, and settled `N1` as `applied` with `item: "W2"`.
+   - `reflect-and-revise/one-step-owed-note` (1-step run with owed owner note `N1` revising `R-1` and requesting a follow-up item): 1/1 baseline (67 s, 0 refusals) and 1/1 candidate (60 s, 0 refusals) rewrote `R-1` in place, left `R-2` untouched, queued `W2` with valid `follows`, and settled `N1` as `applied` with `item: "W2"`.
    - `step-plan/ui-create-board` (3-sample paired control): 0/3 baseline (`P1 1/3, P2 1/3, C1 3/3, C2 3/3`) and 0/3 candidate (`P1 0/3, P2 0/3, C1 2/3, C2 3/3`), failing the same pre-existing art-direction/criterion-proof checks on both arms (no regression from testing wording).
-   - Offline packet diff (`packets.py --offline node-fix-bug`, inline, 83/96): only `step-plan` (+223) and `test` (+176) changed; `test-spec`, `validate-existing`, `implement`, `document`, and `carry-forward` stayed byte-identical and below 20,000 characters.
+   - Offline packet diff (`packets.py --offline node-fix-bug`, inline, 83/96): only `step-plan` (+223) and `test` (+176) changed; `test-spec`, `validate-existing`, `implement`, `document`, and `reflect-and-revise` stayed byte-identical and below 20,000 characters.
 
 2. Two whole deliveries (`run.py --source checkout --host codex --model gpt-6.2-sol --effort medium --quiet`, started together at 09:17 PST from `9cd411fefb8b701575d2f3c8355546004724e855`, overlapping 985.3 s, load 10.58 -> 6.46 on 18 CPUs, external baseline file):
 
@@ -9787,13 +9787,13 @@ What ran. The changes of branch `cursor/shiploop-reflection-and-test-scripts-45e
 | Sol 6.2 medium, `battleship` | pass | 4 of 4 | mutation skipped (test binds fixed port 3000) | 995.6 s (16.6 min) | 1 / 0 (237 turns) | 2 (0) |
 
 Delivered test suites and spec-edit audit (from each product repository's git log and accepted stage results):
-- `ticket-assignment` (`HEAD 0be457ff`): `docs/shiploop/spec.md` changed only in `spec` and step commits (`W1/S1`, `W1/S2`) — **0 edits in `carry-forward` or end-of-work review**. `step-plan` recorded committed `node --test test/assignment.test.js` and `node --test test/assignment-cli.test.js` (`focused`), `npm test` (`regression`), and `git diff --check` (`check`); `system-test-author` recorded `npm test` (`regression`) and `git diff --check 8f627d9` (`check`); `release-plan` recorded `npm test` (`regression`).
-- `battleship` (`HEAD 5d6b1b1c`): `docs/shiploop/spec.md` changed only in `spec` — **0 edits in `carry-forward` or end-of-work review** (bringing post-2.7.1 `carry-forward` spec edits to 0 of 7 deliveries). `test-strategy` selected `node:test` (unit/component) and `headless Chrome with isolated profile` (e2e), with no MCP wrapper. `test/server.test.js` authored `T-6` gated behind `BATTLESHIP_BROWSER=1` launching headless Chrome with a temporary `mkdtemp` profile over native Node WebSocket CDP, verified in `step-plan`, `system-test-author`, and `release-plan` as a countable `focused` `node --test` command alongside default `node --test` (`regression`). Zero shell pipelines in `focused`.
+- `ticket-assignment` (`HEAD 0be457ff`): `docs/shiploop/spec.md` changed only in `spec` and step commits (`W1/S1`, `W1/S2`) — **0 edits in `reflect-and-revise` or end-of-work review**. `step-plan` recorded committed `node --test test/assignment.test.js` and `node --test test/assignment-cli.test.js` (`focused`), `npm test` (`regression`), and `git diff --check` (`check`); `system-test-author` recorded `npm test` (`regression`) and `git diff --check 8f627d9` (`check`); `release-plan` recorded `npm test` (`regression`).
+- `battleship` (`HEAD 5d6b1b1c`): `docs/shiploop/spec.md` changed only in `spec` — **0 edits in `reflect-and-revise` or end-of-work review** (bringing post-2.7.1 `reflect-and-revise` spec edits to 0 of 7 deliveries). `test-strategy` selected `node:test` (unit/component) and `headless Chrome with isolated profile` (e2e), with no MCP wrapper. `test/server.test.js` authored `T-6` gated behind `BATTLESHIP_BROWSER=1` launching headless Chrome with a temporary `mkdtemp` profile over native Node WebSocket CDP, verified in `step-plan`, `system-test-author`, and `release-plan` as a countable `focused` `node --test` command alongside default `node --test` (`regression`). Zero shell pipelines in `focused`.
 
 The harness, asked the standing three questions.
 
-1. Retain or keep state differently: `stage_build.py` now lays optional `owner-notes/` into `RUN/owner-notes/` natively, and both `test-strategy/ui-devtools-mcp-available` and `carry-forward/one-step-owed-note` are committed under `test/shiploop_e2e/stage_cases/` with `verify`/`render` oracles (`bd075d6d3517411cac14d870d026a249ce750a28`).
-2. More to learn on later passes: live hosts exposing callable browser MCP tools in the host catalog (Claude Code / Cursor), non-Codex drivers (Claude Sonnet, Grok), multi-item `carry-forward` with an owed owner note, an end-of-work review after an actual `step-plan` send-back rewrite in a whole delivery, and outer stages (`system-test-author`, `release-plan`) once wave-3 stage-suite support lands.
+1. Retain or keep state differently: `stage_build.py` now lays optional `owner-notes/` into `RUN/owner-notes/` natively, and both `test-strategy/ui-devtools-mcp-available` and `reflect-and-revise/one-step-owed-note` are committed under `test/shiploop_e2e/stage_cases/` with `verify`/`render` oracles (`bd075d6d3517411cac14d870d026a249ce750a28`).
+2. More to learn on later passes: live hosts exposing callable browser MCP tools in the host catalog (Claude Code / Cursor), non-Codex drivers (Claude Sonnet, Grok), multi-item `reflect-and-revise` with an owed owner note, an end-of-work review after an actual `step-plan` send-back rewrite in a whole delivery, and outer stages (`system-test-author`, `release-plan`) once wave-3 stage-suite support lands.
 3. More evaluation criteria: `battleship`'s held-out mutation check skipped because the delivered test bound fixed port 3000 (`quality: mutation not observed: its tests bind a fixed port`); no change made to the harness here.
 
 Limits: Codex `gpt-6.2-sol` medium only (no Claude Sonnet or Grok delivery); two whole deliveries ran overlapping each other; `ui-devtools-mcp-available` declared Chrome DevTools MCP in `environment.md` (with its stdio binary installed) rather than as a callable host catalog tool; no marketplace install run. Evidence roots (outside the repository, may be pruned): `~/e2e-runs/script-first-20261123/{ticket-assignment,battleship}` and `/tmp/shiploop-side-exp-20261123/{baseline-sol-6.2-medium,baseline-round2,baseline-step-plan-mcp,baseline-cf-note,candidate-ab-sol-6.2-medium,candidate-cf-note,ab3-baseline,ab3-candidate,board3-baseline,board3-candidate}`.

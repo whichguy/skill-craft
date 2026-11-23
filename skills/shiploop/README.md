@@ -154,7 +154,7 @@ A run has 23 stages in three phases. Each stage's packet states its goal and its
 | Phase | Stages | What they settle |
 |---|---|---|
 | **Prelude** (once) | `intake` → `discovery` → `research` → `spec` → `test-strategy` → `plan` → `prepare` | The request mapped to outcomes; the repository and a baseline test run; unknowns resolved; requirements `R-n`; which checks prove each one; an ordered queue of work items; a ready environment |
-| **Inner loop** (per work item) | `step-plan` → `test-spec` → `validate-existing` → `implement` → `test` → `document` → `carry-forward` | One change, planned, specified, built, tested and documented; then the knowledge home updated and the queue revised |
+| **Inner loop** (per work item) | `step-plan` → `test-spec` → `validate-existing` → `implement` → `test` → `document` → `reflect-and-revise` | One change, planned, specified, built, tested and documented; then the knowledge home updated and the queue revised |
 | **Outer loop** (once) | `system-test-author` → `system-test` → `product-acceptance` → `release-plan` → `release-check` → `release` → `release-verify` → `operations` → `handoff` | The assembled product tested end to end, accepted against the request, then released and verified where its consumers use it |
 
 ```mermaid
@@ -166,7 +166,7 @@ flowchart TD
   PRE --> LOOP
   subgraph LOOP["Inner loop, once per work item"]
     direction LR
-    S1[step-plan] --> S2[test-spec] --> S3[validate-existing] --> S4[implement] --> S5[test] --> S6[document] --> S7[carry-forward]
+    S1[step-plan] --> S2[test-spec] --> S3[validate-existing] --> S4[implement] --> S5[test] --> S6[document] --> S7[reflect-and-revise]
     S6 -- "next step" --> S4
     S7 -- "more items" --> S1
   end
@@ -194,7 +194,7 @@ flowchart TD
   DOC["document<br/>lint gate, rerun what the edits affect"] --> IMP
   IMP["Improve review of the step<br/>code, tests and docs"] --> COMMIT
   COMMIT["step commit<br/>feat(item/step)"] -- "next step" --> IM
-  COMMIT -- "last step" --> CF["carry-forward<br/>update knowledge home, revise the queue"]
+  COMMIT -- "last step" --> CF["reflect-and-revise<br/>update knowledge home, revise the queue"]
   CF -- "more items" --> SP
   TE -. "plan is wrong: send-back" .-> SP
 ```
@@ -212,7 +212,7 @@ The script, not the model, enforces the gates drawn above:
 
 With the default `--planning-review stage`, the **Improve** skill reviews `spec`, `test-strategy` and `plan`; the first work item's
 `step-plan` (and any item that was sent back); every step's `document` result; `system-test-author`; `release-plan`; and the last
-`carry-forward`. A review repeats its own passes until a pass finds only trivial changes. The script imports the review's evidence
+`reflect-and-revise`. A review repeats its own passes until a pass finds only trivial changes. The script imports the review's evidence
 before moving on. `--planning-review none` skips the four planning reviews; the rest stay. See [when Improve runs](references/improve-stages.md#when-improve-runs).
 
 ### What survives a context clear
@@ -430,7 +430,7 @@ sent back once. `shiploop trace` printed this plan, where `+I` marks a result th
 
 ```text
 Preparation  ✓intake ✓discovery ✓research ✓spec+I ✓test-strategy+I ✓plan+I ✓prepare
-W1 Create greeting script…  ✓step-plan×2+I ✓test-spec×2 ✓validate-existing×2 ✓implement(1 step)↩1 ✓test ✓document+I ✓carry-forward+I
+W1 Create greeting script…  ✓step-plan×2+I ✓test-spec×2 ✓validate-existing×2 ✓implement(1 step)↩1 ✓test ✓document+I ✓reflect-and-revise+I
 Release      ✓system-test-author+I ✓system-test ✓product-acceptance ✓release-plan+I ✓release-check ✓release ✓release-verify ✓operations ✓handoff
 ```
 
@@ -455,7 +455,7 @@ Each headline below is the one-line summary the model wrote for its stage, and t
 | 15 | `implement` | Verified the greeting implementation | 22 s |
 | 16 | `test` | Added and verified the greeting unittest | 57 s |
 | 17 | `document` +I | Recorded observed script and test behavior | 53 s |
-| 18 | `carry-forward` +I | Carried the verified item into release | 49 s |
+| 18 | `reflect-and-revise` +I | Carried the verified item into release | 49 s |
 | 19 | `system-test-author` +I | Selected the existing real-boundary test for system verification | 35 s |
 | 20 | `system-test` | Passed the assembled local system check | 8 s |
 | 21 | `product-acceptance` | Accepted the locally tested candidate | 8 s |
@@ -566,7 +566,7 @@ f1dfad5 docs(shiploop): record … knowledge after test-strategy
 0fc2727 docs(shiploop): record … knowledge after plan
 de91a67 docs(shiploop): record … knowledge at prepare
 11c026a feat(W1/S1): Verified the greeting implementation
-d5b0f6c docs(shiploop): record … knowledge after carry-forward
+d5b0f6c docs(shiploop): record … knowledge after reflect-and-revise
 6f33146 docs(shiploop): record … knowledge after system-test-author
 8608147 docs(shiploop): record … knowledge at release-plan
 eed33ac docs(shiploop): record … knowledge at release-verify
@@ -594,7 +594,7 @@ specification made that the request did not settle, with an alternative it set a
 the delivered project with a sentence that says what you want instead. As its own header says, it records the agent's declared completion and does not independently
 prove the checks, so read the trace and the recorded test runs, not only the report.
 
-**What this run does not show.** It had one work item, so there was no carry-forward revision of a queue. Nothing was `blocked`,
+**What this run does not show.** It had one work item, so there was no reflect-and-revise revision of a queue. Nothing was `blocked`,
 nothing was refused, and the release was a local return with no deployment or consumer to verify. A larger feature adds work items,
 more steps per item, refusals from the lint and test gates, and (when delivery needs it) a question for you.
 
@@ -733,7 +733,7 @@ host session after an update so it loads the selected package's current card.
 
 New runs use navigator protocol 4: the script persists and traverses the SDLC
 graph and issues one producer prompt at a time. After a planning result the run's
-`planning_review` option reviews, a step's `document` stage, or the last carry-forward, it parks that parent action
+`planning_review` option reviews, a step's `document` stage, or the last reflect-and-revise, it parks that parent action
 for the selected actual Improve skill; every other result advances directly. The script owns navigation; the
 model is a library call that performs the current step and runs the printed
 callback. Improve follows the Until Loop runtime bound by
@@ -812,19 +812,19 @@ loops.
 
 Planning results (`spec`, `test-strategy`, `plan`, `step-plan`, `system-test-author`,
 `release-plan`; `test-spec` is not reviewed), every accepted step review and the
-successful `carry-forward` that leaves no work item pending follow this
+successful `reflect-and-revise` that leaves no work item pending follow this
 sequence; every other producer result is accepted on its own checks and the
 script selects the next producer directly (see "When Improve
 runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs)). That is the default of the run option `--planning-review stage|none`;
 with `none` the first four of those (`spec` through `step-plan`) are accepted on
 ShipLoop's checks at `complete` too, and only each step's review,
-`system-test-author`, `release-plan` and the last `carry-forward` follow this
+`system-test-author`, `release-plan` and the last `reflect-and-revise` follow this
 sequence. The 23 producers' full flat order is: `intake`, `discovery`,
 `research`, `spec`, `test-strategy`, `plan`, `prepare`; then, for each ready
 item, the 7 inner stages in 4 phases: Plan (`step-plan`, `test-spec`), Validate
 existing (`validate-existing`), Build (`implement`, `test` and `document`, run
-once per step, each step committed before the next begins) and Carry forward
-(`carry-forward`); then
+once per step, each step committed before the next begins) and Reflect and revise
+(`reflect-and-revise`); then
 `system-test-author`, `system-test`, `product-acceptance`, `release-plan`,
 `release-check`, `release`, `release-verify`, `operations`, and `handoff`.
 
@@ -895,7 +895,7 @@ would accept a draft result now, without completing it; `complete` takes its yes
 - The ask-agent route has the same step boundaries: one `implement` action per step, built by a fresh worker in the
   shared execution checkout, which makes no commit and advances no callback; the parent submits it and ShipLoop commits
   the step. Only who executes each stage differs from the inline route.
-- `carry-forward` records a skill decision (`none`, `reuse`, `update` or
+- `reflect-and-revise` records a skill decision (`none`, `reuse`, `update` or
   `create`); ShipLoop commits a created or updated skill.
 
 Preparation, release, and operations still produce a reviewed result when they are
@@ -914,7 +914,7 @@ planning; each `step-plan` rereads it for skills learned by earlier items and
 lists each step's helper `skills` with the stages they are for, which each
 stage's packet prints. Prefer
 unchanged reuse with supported inputs/defaults, then a compatible local update,
-or a separate skill when contracts differ. `carry-forward` decides, with repeat
+or a separate skill when contracts differ. `reflect-and-revise` decides, with repeat
 evidence, whether to reuse, update or create a skill, makes the warranted skill
 edits, runs a created or updated skill once on the run's real procedure and
 maintains the repository index. Carry selected-skill references into Improve's
@@ -1232,7 +1232,7 @@ repository conventions. No particular environment-document filename is required.
 | Intake and discovery | Read README/AGENTS, the index if present, relevant environment/decision documents and known prior-run artifacts. Verify applicability against current code/targets; record reused facts, sources, stale facts and gaps. A missing index does not mean an empty repo. |
 | Research, specification and its Improve review (`stage` runs) | Challenge the context assessment and resolve consequential unknowns. Preserve applicable accepted product conditions without replaying old task scope. |
 | Overall and step planning, and their Improve reviews (`stage` runs) | Plan only the new delta from verified existing behavior; reference applicable persistent decisions and new checks in work-item context. |
-| Document and carry-forward | Incrementally update reusable knowledge and its index; keep observed facts, proposed changes and pending outer work distinct. |
+| Document and reflect-and-revise | Incrementally update reusable knowledge and its index; keep observed facts, proposed changes and pending outer work distinct. |
 | Handoff | Reconcile knowledge with final outcomes, retain provenance and relevant run/report locators, and verify useful knowledge survives beyond temporary run notes. |
 
 In the checkers example, discovery reuses the existing game's deployment target,
@@ -1303,7 +1303,7 @@ but does not remove deletion safeguards or local-only privacy. A test that passe
 while deleting immediately is a conflict to investigate, not permission to
 rewrite the requirement. Missing consequential intent stays a visible gap.
 
-Existing spec/planning, test, document/carry-forward, acceptance and handoff
+Existing spec/planning, test, document/reflect-and-revise, acceptance and handoff
 stages perform this work. Their assigned **actual Improve** campaigns review
 drift within the candidate's scope. Shared navigator packets, including fresh
 and recovered Improve handoffs, print the
@@ -1347,7 +1347,7 @@ current inner stage and parent action. A completed W1 remains `done` with no
 action. At an Improve checkpoint the script parks that action while its actual
 Improve child runs.
 
-After `carry-forward` is accepted (and, for the last item, its Improve child is
+After `reflect-and-revise` is accepted (and, for the last item, its Improve child is
 imported), the script selects the next item's `step-plan`, or returns
 ownership to `system-test-author` after the final item. The
 [navigator ownership guide](references/navigator.md#one-shared-inner-graph-and-per-item-records)
@@ -1360,7 +1360,7 @@ runtime own child iterations. ShipLoop has no second review counter.
 The navigator applies the actual-skill handoff to the planning stages (spec, test
 strategy, plan, step plan, test spec, system-test authoring and release plan; with
 `--planning-review none`, only system-test authoring and release plan), to each
-step's accepted document stage, and to the last carry-forward, whose review covers all
+step's accepted document stage, and to the last reflect-and-revise, whose review covers all
 executed steps before OUTER work. See "When Improve runs" in [the Improve schedule](references/improve-stages.md#when-improve-runs). The producer callback first saves its attempt. The next
 packet binds or resumes the selected Improve skill; the graph advances only
 when that skill completes and the bound outcome is imported. Read the actual
@@ -1591,7 +1591,7 @@ Read deployment automation too: commit/push/merge can trigger an external update
 | `discovery` and `research` | Identify where code is edited, built, run, tested and consumed; inspect existing areas, access, isolation, baseline behavior, deployment triggers and promotion rules. Do not provision during investigation. |
 | `test-strategy`, `plan` and their Improve reviews (`stage` runs) | Plan readiness checks, environment preparation, candidate staging and final promotion before feature coding. Put required setup producers before their consumers in `work_items`, with definitions of ready/done and authority. |
 | Preparation work item through INNER | Perform only authorized setup; verify the intended target, binding, isolation and baseline; document its receipt and complete Improve before dependent feature work begins. An already-ready environment needs no artificial setup item. |
-| Feature work and `carry-forward` | Recheck applicable readiness, use only the planned workspace/target, and retain newly discovered staging/migration/approval requirements in the shared environment note. |
+| Feature work and `reflect-and-revise` | Recheck applicable readiness, use only the planned workspace/target, and retain newly discovered staging/migration/approval requirements in the shared environment note. |
 | `system-test`, `product-acceptance` | Use the planned candidate and environment, inspect real readiness/check evidence, and reconcile pending deployment work. A required test deployment must already have an explicit producer; do not improvise a production update to make tests run. |
 | `release-plan`, `release`, `release-verify`, `handoff` | Read the retained route, plan and execute only remaining authorized hops, preserve candidate identity and partial receipts, verify the final consumer, and report cleanup ownership and unresolved work. |
 
@@ -1882,7 +1882,7 @@ a product.
   evidence.
 - [Research and recursive discovery](references/research-loop.md#recursive-discovery-and-experiments):
   scoped investigation, early access readiness, experiments and reuse.
-- [Carry-forward checkpoint](references/carry-forward.md): post-item mapping
+- [Reflect-and-revise checkpoint](references/reflect-and-revise.md): post-item mapping
   and future-work revision.
 - [Testing and documentation contract](references/testing-and-documentation.md):
   stage readiness, case records, surface selection, documentation and

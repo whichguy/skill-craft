@@ -66,7 +66,7 @@ class SavedSlice(unittest.TestCase):
         self.assertEqual((p["count_opened"], p["of"]), (3, 8))
         modes = {r["stage"]: r["opened"] for r in p["rows"]}
         self.assertEqual({s: m for s, m in modes.items() if m != "none"},
-                         {"step-plan": "whole", "test-spec": "slice", "carry-forward": "slice"})
+                         {"step-plan": "whole", "test-spec": "slice", "reflect-and-revise": "slice"})
         rows = {r["stage"]: r for r in p["rows"]}
         packet = self.out / rows["step-plan"]["file"]
         self.assertEqual(rows["step-plan"]["written"], len(packet.read_text()), "written is the packet file's characters")

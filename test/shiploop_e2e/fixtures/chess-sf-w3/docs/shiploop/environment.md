@@ -176,4 +176,4 @@ An ID is the Apex method name: `TC_1` through `TC_20`. The printed tap token is 
 
 ## Skills
 
-- No repository skill, `SHIPLOOP.md`, or README. No fit. Source: empty tree in `run/scratch/baseline-find.txt`. Revalidated at W2 carry-forward: the worktree still has no `SKILL.md`, and no host skill covers this Apex project.
+- No repository skill, `SHIPLOOP.md`, or README. No fit. Source: empty tree in `run/scratch/baseline-find.txt`. Revalidated at W2 reflect-and-revise: the worktree still has no `SKILL.md`, and no host skill covers this Apex project.

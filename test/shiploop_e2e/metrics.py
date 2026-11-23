@@ -271,7 +271,7 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # stage rule).  Before unverified_requirement, whose pattern reads another list's rows.
     "defaults": re.compile(r"a done spec result lists defaults:|defaults is allowed only|defaults must be a list|"
                            r"defaults\[\d+\]"),
-    # A plan or carry-forward queue that leaves a primary requirement out of every work item's follows, or a follows ID
+    # A plan or reflect-and-revise queue that leaves a primary requirement out of every work item's follows, or a follows ID
     # with no entry (F3 of the 2026-10-28 plan, shiploop_primary.py check_queue; the work item's follows shape, navigator).
     "primary_coverage": re.compile(r"is served by a work item whose follows names it|work_items follows names |"
                                    r"work item \S+'s follows is a list of"),

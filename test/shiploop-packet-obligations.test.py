@@ -115,7 +115,7 @@ class LedgerHoldsTests(unittest.TestCase):
                 self.assertEqual(len(stages), 23)  # 24 until verify retired (design T §9.1 2b-4c)
                 self.assertTrue(any(p["kind"] == "improve" for p in walked))
             sliced = [p for p in self.packets if p["where"].startswith(f"slice node-fix-bug {route} ")]
-            self.assertTrue({"step-plan", "implement", "test", "document", "carry-forward"} <= {p["stage"] for p in sliced})
+            self.assertTrue({"step-plan", "implement", "test", "document", "reflect-and-revise"} <= {p["stage"] for p in sliced})
 
     def test_no_row_is_vacuous(self) -> None:
         """Each row applies to packets, and the conditional rows to many (the narrative at most stages, the loop at the looped ones)."""
@@ -125,7 +125,7 @@ class LedgerHoldsTests(unittest.TestCase):
             applies[row["id"]] = sum(1 for p in self.packets if p["kind"] in row["kinds"] and (not condition or condition in p["file"]))
         self.assertTrue(all(count > 0 for count in applies.values()), applies)
         # Decision 2026-11-03: the narrative is shown only at the run-level boundaries (prepare, a work item's
-        # carry-forward, product-acceptance, release, handoff, and the start of a run), because asking at 20 of 23
+        # reflect-and-revise, product-acceptance, release, handoff, and the start of a run), because asking at 20 of 23
         # stages produced 61% compliance over 2,111 emissions while the narrowed set produced 11 of 12 over two live
         # rounds. The floor falls with it: this fixture renders 12 narrative packets, not the 40 the old rule gave.
         self.assertGreaterEqual(applies["narrative"], 8)

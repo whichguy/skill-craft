@@ -82,7 +82,7 @@ class ImproveChangesTests(unittest.TestCase):
                     {"command": "sh check.sh", "suite": "regression"}]}}}
 
     def test_the_end_review_reruns_tests_only_when_it_changed_the_tree(self) -> None:
-        child = {"stage": "carry-forward"}
+        child = {"stage": "reflect-and-revise"}
         self.assertEqual([row["command"] for row in changes.rerun_commands(self.state())], ["sh check.sh"])
         self.bind()
         nav._improve_change_gate(None, self.run, self.state(), "A1", child, {})

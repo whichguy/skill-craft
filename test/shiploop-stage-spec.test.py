@@ -26,7 +26,7 @@ import shiploop_test_loop as test_loop  # noqa: E402
 PRELUDE = ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare")
 # Verify is retired (design T §9.1 2b-4c): each step's document stage and its review close the step, and the commit
 # stage, ShipLoop's own, commits it.
-INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward")
+INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "reflect-and-revise")
 OUTER = ("system-test-author", "system-test", "product-acceptance", "release-plan", "release-check",
          "release", "release-verify", "operations", "handoff")
 
@@ -78,7 +78,7 @@ class StageTableTest(unittest.TestCase):
     def test_improve_rules(self) -> None:
         self.assertEqual(prompts.PLANNING_REVIEW_STAGES, frozenset({
             "spec", "test-strategy", "plan", "step-plan", "system-test-author", "release-plan"}))
-        self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
+        self.assertEqual(spec.with_improve("last-item"), frozenset({"reflect-and-revise"}))
         # Rule item (owner, 2026-10-26, design 560c396f P0): one implement review per work item; test-spec has none.
         self.assertEqual(spec.IMPROVE_RULES, ("always", "last-item", "item", "first-item"))
         # Design T §8 (owner 2026-10-27/28): each step's one review follows its document stage.
@@ -97,10 +97,10 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.reviewed_stages("stage"), frozenset({
             "spec", "test-strategy", "plan", "step-plan", "system-test-author", "release-plan"}))
         # `none` starts no child at the four planning stages the option covers; the children after
-        # system-test-author and release-plan stay, and the last carry-forward's rule is not the option's.
+        # system-test-author and release-plan stay, and the last reflect-and-revise's rule is not the option's.
         self.assertEqual(spec.PLANNING_CHOICE_STAGES, frozenset({"spec", "test-strategy", "plan", "step-plan"}))
         self.assertEqual(spec.reviewed_stages("none"), frozenset({"system-test-author", "release-plan"}))
-        self.assertEqual(spec.with_improve("last-item"), frozenset({"carry-forward"}))
+        self.assertEqual(spec.with_improve("last-item"), frozenset({"reflect-and-revise"}))
         for mode in spec.PLANNING_REVIEW_MODES:
             self.assertLessEqual(spec.reviewed_stages(mode), spec.with_improve("always") | spec.with_improve("first-item"))
         # the six-stage set the option does not redefine still drives the source-printing packets
@@ -110,11 +110,11 @@ class StageTableTest(unittest.TestCase):
 
     def test_prompt_block_sets(self) -> None:
         self.assertEqual(prompts.TEST_FACILITY_STAGES, frozenset({
-            "test-strategy", "plan", "step-plan", "test-spec", "test", "carry-forward", "system-test-author",
+            "test-strategy", "plan", "step-plan", "test-spec", "test", "reflect-and-revise", "system-test-author",
             "release-plan"}))
         self.assertEqual(prompts.TEST_DECISION_STAGES, frozenset({"step-plan", "test-spec", "test"}))
         self.assertEqual(prompts.BACKCHAIN_STAGES, frozenset({
-            "spec", "plan", "step-plan", "carry-forward", "product-acceptance"}))
+            "spec", "plan", "step-plan", "reflect-and-revise", "product-acceptance"}))
         self.assertEqual(prompts.RECONCILIATION_STAGES, frozenset({
             "system-test", "product-acceptance", "release-verify", "handoff"}))
         # The Code craft block prints where product code is written: implement only (owner, 2026-10-11).  test and
@@ -124,7 +124,7 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.with_block("interaction-design"),
                          frozenset({"discovery", "research", "spec", "plan"}))
         self.assertNotIn("interaction-design", spec.stage("step-plan").blocks)
-        self.assertEqual(spec.with_block("work-items"), frozenset({"plan", "carry-forward"}))
+        self.assertEqual(spec.with_block("work-items"), frozenset({"plan", "reflect-and-revise"}))
         self.assertEqual(set(prompts.ENVIRONMENT_DISCOVERY_REQUIREMENTS), {"discovery", "research"})
 
     def test_assistive_tool_runs(self) -> None:

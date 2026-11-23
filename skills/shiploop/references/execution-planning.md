@@ -144,7 +144,7 @@ future producer as evidence that a prerequisite already holds.
 
 A missing current prerequisite blocks application. If it needs a new work item,
 changed contract, writer or permission, report it through the current result
-(`blocked`, or a revised future queue at `carry-forward`) rather than finishing
+(`blocked`, or a revised future queue at `reflect-and-revise`) rather than finishing
 the active item to reach later stages. Never rewrite completed work items here.
 
 Rows are planning content, **not** a second scheduler, schema, per-row completion
@@ -187,7 +187,7 @@ Distinguish three cases:
 Unrelated existing failures need an explicit impact/scope decision, not automatic
 repair, hidden waivers or a claim the entire suite passed. If a current prerequisite
 needs new scope, writer, environment or permission, pause; schedule compatible
-future-only needs through the `carry-forward` queue revision. Planning actions
+future-only needs through the `reflect-and-revise` queue revision. Planning actions
 do not edit product tests: the plan's later stages or an earlier explicit
 producer own those edits and checks. A planning review does not execute or
 certify future baseline checks.

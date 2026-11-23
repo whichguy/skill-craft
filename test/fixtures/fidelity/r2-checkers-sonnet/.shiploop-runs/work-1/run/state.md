@@ -499,7 +499,7 @@
   {
    "action": "nav-d590f9724fb5496986f370c36c035b10",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "No future items are required: spec R-1..R-13 are all owned by W1 and confirmed.\u2026",
    "workitem": "W1"
   },

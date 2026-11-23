@@ -59,7 +59,7 @@ BLOCKED_REPORT = {"classification": "unresolved", "exit_assessment": "unknown", 
 # The public graph, declared here and not read from the navigator, so a changed graph updates this test deliberately.
 EXPECTED_STAGES = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "reflect-and-revise",
     "system-test-author", "system-test", "product-acceptance", "release-plan", "release-check", "release",
     "release-verify", "operations", "handoff",
 )
@@ -98,7 +98,7 @@ RESULTS = {
     # A step's reflection (design T §9.1 2b-3): what it changed in each living file, and the open items it found.
     "document": {"knowledge": {"spec": "none: no clause changed", "architecture": "none: no decision",
                                "environment": "none: no new command"}, "assumptions": []},
-    "carry-forward": {"skill": SKILL_NONE, "assumptions": []},
+    "reflect-and-revise": {"skill": SKILL_NONE, "assumptions": []},
     "system-test-author": {"system_commands": [{"command": "true", "suite": "check"}], "assumptions": []},
     "system-test": {"assumptions": []},
     "release-plan": {"consumer_checks": [{"command": "true", "suite": "check"}],
@@ -315,7 +315,7 @@ class RealCliCase(unittest.TestCase):
         # test_each_inner_template_prints_every_field_its_gate_requires), so add the fixture's own value.
         if "steps" in block and "expectations" not in block:
             block["expectations"] = STEP_PLAN["expectations"]
-        if "ShipLoop navigator | carry-forward | " in head and "skill" not in block:
+        if "ShipLoop navigator | reflect-and-revise | " in head and "skill" not in block:
             block["skill"] = SKILL_NONE
         found = re.search(r"ShipLoop navigator \| ([a-z-]+) \| ", head)
         stage = found.group(1) if found else ""
@@ -2488,7 +2488,7 @@ class PrimaryRequirementRouteTests(RealCliCase):
     def test_a_carry_forward_whose_queue_drops_the_work_item_serving_a_primary_requirement_is_refused(self) -> None:
         queue = [{"id": "W1", "title": "Build it", "context": "All of it."},
                  {"id": "W2", "title": "Serve R-1", "follows": ["R-1"], "context": "R-1's change."}]
-        run, head = self.new_run("carry-forward", results={"spec": {"primary": ["R-1"]}, "plan": {"work_items": queue}})
+        run, head = self.new_run("reflect-and-revise", results={"spec": {"primary": ["R-1"]}, "plan": {"work_items": queue}})
         self.living_spec(run)
         self.assertIn("work items following each now: R-1 W2.", full_packet_text(head))
         command, path, action = printed_callback(head)
@@ -2635,7 +2635,7 @@ class LoopRefusalRouteTests(RealCliCase):
     def test_done_before_the_loop_ran_is_told_the_start_command_and_following_it_is_accepted(self) -> None:
         # test-green is folded into test (8-stage loop, 2026-10-10), and verify, which took static-checks, is retired
         # (design T §9.1 2b-4c): document, the step's last model stage, is the other loop this route covers.
-        for stage, following in (("test", ("document",)), ("document", ("document", "carry-forward"))):
+        for stage, following in (("test", ("document",)), ("document", ("document", "reflect-and-revise"))):
             with self.subTest(stage=stage):
                 run, head = self.new_run(stage, entered=True)
                 command, path, action = printed_callback(head)
@@ -3065,12 +3065,12 @@ class InnerGateRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["test_cases"], TEST_CASES)
 
     def test_carry_forward_needs_a_skill_decision_and_an_update_names_an_existing_skill(self) -> None:
-        run, head = self.new_run("carry-forward")
+        run, head = self.new_run("reflect-and-revise")
         command, path, action = printed_callback(head)
         good = self.fill_done(head)
         write_block(path, {key: value for key, value in good.items() if key != "skill"})
         reply = self.submit_until_gate(command, run)
-        self.assertIn('carry-forward needs skill: {"decision": "none" | "reuse" | "update" | "create"', reply)
+        self.assertIn('reflect-and-revise needs skill: {"decision": "none" | "reuse" | "update" | "create"', reply)
         missing = str(self.repo_of(run) / ".claude" / "skills" / "hello" / "SKILL.md")
         write_block(path, {**good, "skill": {"decision": "update", "reason": "The step repeated.", "path": missing,
                                              "evidence": ["W1 S1"]}})
@@ -3082,8 +3082,8 @@ class InnerGateRouteTests(RealCliCase):
 
 
 # Stages whose accepted result starts an Improve child (the planning reviews, the item's last implement step and the
-# last item's carry-forward), declared here and not read from the navigator.  test-spec starts none (2026-10-26).
-CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "document", "carry-forward",
+# last item's reflect-and-revise), declared here and not read from the navigator.  test-spec starts none (2026-10-26).
+CHECKPOINTS = ("spec", "test-strategy", "plan", "step-plan", "document", "reflect-and-revise",
                "system-test-author", "release-plan")
 # Stages ShipLoop records by script when its own checks leave nothing to do (every expectation matches; the item's diff
 # touches no code or test path); a walk sees their history row, not a packet.
@@ -3180,9 +3180,9 @@ class EveryStageRouteTests(RealCliCase):
         """A model fills the printed template; a field the gate refuses without must be in it (S-3).
 
         Fails on the 2026-10-10 engine: the step-plan template prints no expectations and no step skills, and the
-        carry-forward template prints no skill decision, while each gate refuses a done result without them.
+        reflect-and-revise template prints no skill decision, while each gate refuses a done result without them.
         """
-        required = {"step-plan": ("expectations",), "carry-forward": ("skill",)}
+        required = {"step-plan": ("expectations",), "reflect-and-revise": ("skill",)}
         for stage, fields in required.items():
             with self.subTest(stage=stage):
                 _run, head = self.new_run(stage)

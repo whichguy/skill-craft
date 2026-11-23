@@ -500,7 +500,7 @@
   {
    "action": "nav-2e20c44e9b4b4fe189100872675931f3",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "W1 is the only item and is complete; learnings (rerun commands, conventions, ch\u2026",
    "workitem": "W1"
   },

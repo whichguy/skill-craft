@@ -41,7 +41,7 @@ import status_card  # noqa: E402
 def band(exp: dict) -> str:
     """The case's band as a short label, else the experiment's metric; a full-item slice (no stop_after) says so."""
     if not exp.get("stop_after"):
-        return "full item, step-plan to carry-forward"
+        return "full item, step-plan to reflect-and-revise"
     shape = (json.loads((HERE / "step_cases.json").read_text()).get(exp["case"]) or {}).get("shape")
     if not shape:
         return exp.get("metric", "")[:48]

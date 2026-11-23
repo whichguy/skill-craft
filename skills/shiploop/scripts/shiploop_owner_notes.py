@@ -7,7 +7,7 @@ Each note is its own file, ``RUN/owner-notes/N<k>.md`` (a ShipLoop record: id, w
 never edited; no run lock is taken, so a note never waits for a command the model is running.
 
 A note is settled by a row, never by a print.  A done result of any producer stage may carry ``notes``: one row
-``{"note", "did", "detail"}`` (``item`` too, on an applied row at plan and carry-forward) per note, where ``did`` is
+``{"note", "did", "detail"}`` (``item`` too, on an applied row at plan and reflect-and-revise) per note, where ``did`` is
 ``applied``, ``already``, ``carried`` or ``declined``.  Three words for where a note stands, read from the rows of
 every accepted done result in the order the run accepted them (``ledger``):
 
@@ -16,8 +16,8 @@ every accepted done result in the order the run accepted them (``ledger``):
 - **settled**: its latest row is ``applied``, ``already`` or ``declined``; a settled note stays settled for the run.
 
 A fresh done result owes a row for every open note, and for every carried one except a note carried by a stage of a
-work item (step-plan to document), which that item's carry-forward owes; ``handoff`` owes every note not settled, and
-it and carry-forward may not carry (``owed``).  ShipLoop refuses done while a row is missing, extra or malformed, and
+work item (step-plan to document), which that item's reflect-and-revise owes; ``handoff`` owes every note not settled, and
+it and reflect-and-revise may not carry (``owed``).  ShipLoop refuses done while a row is missing, extra or malformed, and
 the refusal's first line names the notes, their folder and the result file (``refusal``).  Nothing asks and nothing
 waits.  Design: docs/experiments/ratchet-pilot-20261120/shiploop-notes/DESIGN.md (section 2).
 """
@@ -66,13 +66,13 @@ _SURROGATE = re.compile("[\ud800-\udfff]")  # an undecodable command-line byte a
 # The four answers a row gives, and the three that settle a note.
 DID = ("applied", "already", "carried", "declined")
 SETTLES = frozenset(("applied", "already", "declined"))
-CARRY_FORWARD, HANDOFF, PLAN = "carry-forward", "handoff", "plan"
+REFLECT_AND_REVISE, HANDOFF, PLAN = "reflect-and-revise", "handoff", "plan"
 # The stages whose applied row names the work item that does the work (design 2.3), and the two that settle every note
 # they owe (no carried row).
-ITEM_STAGES = frozenset((PLAN, CARRY_FORWARD))
-SETTLE_ONLY = frozenset((CARRY_FORWARD, HANDOFF))
-# A work item's steps: a note one of them carries is owed by that item's carry-forward, and by no step before it.
-ITEM_STEPS = frozenset(stage_spec.INNER) - {CARRY_FORWARD}
+ITEM_STAGES = frozenset((PLAN, REFLECT_AND_REVISE))
+SETTLE_ONLY = frozenset((REFLECT_AND_REVISE, HANDOFF))
+# A work item's steps: a note one of them carries is owed by that item's reflect-and-revise, and by no step before it.
+ITEM_STEPS = frozenset(stage_spec.INNER) - {REFLECT_AND_REVISE}
 ROW_KEYS = ("note", "did", "detail", "item")
 
 HEADER = ("Owner notes this stage must account for (the run owner wrote these during the run; verbatim, oldest first; "
@@ -293,7 +293,7 @@ def owes(rows: Sequence[Mapping[str, Any]], stage: str, workitem: str | None) ->
         return True
     last = rows[-1]
     if _carried_in_item(last):
-        return stage == CARRY_FORWARD and workitem == last.get("workitem")
+        return stage == REFLECT_AND_REVISE and workitem == last.get("workitem")
     return True
 
 
@@ -306,7 +306,7 @@ def owed(state: Mapping[str, Any], found: Sequence[Mapping[str, Any]], stage: st
 
 def _who_next(stage: str) -> str:
     """Who accounts for a note this stage carries."""
-    return "this work item's carry-forward" if stage in ITEM_STEPS else "the next stage"
+    return "this work item's reflect-and-revise" if stage in ITEM_STEPS else "the next stage"
 
 
 def _where(row: Mapping[str, Any]) -> str:
@@ -320,9 +320,9 @@ def _cut(text: Any, limit: int = DETAIL_SHOWN) -> str:
 
 
 def owed_by(rows: Sequence[Mapping[str, Any]]) -> str:
-    """Who accounts for a note that is not settled: the next stage, or the carry-forward of the item that carried it."""
+    """Who accounts for a note that is not settled: the next stage, or the reflect-and-revise of the item that carried it."""
     if rows and _carried_in_item(rows[-1]):
-        return str(rows[-1].get("workitem")) + " carry-forward"
+        return str(rows[-1].get("workitem")) + " reflect-and-revise"
     return "the next stage"
 
 
@@ -331,7 +331,7 @@ def owed_by(rows: Sequence[Mapping[str, Any]]) -> str:
 
 def _queue(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> list[str]:
     """The work items an applied row's ``item`` may name (design 2.3): at plan the queue the result leaves; at
-    carry-forward the future queue it leaves (the result's ``work_items`` replace every item after the current one)."""
+    reflect-and-revise the future queue it leaves (the result's ``work_items`` replace every item after the current one)."""
     given = result.get("work_items")
     if isinstance(given, list):
         return [str(row.get("id")).strip() for row in given if isinstance(row, Mapping) and row.get("id") is not None]
@@ -380,7 +380,7 @@ def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, wor
     did = did.strip()
     if did == "carried" and stage in SETTLE_ONLY:
         return (f'"did" is "carried", which {stage} may not give: it settles every note it owes ({_did_list(stage)})'
-                + ('; a note that needs a later work item is "applied" with that item' if stage == CARRY_FORWARD else ""))
+                + ('; a note that needs a later work item is "applied" with that item' if stage == REFLECT_AND_REVISE else ""))
     detail = row.get("detail")
     if not isinstance(detail, str) or not detail.strip():
         return '"detail" is empty: say what changed, where the run already does it, what it needs or why it cannot be done'
@@ -389,7 +389,7 @@ def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, wor
         return fault
     item = row.get("item")
     if "item" in row and (stage not in ITEM_STAGES or did != "applied"):
-        return ('"item" goes only on an applied row at plan or carry-forward' if stage not in ITEM_STAGES else
+        return ('"item" goes only on an applied row at plan or reflect-and-revise' if stage not in ITEM_STAGES else
                 f'"item" goes only on an applied row; this one is {did}') + ": remove it"
     if stage not in ITEM_STAGES or did != "applied":
         return None
@@ -402,10 +402,10 @@ def _row_fault(row: Mapping[str, Any], state: Mapping[str, Any], stage: str, wor
     if fault:
         return fault
     item = item.strip()
-    if stage == CARRY_FORWARD and item == workitem:
-        return (f'"item" is {item}, the item this carry-forward closes: name a pending item of {where} that does the '
+    if stage == REFLECT_AND_REVISE and item == workitem:
+        return (f'"item" is {item}, the item this reflect-and-revise closes: name a pending item of {where} that does the '
                 f'work ({listed}), or say "already" when the run already does it')
-    if stage == CARRY_FORWARD and item in (state.get("completed_work_items") or ()):
+    if stage == REFLECT_AND_REVISE and item in (state.get("completed_work_items") or ()):
         return f'"item" is {item}, a finished item: name a pending item of {where} that does the work ({listed})'
     if item not in queue:
         return f'"item" {item!r} is not in {where} ({listed})'
@@ -495,12 +495,12 @@ def _named_line(root: Path, rest: Sequence[Mapping[str, Any]]) -> str:
 
 def duty(stage: str) -> str:
     """What the block tells the stage to do with each note it owes (design 2.6): the row and the four meanings of
-    ``did``; carry-forward and handoff leave out ``carried``, plan and carry-forward add the ``item``; carry-forward,
+    ``did``; reflect-and-revise and handoff leave out ``carried``, plan and reflect-and-revise add the ``item``; reflect-and-revise,
     which cannot send back, says what a note that changes a requirement is."""
     applied = "this stage did what it asks, within what this stage may change; say what changed"
     if stage == PLAN:
         applied += ', and name in "item" the work item of this result\'s queue that does it'
-    elif stage == CARRY_FORWARD:
+    elif stage == REFLECT_AND_REVISE:
         applied += (', and name in "item" the pending work item of the queue this result leaves that does it, never this '
                     "item or a finished one")
     parts = [f'"applied" ({applied})', '"already" (the run already does it; say where)']
@@ -511,7 +511,7 @@ def duty(stage: str) -> str:
     row = '{"note", "did", "detail"} per note' + (', with "item" on an applied one' if stage in ITEM_STAGES else "")
     text = ("Each is the run owner's instruction for this run. Account for each in this stage's result, \"notes\": one "
             f"{row}. did: " + ", ".join(parts) + ". ShipLoop refuses done without them.")
-    if stage == CARRY_FORWARD:
+    if stage == REFLECT_AND_REVISE:
         text += (' A note that needs no work is "already". An owner note is the direction the rule on a changed '
                  "requirement waits for: when one changes a requirement, revise that requirement's entry in "
                  "KNOWLEDGE/spec.md in place (the ID stays; say the owner note revised it; keep no copy of the old "
@@ -657,7 +657,7 @@ def _body(root: Path, stage: str, found_faults: Sequence[Mapping[str, Any]], quo
     meanings = ["  applied: this stage did what the note asks, within what this stage may change; detail says what "
                 "changed" + ("; item names the work item of the queue this result leaves that does it" if stage == PLAN
                              else "; item names the pending work item of the queue this result leaves that does it "
-                                  "(not this item, not a finished one)" if stage == CARRY_FORWARD else ""),
+                                  "(not this item, not a finished one)" if stage == REFLECT_AND_REVISE else ""),
                 "  already: the run already does what it asks; detail says where",
                 (f"  carried: not at {stage}, which settles every note it owes" if stage in SETTLE_ONLY else
                  f"  carried: it needs something this stage may not change; detail says what; {_who_next(stage)} must "

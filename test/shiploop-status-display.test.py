@@ -103,7 +103,7 @@ class StatusBlockTests(unittest.TestCase):
         self.assertEqual(set(prompts.STAGE_PURPOSE), set(prompts.STAGES))
         self.assertEqual(tuple(s for _, group in prompts.INNER_GROUPS for s in group), prompts.INNER)
         self.assertEqual([name for name, _ in prompts.INNER_GROUPS],
-                         ["Plan", "Validate existing", "Build", "Carry forward"])  # verify retired (design T 2b-4c)
+                         ["Plan", "Validate existing", "Build", "Reflect and revise"])  # verify retired (design T 2b-4c)
         for stage, purpose in prompts.STAGE_PURPOSE.items():
             self.assertTrue(purpose and len(purpose) <= 360 and "\n" not in purpose, stage)  # one action sentence naming its output (was 80)
 
@@ -153,7 +153,7 @@ class StatusBlockTests(unittest.TestCase):
                          f"Run:       Preparation {DONE} | Work items 0/2 {NOW} | Release {TODO}")
         self.assertEqual(line(block, "Item"),
                          f"Item:      Plan {NOW} | Validate existing {TODO} | Build {TODO} | "
-                         f"Carry forward {TODO}")
+                         f"Reflect and revise {TODO}")
         self.assertNotIn("Item plan:", block)  # neither a step plan nor item context yet
 
         state = self.produce(state, **self.ONE_STEP,
@@ -165,19 +165,19 @@ class StatusBlockTests(unittest.TestCase):
                          'validate-existing')
         self.assertEqual(line(block, "Item"),
                          f"Item:      Plan {DONE} | Validate existing {NOW} | Build {TODO} | "
-                         f"Carry forward {TODO}")
+                         f"Reflect and revise {TODO}")
         self.assertEqual(line(block, "Item plan"),
                          "Item plan: Split loader into parse and merge; cover both in test_config.py.")
         self.assertEqual(line(block, "Next"),
                          "Next:      validate-existing: " + prompts.STAGE_PURPOSE["validate-existing"])
 
-        state = self.produce(self.advance_to(state, "carry-forward"),
+        state = self.produce(self.advance_to(state, "reflect-and-revise"),
                              summary="W1 merged into the worktree with 12 tests. Lessons noted.")
         block = navigator.status_block(state)
         self.assertEqual(line(block, "Where"),
                          'Where:     Work items > W2 "Add --version flag" (2 of 2) > Plan > step-plan')
         self.assertEqual(line(block, "Done"),
-                         "Done:      W1 carry-forward: W1 merged into the worktree with 12 tests.")
+                         "Done:      W1 reflect-and-revise: W1 merged into the worktree with 12 tests.")
         self.assertEqual(line(block, "Completed"),
                          'Completed: 1 item; W1 "Config loader refactor": W1 merged into the worktree with 12 tests')
         # Before W2's step plan, the item context supplies the specific intent.
@@ -281,7 +281,7 @@ class StatusBlockTests(unittest.TestCase):
                  "title": "title " * 1000, "context": "context " * 1000} for index in range(1000)]
         state = self.planned(rows)
         for _ in range(4):  # finish three items so Completed is populated
-            state = self.advance_to(state, "carry-forward")
+            state = self.advance_to(state, "reflect-and-revise")
             state = self.produce(state, summary="summary " * 1000)
         state = self.advance_to(state, "test")
         state = navigator.control(state, "pause", "reason " * 1000)

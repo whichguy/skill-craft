@@ -219,7 +219,7 @@ class CommitDodgeTests(improve_cli.ImproveCliFixture):
         self.environment["HOME"] = str(self.base / "home")
 
     def check_commit_dodge(self, label, seen, test_text, message, fragment, exit_message) -> None:
-        self.begin("carry-forward", producer_extra=improve_cli.END_OF_WORK)
+        self.begin("reflect-and-revise", producer_extra=improve_cli.END_OF_WORK)
         self.code_change(test_text)
         self.write(message)
         refusal = self.refused()
@@ -238,7 +238,7 @@ NOTE_WAYS_ROUND = [
      "Passes. The stage's review, where it has one, and the report, which shows the words beside the row, are the checks",
      "row_the_work_does_not_bear_out"),
     ("a row says declined for a poor reason", "Passes. The requester reads the reason", "declined_for_a_poor_reason"),
-    ("carry-forward names an item that does something else, or a later carry-forward drops or rewrites the item",
+    ("reflect-and-revise names an item that does something else, or a later reflect-and-revise drops or rewrites the item",
      "Passes. The report says whether the item was completed, queued or dropped", "item_dropped_later"),
     ("a rewind reruns the stage that applied a note and the rerun undoes it", "Passes. The row stands",
      "rewind_after_applied"),
@@ -283,16 +283,16 @@ class NoteWaysRoundTests(notes_suite.NoteRun):
 
     def item_dropped_later(self) -> None:
         run, _head = self.new_run("prepare", results=notes_suite.THREE_ITEMS)
-        self.walk(run, self.at("carry-forward", "W1"), results=notes_suite.THREE_ITEMS)
+        self.walk(run, self.at("reflect-and-revise", "W1"), results=notes_suite.THREE_ITEMS)
         self.note(run, SAID)
         head = self.next(run)
         # W3 is an item that does something else entirely: the row passes, as the design says.
         self.accept(head, self.result(head, notes_suite.row(did="applied", detail="W3 renames the file", item="W3")))
-        self.walk(run, self.at("carry-forward", "W2"), results=notes_suite.THREE_ITEMS)
+        self.walk(run, self.at("reflect-and-revise", "W2"), results=notes_suite.THREE_ITEMS)
         state = self.state(run)
         action = contract.nav.current_action(state)["id"]
-        state = contract.nav.apply(state, action, {**contract.DONE, **contract.RESULTS["carry-forward"],
-                                                   "work_items": []})   # the later carry-forward drops W3
+        state = contract.nav.apply(state, action, {**contract.DONE, **contract.RESULTS["reflect-and-revise"],
+                                                   "work_items": []})   # the later reflect-and-revise drops W3
         if state.get("active_improve") is not None:     # W2 is now the last item: its review, synthetic here
             state = contract.nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
         contract.nav.save(run, state)

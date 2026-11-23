@@ -368,8 +368,8 @@ into binding conditions merely because an earlier agent wrote them down.
    Improve reviews requirement drift as part of its existing scoped campaign;
    no second review counter or extra campaign is introduced. Do not widen a
    step merely to audit every unrelated feature.
-4. **Document/carry-forward, product acceptance and handoff:** reconcile the
-   maintained record with accepted changes and actual evidence; carry-forward
+4. **Document/reflect-and-revise, product acceptance and handoff:** reconcile the
+   maintained record with accepted changes and actual evidence; reflect-and-revise
    does not edit `spec.md` except for an owed owner note. Keep unmet
    requirements, proposals and verification limits explicit. Check links and
    confirm required intent survives without old run folders; preserve unrelated
@@ -487,7 +487,7 @@ inventory where a short entrypoint description is sufficient.
 
 ## Retain learnings for the next invocation
 
-`document` and `carry-forward` update reusable project facts as they are learned;
+`document` and `reflect-and-revise` update reusable project facts as they are learned;
 `handoff` reconciles them with actual final outcomes and verifies referenced
 paths. Keep stable, useful knowledge in existing **repository-owned** Markdown
 documents outside disposable run storage. Prefer the project's documentation
@@ -568,14 +568,14 @@ semicolon: `grep -o 'ShipLoop knowledge notice: [^;]*' events.jsonl | grep -o "'
 (a path with an apostrophe or a semicolon would miscount). Per close, one event line is one
 call: `awk '{n=gsub(/ShipLoop knowledge notice: /,"&")} n{print NR": "n}' events.jsonl` prints
 the files reported in each event, and `sed -n '<N>p' events.jsonl` in front of the heading
-command counts one event's headings. An accepted carry-forward prints one more line of the
+command counts one event's headings. An accepted reflect-and-revise prints one more line of the
 same prefix when commands that passed at its item's test stage are not named under environment.md's
 `## Commands` (`knowledge.command_notices`): `... does not name <n> commands that passed at the test
-stage of its item under 'Commands' (this carry-forward is accepted); ...`, so it counts as one file and one heading. Whether the notice becomes a refusal waits for a live
+stage of its item under 'Commands' (this reflect-and-revise is accepted); ...`, so it counts as one file and one heading. Whether the notice becomes a refusal waits for a live
 run that shows packets which quote the headings get them written.
 
 **Placement notice.** The named sections say where a fact goes; this notice says where an edit put it. The packet of each
-of the eight stages that wrote the saved runs' stray headings (discovery, test-strategy, prepare, carry-forward,
+of the eight stages that wrote the saved runs' stray headings (discovery, test-strategy, prepare, reflect-and-revise,
 system-test-author, release-plan, release-verify, operations) says: standing facts go under the named sections, a stage's
 own report is no `##` heading, date or "this run" wording in the file, and the report goes in its result. After any accepted
 stage that changed the home, ShipLoop reads that stage's edit against HEAD, before it commits, and prints one counted line

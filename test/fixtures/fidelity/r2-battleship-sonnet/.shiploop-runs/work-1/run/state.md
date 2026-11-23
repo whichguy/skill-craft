@@ -483,7 +483,7 @@
   {
    "action": "nav-ce048b8561664f9b84e930f609ec3dec",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "Lessons: (1) lazy require inside each test makes RED a real in-test failure whe\u2026",
    "workitem": "W1"
   },

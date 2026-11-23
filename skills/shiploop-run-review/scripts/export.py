@@ -73,15 +73,15 @@ FIGURE_TONES = ("expected", "saw", "limit")
 # are shiploop_stage_spec.STAGES, and a test checks that every stage there is listed here once.
 # The 7-stage inner loop (stage model v6) folds into three phases here: step-plan and test-spec plan the item; Build is
 # validate-existing, then each step's implement, test and document (its Improve review and ShipLoop's commit of the step
-# follow document, and the step advances only once that commit lands); carry-forward ("record lessons, decide the skill,
+# follow document, and the step advances only once that commit lands); reflect-and-revise ("record lessons, decide the skill,
 # revise the remaining queue") runs once per work item before the next item's step-plan. The 8-stage loop's Verify phase is
-# gone with its stage: its gates run inside each step, so carry-forward follows Build.
+# gone with its stage: its gates run inside each step, so reflect-and-revise follows Build.
 PHASES = (
     ("Understand", ("intake", "discovery", "research")),
     ("Specify", ("spec", "test-strategy")),
     ("Plan", ("plan", "prepare", "step-plan", "test-spec")),
     ("Build", ("validate-existing", "implement", "test", "document")),
-    ("Carry forward", ("carry-forward",)),
+    ("Reflect and revise", ("reflect-and-revise",)),
     ("System test", ("system-test-author", "system-test", "product-acceptance")),
     ("Release", ("release-plan", "release-check", "release", "release-verify", "operations", "handoff")),
 )
@@ -92,13 +92,13 @@ PHASES = (
 # canonical (PHASES lists it); the page's STAGE_ALIASES mirrors it (a test keeps them equal).
 # The 8-stage table grouped static-checks, integrate and integration-verify (17-stage names) under verify. Verify is gone and
 # no 7-stage stage does their work (their gates run inside each step's document stage), so they have no bucket here: each is
-# its own name, in no phase, rather than being counted as document or carry-forward work. The page compares two runs by their
+# its own name, in no phase, rather than being counted as document or reflect-and-revise work. The page compares two runs by their
 # six whole-run numbers, never stage by stage, so no comparison loses anything by it.
 STAGE_ALIASES = (
     ("step-plan", "get-next-work-item", "select-work"),
     ("validate-existing", "baseline"),
     ("test", "test-author", "test-red", "test-green", "test-refine", "regression"),
-    ("carry-forward", "skill-assess", "skill-validate"),
+    ("reflect-and-revise", "skill-assess", "skill-validate", "carry-forward"),
 )
 
 
@@ -120,7 +120,7 @@ def _with_aliases(table: dict, aliases: tuple = STAGE_ALIASES) -> dict:
 STAGE_PHASE = _with_aliases({stage: order for order, (_, stages) in enumerate(PHASES) for stage in stages})
 # The inner-loop stages ShipLoop runs after `implement` (shiploop_stage_spec.INNER; a test keeps them equal). A work item
 # that has any of them accepted has left implement.
-AFTER_IMPLEMENT = ("test", "document", "carry-forward")
+AFTER_IMPLEMENT = ("test", "document", "reflect-and-revise")
 
 
 def _frozen_model(name: str) -> tuple[dict, tuple, tuple, dict]:
@@ -408,7 +408,7 @@ SCHEMA = {
         # with a reason under their own name, when any item's steps or pairing is unknown. Never a zero for those.
         "workItems": (("items", {
             "id": (S, True), "title": (S, False), "titleTruncated": (B, False),
-            "origin": (("enum", ("plan", "add-work", "carry-forward")), False),
+            "origin": (("enum", ("plan", "add-work", "reflect-and-revise", "carry-forward")), False),
             "stepPlans": (N, True), "loops": (N, True), "sendBacks": (N, True), "repeats": (N, True),
             "implementVisits": (("map", N), True), "stepsPlanned": (N, False), "stepsExecuted": (N, False),
             # number, visits and commit: a 7-stage (v6) run's only (SCHEMA.md "Plan and execution")
@@ -1966,9 +1966,16 @@ def _delivered_tests(stages: list[dict]) -> tuple[dict | None, str | None]:
 
 
 def _delivered_words(stages: list[dict], stage: str, limit: int) -> str | None:
-    """The accepted summary of the last visit at `stage` that was not skipped and has one, as the run wrote it, cut to `limit`."""
+    """The accepted summary of the last visit at `stage` that was not skipped and has one, as the run wrote it, cut to `limit`.
+
+    Exact stage match only, except the current last-INNER name also accepts the pre-rename id
+    ``carry-forward`` so older saved v5/v6 runs still yield ``delivered.skill``.
+    """
+    names = {stage}
+    if stage == "reflect-and-revise":
+        names.add("carry-forward")
     for row in reversed(stages):
-        if row.get("stage") == stage and not row.get("skipped") and _text(row.get("summary")):
+        if row.get("stage") in names and not row.get("skipped") and _text(row.get("summary")):
             return _cut(row["summary"], limit)
     return None
 
@@ -1993,14 +2000,14 @@ def _delivered(root: Path, stages: list[dict], model: str | None = None) -> tupl
     else:
         why["delivered.tests"] = tests_why
     # The skill decision is a stage's own words: skill-assess (and skill-validate's validation) in a 17-stage run, where
-    # carry-forward records lessons; carry-forward in an 8-stage run, where it records the decision.
-    sources = (("assessed", "skill-assess"), ("validated", "skill-validate")) if model == "v4" else (("assessed", "carry-forward"),)
+    # reflect-and-revise records lessons; reflect-and-revise in an 8-stage run, where it records the decision.
+    sources = (("assessed", "skill-assess"), ("validated", "skill-validate")) if model == "v4" else (("assessed", "reflect-and-revise"),)
     skill = {field: text for field, stage in sources if (text := _delivered_words(stages, stage, MAX_DELIVERED_SKILL))}
     if skill:
         found["skill"] = skill
     else:
         why["delivered.skill"] = ("no accepted skill-assess or skill-validate visit with a summary" if model == "v4"
-                                  else "no accepted carry-forward visit with a summary")
+                                  else "no accepted reflect-and-revise visit with a summary")
     release = {field: text for field, stage in (("plan", "release-plan"), ("done", "release"))
                if (text := _delivered_words(stages, stage, MAX_DELIVERED_RELEASE))}
     if release:
@@ -2613,11 +2620,13 @@ def _outcome_name(value: object) -> object:
 
 def _produced(history: list[dict], results: Path, state: dict) -> dict[str, str]:
     """{work item id: the stage that produced it}: `plan`, `add-work` (an outer stage's corrective item) or
-    `carry-forward`, from the work_items of each accepted result that carries some (the first producer wins)."""
+    `reflect-and-revise`, from the work_items of each accepted result that carries some (the first producer wins)."""
     found: dict[str, str] = {}
     for entry in history:
         stage, outcome = entry.get("stage"), entry.get("outcome")
-        origin = "add-work" if outcome == "add-work" else stage if stage in ("plan", "carry-forward") and outcome == "done" else None
+        origin = ("add-work" if outcome == "add-work"
+                  else stage if stage in ("plan", "reflect-and-revise", "carry-forward") and outcome == "done"
+                  else None)
         if origin is None:
             continue
         items = _result_body(results, state, entry.get("action")).get("work_items")
@@ -2648,7 +2657,7 @@ def work_items(state: dict, history: list[dict], results: Path, seeded_ids: set[
 
     `per_step` (a 7-stage run): each step is built, tested and documented before the next (shiploop_navigator.step_view:
     at test and document, and while document's Improve review runs, the step is the one just built), so a test, document
-    or improve visit after a done implement visit is that step's too, and only a stage past the steps (carry-forward)
+    or improve visit after a done implement visit is that step's too, and only a stage past the steps (reflect-and-revise)
     means the item left its build. Each step of the latest plan then also carries its `number`, the `visits` it spans
     under that plan and, from `ledgers[item]` (RUN/iterations/<item>.json, _step_ledger_commit), its `commit`."""
     queue = state.get("work_items")
@@ -3860,7 +3869,7 @@ def exit_check(complete_runs, improve) -> str:
     the row has an `improve` rule (`always`, `first-item`, `last-item` or `item`), so an Improve child reviews the result before the
     graph advances. Else `model judgement`: the model decides against the row's `done_when` and nothing script-run or
     reviewed follows. A row with both is `script-run`: every inner stage runs its Until Loop's terminal check
-    (`loop-terminal`), and implement (`item`) and carry-forward (`last-item`) also have an Improve child. The mode is not
+    (`loop-terminal`), and implement (`item`) and reflect-and-revise (`last-item`) also have an Improve child. The mode is not
     here: see effective_exit_check."""
     return "script-run" if complete_runs else "review loop" if improve else "model judgement"
 

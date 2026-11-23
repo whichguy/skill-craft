@@ -8,7 +8,7 @@ misses what those effects write (validate-existing says "results are below" with
 once; ``dispatch`` calls it after its gates, and a seed calls it after ``apply`` and skips the gates.  No model and no tool
 beyond python3, git and sh are used; the checks the tests plant are ``grep`` and ``test``.
 
-- Equivalence: a run walked to carry-forward is driven at every stage three ways from the same starting files: through the
+- Equivalence: a run walked to reflect-and-revise is driven at every stage three ways from the same starting files: through the
   real ``complete``; through ``apply`` and ``accept_effects``, as a seed does; and through ``apply`` and the sequence
   ``complete`` ran before the seam held it, written out here (``reference_effects``), which a change inside
   ``accept_effects`` or in how ``dispatch`` calls it does not move.  The saved state, the files under the run directory, the
@@ -22,7 +22,7 @@ beyond python3, git and sh are used; the checks the tests plant are ``grep`` and
   through ``dispatch``, with the review's own runtime stubbed out.  Not pinned: the ``core`` an import passes, which
   nothing an import's transition reads (it starts no Improve stage); ``CoreTests`` pins it for a producer's ``complete``.
 - Reach: seeding through the seam stands the run at validate-existing (with a planted failing expectation that its packet
-  names), implement, test, document and carry-forward, and ``next`` prints a packet for that stage.  A seed that skips the
+  names), implement, test, document and reflect-and-revise, and ``next`` prints a packet for that stage.  A seed that skips the
   effects does not name the planted fault at validate-existing.
 - Recorded by script: with every planted expectation matching, the seed reaches validate-existing with the stage recorded
   done by script and the run already past it.  A seed detects that from the rows its call added to ``history``.
@@ -268,11 +268,11 @@ class EquivalenceTests(SeamCase):
     def test_the_seam_leaves_at_every_stage_what_complete_leaves(self):
         self.start()
         with mock.patch.object(nav, "dispatch", self.compare_each_complete()), contextlib.redirect_stderr(io.StringIO()):
-            self.drive_to("carry-forward", improve_stage="carry-forward")
+            self.drive_to("reflect-and-revise", improve_stage="reflect-and-revise")
         compared = self.compared
         # Prelude stages (a reviewed one starts an Improve stage and its child), the inner stages and the end review.
         for stage in ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare", "step-plan",
-                      "test-spec", "implement", "test", "document", "carry-forward"):
+                      "test-spec", "implement", "test", "document", "reflect-and-revise"):
             self.assertIn(stage, compared)
         # The hooks the comparison reaches: prepare closes the knowledge and ShipLoop commits it; test-spec enters
         # validate-existing (every check matches, so it is recorded by script) and implement, where the step's base is
@@ -449,10 +449,10 @@ class ImproveImportTests(SeamCase):
         return printed.getvalue()
 
     def test_the_end_reviews_import_commits_the_skill_and_the_knowledge_it_accepted(self):
-        """The last item's carry-forward is accepted when its end review is imported; the import then commits the skill the
+        """The last item's reflect-and-revise is accepted when its end review is imported; the import then commits the skill the
         result created and the knowledge home as the stage left it, and saves the passes file with the state."""
         self.start()
-        state, _by_script = self.seed("carry-forward", {"step-plan": self.step_plan([MATCHING])})
+        state, _by_script = self.seed("reflect-and-revise", {"step-plan": self.step_plan([MATCHING])})
         skill = self.repo / ".claude" / "skills" / "review" / "SKILL.md"
         skill.parent.mkdir(parents=True)
         skill.write_text("---\nname: review\ndescription: Review a change.\n---\n")
@@ -463,14 +463,14 @@ class ImproveImportTests(SeamCase):
         state = nav.apply(before, action, {**SYNTHETIC, "assumptions": [], "skill": created})
         with contextlib.redirect_stderr(io.StringIO()):   # the review is started, not finished
             state = nav.accept_effects(fx.CORE, self.run_dir, before, state, action_id=action)
-        self.assertEqual(state["active_improve"]["stage"], "carry-forward")
+        self.assertEqual(state["active_improve"]["stage"], "reflect-and-revise")
         self.assertNotIn("feat(skill)", fx.git(self.repo, "log", "--format=%s"), "the result is accepted at the import")
         fx.knowledge_support.write(state)
         printed = self.import_review(state)
         log = fx.git(self.repo, "log", "--format=%s")
         self.assertIn("feat(skill): create review", log)
-        self.assertIn("knowledge after carry-forward", log)
-        self.assertLess(log.index("knowledge after carry-forward"), log.index("feat(skill)"),
+        self.assertIn("knowledge after reflect-and-revise", log)
+        self.assertLess(log.index("knowledge after reflect-and-revise"), log.index("feat(skill)"),
                         "the skill is committed first, then the knowledge home (the log lists the newest commit first)")
         self.assertIn("ShipLoop committed the review skill as", printed)
         self.assertEqual(fx.git(self.repo, "status", "--porcelain", ".claude", "docs"), "")
@@ -484,7 +484,7 @@ class ReachTests(SeamCase):
     def test_seeding_through_the_seam_reaches_each_stage_and_next_prints_its_packet(self):
         self.start()
         records = {"step-plan": self.step_plan([PLANTED, MATCHING])}
-        for stage in ("validate-existing", "implement", "test", "document", "carry-forward"):
+        for stage in ("validate-existing", "implement", "test", "document", "reflect-and-revise"):
             with self.subTest(stage=stage):
                 state, by_script = self.seed(stage, records)
                 self.assertFalse(by_script)
@@ -499,7 +499,7 @@ class ReachTests(SeamCase):
                 if stage == "document":
                     # The step has a change to document and an iteration record to commit it from.
                     self.assertIsNotNone(nav.current_iteration(self.run_dir, state))
-                if stage == "carry-forward":
+                if stage == "reflect-and-revise":
                     # The document stage's review was imported by the seed, and the step's commit made with it.
                     self.assertIn("feat(W1/S1)", fx.git(self.repo, "log", "--format=%s"))
 

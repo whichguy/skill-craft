@@ -628,7 +628,7 @@ is the one reader of that.
   model-authored notes, by the harness's own `MODEL_INPUT`: `run/notes`, `run/evidence`, `run/scratch`, Improve reviews),
   `sentence` (nothing beyond its own packet, inbox or result file; a result of another action is a cited file),
   `unclassified` (a history entry with no accepted result). The first class that fits wins, so `records` lists
-  every kind found: a carry-forward with a verify record and an Improve child reads `script` and shows `improve` in its
+  every kind found: a reflect-and-revise with a verify record and an Improve child reads `script` and shows `improve` in its
   records. `declared` is the check the stage table declares (`script-run`, `review loop`, `model judgement`), read from the
   run's own `shiploop_stage_spec.py` through the exporter's `stage_catalog` and `effective_exit_check` (so
   `planning_review none` needs no special case). `needs` is the record kinds the stage's declared runs write
@@ -746,7 +746,7 @@ is hello, restated with `--prompt` and `--check` because `--case hello` cannot b
 none` is a ShipLoop `init` flag that ShipLoop refuses without `--improve-skill <absolute path of the Improve SKILL.md>`, so the
 prompt carries both. Under `none` the planning stages (intake to test-spec) have no Improve park, the longest context windows
 of a default run, so a probe at one of them never sits inside one; the later Improve children still run (the saved v1220 `none`
-run parked at system-test-author, release-plan and carry-forward), so a probe past planning can:
+run parked at system-test-author, release-plan and reflect-and-revise), so a probe past planning can:
 
 ```sh
 OUT=/Users/dadleet/e2e-runs/$(date +%Y%m%d)/s6-after-spec        # the prompt names a path under it; a new folder
@@ -1968,7 +1968,7 @@ share a suite directory, and `.../batch-sonnet/battleship` is also a prefix of `
 
 A full run spends most of its time planning and releasing. A step slice exercises only one work item's inner loop:
 step-plan, test-spec, validate-existing, then implement, test and document for each step (the Improve child after each
-step's document stage, then ShipLoop's commit of the step), then carry-forward with the last item's carry-forward
+step's document stage, then ShipLoop's commit of the step), then reflect-and-revise with the last item's reflect-and-revise
 Improve. Verify retired on 2026-10-28 (design T §9.1 2b-4c); slices recorded before then show it after document. It runs on a small fixture product, so you can see what ShipLoop sent at each stage and what each stage
 cost, and repeat that after each skill edit.
 
@@ -2044,7 +2044,7 @@ one; a session that fails (a non-zero exit) is not resumed.
 | verdict | passes when |
 |---|---|
 | `process` | the slice stop ended the host (status `slice-complete`) |
-| `inner_loop` | W1's carry-forward was accepted done |
+| `inner_loop` | W1's reflect-and-revise was accepted done |
 | `no_overshoot` | no result was accepted for an outer stage or for another item |
 | `assembled` | ShipLoop's product worktree changes every expected path against the seed, and changes product files, not only ShipLoop's own (`docs/shiploop/`, `.shiploop-improve/`) |
 | `checks` | every case check exits 0 in a clean copy of that candidate: tracked and untracked, not ignored, without run evidence |
@@ -2061,7 +2061,7 @@ given, one per session, and each is measured from its own stop, so a redo after 
 
 ```sh
 python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --clear-at implement \
-  --clear-at implement:inside --clear-at test --clear-at document --clear-at carry-forward --clear-at improve \
+  --clear-at implement:inside --clear-at test --clear-at document --clear-at reflect-and-revise --clear-at improve \
   --resume-prompt withheld
 ```
 
@@ -2093,7 +2093,7 @@ python3 test/shiploop_e2e/slice.py --case node-fix-bug --clear-at step-plan --cl
   keepalive's process check (the takeover evidence).
 
 Release, system tests and the report are not reached, by design. ShipLoop command failures, model glue and
-`queue_growth` (items a carry-forward added) are recorded, not verdicts. Cost is unreported on Claude, because the
+`queue_growth` (items a reflect-and-revise added) are recorded, not verdicts. Cost is unreported on Claude, because the
 host is ended before it writes its `result` event; there is no spend cap unless `--max-budget-usd` sets one.
 
 **The packet report** (`packets.py`) is built from the run's files only. It works on any E2E output directory. On a run

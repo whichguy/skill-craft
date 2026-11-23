@@ -48,7 +48,7 @@ def walk(state, *, plan_items=None, end_final=None, limit=200):
         state = nav.apply(state, action, result)
         if state["active_improve"] is not None:
             reviewed.append((stage, nav._current_work_item(state)))
-            final = end_final.pop(0) if stage == "carry-forward" and end_final else None
+            final = end_final.pop(0) if stage == "reflect-and-revise" and end_final else None
             state = nav.finish_improve(state, action, receipt(stage), final)
     raise AssertionError("walk did not finish")
 
@@ -87,7 +87,7 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertEqual(reviewed, [
             ("spec", None), ("test-strategy", None), ("plan", None),
             ("step-plan", "W1"), ("document", "W1"),
-            ("document", "W2"), ("carry-forward", "W2"),
+            ("document", "W2"), ("reflect-and-revise", "W2"),
             ("system-test-author", None), ("release-plan", None),
         ])  # W2's step-plan follows W1's reviewed pattern (rule first-item, owner 2026-10-19); test-spec has none; each
         # one-step item's review follows its document stage (rule item, design T §8)
@@ -96,8 +96,8 @@ class ImproveScheduleTests(unittest.TestCase):
     def test_end_review_that_adds_work_moves_to_the_new_last_item(self):
         added = dict(DONE, work_items=[{"id": "W2", "title": "Found by the end review"}])
         _, reviewed = walk(self.new(), end_final=[added])
-        ends = [entry for entry in reviewed if entry[0] == "carry-forward"]
-        self.assertEqual(ends, [("carry-forward", "W1"), ("carry-forward", "W2")])
+        ends = [entry for entry in reviewed if entry[0] == "reflect-and-revise"]
+        self.assertEqual(ends, [("reflect-and-revise", "W1"), ("reflect-and-revise", "W2")])
 
     def test_state_requires_every_planning_stage_review(self):
         state, _ = walk(self.new())
@@ -206,7 +206,7 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertNotIn("review_refs length is exactly 2", text)
 
     def test_unsuccessful_last_carry_forward_advances_without_improve(self):
-        state = advance_to(self.new(), "carry-forward")
+        state = advance_to(self.new(), "reflect-and-revise")
         self.assertEqual(len(state["work_items"]), 1)
         action = nav.current_action(state)["id"]
         records = copy.deepcopy(state["improve_results"])
@@ -214,8 +214,8 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIsNone(blocked["active_improve"])
         self.assertEqual(blocked["status"], "blocked")
         self.assertEqual(blocked["improve_results"], records)
-        # repeat is retired at every stage: carry-forward's Until Loop repeats the work itself.
-        with self.assertRaisesRegex(nav.NavigatorError, "must be one of done, blocked at carry-forward .*repeat are retired"):
+        # repeat is retired at every stage: reflect-and-revise's Until Loop repeats the work itself.
+        with self.assertRaisesRegex(nav.NavigatorError, "must be one of done, blocked at reflect-and-revise .*repeat are retired"):
             nav.apply(state, action, dict(DONE, outcome="repeat", summary="Synthetic retry."))
 
     def test_improve_record_for_an_unrecorded_action_is_refused(self):
@@ -229,7 +229,7 @@ class ImproveScheduleTests(unittest.TestCase):
     def test_forged_improve_child_at_a_non_checkpoint_stage_is_refused(self):
         # apply() never parks a child here; a saved run that has one was forged.
         items = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
-        for target in ("test", "carry-forward"):
+        for target in ("test", "reflect-and-revise"):
             with self.subTest(stage=target):
                 state = advance_to(self.new(), "plan")
                 state = nav.finish_improve(
@@ -245,7 +245,7 @@ class ImproveScheduleTests(unittest.TestCase):
                     "workspace": state["repo"], "seed_result": dict(DONE, evidence_refs=[]),
                     "skill": None, "improve_action": "nav-" + "1" * 32,
                 }
-                # W1's carry-forward leaves W2 pending, so it is not the end review.
+                # W1's reflect-and-revise leaves W2 pending, so it is not the end review.
                 with self.assertRaisesRegex(
                         nav.NavigatorError,
                         "active Improve child is at " + target + ", a stage that does not start an "
@@ -374,8 +374,8 @@ SCHEDULED_RECORDS = r"every planning-stage result this run's planning_review opt
 # the item's last implement step from 2026-10-26, and every implement step before that). step-plan is reviewed for the
 # first item only (rule first-item, owner 2026-10-19, chess run 3); test-spec is not reviewed (2026-10-26).
 STAGE_CHILDREN = [("spec", None), ("test-strategy", None), ("plan", None), ("step-plan", "W1"), ("document", "W1"),
-                  ("document", "W2"), ("carry-forward", "W2"), ("system-test-author", None), ("release-plan", None)]
-NONE_CHILDREN = [("document", "W1"), ("document", "W2"), ("carry-forward", "W2"), ("system-test-author", None),
+                  ("document", "W2"), ("reflect-and-revise", "W2"), ("system-test-author", None), ("release-plan", None)]
+NONE_CHILDREN = [("document", "W1"), ("document", "W2"), ("reflect-and-revise", "W2"), ("system-test-author", None),
                  ("release-plan", None)]
 PLANNING_CHOICE = ("spec", "test-strategy", "plan", "step-plan")
 
@@ -410,11 +410,11 @@ class PlanningReviewScheduleTests(unittest.TestCase):
             state = nav.apply(state, nav.current_action(state)["id"], DONE)
             self.assertIsNone(state["active_improve"], stage)
         self.assertEqual(state["improve_results"], {})
-        # an end review that adds work still moves to the new last item's carry-forward
+        # an end review that adds work still moves to the new last item's reflect-and-revise
         added = dict(DONE, work_items=[{"id": "W2", "title": "Found by the end review"}])
         _, reviewed = walk(self.new("none"), end_final=[added])
-        self.assertEqual([entry for entry in reviewed if entry[0] == "carry-forward"],
-                         [("carry-forward", "W1"), ("carry-forward", "W2")])
+        self.assertEqual([entry for entry in reviewed if entry[0] == "reflect-and-revise"],
+                         [("reflect-and-revise", "W1"), ("reflect-and-revise", "W2")])
 
     def test_the_validator_requires_the_records_the_mode_reviews(self):
         state, _ = walk(self.new("none"), plan_items=ITEMS)
@@ -634,7 +634,7 @@ class PlanningReviewNoneCliTests(CliRunCase):
 
     def test_a_none_run_must_name_its_card_at_init_because_no_planning_child_binds_it(self):
         """F1: the stage Until Loops read the recorded card at the first item, and under none the first child
-        (the one that binds it) is the last item's carry-forward: a run started without the card would block at its
+        (the one that binds it) is the last item's reflect-and-revise: a run started without the card would block at its
         first inner stage. The refusal leaves the run directory empty."""
         repo = self.repository("repo-nocard")
         run = self.base / "run-nocard"
@@ -925,7 +925,7 @@ class DocsMatchTheStageTableTests(unittest.TestCase):
                 if first and first.group(0) in spec_table.STAGES and "✦" in part:
                     marked.add(first.group(0))
         self.assertEqual(marked, spec_table.reviewed_stages("stage") | spec_table.with_improve("item"))
-        self.assertEqual(spec_table.with_improve("last-item"), {"carry-forward"})   # the map marks it on the edge
+        self.assertEqual(spec_table.with_improve("last-item"), {"reflect-and-revise"})   # the map marks it on the edge
 
     def test_the_prose_lists_of_reviewed_stages_match_the_table(self) -> None:
         navigator = self.read("references/navigator.md")

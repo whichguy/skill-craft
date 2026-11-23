@@ -469,7 +469,7 @@ class InvokeLinesTests(Synthetic):
 
     def test_the_packet_prints_the_literal_start_command_and_it_starts_the_loop(self):
         """The printed command is the one that starts the loop, on this action's own contract and receipt."""
-        for stage in ("step-plan", "test", "document", "carry-forward"):
+        for stage in ("step-plan", "test", "document", "reflect-and-revise"):
             with self.subTest(stage=stage):
                 state = self.state_for(stage)
                 self.write(state)
@@ -700,24 +700,24 @@ class CheckTerminalTests(Synthetic):
         self.assertIs(loops.cite_receipt(text, receipt), text)                    # a malformed field is left to its gate
 
     def test_a_blocked_result_before_the_loop_started_checks_no_receipt_and_cites_none(self):
-        state = self.state_for("carry-forward")
+        state = self.state_for("reflect-and-revise")
         self.write(state)
         result = {"outcome": "blocked", "evidence_refs": []}
         self.assertIsNone(loops.check_terminal(self.root, state, result))
         self.assertIs(loops.cite_receipt(result, None), result)
 
     def test_a_missing_receipt_refuses_done_with_the_start_command_and_accepts_blocked(self):
-        state = self.state_for("carry-forward")
+        state = self.state_for("reflect-and-revise")
         self.write(state)
-        receipt = loops.receipt_path(self.root, "A-carry-forward")
-        start = loops.start_command(loops.runtime(state), receipt, self.root / loops.contract_path("A-carry-forward"))
+        receipt = loops.receipt_path(self.root, "A-reflect-and-revise")
+        start = loops.start_command(loops.runtime(state), receipt, self.root / loops.contract_path("A-reflect-and-revise"))
         with self.assertRaises(loops.LoopError) as caught:
             loops.check_terminal(self.root, state, {"outcome": "done", "evidence_refs": [str(receipt)]})
-        self.assertIn("the carry-forward loop has not run: no receipt exists at " + str(receipt),
+        self.assertIn("the reflect-and-revise loop has not run: no receipt exists at " + str(receipt),
                       str(caught.exception))
         self.assertIn("Start it with: " + start, str(caught.exception))
         loops.check_terminal(self.root, state, {"outcome": "blocked", "evidence_refs": []})
-        self.refused(state, {"outcome": "send-back", "evidence_refs": []}, "carry-forward accepts only done, blocked;")
+        self.refused(state, {"outcome": "send-back", "evidence_refs": []}, "reflect-and-revise accepts only done, blocked;")
 
     def test_a_blocked_stop_supports_blocked_or_send_back_and_a_cancelled_one_nothing(self):
         state, receipt = self.start("test-spec")
@@ -1392,7 +1392,7 @@ class WorkTextTests(Synthetic):
     # drops or renumbers an item fails here, and the range its Work cites (counted from the same text) moves with it.
     # Every stage's loop does its whole duty: verify, whose last three items followed its review loop, is retired.
     DUTY_ITEMS = {"step-plan": 12, "test-spec": 8, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
-                  "carry-forward": 4}
+                  "reflect-and-revise": 4}
 
     def numbers(self, stage: str, route: str) -> list:
         return [int(n) for n in re.findall(r"(?m)^(\d+)\. ", prompts.duty(stage, delegation=route))]
@@ -1428,7 +1428,7 @@ class WorkTextTests(Synthetic):
 
     def test_the_ranges_read_as_ranges(self):
         self.assertIn("duty items 1-12 of ", self.work("step-plan"))
-        self.assertIn("duty items 1-4 of ", self.work("carry-forward", "ask-agent"))
+        self.assertIn("duty items 1-4 of ", self.work("reflect-and-revise", "ask-agent"))
         self.assertIn("duty items 1-7 of ", self.work("document", "inline"))
 
     def test_the_cited_range_follows_the_duty_text_it_is_generated_from(self):
@@ -1453,7 +1453,7 @@ class WorkTextTests(Synthetic):
         self.assertIn("(it runs the base run, the candidate run and the mutation check without counting)",
                       " ".join(self.work("test").split()))
         self.assertIn("a lint finding or a refusal from the check", loops.REPEAT["test"])
-        for stage in ("document", "implement", "carry-forward", "validate-existing"):
+        for stage in ("document", "implement", "reflect-and-revise", "validate-existing"):
             self.assertNotIn(prompts.CHECK_HOW, self.work(stage), stage)
 
     def test_only_an_inner_packet_names_the_check_and_the_callback_line_invites_no_dry_run(self):
@@ -1519,7 +1519,7 @@ class WorkTextTests(Synthetic):
 
 
 class OneStepRunTests(unittest.TestCase):
-    """loops.one_step_run (efficiency plan U16, row VR-2): the one-step one-item fact carry-forward's short duties rest on,
+    """loops.one_step_run (efficiency plan U16, row VR-2): the one-step one-item fact reflect-and-revise's short duties rest on,
     proved from state alone."""
 
     @staticmethod

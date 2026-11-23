@@ -93,7 +93,7 @@ class NavigatorV4Tests(unittest.TestCase):
         action = navigator.current_action(state)["id"]
         waiting = navigator.apply(state, action, self.result(stage, **(extra or {})))
         if waiting.get("active_improve") is None:
-            # Not a planning/contract stage (or non-final carry-forward): the
+            # Not a planning/contract stage (or non-final reflect-and-revise): the
             # result advances directly, with no Improve child to complete.
             return waiting
         return navigator.finish_improve(waiting, action, self.synthetic_improve(stage))

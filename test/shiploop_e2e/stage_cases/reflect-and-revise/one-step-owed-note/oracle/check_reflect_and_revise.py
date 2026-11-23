@@ -1,4 +1,4 @@
-"""Deterministic checks for carry-forward/one-step-owed-note."""
+"""Deterministic checks for reflect-and-revise/one-step-owed-note."""
 import json
 import os
 import re
@@ -91,7 +91,7 @@ def check_c1() -> None:
 
 def main() -> None:
     if len(sys.argv) != 2 or sys.argv[1] not in ("P1", "C1"):
-        fail("usage: check_carry_forward.py <P1|C1>")
+        fail("usage: check_reflect_and_revise.py <P1|C1>")
     result = load_result()
     if sys.argv[1] == "P1":
         check_p1(result)

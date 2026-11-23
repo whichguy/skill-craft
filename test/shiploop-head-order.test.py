@@ -133,7 +133,7 @@ def tokens(key: str, row: dict, delegation: str, seen: dict) -> tuple[list[str],
             p1 += ["Test rerun: on done, ShipLoop reruns what your edits since this stage began could affect"]
     if stage == "validate-existing":
         p1 += ["ShipLoop ran each expectation's check", "E2 absent  the helper is not there yet", "DOES NOT MATCH, exit 1"]
-    if stage == "carry-forward":
+    if stage == "reflect-and-revise":
         p1 += ["Full ordered work queue: ", "Omit work_items to retain the future queue.", "Read every pending item's full title/context"]
     if state["history"] and state["history"][-1]["action"] in state["improve_results"]:
         p1 += ["Last accepted Improve lessons (", plans.LESSONS, "Prior Improve evidence and lessons: "]
@@ -390,7 +390,7 @@ class TierTests(unittest.TestCase):
             return navigator._producer_blocks(None, run_dir, row["state"], None, path=run_dir / "packets" / "p.md")
 
     def test_every_block_is_in_the_tier_the_plan_gives_it(self) -> None:
-        for delegation, stage in (("inline", "implement"), ("inline", "test"), ("inline", "document"), ("inline", "carry-forward"),
+        for delegation, stage in (("inline", "implement"), ("inline", "test"), ("inline", "document"), ("inline", "reflect-and-revise"),
                                   ("inline", "validate-existing"), ("ask-agent", "step-plan"), ("inline", "step-plan")):
             with self.subTest(route=delegation, stage=stage):
                 tiers = {block.name: block.tier for block in self.blocks(delegation, stage)}
@@ -424,7 +424,7 @@ class TierTests(unittest.TestCase):
 
     def test_the_backchain_route_paragraph_prints_after_the_template_with_a_stub_in_the_duty(self) -> None:
         paragraph = "Follow the packet's Backchain planning guide for this stage's scoped outcome"
-        for stage in ("step-plan", "carry-forward"):
+        for stage in ("step-plan", "reflect-and-revise"):
             row = next(row for key, row in renders("ask-agent", INSTALL_RUN_DIR).items()
                        if plans.stage_of(key) == stage and plans.is_producer(key, row["state"]))
             with self.subTest(stage=stage):
@@ -769,7 +769,7 @@ class EmitTests(unittest.TestCase):
 
 
 class PrimaryRequirementPacketTests(unittest.TestCase):
-    """Review of plan F3: complete plan and carry-forward prints preserve the spec's primary requirement line."""
+    """Review of plan F3: complete plan and reflect-and-revise prints preserve the spec's primary requirement line."""
 
     def render(self, route: str, ids: list[str]) -> dict:
         import shiploop_primary as primary
@@ -782,7 +782,7 @@ class PrimaryRequirementPacketTests(unittest.TestCase):
         finally:
             primary.primary_ids = real
         return {plans.stage_of(key): row["printed"] for key, row in rows.items()
-                if plans.stage_of(key) in ("plan", "carry-forward") and plans.is_producer(key, row["state"])}
+                if plans.stage_of(key) in ("plan", "reflect-and-revise") and plans.is_producer(key, row["state"])}
 
     def test_the_plan_and_carry_forward_prints_keep_one_six_and_thirty_primary_requirements(self) -> None:
         for route in ("inline", "ask-agent"):

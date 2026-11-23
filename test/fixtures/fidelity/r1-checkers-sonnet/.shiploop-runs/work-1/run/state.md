@@ -450,7 +450,7 @@
   {
    "action": "nav-907da088c3dc414c9e4286c4f63619c1",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "Lessons: test-author placeholder modules keep RED honest; illegal moves return \u2026",
    "workitem": "W1"
   },

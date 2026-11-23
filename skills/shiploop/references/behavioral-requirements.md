@@ -213,7 +213,7 @@ guidance available through the current host's capability/skill discovery (such
 as frontend-design). Record its actual identity/version or content digest and
 applicable decisions. Apply this guidance within the chosen direction and
 precedence above; it does not silently replace them. Do not wait until the
-`carry-forward` skill decision.
+`reflect-and-revise` skill decision.
 An absent optional skill uses repository guidance and this section as fallback;
 do not install a skill, hard-code host paths or claim unexecuted skill use.
 
@@ -478,7 +478,7 @@ Carry this model through the existing stages:
 | `step-plan`, `test-spec` | Select the item's slice, cases and expected transitions/effects before code. |
 | `implement` | Implement the active slice, cases, and enduring product diagrams/ledger where needed; compare with the accepted spec, not an improvised model. |
 | `test`, `document` | Run lint and all required checks, compare expected transitions/effects with observations. Do not silently adjust expectations to match failures. |
-| `carry-forward` | Distill new observations with source, scope, revalidation guidance and impact. Revise only future work within the accepted spec; incompatible contracts pause. |
+| `reflect-and-revise` | Distill new observations with source, scope, revalidation guidance and impact. Revise only future work within the accepted spec; incompatible contracts pause. |
 | `product-acceptance` | Reconcile end-to-end flows and state interactions across items with whole-product evidence; corrective work returns through `add-work` and new work items. |
 | `handoff` | Link the behavior model and case evidence, naming scope/exclusions and unresolved limitations honestly. Generic harness proposals stay separate. |
 
@@ -488,7 +488,7 @@ with its evidence and re-plans; elsewhere, stop and seek direction. Future-queue
 revision cannot change accepted acceptance. Never invent a rewind command or
 directly modify authority files to bypass the protocol.
 During execution, preserve the observation in the
-[project knowledge checkpoint](carry-forward.md), including what it contradicts
+[project knowledge checkpoint](reflect-and-revise.md), including what it contradicts
 and which consumers are affected. The separate living ledger preserves learning
 without falsely certifying a replacement spec or hiding a changed assumption.
 Use the [execution research assessment](research-loop.md#later-discoveries) for

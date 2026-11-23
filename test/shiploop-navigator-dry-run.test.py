@@ -87,7 +87,7 @@ class BattleshipMeasurementTests(unittest.TestCase):
         # (rule item) get Improve reviews, and its test-spec none (2026-10-26).
         self.assertEqual(counts["W1"], {"packets": 7, "reviews": 2})
         # W2 loses the test stage (no command, only non-code paths); the end-of-work review is added. Its step-plan
-        # follows W1's reviewed pattern (rule first-item, 2026-10-19): implement and carry-forward remain.
+        # follows W1's reviewed pattern (rule first-item, 2026-10-19): implement and reflect-and-revise remain.
         self.assertEqual(counts["W2"], {"packets": 6, "reviews": 2})
 
     def test_without_proof_a_no_command_item_still_walks_every_stage(self):
@@ -211,10 +211,10 @@ class NavigatorDryRunTests(unittest.TestCase):
                 finishes = [event for event in report['events'] if event['command'] == 'finish-improve']
                 # An actual Improve child starts only for a planning/contract
                 # stage result, a step's document stage (the step's review, design T §8)
-                # or the end-of-work carry-forward; every other produce advances directly
+                # or the end-of-work reflect-and-revise; every other produce advances directly
                 # with no paired finish-improve.
                 # The finish is an event of the Improve stage; the stage it reviews is the producer before it.
-                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'document', 'carry-forward'}
+                checkpoint_stages = guidance.PLANNING_REVIEW_STAGES | {'document', 'reflect-and-revise'}
                 self.assertEqual({event['from'] for event in finishes} - {'improve'}, set())
                 reviewed = reviewed_stages(report['events'])
                 self.assertTrue(set(reviewed) <= checkpoint_stages)
@@ -234,21 +234,21 @@ class NavigatorDryRunTests(unittest.TestCase):
         self.assertEqual({event['owner'] for event in two_items['events']
                           if event['owner'] != 'root'}, {'W1', 'W2'})
         produce_inner = [event for event in two_items['events']
-                         if event['from'] in ('step-plan', 'implement', 'carry-forward')
+                         if event['from'] in ('step-plan', 'implement', 'reflect-and-revise')
                          and event['command'] == 'produce']
         self.assertEqual([event['owner'] for event in produce_inner],
                          ['W1', 'W1', 'W1', 'W2', 'W2', 'W2'])
-        # Each item's one step gets its step review after its document stage (design T §8). W1's carry-forward
-        # leaves W2 pending, so only W2's end-of-work carry-forward gets a
-        # review; W1's carry-forward advances straight to W2 without one.
+        # Each item's one step gets its step review after its document stage (design T §8). W1's reflect-and-revise
+        # leaves W2 pending, so only W2's end-of-work reflect-and-revise gets a
+        # review; W1's reflect-and-revise advances straight to W2 without one.
         two_events = two_items['events']
         finish_inner = [(stage, event['owner'])
                         for stage, event in zip(reviewed_stages(two_events),
                                                 [e for e in two_events if e['command'] == 'finish-improve'])
-                        if stage in ('document', 'carry-forward')]
-        self.assertEqual(finish_inner, [('document', 'W1'), ('document', 'W2'), ('carry-forward', 'W2')])
+                        if stage in ('document', 'reflect-and-revise')]
+        self.assertEqual(finish_inner, [('document', 'W1'), ('document', 'W2'), ('reflect-and-revise', 'W2')])
         w1_produce = next(event for event in two_items['events']
-                          if event['owner'] == 'W1' and event['from'] == 'carry-forward'
+                          if event['owner'] == 'W1' and event['from'] == 'reflect-and-revise'
                           and event['command'] == 'produce')
         self.assertEqual(w1_produce['next_owner'], 'W2')
         self.assertEqual(w1_produce['completed_instances'], ['W1'])
@@ -429,8 +429,8 @@ class NavigatorDryRunTests(unittest.TestCase):
                     self.assertTrue(report['ok'], report.get('error'))
                     self.assertEqual(len(report['events']), events[mode][name])
                     finishes = set(reviewed_stages(report['events']))
-                    self.assertLessEqual(finishes, reviewed[mode] | {'carry-forward'})
-                    self.assertEqual(finishes, set() if name == 'halted' else reviewed[mode] | {'carry-forward'})
+                    self.assertLessEqual(finishes, reviewed[mode] | {'reflect-and-revise'})
+                    self.assertEqual(finishes, set() if name == 'halted' else reviewed[mode] | {'reflect-and-revise'})
         # a stage-mode script is refused by a none run: the oracle is not the engine's own table
         stale = driver.run_scenario('delivery', driver.scenarios()['delivery'], planning_review='none')
         self.assertFalse(stale['ok'])
@@ -446,7 +446,7 @@ class NavigatorDryRunTests(unittest.TestCase):
         for mode in navigator.PLANNING_REVIEW_MODES:
             with self.subTest(mode=mode):
                 rows = driver.activity(planning_review=mode)
-                reviewed = driver.REVIEWED3[mode] | {'carry-forward'}
+                reviewed = driver.REVIEWED3[mode] | {'reflect-and-revise'}
                 for index, row in enumerate(rows):
                     if row['command'] != 'produce':
                         continue
@@ -498,8 +498,8 @@ class NavigatorDryRunTests(unittest.TestCase):
 
 class BackchainStageTextTests(unittest.TestCase):
     """What each Backchain stage prints, now that no stage offers a Backchain child (Backchain retired, owner decision
-    2026-11-16): spec and plan fold the planning guide's item into their duty, a delegated step-plan or carry-forward
-    prints the route paragraph with the record-only check, and an inline step-plan or carry-forward and
+    2026-11-16): spec and plan fold the planning guide's item into their duty, a delegated step-plan or reflect-and-revise
+    prints the route paragraph with the record-only check, and an inline step-plan or reflect-and-revise and
     product-acceptance print neither.  Content pins (what each stage prints or omits), not byte pins."""
 
     CHECK_READS = ("The printed `backchain-check` reads only a candidate graph in the plan graph format, a JSON file "
@@ -533,7 +533,7 @@ class BackchainStageTextTests(unittest.TestCase):
                 with self.subTest(stage=stage, delegation=delegation):
                     self.assertEqual(text.count(self.CHECK_READS), 0 if no_paragraph else 1)
                     self.assertEqual(text.count(self.CHECK_SCOPE), 0 if no_paragraph else 1)
-                    # an inline step-plan or carry-forward prints no paragraph; its packet locator names the guide
+                    # an inline step-plan or reflect-and-revise prints no paragraph; its packet locator names the guide
                     self.assertEqual("Backchain planning guide" in text,
                                      not (stage in guidance.INLINE_AUDIT_STAGES and delegation == guidance.INLINE))
                     for retired in self.RETIRED:

@@ -483,7 +483,7 @@
   {
    "action": "nav-bc6ab643298043d1b3af15f76556a441",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "W1 complete and the queue is empty (no follow-up item required). Learnings reco\u2026",
    "workitem": "W1"
   },

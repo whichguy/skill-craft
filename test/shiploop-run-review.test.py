@@ -342,12 +342,12 @@ class RunReviewTest(unittest.TestCase):
 
     def test_an_unrecognized_loop_layout_gives_empty_segments_and_says_why(self):
         out = make_run(self.tmp, loops=False)
-        loop = out / ".shiploop-runs" / "work-1" / "run" / "scratch" / "group" / "backchain-carry-forward"
+        loop = out / ".shiploop-runs" / "work-1" / "run" / "scratch" / "group" / "backchain-reflect-and-revise"
         write_json(loop / "until-loop-receipt.json", {"status": "active"})
         code, target = self.export(out)
         self.assertEqual(code, 0)
-        doc = self.docs(target)["backchain"]["codex-gpt-6-luna-1.16.1-battleship-20261003-carry-forward"]
-        self.assertEqual((doc["segments"], doc["stageMin"], doc["loop"]), ([], None, "carry-forward"))
+        doc = self.docs(target)["backchain"]["codex-gpt-6-luna-1.16.1-battleship-20261003-reflect-and-revise"]
+        self.assertEqual((doc["segments"], doc["stageMin"], doc["loop"]), ([], None, "reflect-and-revise"))
         self.assertIn("not recognized", {f["k"]: f["v"] for f in doc["facts"]}["Layout"])
 
     def test_defaults_export_equals_the_defaults_and_is_create_only(self):
@@ -1163,9 +1163,9 @@ class BackchainLoopRecordsTest(unittest.TestCase):
 
     def test_an_unreadable_loop_reports_unknown_passes_not_zero(self):
         out = make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False)
-        write_json(run_dir_of(out) / "scratch" / "group" / "backchain-carry-forward" / "until-loop-receipt.json",
+        write_json(run_dir_of(out) / "scratch" / "group" / "backchain-reflect-and-revise" / "until-loop-receipt.json",
                    {"status": "active"})
-        doc = self.export(out)[0][f"{self.KEY}-carry-forward"]
+        doc = self.export(out)[0][f"{self.KEY}-reflect-and-revise"]
         self.assertEqual(self.facts_of(doc)["Passes"], "unknown")
         self.assertEqual(doc["candidateMatch"], "unknown")
 
@@ -1230,7 +1230,7 @@ PLAN_ROWS = [
     ("sp2", "step-plan", "done", "W1", steps_of("S1", "S2")),
     ("i4", "implement", "repeat", "W1", {}), ("i5", "implement", "done", "W1", {}), ("i6", "implement", "done", "W1", {}),
     ("test-green", "test-green", "done", "W1", {}),
-    ("carry-forward", "carry-forward", "done", "W1", {"work_items": []}),
+    ("reflect-and-revise", "reflect-and-revise", "done", "W1", {"work_items": []}),
     ("add-work", "system-test", "add-work", None, {"work_items": [{"id": "W2", "title": "Corrective item"}]}),
     ("get-next-work-item-2", "get-next-work-item", "done", "W2", {}),
     ("sp3", "step-plan", "done", "W2", steps_of("S1", "S2")),
@@ -2715,7 +2715,7 @@ class DefaultsUpgradeTests(unittest.TestCase):
         self.assertEqual(set(docs), {"expectations", "config"})
         self.assertEqual(notes, [
             "expectations/phase-1: the page's text, which has no revision of its own, is replaced by the defaults' text",
-            # phases 3-6 describe the 7-stage inner loop (Build, Carry forward, System test, Release). The page's texts they
+            # phases 3-6 describe the 7-stage inner loop (Build, Reflect and revise, System test, Release). The page's texts they
             # replace are the 17-stage loop's (Build, Prove, Integrate, System test), which a 17-stage run reads from
             # config/stages-v4.phaseTexts and, for phase-6, config/stages-v5.phaseTexts
             *(f"expectations/phase-{n}: the page's text, which has no revision of its own, is replaced by the defaults' text"
@@ -4484,17 +4484,17 @@ class PacketBoxTests(unittest.TestCase):
 STATE_FIXTURES = ROOT / "test" / "fixtures" / "run-review"
 PLANNING_NONE_TEXT = "planning stages skipped by design (planning_review none)"
 PLANNING_STAGES = ("spec", "test-strategy", "plan", "step-plan")  # test-spec has no Improve child in either mode (2026-10-26)
-# The planning stages, then the stages after them whose results start a child under none (the last item's carry-forward and
+# The planning stages, then the stages after them whose results start a child under none (the last item's reflect-and-revise and
 # system-test-author). (action, stage, minutes after T0 when accepted, outcome), as in ACCEPTS.
 PLANNING_ACCEPTS = [("intake", "intake", 5, "done"), ("spec", "spec", 15, "done"), ("test-strategy", "test-strategy", 35, "done"),
                     ("plan", "plan", 95, "done"), ("get-next-work-item", "get-next-work-item", 97, "done"),
                     ("step-plan", "step-plan", 127, "done"), ("test-spec", "test-spec", 140, "done"),
-                    ("carry-forward", "carry-forward", 180, "done"), ("system-test-author", "system-test-author", 200, "done")]
+                    ("reflect-and-revise", "reflect-and-revise", 180, "done"), ("system-test-author", "system-test-author", 200, "done")]
 # improve/<child>/ of a run by the mode it started with, (passes, bind time, receipt time), as the engine's own walk of its
 # pure navigator leaves them (the two state fixtures): stage starts a child after each planning result, none starts none there.
 STAGE_CHILDREN = {"spec": (2, 16, 24), "test-strategy": (1, 36, 41), "plan": (3, 96, 110),
-                  "carry-forward": (2, 172, 178.5), "system-test-author": (1, 192, 195)}
-NONE_CHILDREN = {"carry-forward": (2, 172, 178.5), "system-test-author": (1, 192, 195)}
+                  "reflect-and-revise": (2, 172, 178.5), "system-test-author": (1, 192, 195)}
+NONE_CHILDREN = {"reflect-and-revise": (2, 172, 178.5), "system-test-author": (1, 192, 195)}
 
 
 def real_state(mode: str) -> dict:
@@ -4563,7 +4563,7 @@ class PlanningReviewExportTest(unittest.TestCase):
         run, facts = self.build("none", NONE_CHILDREN)
         self.assertEqual((run["planningReview"], run["improveScope"]), ("none", PLANNING_NONE_TEXT))
         self.assertEqual((run["improvePasses"], run["improveMin"], run["imp"]), (3, 9.5, "2 children, 3 review passes"))
-        self.assertEqual([r["stage"] for r in run["stages"] if "improve" in r], ["carry-forward", "system-test-author"])
+        self.assertEqual([r["stage"] for r in run["stages"] if "improve" in r], ["reflect-and-revise", "system-test-author"])
         for row in run["stages"]:
             if row["stage"] in PLANNING_STAGES:
                 self.assertNotIn("improve", row, row["stage"])  # no child by design: a row never gets an improve map
@@ -4588,7 +4588,7 @@ class PlanningReviewExportTest(unittest.TestCase):
                 self.assertEqual(next(f for f in facts if f.startswith("- Improve:")),
                                  "- Improve: 5 children, 9 review passes; most passes in one child: 3; 36.5 min bind to receipt")
                 self.assertEqual([r["stage"] for r in run["stages"] if "improve" in r],
-                                 ["spec", "test-strategy", "plan", "carry-forward", "system-test-author"])
+                                 ["spec", "test-strategy", "plan", "reflect-and-revise", "system-test-author"])
                 self.assertNotIn("by design", json.dumps(run) + "\n".join(facts))
 
     def test_the_contract_types_both_fields_documents_them_and_states_the_bundle_convention(self):
@@ -4707,7 +4707,7 @@ class PlanningReviewPageTests(unittest.TestCase):
             self.assertEqual(lines[stage]["Improve"], "not run by design (planning_review none)", stage)
         for stage in ("intake", "get-next-work-item", "test-spec"):
             self.assertNotIn("Improve", lines[stage], stage)  # no child here in any mode: nothing to say
-        self.assertEqual((lines["carry-forward"]["Improve"], lines["system-test-author"]["Improve"]), ("2 passes, 6.5 min", "1 pass, 3 min"))
+        self.assertEqual((lines["reflect-and-revise"]["Improve"], lines["system-test-author"]["Improve"]), ("2 passes, 6.5 min", "1 pass, 3 min"))
         for key in ("stage", "absent", "unknown"):
             other = self.details(self.runs[key])
             self.assertFalse([s for s, rows in other.items() if "by design" in rows.get("Improve", "")], key)
@@ -4803,7 +4803,7 @@ class GeneralReviewBundleTests(unittest.TestCase):
                        "In `none` a planning result is accepted without a review loop",
                        "the spec and test strategy are committed to the knowledge home when each is accepted and no Improve child reviews "
                        "them afterwards, so later runs inherit them unreviewed",
-                       "The Improve children after `system-test-author` and `release-plan` and the last `carry-forward` start in every mode"):
+                       "The Improve children after `system-test-author` and `release-plan` and the last `reflect-and-revise` start in every mode"):
             self.assertIn(phrase, to)
 
     def test_the_living_spec_preserves_the_option_and_records_the_later_review_schedule(self):
@@ -4813,7 +4813,7 @@ class GeneralReviewBundleTests(unittest.TestCase):
                        "The default remains `stage`", "`none` omits those planning reviews",
                        "`test-spec` has no Improve child", "first work item and an item sent back for replanning",
                        "review of that step's code, tests and documentation before its commit and the next step",
-                       "`system-test-author`, `release-plan` and the last `carry-forward` retain their Improve reviews in every mode",
+                       "`system-test-author`, `release-plan` and the last `reflect-and-revise` retain their Improve reviews in every mode",
                        "does not rewrite earlier runs' frozen obligations"):
             self.assertIn(phrase, carve_out)
 
@@ -5305,11 +5305,11 @@ class StageCatalogTests(unittest.TestCase):
     def test_each_exit_check_class_has_a_real_stage_and_the_rule_reads_only_the_rows_own_fields(self):
         self.assertEqual({n: self.entry(n)["exitCheck"] for n in
                           ("implement", "test", "intake", "prepare", "document", "release",
-                           "spec", "plan", "step-plan", "carry-forward", "release-plan")},
+                           "spec", "plan", "step-plan", "reflect-and-revise", "release-plan")},
                          {"implement": "script-run", "test": "script-run",
                           "intake": "model judgement", "prepare": "model judgement", "document": "script-run",
                           "release": "model judgement", "spec": "review loop", "plan": "review loop",
-                          "step-plan": "script-run", "carry-forward": "script-run", "release-plan": "review loop"})
+                          "step-plan": "script-run", "reflect-and-revise": "script-run", "release-plan": "review loop"})
         for stage in self.spec.STAGES:
             row = self.spec.STAGE_SPEC[stage]
             self.assertEqual(self.by_name[stage]["exitCheck"],
@@ -5322,7 +5322,7 @@ class StageCatalogTests(unittest.TestCase):
         # Every inner stage has both (its Until Loop's terminal check and, for three of them, an Improve child): the rule
         # gives script-run, the stronger check.
         both = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs and self.spec.STAGE_SPEC[s].improve}
-        self.assertEqual(both, {"step-plan", "document", "carry-forward"})   # the step review follows document (T §8)
+        self.assertEqual(both, {"step-plan", "document", "reflect-and-revise"})   # the step review follows document (T §8)
         self.assertEqual({self.by_name[s]["exitCheck"] for s in both}, {"script-run"})
 
     def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
@@ -5339,7 +5339,7 @@ class StageCatalogTests(unittest.TestCase):
         for stage in ("spec", "test-strategy", "plan"):
             self.assertEqual([export.effective_exit_check(self.by_name[stage], m) for m in MODES],
                              ["review loop", "review loop", "model judgement", "review loop", "review loop"], stage)
-        for stage in ("step-plan", "test-spec", "carry-forward", "system-test-author", "release-plan", "implement",
+        for stage in ("step-plan", "test-spec", "reflect-and-revise", "system-test-author", "release-plan", "implement",
                       "intake"):
             self.assertEqual({export.effective_exit_check(self.by_name[stage], m) for m in MODES},
                              {self.by_name[stage]["exitCheck"]}, stage)  # the option does not touch these
@@ -5383,7 +5383,7 @@ class StageAliasTests(unittest.TestCase):
             ("step-plan", "get-next-work-item", "select-work"),
             ("validate-existing", "baseline"),
             ("test", "test-author", "test-red", "test-green", "test-refine", "regression"),
-            ("carry-forward", "skill-assess", "skill-validate")))
+            ("reflect-and-revise", "skill-assess", "skill-validate", "carry-forward")))
         # verify is gone, and nothing of the 7-stage loop does what static-checks, integrate and integration-verify did:
         # each is its own name, in no phase (the 8-stage table bucketed them under verify; STAGE_ALIASES_V5 still does)
         for old in ("static-checks", "integrate", "integration-verify", "verify"):
@@ -5829,7 +5829,7 @@ class StageCardLogicTests(unittest.TestCase):
         self.assertIn("planning_review none", spec["check"]["why"])
         self.assertEqual(self.lines(spec["done"]["lines"])["Improve"], "3 passes, 3.3 min")  # measured figures stay, as in R18
         self.assertEqual(card(dict(CARD_RUN, planningReview="stage"), 1)["check"]["kind"], "review loop")
-        self.assertIn("last work item", run_logic('exitCheckWhy({stage:"carry-forward",exitCheck:"review loop",improve:"last-item"},{})'))
+        self.assertIn("last work item", run_logic('exitCheckWhy({stage:"reflect-and-revise",exitCheck:"review loop",improve:"last-item"},{})'))
 
     def test_the_exit_check_of_every_stage_in_every_mode_equals_the_exporters_rule(self):
         catalog = export.stage_catalog(engine_spec())
@@ -9043,7 +9043,7 @@ R23B_R1 = "20261008/r1-battleship-sonnet"  # ShipLoop 0.54-0.56 era: Improve pac
 R23B_R3 = "20261008/r3-battleship-sonnet"
 R23B_NAVIGATOR = ROOT / "skills" / "shiploop" / "scripts" / "shiploop_navigator.py"
 R23B_IMPROVE_KEYS = ("goal", "doneWhen", "checkedBy", "output", "recovery")
-ACCEPTS_8 = ACCEPTS + [("extra", "carry-forward", 150, "done")]  # eight visits: the size of the Improve sets in the saved runs
+ACCEPTS_8 = ACCEPTS + [("extra", "reflect-and-revise", 150, "done")]  # eight visits: the size of the Improve sets in the saved runs
 
 
 def r23b_figures() -> dict:
@@ -9829,12 +9829,12 @@ class R23dDeliveredExportTests(unittest.TestCase):
         self.assertNotIn("delivered.skill", run["unmeasured"])
 
     def test_a_skipped_visit_is_not_a_decision_and_a_stage_never_reached_is_unmeasured(self):
-        # the skill decision is skill-assess's in a 17-stage run and carry-forward's in an 8-stage one (B1)
+        # the skill decision is skill-assess's in a 17-stage run and reflect-and-revise's in an 8-stage one (B1)
         workspace = Path(tempfile.mkdtemp(dir=self.tmp))
-        for model, stage in (("v4", "skill-assess"), ("v5", "carry-forward")):
+        for model, stage in (("v4", "skill-assess"), ("v5", "reflect-and-revise")):
             rows = [{"stage": stage, "outcome": "done", "summary": "first answer"},
                     {"stage": stage, "outcome": "done", "summary": "skipped answer", "skipped": True},
-                    {"stage": "carry-forward" if model == "v4" else "skill-assess", "outcome": "done", "summary": "other model's"},
+                    {"stage": "reflect-and-revise" if model == "v4" else "skill-assess", "outcome": "done", "summary": "other model's"},
                     {"stage": "release-plan", "outcome": "done", "summary": "p"}, {"stage": "release-plan", "outcome": "done"}]
             got, why = export._delivered(workspace, rows, model)
             self.assertEqual(got["skill"], {"assessed": "first answer"}, model)
@@ -10205,9 +10205,9 @@ SM_V4_INNER = ("get-next-work-item", "step-plan", "test-spec", "baseline", "test
 SM_V5_INNER = ("step-plan", "test-spec", "validate-existing", "implement", "implement", "test", "document", "verify",
                "carry-forward")
 # The 7-stage inner loop: each of two steps is built, tested and documented (its review and commit follow document), then
-# carry-forward once for the item. No verify.
+# reflect-and-revise once for the item. No verify.
 SM_V6_INNER = ("step-plan", "test-spec", "validate-existing", "implement", "test", "document", "implement", "test", "document",
-               "carry-forward")
+               "reflect-and-revise")
 SM_INNER = {"v4": SM_V4_INNER, "v5": SM_V5_INNER, "v6": SM_V6_INNER}
 # sha256 of json.dumps(stages, sort_keys=True) of 3e4c3e0e's defaults/stages.json (the last Run Review catalog of the 8-stage
 # inner loop, unchanged through ba60a88a), and of the phase-3 to phase-7 expectations (title, short, text) of that commit's
@@ -10217,15 +10217,16 @@ V5_PHASE_TEXTS_SHA256 = "665ea270ec230f3c7bd0ffe929c465148d787493578ee1c16d87bca
 V5_FROZEN_FROM = "3e4c3e0e"
 SM_SAID = {"skill-assess": "Decision: no new skill; rules.js is the reusable unit.",
            "skill-validate": "N/A: no skill was created, so nothing to validate.",
-           "carry-forward": "Lessons: the quality loop found a crash worth a regression test. Queue unchanged."}
+           "carry-forward": "Lessons: the quality loop found a crash worth a regression test. Queue unchanged.",
+           "reflect-and-revise": "Lessons: the quality loop found a crash worth a regression test. Queue unchanged."}
 
 
 def stage_model_run(root: Path, model: str) -> Path:
     """A run of one stage model with distinct accepted summaries. v4 (state version 4): work item W1 goes through all 17 inner
-    stages (its carry-forward records lessons), W2 stops at static-checks after skill-assess and skill-validate, with a red
+    stages (its reflect-and-revise records lessons), W2 stops at static-checks after skill-assess and skill-validate, with a red
     test-red record as the last counted test run. v5 (state version 5): W1 goes through the 8 stages (two implement steps;
-    carry-forward records the skill decision) and the run is at system-test-author. v6 (state version 10, the engine's): W1's
-    two steps are each built, tested and documented, then carry-forward (the skill decision), with no verify visit, and the run
+    reflect-and-revise records the skill decision) and the run is at system-test-author. v6 (state version 10, the engine's): W1's
+    two steps are each built, tested and documented, then reflect-and-revise (the skill decision), with no verify visit, and the run
     is at system-test-author."""
     visits = [(None, s) for s in SM_OUTER]
     if model == "v4":
@@ -10243,8 +10244,11 @@ def stage_model_run(root: Path, model: str) -> Path:
     state = export._record(run_dir / "state.md")
     for row, (item, stage) in zip(state["history"], rows):
         row["workitem"] = item
-        row["summary"] = (SM_SAID["carry-forward"] if model == "v4" else "Decision: reuse; no new skill. "
-                          + SM_SAID["carry-forward"]) if stage == "carry-forward" else SM_SAID.get(stage, f"{stage} done")
+        if stage in ("carry-forward", "reflect-and-revise"):
+            body = SM_SAID.get(stage, SM_SAID["reflect-and-revise"])
+            row["summary"] = body if model == "v4" else "Decision: reuse; no new skill. " + body
+        else:
+            row["summary"] = SM_SAID.get(stage, f"{stage} done")
     state["work_items"] = [{"id": "W1", "title": "Build the rules"}] + ([{"id": "W2", "title": "Build the server"}] if model == "v4" else [])
     if model == "v4":
         state.update(version=4, work_index=1, stage="inner-loop",
@@ -10337,7 +10341,7 @@ class StageModelTests(unittest.TestCase):
         view = stage_model_view(stage_model_run(self.tmp, "v4"))
         self.assertEqual(view["stageModel"], "v4")
         self.assertEqual(view["modelFact"], "- Stage model: v4 (the 17-stage inner loop, state version 4 or earlier)")
-        # B1: the skill decision and its validation are skill-assess's and skill-validate's words, not carry-forward's lessons
+        # B1: the skill decision and its validation are skill-assess's and skill-validate's words, not reflect-and-revise's lessons
         self.assertEqual((view["skill"], view["skillWhy"]), (golden["skill"], golden["skillWhy"]))
         self.assertEqual(view["skill"], {"assessed": SM_SAID["skill-assess"], "validated": SM_SAID["skill-validate"]})
         # S1/S2: the 17-stage phase names, and the run's phases stay in flow order (Prove running, Integrate not reached)
@@ -10403,7 +10407,7 @@ class StageModelTests(unittest.TestCase):
         # each run's flow has its own loop's phases, Release last: the 7-stage page has no phase-7 document of its own
         self.assertEqual(v4[1], ["Understand", "Specify", "Plan", "Build", "Prove", "Integrate", "System test", "Release"])
         self.assertEqual(v5[1], ["Understand", "Specify", "Plan", "Build", "Verify", "Carry forward", "System test", "Release"])
-        self.assertEqual(v6[1], ["Understand", "Specify", "Plan", "Build", "Carry forward", "System test", "Release"])
+        self.assertEqual(v6[1], ["Understand", "Specify", "Plan", "Build", "Reflect and revise", "System test", "Release"])
         v4_texts = json.loads(STAGES_V4_JSON.read_text(encoding="utf-8"))["phaseTexts"]
         v5_texts = json.loads(STAGES_V5_JSON.read_text(encoding="utf-8"))["phaseTexts"]
         self.assertIn("Prove: what we expect", v4[2])
@@ -10413,7 +10417,7 @@ class StageModelTests(unittest.TestCase):
         self.assertIn("Verify: what we expect", v5[2])
         self.assertIn(v5_texts["phase-4"]["text"], v5[2])
         self.assertIn("the 8-stage inner loop this run used", v5[2])
-        self.assertIn("Carry forward: what we expect", v6[2])
+        self.assertIn("Reflect and revise: what we expect", v6[2])
         self.assertIn(defaults["expectations"]["phase-4"]["text"], v6[2])
         self.assertNotIn("describes the 7-stage loop", v6[2])
         for older in (v4, v5):  # phase-7, Release, is the frozen 8-stage text (System test and Release are the same in both loops)
@@ -10507,22 +10511,22 @@ class StageModelTests(unittest.TestCase):
         self.assertEqual(view["stageModel"], "v6")
         self.assertEqual(view["modelFact"], "- Stage model: v6 (the 7-stage inner loop: each step built, tested, documented, "
                                             "reviewed and committed)")
-        self.assertEqual(view["phases"], ["Understand", "Specify", "Plan", "Build", "Carry forward", "System test", "Release"])
-        self.assertEqual(view["phasesFact"], "- Phases: Understand done, Specify done, Plan done, Build done, Carry forward done, "
+        self.assertEqual(view["phases"], ["Understand", "Specify", "Plan", "Build", "Reflect and revise", "System test", "Release"])
+        self.assertEqual(view["phasesFact"], "- Phases: Understand done, Specify done, Plan done, Build done, Reflect and revise done, "
                                              "System test running, Release none")
         self.assertEqual(len(view["phaseStates"]), 7)
-        self.assertEqual(view["skill"], {"assessed": "Decision: reuse; no new skill. " + SM_SAID["carry-forward"]})
+        self.assertEqual(view["skill"], {"assessed": "Decision: reuse; no new skill. " + SM_SAID["reflect-and-revise"]})
         cards = {c["stage"]: c for c in view["cards"]}
         self.assertEqual(cards["implement"]["purpose"], engine_spec().STAGE_SPEC["implement"].goal)  # the engine's own catalog
-        self.assertEqual([c["phase"] for c in view["cards"] if c["stage"] in ("validate-existing", "document", "carry-forward")],
-                         ["Build", "Build", "Build", "Carry forward"])
+        self.assertEqual([c["phase"] for c in view["cards"] if c["stage"] in ("validate-existing", "document", "reflect-and-revise")],
+                         ["Build", "Build", "Build", "Reflect and revise"])
         # ShipLoop's state version 10 is the 7-stage loop; with no version, a name only the later loops have and no verify visit
         model = export.stage_model
         self.assertEqual([model({"version": 10}, []), model({"version": 11}, ["intake", "test", "document"]),
                           model({}, ["intake", "test"]), model({}, ["intake", "spec"]), model({"version": 4}, ["test"]),
                           model({"version": 10}, ["get-next-work-item"])],
                          ["v6", "v6", "v6", None, "v4", "v4"])
-        self.assertEqual(export.AFTER_IMPLEMENT, ("test", "document", "carry-forward"))
+        self.assertEqual(export.AFTER_IMPLEMENT, ("test", "document", "reflect-and-revise"))
         self.assertEqual(export.AFTER_IMPLEMENT_BY_MODEL["v6"], export.AFTER_IMPLEMENT)
         # the page's own reading of a document exported before stageModel existed agrees
         self.assertEqual(run_logic("[stageModel({stages:[{stage:'test'},{stage:'verify'}]}),stageModel({stages:[{stage:'test'}]}),"
@@ -10543,7 +10547,7 @@ class StageModelTests(unittest.TestCase):
                             "critOf({criterion:'phase-4',run:r.key}).title,critOf({criterion:'P1',run:r.key}).title];})", setup=setup)
         principle = defaults["expectations"]["P1"]["title"]
         self.assertEqual(titles, [["System test", "Prove", principle], ["System test", "Verify", principle],
-                                  ["Release", "Carry forward", principle]])
+                                  ["Release", "Reflect and revise", principle]])
         self.assertNotIn("phase-7", defaults["expectations"])
         self.assertIn("phase-7", export._default_keys())
 
@@ -10588,7 +10592,7 @@ def write_ledger(out: Path, plans: dict) -> None:
 
 TWO_STEPS = [("step-plan", "done"), ("test-spec", "done"), ("validate-existing", "done"),
              ("implement", "done"), ("test", "done"), ("document", "done"),
-             ("implement", "done"), ("test", "done"), ("document", "done"), ("carry-forward", "done")]
+             ("implement", "done"), ("test", "done"), ("document", "done"), ("reflect-and-revise", "done")]
 
 
 class StepIterationExportTests(unittest.TestCase):
@@ -10614,7 +10618,7 @@ class StepIterationExportTests(unittest.TestCase):
         self.assertEqual([(i + 1, r["stage"], r.get("step")) for i, r in enumerate(run["stages"]) if r.get("workitem") == "W1"],
                          [(8, "step-plan", None), (9, "test-spec", None), (10, "validate-existing", None),
                           (11, "implement", "S1"), (12, "test", "S1"), (13, "document", "S1"),
-                          (14, "implement", "S2"), (15, "test", "S2"), (16, "document", "S2"), (17, "carry-forward", None)])
+                          (14, "implement", "S2"), (15, "test", "S2"), (16, "document", "S2"), (17, "reflect-and-revise", None)])
         implement = [r["action"] for r in run["stages"] if r["stage"] == "implement"]
         item = run["workItems"][0]
         self.assertEqual(item["steps"], [
@@ -10643,15 +10647,15 @@ class StepIterationExportTests(unittest.TestCase):
         self.assertEqual([(s["id"], s.get("visits")) for s in item["steps"]],
                          [("S1", {"first": 11, "last": 13}), ("S2", {"first": 14, "last": 15})])
         self.assertNotIn("stepsExecuted", run["unmeasured"])
-        # an item that reaches carry-forward with a step never built did not run one packet per step
-        early = self.run_doc(step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS[:6] + [("carry-forward", "done")]))
+        # an item that reaches reflect-and-revise with a step never built did not run one packet per step
+        early = self.run_doc(step_run(Path(tempfile.mkdtemp(dir=self.tmp)), TWO_STEPS[:6] + [("reflect-and-revise", "done")]))
         self.assertIn("moved past", early["unmeasured"]["stepsExecuted"])
 
     def test_a_send_back_restarts_the_step_numbering_under_the_new_step_plan(self):
         inner = [("step-plan", "done"), ("test-spec", "done"), ("validate-existing", "done"),
                  ("implement", "done"), ("test", "send-back"),
                  ("step-plan", "done"), ("implement", "done"), ("test", "done"), ("document", "done"),
-                 ("implement", "done"), ("test", "done"), ("document", "done"), ("carry-forward", "done")]
+                 ("implement", "done"), ("test", "done"), ("document", "done"), ("reflect-and-revise", "done")]
         out = step_run(self.tmp, inner)
         first, second = step_plans(out)
         write_ledger(out, {first: {"S1": {"number": 1, "base": STEP_BASE, "commit": None}},
@@ -10663,7 +10667,7 @@ class StepIterationExportTests(unittest.TestCase):
                                 (11, "implement", 1, "S1"), (12, "test", 1, "S1"),
                                 (13, "step-plan", 2, None), (14, "implement", 2, "S1"), (15, "test", 2, "S1"),
                                 (16, "document", 2, "S1"), (17, "implement", 2, "S2"), (18, "test", 2, "S2"),
-                                (19, "document", 2, "S2"), (20, "carry-forward", 2, None)])
+                                (19, "document", 2, "S2"), (20, "reflect-and-revise", 2, None)])
         # the item's steps are the latest plan's: S1 again from visit 14, with that plan's commits
         self.assertEqual([(s["id"], s["number"], s["visits"], s["commit"]) for s in run["workItems"][0]["steps"]],
                          [("S1", 1, {"first": 14, "last": 16}, STEP_COMMITS["S1"]),
@@ -10769,7 +10773,7 @@ def slice_run(root: Path, model: str = "v5", stop: str = "slice-complete", verdi
     state = export._record(run_dir / "state.md")
     for row, (item, stage) in zip(state["history"], visits):
         row["workitem"] = item
-        row["summary"] = SM_SAID["carry-forward"] if stage == "carry-forward" else f"{stage} done"
+        row["summary"] = SM_SAID[stage] if stage in ("carry-forward", "reflect-and-revise") else f"{stage} done"
     state.update(version=5 if model == "v5" else 4, work_index=0, stage="system-test-author", inner_loops={},
                  work_items=[{"id": "W1", "title": "Add slugify"}])
     record(run_dir / "state.md", state)

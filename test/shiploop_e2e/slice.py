@@ -7,8 +7,8 @@
 
 A full E2E run (run.py) plans from intake and releases at the end; a step slice exercises one item's inner loop:
 step-plan, test-spec, validate-existing, then for each step implement, test and document (with an Improve child after
-each step's document stage, and ShipLoop's commit of the step once that review is accepted), then carry-forward (with
-the last item's carry-forward Improve child). The harness copies the case's fixture (step_cases.json) into a new git repository, records every stage before
+each step's document stage, and ShipLoop's commit of the step once that review is accepted), then reflect-and-revise (with
+the last item's reflect-and-revise Improve child). The harness copies the case's fixture (step_cases.json) into a new git repository, records every stage before
 step-plan without doing it (run.seed_run, on the plugin's own navigator, with the case's work item as the plan's only
 item), records what those stages would have left (the item's base snapshot, which the base run, the mutation check and
 the step commits read; a neutral docs/shiploop/ home, unless --seed-without-home), and the host follows
@@ -29,7 +29,7 @@ Codex run in a throwaway HOME, but Claude's session transcript lands in the user
 
 Verdicts (slice-result.json):
   process        the host was ended by the slice stop (``slice-complete``), not a timeout, failure or crash
-  inner_loop     the item's carry-forward was accepted done
+  inner_loop     the item's reflect-and-revise was accepted done
   no_overshoot   no result was accepted for an outer stage or for another item (the stop held)
   assembled      ShipLoop's product worktree holds the item's candidate: against the seed, its tracked and untracked
                  (not ignored) files change every expected path of the case, and change a product file, not only
@@ -50,7 +50,7 @@ checkout, ShipLoop commits each step's files the step plan declares (and documen
 step's document stage and review are accepted, and anything else is committed only at the final return
 (`workspace plan-return`, at release), which a slice does not reach
 (references/workspace-lifecycle.md, "Inner assembly and final return").
-ShipLoop command failures, model glue and queue growth (items a carry-forward added) are recorded, not verdicts.
+ShipLoop command failures, model glue and queue growth (items a reflect-and-revise added) are recorded, not verdicts.
 """
 from __future__ import annotations
 
@@ -426,7 +426,7 @@ def grade(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dic
     state = read_state(run_dir) or {}
     item = case["work_item"]["id"]
     history = item_history(state, item)
-    carried = any(row["stage"] == "carry-forward" and row["outcome"] == "done" for row in history)
+    carried = any(row["stage"] == "reflect-and-revise" and row["outcome"] == "done" for row in history)
     over = overshoot(state, item)
     worktree = run_dir.parent / "worktree"
     assembled = assembled_product(worktree, seeded["start_head"], case.get("expect_paths") or [])

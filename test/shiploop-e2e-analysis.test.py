@@ -88,7 +88,7 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             run_dir.mkdir()
             repo = root / "work"
             (run_dir / "state.md").write_text('```shiploop-state\n' + json.dumps({"repo": str(repo)}) + '\n```\n')
-            direct = repo / ".shiploop-improve" / "carry-forward-aaaa1111" / "reviews"
+            direct = repo / ".shiploop-improve" / "reflect-and-revise-aaaa1111" / "reviews"
             decoy = root / "worktree" / ".shiploop-improve" / "unrelated-bbbb2222" / "reviews"
             previous = repo / ".shiploop-improve" / "previous-cccc3333" / "reviews"
             (run_dir / "improve").mkdir()
@@ -100,7 +100,7 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             (direct / "pass-1.json").write_text(json.dumps({"edited": True, "changed": False, "result_changed": True}))
             got = metrics.improve_reviews(run_dir)
             self.assertEqual((got["children"], got["passes"], got["edited_children"]), (1, 2, 1))
-            self.assertEqual(got["per_child"][0]["child"], "carry-forward-aaaa1111")
+            self.assertEqual(got["per_child"][0]["child"], "reflect-and-revise-aaaa1111")
             self.assertEqual(got["per_child"][0]["edited_basis"], "tree and result")
 
     def test_recorded_missing_repo_cannot_fall_back_to_an_unrelated_worktree(self):
@@ -2470,7 +2470,7 @@ class GateCountsTest(unittest.TestCase):
         sys.path.append(str(ROOT / "skills/shiploop/scripts"))
         import shiploop_navigator as navigator
         with tempfile.TemporaryDirectory() as temp:
-            text = navigator._regression_refusal(Path(temp), {"stage": "carry-forward"}, "fix\n\nKey learnings: none\n",
+            text = navigator._regression_refusal(Path(temp), {"stage": "reflect-and-revise"}, "fix\n\nKey learnings: none\n",
                                                  ["src/calc.py"], Path(temp) / "commit-message.md", "CMD")
         self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + text), "improve_regression_test", text)
 
@@ -2508,7 +2508,7 @@ class GateCountsTest(unittest.TestCase):
                 # F3 (2026-10-28): the plan's queue leaves R-1 out of every follows, or follows an ID with no entry.
                 "primary_coverage": [
                     lambda: primary.check_queue(state, "plan", dict(done, work_items=[{"id": "W1", "title": "t"}])),
-                    lambda: primary.check_queue(dict(state, work_index=0), "carry-forward",
+                    lambda: primary.check_queue(dict(state, work_index=0), "reflect-and-revise",
                                                 dict(done, work_items=[{"id": "W2", "title": "t"}])),
                     lambda: primary.check_queue(state, "plan", dict(done, work_items=[
                         {"id": "W1", "title": "t", "follows": ["R-1", "R-9"]}])),

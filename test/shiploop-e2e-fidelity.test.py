@@ -371,7 +371,7 @@ class EvidenceTest(unittest.TestCase):
     def test_script_beats_loop_beats_file_and_the_records_list_keeps_what_the_class_hides(self):
         rows = replay("r3-battleship-sonnet")["block"]["evidence"]["stages"]
         both = [r for r in rows if "improve" in r["records"] and {"verify", "lint", "loop", "backchain"} & set(r["records"])]
-        self.assertTrue(both, "a carry-forward with a verify record and an Improve child reads script")
+        self.assertTrue(both, "a reflect-and-revise with a verify record and an Improve child reads script")
         for row in both:
             self.assertEqual(row["class"], "script")
         loops = [r for r in rows if r["class"] == "loop"]
@@ -380,7 +380,7 @@ class EvidenceTest(unittest.TestCase):
             self.assertEqual(row["records"], ["improve"])
         counts = replay("r3-battleship-sonnet")["block"]["evidence"]["records"]
         self.assertEqual(set(counts), {"verify", "step-proof", "lint", "loop", "expectation", "backchain", "improve"})
-        self.assertEqual(counts["improve"], 8, "7 loop rows and the carry-forward that also carries a verify record")
+        self.assertEqual(counts["improve"], 8, "7 loop rows and the reflect-and-revise that also carries a verify record")
 
     def test_an_improve_child_is_found_by_its_receipt_or_by_its_improve_results_entry(self):
         for how in ("receipt", "improve_results", "neither"):

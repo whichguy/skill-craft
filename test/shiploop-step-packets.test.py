@@ -53,7 +53,7 @@ class StepPacketTests(unittest.TestCase):
             producers = [key.split("-", 1)[1] for key in found if not key.endswith("-improve")]
             with self.subTest(name):
                 self.assertEqual(producers, list(stage_spec.INNER))
-                self.assertIn("carry-forward-improve", " ".join(found))  # the last item's end review
+                self.assertIn("reflect-and-revise-improve", " ".join(found))  # the last item's end review
 
     def test_each_packet_names_the_case_work_item(self) -> None:
         """A producer packet names the item.  An Improve packet named it only in its status block, which it no longer
@@ -86,7 +86,7 @@ class StepPacketTests(unittest.TestCase):
         self.assertEqual(packets.references("Coding decision guide: GUIDES/coding-guidance.md\n")["skill_references"], 0)
         # The offline packets name guides this way, and the count did not fall when they became symbols (43 before).
         # Verify's packet, which named its own guides, retired with verify (design T §9.1 2b-4c): 41 since.
-        # 39 since 2026-11-15 (owner decision): a default run calls no Backchain child, so step-plan and carry-forward no
+        # 39 since 2026-11-15 (owner decision): a default run calls no Backchain child, so step-plan and reflect-and-revise no
         # longer name the Backchain audit resource (the caller contract), one reference each.
         named = [packets.references(text)["skill_references"] for text in self.found["node-fix-bug"].values()]
         self.assertGreaterEqual(sum(named), 39, named)

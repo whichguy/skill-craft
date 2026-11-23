@@ -521,7 +521,7 @@
   {
    "action": "nav-c5c1895aa2c84d2db2cb1c9c4fdd2bd5",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "W1 delivered game.js, server.js, public/index.html, README.md and 33 node:test \u2026",
    "workitem": "W1"
   },

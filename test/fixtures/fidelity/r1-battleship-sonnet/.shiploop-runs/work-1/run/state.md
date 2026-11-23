@@ -455,7 +455,7 @@
   {
    "action": "nav-3f62d678fab54e30861bc35e88886857",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "W1 done and verified (44/44). No follow-up or corrective items.",
    "workitem": "W1"
   },

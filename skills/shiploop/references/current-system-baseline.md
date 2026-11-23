@@ -143,7 +143,7 @@ Keep these roles distinct, even if both fit in one document. Link selected homes
 from README and `SHIPLOOP.md`; do not duplicate the full contents in both indexes.
 
 Plan this persistence work explicitly when discovery created only run notes,
-including documentation-only changes where appropriate. Document/carry-forward,
+including documentation-only changes where appropriate. Document/reflect-and-revise,
 product acceptance and handoff reconcile accepted deltas, observed behavior and
 actual checks while retaining pending obligations. Verify durable links and
 necessary knowledge from the returned project, without the old run directory or

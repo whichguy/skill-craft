@@ -7,7 +7,7 @@ run an Improve runtime, or execute a release command.
 
 A delivery gate runs where the navigator accepts a result: at ``apply`` for an
 ordinary stage, and at the Improve import for a checkpoint stage (the planning
-and contract stages plus the carry-forward that leaves no work item pending).
+and contract stages plus the reflect-and-revise that leaves no work item pending).
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ import shiploop_stage_spec as stage_spec  # noqa: E402
 
 # The 7-stage inner loop (design T §9.1 2b-4: verify retired); one step, so implement, test and document run once.
 INNER_AFTER_PLAN = (
-    "prepare", "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
+    "prepare", "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "reflect-and-revise",
 )
 # A corrective add-work re-enters at step-plan and runs the item's whole cycle.
 CORRECTIVE_CYCLE = INNER_AFTER_PLAN[1:] + ("system-test-author",)
@@ -102,7 +102,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
             return True
         if stage == "document":  # rule item (design T §8): each step's one review follows its document stage
             return True
-        if stage != "carry-forward":
+        if stage != "reflect-and-revise":
             return False
         if "work_items" in submitted:
             return not submitted["work_items"]
@@ -377,7 +377,7 @@ class ConsumerDeliveryTests(unittest.TestCase):
         self.assertLessEqual({row["action"] for row in history if row["stage"] == "plan"}, reviewed)
         self.assertEqual(
             {row["stage"] for row in history if row["action"] in reviewed},
-            set(guidance.PLANNING_REVIEW_STAGES) | {"document", "carry-forward"},
+            set(guidance.PLANNING_REVIEW_STAGES) | {"document", "reflect-and-revise"},
         )
 
         # Terminal validation rejects a completed history whose required

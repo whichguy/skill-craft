@@ -48,13 +48,13 @@ class QualityLoopTests(fx.RunDriver):
         self.assertIn("complete --run-dir=" + str(self.run_dir) + " --action=" + nav.improve_id(state), self.packet())
     def test_end_of_work_improve_carries_the_full_rubric(self):
         self.start()
-        state = self.drive_to("carry-forward", improve_stage="carry-forward")
+        state = self.drive_to("reflect-and-revise", improve_stage="reflect-and-revise")
         self.assert_improve_stage_started(state)
         packet = nav.improve_handoff_text(CORE, self.run_dir, self.state())  # the file the improve skill reads
         self.assertIn(prompts.END_REVIEW_FOCUS.strip().splitlines()[0], packet)
         self.assertIn("2. Fail at the door.", packet)
         self.assertIn("4. Spend tokens on information.", packet)
-        # carry-forward edits no spec line but an owed note's, so its review leaves the spec too and routes a gap (2026-11-22).
+        # reflect-and-revise edits no spec line but an owed note's, so its review leaves the spec too and routes a gap (2026-11-22).
         self.assertIn("\n" + LEAVE_SPEC + "\n", packet)
 
     def test_each_steps_review_carries_the_step_focus_with_the_full_rubric(self):

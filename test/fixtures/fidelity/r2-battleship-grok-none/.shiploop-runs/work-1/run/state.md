@@ -627,7 +627,7 @@
   {
    "action": "nav-41cd83d9314045ce8412c3c69c8a678b",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "The future queue is unchanged: W2 HTTP server, playable page, and server tests \u2026",
    "workitem": "W1"
   },
@@ -753,7 +753,7 @@
   {
    "action": "nav-ab53b78955604309b3ac93d0f2569b47",
    "outcome": "done",
-   "stage": "carry-forward",
+   "stage": "reflect-and-revise",
    "summary": "Recorded in SHIPLOOP.md: do not parse req.url with new URL (GET // crashed the \u2026",
    "workitem": "W2"
   },

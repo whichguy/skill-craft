@@ -46,7 +46,7 @@ EXPECTED_PRELUDE = (
     "intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
 )
 EXPECTED_INNER = (
-    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "carry-forward",
+    "step-plan", "test-spec", "validate-existing", "implement", "test", "document", "reflect-and-revise",
 )  # verify is retired (design T §9.1 2b-4): each step's document stage, its review and its commit close the step
 # ShipLoop records these by script when its own checks show nothing for the model to do: validate-existing when every
 # expectation matches, document when the item's diff touches no code or test path.  They keep a history row.
@@ -72,7 +72,7 @@ def _with_packet_file(stdout: str) -> str:
     return stdout
 COLD_RECOVERY_STAGES = {"discovery", "implement", "release-check"}
 # An actual Improve child now starts only for a planning/contract producer
-# result (below) or the carry-forward that leaves no work item pending; every
+# result (below) or the reflect-and-revise that leaves no work item pending; every
 # other stage advances with a plain callback.  Independent of the navigator
 # implementation's own copy, per this file's public-contract convention above.
 CHECKPOINT_STAGES = frozenset({
@@ -708,9 +708,9 @@ class FullRuntimeCompositionTests(unittest.TestCase):
     ) -> bool:
         """Mirror the navigator's own checkpoint gate without importing it.
 
-        A planning/contract stage always reviews its result; the carry-forward
+        A planning/contract stage always reviews its result; the reflect-and-revise
         that leaves no work item pending gets the run's single end-of-work
-        review; every other stage (and every other carry-forward outcome)
+        review; every other stage (and every other reflect-and-revise outcome)
         advances directly.
         """
         if stage == "step-plan" and outcome == "done":
@@ -721,7 +721,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 row["workitem"] == item and row["outcome"] == "send-back" for row in state["history"])
         if stage in CHECKPOINT_STAGES:
             return True
-        if stage != "carry-forward" or outcome != "done":
+        if stage != "reflect-and-revise" or outcome != "done":
             return False
         if explicit_work_items is not self._NO_OVERRIDE:
             return not explicit_work_items
@@ -825,7 +825,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             # The synthetic focused command passes without the change, so declare it and let ShipLoop check it ran.
             result.setdefault("red_na", [{"id": focused_id(item), "reason": "synthetic fixture: the focused command "
                                                                       "prints a pass on any checkout"}])
-        elif stage == "carry-forward":
+        elif stage == "reflect-and-revise":
             result.setdefault("skill", {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."})
         # The consumer contract's hand-off fields (2026-10-11): what each consumer quotes.
         if stage == "step-plan":
@@ -837,7 +837,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             result.setdefault("test_cases", [{"id": focused_id(item), "criterion": "C1", "requirement": "R-1",
                                               "oracle": "the focused command", "red": "fails before the change",
                                               "green": "passes after it"}])
-        if stage in ("test-spec", "document", "carry-forward", "system-test-author", "system-test", "release-plan",
+        if stage in ("test-spec", "document", "reflect-and-revise", "system-test-author", "system-test", "release-plan",
                      "release-verify"):
             result.setdefault("assumptions", [])
         if stage == "document":
@@ -1100,8 +1100,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(self._git(source, "log", "-1", "--format=%H", "--", "SHIPLOOP.md").stdout.strip(),
                          self._git(source, "log", "--format=%H", "--grep=an earlier ShipLoop version").stdout.strip())
         # Only the planning/contract stages, the one step's document stage and the run's single end-of-work
-        # carry-forward review actually bind an Improve child.
-        first_pass_checkpoints = [s for s in EXPECTED_STAGES if s in CHECKPOINT_STAGES or s == "carry-forward"]
+        # reflect-and-revise review actually bind an Improve child.
+        first_pass_checkpoints = [s for s in EXPECTED_STAGES if s in CHECKPOINT_STAGES or s == "reflect-and-revise"]
         self.assertEqual(len(state["improve_results"]), len(first_pass_checkpoints))
         self.assertEqual([row["stage"] for row in state["history"]], list(EXPECTED_STAGES))
 

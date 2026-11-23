@@ -96,7 +96,7 @@ CONSUMES: dict[str, tuple[str, ...]] = {
     "test-spec": ("follows", "criteria", "test_commands"), "validate-existing": (),
     "implement": ("follows", "criteria", "test_cases"), "test": ("follows", "test_cases", "not_covered"),
     "document": ("follows", "test_cases", "spec_diff"),
-    "carry-forward": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
+    "reflect-and-revise": ("spec_diff", "assumptions"), "system-test-author": ("test_cases", "assumptions"),
     "system-test": ("system_commands", "assumptions"),
     "product-acceptance": ("system_commands", "spec_diff", "assumptions"),
     "release-plan": ("system_commands", "assumptions"), "release-check": ("assumptions",),
@@ -340,7 +340,7 @@ IMPROVE_STAGE = "improve"
 
 
 # Stages whose accepted result can carry an Improve record: every planning
-# stage, plus carry-forward (only the final one starts a child, but an earlier
+# stage, plus reflect-and-revise (only the final one starts a child, but an earlier
 # end review stays recorded when a later Improve added work items).
 _IMPROVE_STAGES = guidance.PLANNING_REVIEW_STAGES | stage_spec.with_improve("item") | stage_spec.with_improve("last-item")
 
@@ -474,10 +474,10 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
 
     Every planning/contract result the run's ``planning_review`` option reviews
     is reviewed (all seven under ``stage``; under ``none`` only system-test-author
-    and release-plan), every accepted implement step, plus the successful carry-forward that leaves no work item
+    and release-plan), every accepted implement step, plus the successful reflect-and-revise that leaves no work item
     pending (after its own queue revision), so one review covers all executed
     steps before OUTER system tests and release.  A later Improve that adds work
-    items moves that end review to the new last item's carry-forward.  Only a done result is reviewed (N5): a blocked,
+    items moves that end review to the new last item's reflect-and-revise.  Only a done result is reviewed (N5): a blocked,
     send-back or add-work result goes straight to its route.
     """
     if result["outcome"] != "done":
@@ -1135,11 +1135,11 @@ def _canonical_result(
               "reconciliation_target is invalid")
         result["reconciliation_target"] = target
     if "work_items" in value:
-        _need(stage in ("plan", "carry-forward") or outcome == "add-work",
-              "work_items are allowed only at plan or carry-forward, or on an add-work result")
+        _need(stage in ("plan", "reflect-and-revise") or outcome == "add-work",
+              "work_items are allowed only at plan or reflect-and-revise, or on an add-work result")
         _need(outcome in ("done", "add-work"), "work_items require done or add-work")
         result["work_items"] = _normalise_work_items(
-            value["work_items"], allow_empty=stage == "carry-forward"
+            value["work_items"], allow_empty=stage == "reflect-and-revise"
         )
     for field, owner in RECORDED_COMMANDS.items():
         if field not in value and field + "_na" not in value:
@@ -1219,7 +1219,7 @@ def _canonical_result(
             _need(stage == "step-plan" and outcome == "done", key + " is allowed only on a done step-plan result")
             result[key] = _text(value[key], key)
     if "skill" in value:
-        _need(stage == "carry-forward" and outcome == "done", "skill is allowed only on a done carry-forward result")
+        _need(stage == "reflect-and-revise" and outcome == "done", "skill is allowed only on a done reflect-and-revise result")
         _need(isinstance(value["skill"], Mapping) and value["skill"].get("decision") in _SKILL_DECISIONS,
               "skill is {\"decision\": \"none\" | \"reuse\" | \"update\" | \"create\", \"reason\": \"...\", ...}")
         result["skill"] = json.loads(json.dumps(value["skill"]))
@@ -1830,7 +1830,7 @@ def _replace_future_work_items(state: dict[str, Any], rows: list[dict[str, str]]
     prior_ids = {item["id"] for item in prefix}
     for row in rows:
         _need(row["id"] not in prior_ids,
-              "carry-forward work item repeats completed or current ID")
+              "reflect-and-revise work item repeats completed or current ID")
     state["work_items"] = prefix + deepcopy(rows)
 
 
@@ -1886,11 +1886,11 @@ def _record_not_applicable(state: dict[str, Any], stage: str) -> str:
 
 
 def _queue_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
-    """Where the work queue is and how a result replaces it, at plan, step-plan and carry-forward (producer and the
+    """Where the work queue is and how a result replaces it, at plan, step-plan and reflect-and-revise (producer and the
     Improve handoff alike)."""
     out: list[str] = []
     reviewed = stage_spec.reviewed_stages(recorded_planning_review(state))
-    if stage in ("plan", "step-plan", "carry-forward"):
+    if stage in ("plan", "step-plan", "reflect-and-revise"):
         out.append("Full ordered work queue: " + str(root / "state.md") + "; field work_items.")
         child = state.get("active_improve")
         if child is not None and "work_items" in child["seed_result"]:
@@ -1916,7 +1916,7 @@ def _queue_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[str]:
                              "membership, order or context changes, return the complete ordered "
                              "work_items in the producer result. Omit work_items only after "
                              "confirming the retained queue still represents the whole approved plan.")
-        elif stage == "carry-forward" and not loops.one_step_run(state):
+        elif stage == "reflect-and-revise" and not loops.one_step_run(state):
             # A one-step one-item run prints only the path line: its duty 2 says how to add a corrective item.
             out.extend([
                 "Omit work_items to retain the future queue. Supplied work_items replaces "
@@ -1939,9 +1939,9 @@ def _named_text(state: Mapping[str, Any], stage: str | None, route: str) -> str:
 
 
 def _one_step_item(state: Mapping[str, Any], stage: str | None) -> str | None:
-    """The item's ID at a carry-forward of a one-step one-item run (``loops.one_step_run``), which prints its short queue
+    """The item's ID at a reflect-and-revise of a one-step one-item run (``loops.one_step_run``), which prints its short queue
     and skill duties (plan row VR-2); None at every other stage and run."""
-    return loops.one_step_run(state) if stage == "carry-forward" else None
+    return loops.one_step_run(state) if stage == "reflect-and-revise" else None
 
 
 def _interactions(state: Mapping[str, Any], stage: str | None) -> bool:
@@ -2309,7 +2309,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     blocks.append(_Block("commit-scope", P1, _commit_scope_lines(root, state, stage, workitem)))
     if stage in (primary.ACCEPTANCE, *primary.QUEUE_STAGES):
         # Required text (run-5 batch F6; F3 of the 2026-10-28 plan): the spec's primary requirements by value, with the
-        # tests that passed for each at product-acceptance, and at plan and carry-forward the work items following each.
+        # tests that passed for each at product-acceptance, and at plan and reflect-and-revise the work items following each.
         blocks.append(_Block("primary", P1, primary.packet_lines(root, state, stage)))
     if stage == defaults.SHOWN_AT:
         # Required text: the defaults the spec recorded, by value, for the host to name in its progress line.
@@ -2318,7 +2318,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         blocks.append(_Block("expectation-results", P1, expectations.result_lines(root, state)))
     if stage == "product-acceptance":
         blocks.append(_Block("red-unobserved", P1, _red_unobserved_lines(root, state, stage, workitem)))
-    if stage == "carry-forward":
+    if stage == "reflect-and-revise":
         blocks.append(_Block("queue-rule", P1, _queue_lines(root, state, stage)))
         blocks.append(_Block("unnamed-commands", P1, _unnamed_command_lines(root, state, workitem)))
     if stage in test_loop.STAGES:
@@ -2468,10 +2468,10 @@ def _symbolic_lines(lines: list[str], core: Any, root: Path, state: Mapping[str,
 # stage, every inner group end) fired on 20 of 23 stages, and the model showed the narrative at only 61% of the 2,111
 # emissions (median 70% a run, 5 runs at zero).  A narrative the model must show 20 times an item run is a chore it
 # drops; the same summary at the boundaries a person actually looks for is one it keeps.  The boundaries are: the start
-# of the run (no accepted stage yet), preparation complete (work items begin), each item's carry-forward (the queue
+# of the run (no accepted stage yet), preparation complete (work items begin), each item's reflect-and-revise (the queue
 # moved), and the outer outcomes a reader asks about (accepted, released, handed off).  The prelude is a median 26% of a
 # run, so `prepare` keeps the first two thirds of it from running silent.  Every other stage keeps the one-line status.
-_MILESTONE_STAGES = frozenset(("prepare", "carry-forward", "product-acceptance", "release", "handoff"))
+_MILESTONE_STAGES = frozenset(("prepare", "reflect-and-revise", "product-acceptance", "release", "handoff"))
 # Where the entry point says the host shows a status hook's message to the user.
 HOOK_DISPLAY_ENTRYPOINTS = frozenset(("cli",))
 
@@ -2524,7 +2524,7 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
                     for node in prelude if (None, node) in done]
     else:
         for item in completed[-3:]:
-            action_id = done.get((item["id"], "carry-forward"))
+            action_id = done.get((item["id"], "reflect-and-revise"))
             achieved.append({"label": title(item), "text": _headline(state, action_id) if action_id else ""})
         if len(completed) > 3:
             achieved.insert(0, {"label": f"{len(completed) - 3} earlier work items", "text": "complete"})
@@ -3543,7 +3543,7 @@ def _preparatory_commit(root: Path, before: Mapping[str, Any], after: Mapping[st
 
 
 def _skill_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any], action_id: str) -> None:
-    """Commit a skill carry-forward created or updated (owner decision 2026-10-10): the item's commits ran at its
+    """Commit a skill reflect-and-revise created or updated (owner decision 2026-10-10): the item's commits ran at its
     document stages."""
     result = after["accepted"].get(action_id)
     if action_id in before["accepted"] or not isinstance(result, Mapping) or result.get("outcome") != "done":
@@ -3559,7 +3559,7 @@ def _skill_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any
         commit = shiploop_git.commit_paths(repo, paths, "feat(skill): " + skill["decision"] + " " + folder.name
                                            + "\n\n" + str(skill.get("reason", "")).strip())
     except Exception as exc:  # noqa: BLE001
-        print("ShipLoop carry-forward: the skill was not committed (" + str(exc) + ").", file=sys.stderr)
+        print("ShipLoop reflect-and-revise: the skill was not committed (" + str(exc) + ").", file=sys.stderr)
         return
     if commit[0]:
         print("ShipLoop committed the " + folder.name + " skill as " + commit[0][:12] + ".")
@@ -3606,7 +3606,7 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     A close (prepare, release-plan, release-verify) also prints the section notices
     (``knowledge.section_notices``) right after its commit: a count, never a refusal, and none at
     the terminal handoff, which is no close.  A close accepted in this call prints them even when
-    the script records another stage after it.  An accepted carry-forward prints
+    the script records another stage after it.  An accepted reflect-and-revise prints
     ``knowledge.command_notices`` the same way.  Any accepted stage that changed the home also prints the placement notices
     (``knowledge.placement_notices``), read against HEAD before the commit, after the section notices; none at the terminal
     handoff.
@@ -3644,11 +3644,11 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         print(line)
     for line in placement:
         print(line)
-    # An accepted carry-forward: one counted line when a command that passed at its item's test stage is still not named in
+    # An accepted reflect-and-revise: one counted line when a command that passed at its item's test stage is still not named in
     # environment.md (plan row VR-3); never a refusal.
     if root is not None:
         for row in rows:
-            if row["stage"] == "carry-forward" and row["outcome"] == "done" and row.get("workitem"):
+            if row["stage"] == "reflect-and-revise" and row["outcome"] == "done" and row.get("workitem"):
                 for line in knowledge.command_notices(
                         after, _passed_commands(root, after, str(row["workitem"])) or ()):
                     print(line)
@@ -3940,7 +3940,7 @@ def _check_submitted_request(state: Mapping[str, Any], stage: str, result: Any) 
 
 def _check_submitted_primary(root: Path, state: Mapping[str, Any], stage: str, result: Any) -> None:
     """The primary requirements at the CLI gates (run-5 batch F6): a done spec result lists ``primary``, each ID with a
-    current entry in the living spec; a done plan, or a carry-forward that replaces the queue, leaves each in some work
+    current entry in the living spec; a done plan, or a reflect-and-revise that replaces the queue, leaves each in some work
     item's follows (F3, 2026-10-28); a done product-acceptance result's unverified rows name requirements the spec
     holds, and a primary one's lower_layer_check is a test ShipLoop's test runs passed for it (``shiploop_primary``)."""
     if stage in primary.QUEUE_STAGES and isinstance(result, Mapping) and result.get("outcome") == "done" \
@@ -4083,8 +4083,8 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
         wrong = assumptions.wrong_due_stages(result["assumptions"], stage)
         if wrong:
             return _Fault("Fix the due stages in {result}", "fixes due stages",
-                          ["Name a later outer stage (or carry-forward, from " + _carry_forward_producers() + ") as each "
-                           "open item's due_stage; work for a later item goes in carry-forward's work_items.",
+                          ["Name a later outer stage (or reflect-and-revise, from " + _reflect_and_revise_producers() + ") as each "
+                           "open item's due_stage; work for a later item goes in reflect-and-revise's work_items.",
                            "; ".join(ident + " names '" + due_stage + "'" for ident, due_stage in wrong)
                            + "; the allowed due stages are " + ", ".join(assumptions.allowed_due_stages(stage)) + "."])
         try:
@@ -4122,9 +4122,9 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
     return None
 
 
-def _carry_forward_producers() -> str:
-    """The stages whose open item may be due at its own item's carry-forward, as prose: "test-spec or document"."""
-    names = list(assumptions.CARRY_FORWARD_PRODUCERS)
+def _reflect_and_revise_producers() -> str:
+    """The stages whose open item may be due at its own item's reflect-and-revise, as prose: "test-spec or document"."""
+    names = list(assumptions.REFLECT_AND_REVISE_PRODUCERS)
     return (", ".join(names[:-1]) + " or " + names[-1]) if len(names) > 1 else names[0]
 
 
@@ -4170,7 +4170,7 @@ class Source(NamedTuple):
 
 
 # Stages whose packet quotes every open item, not only those naming it.
-_EVERY_OPEN_ITEM = ("carry-forward", "product-acceptance", "handoff")
+_EVERY_OPEN_ITEM = ("reflect-and-revise", "product-acceptance", "handoff")
 _ENTRY_ID = re.compile(r"\b(?:R|AD)-\d+\b")
 
 
@@ -4259,7 +4259,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     - test_cases: the current item's current test-spec; at system-test-author one Source per work item.
     - not_covered: one Source per done implement result of the item after its latest step plan.
     - system_commands, lessons: the current system-test-author and release-verify results.
-    - assumptions: ``assumptions.open_items``: at step-plan the plan's rows naming the item; at carry-forward,
+    - assumptions: ``assumptions.open_items``: at step-plan the plan's rows naming the item; at reflect-and-revise,
       product-acceptance and handoff every open row; at another stage the rows naming that stage as due stage.
     - spec_diff: ``knowledge_home.spec_diff`` (None without a run baseline or outside a checkout).
     Applicable plan concerns follow the fixed CONSUMES fields when the stage owns them or acceptance needs them.
@@ -4409,7 +4409,7 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
 
     if stage == "plan" and "work_items" in canonical:
         _replace_plan_work_items(updated, canonical["work_items"])
-    if _is_inner_root(updated) and stage == "carry-forward":
+    if _is_inner_root(updated) and stage == "reflect-and-revise":
         if "work_items" in canonical:
             _replace_future_work_items(updated, canonical["work_items"])
         current_id = updated["work_items"][updated["work_index"]]["id"]
@@ -4521,7 +4521,7 @@ def finish_improve(state: Mapping[str, Any], action_id: str, record: Mapping[str
     _need(state["status"] == "active", "parent must be active to import Improve")
     child = state["active_improve"]
     _need(child is not None and child["action_id"] == action_id, "stale Improve parent action")
-    if (final_result is not None and child["stage"] in ("plan", "carry-forward")
+    if (final_result is not None and child["stage"] in ("plan", "reflect-and-revise")
             and isinstance(final_result, Mapping) and final_result.get("outcome") == "done"
             and "work_items" in child["seed_result"] and "work_items" not in final_result):
         # Omitting work_items would silently keep the old queue instead of the reviewed one.
@@ -4982,7 +4982,7 @@ def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: An
         elif stage == "validate-existing" and outcome in ("done", "send-back"):
             return expectations.check_complete(root, state, submitted,
                                                tag="complete" if count else "check")
-        elif stage == "carry-forward" and outcome == "done":
+        elif stage == "reflect-and-revise" and outcome == "done":
             _check_skill_decision(state, submitted.get("skill"))
     except expectations.ExpectationError as exc:
         raise NavigatorError(str(exc)) from exc
@@ -4990,11 +4990,11 @@ def _inner_gates(root: Path, state: Mapping[str, Any], stage: str, submitted: An
 
 
 def _check_skill_decision(state: Mapping[str, Any], skill: Any) -> None:
-    """carry-forward's skill decision (owner decision 2026-10-10): none | reuse | update | create, with its reason; a
+    """reflect-and-revise's skill decision (owner decision 2026-10-10): none | reuse | update | create, with its reason; a
     created or updated skill names its SKILL.md, which must exist with name and description frontmatter."""
     _need(isinstance(skill, Mapping) and skill.get("decision") in _SKILL_DECISIONS
           and isinstance(skill.get("reason"), str) and skill["reason"].strip(),
-          'carry-forward needs skill: {"decision": "none" | "reuse" | "update" | "create", "reason": "<why>", '
+          'reflect-and-revise needs skill: {"decision": "none" | "reuse" | "update" | "create", "reason": "<why>", '
           '"path": "<SKILL.md, for update or create>", "evidence": ["<the steps or items where the procedure '
           'repeated, or the pending item or R-<n> where it will recur>"]}')
     if skill["decision"] not in ("update", "create"):
@@ -5199,7 +5199,7 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
     """Refuse an Improve import that left its own edits uncommitted; rerun tests after a changing end review.
 
     Compares the candidate with the snapshot taken at improve-bind.  The
-    end-of-work review (the final carry-forward) reruns every completed item's
+    end-of-work review (the final reflect-and-revise) reruns every completed item's
     recorded commands only when it changed the tree; an unchanged tree keeps
     the recorded passes.
     """
@@ -5235,7 +5235,7 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
             _need(not refusal, refusal + "\nFix it within the review's scope, then run the callback again: "
                   + _callback(core, root, "complete", action=improve_id(state)))
         return
-    if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
+    if child.get("stage") != "reflect-and-revise" or (changes is not None and not changes[0]):
         return
     commands = improve_changes.rerun_commands(state)
     writes, refusal = test_loop.verify(root, state, "", action_id, "end-of-work review", commands=commands)
@@ -5425,7 +5425,7 @@ _REASON_PLACEHOLDER = "<why no test case covers it>"
 _LESSON_PLACEHOLDERS = {"learned": "<what this run learned>",
                         "considerations": "<the decisions and risks that matter next time>",
                         "open_next": "<what a later run should pick up, or none>"}
-_DUE_STAGE_PLACEHOLDER = "<a later outer stage, or carry-forward from test-spec or document>"
+_DUE_STAGE_PLACEHOLDER = "<a later outer stage, or reflect-and-revise from test-spec or document>"
 # Document's reflection record, one line per living file (``KNOWLEDGE_RECORD``).
 _KNOWLEDGE_PLACEHOLDERS = {"spec": "<the lines this step added inside its R-<n> entries, or why none>",
                            "architecture": "<the AD-<n> this step added or refined, or why none>",
@@ -5541,7 +5541,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
             for row in result["test_commands"]:
                 if row["suite"] != "check":
                     row["target"] = TARGET_PLACEHOLDER
-    if stage == "carry-forward":
+    if stage == "reflect-and-revise":
         result["skill"] = {"decision": "none", "reason": "<why no reusable skill is warranted, or what it is>",
                            "path": "<the skill card's path: only for update or create>",
                            "evidence": ["<only for update or create: the steps or items where the procedure repeated, "
@@ -5555,7 +5555,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["consumer_entry"] = {"how": "<how a person reaches the result>",
                                     "sources": ["<repository-relative file that creates that entry>"]}
     # The hand-off fields (consumer contract): step-plan's template already holds done-only fields, and the OUTER stages
-    # run no Until Loop; test-spec, implement, document and carry-forward take theirs from HANDOFF_SHAPES in the packet's
+    # run no Until Loop; test-spec, implement, document and reflect-and-revise take theirs from HANDOFF_SHAPES in the packet's
     # result-shape block, so a blocked result copied from their template stays acceptable.
     if stage == "step-plan":
         result["follows"] = list(HANDOFF_SHAPES["follows"])
@@ -6083,7 +6083,7 @@ def status_block(state: Mapping[str, Any]) -> str:
     if completed:
         recent = []
         for item in completed[-3:]:
-            action_id = done.get((item["id"], "carry-forward"))
+            action_id = done.get((item["id"], "reflect-and-revise"))
             result = (": " + _first_sentence(state["accepted"][action_id]["summary"], 60).rstrip(".")
                       if action_id else "")
             recent.append(_status_item_name(item, 40) + result)
@@ -6359,7 +6359,7 @@ def _run_context_lines(core: Any, root: Path, state: Mapping[str, Any], stage: s
     transition, the test context and the work item: what a packet prints about the run around the stage's own text.
 
     ``producer`` leaves out what an active producer packet prints as its own blocks: the Keepalive marker beside the
-    status, the carry-forward queue rule, the last accepted transition and the work item as the stage's inputs, the
+    status, the reflect-and-revise queue rule, the last accepted transition and the work item as the stage's inputs, the
     guides and policies its text cites and the Backchain lines (``guides``, ``backchain-route``), the return route at a
     ``RETURN_STAGES`` stage (``workspace-return``) and the delivery lines a release gate reads (``delivery``).
     """
@@ -6375,7 +6375,7 @@ def _run_context_lines(core: Any, root: Path, state: Mapping[str, Any], stage: s
     if not (producer and stage in RETURN_STAGES):
         lines.extend(_workspace_lines(core, root, state, stage))
     lines.extend(_backchain_lines(core, root, state, stage) if cited is None else cited.other_backchain)
-    if not (producer and stage == "carry-forward"):  # the producer's own input: printed with the stage's rules
+    if not (producer and stage == "reflect-and-revise"):  # the producer's own input: printed with the stage's rules
         lines.extend(_queue_lines(root, state, stage))
     if stage in planning_revision.PLANNING_STAGES[:-1]:
         # The phase intent is each stage's goal and duty now (packet re-cut, 2026-10-11); the experiments guide and
@@ -6804,7 +6804,7 @@ _INNER_GATES = {
     "document": ("a missing knowledge record (spec, architecture and environment, each with what this step changed in "
                  "that living file or why nothing), or a KNOWLEDGE/spec.md edit that changes a committed line or adds one "
                  "without this step's mark or outside an R-<n> the committed spec holds",),
-    "carry-forward": ("a missing skill decision (none, reuse, update or create), or a created or updated skill whose "
+    "reflect-and-revise": ("a missing skill decision (none, reuse, update or create), or a created or updated skill whose "
                       "SKILL.md is missing or lacks name and description",),
 }
 
@@ -7336,7 +7336,7 @@ _RESULT_USE = {"step-plan": "the steps, criteria, test commands, expectations an
 _PER_STEP = frozenset(stage for stage in stage_spec.INNER if "step-proof" in stage_spec.stage(stage).complete_runs)
 # Stages that reconcile a whole item read every step's results of the stages each step's iteration runs, not only the
 # last step's (design T §9 row 6; §9.1 step 3).
-_EVERY_STEP_READERS = frozenset(("carry-forward", "system-test-author"))
+_EVERY_STEP_READERS = frozenset(("reflect-and-revise", "system-test-author"))
 # Outer stages whose duty names each completed item's test-decision records (row VR-4): {stage: ((item stage, the
 # _PRODUCTS labels listed beside its result), ...)}.  Listed per completed item, so a cleared model need not search
 # state.md's history for the records in force.
@@ -7465,7 +7465,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any], *, notes_owed: bool = Fal
     elif stage in assumptions.OPEN_ITEM_STAGES:
         gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item due at "
                      "a stage that is not a later outer stage"
-                     + (" or this item's carry-forward" if stage in assumptions.CARRY_FORWARD_PRODUCERS else "")
+                     + (" or this item's reflect-and-revise" if stage in assumptions.REFLECT_AND_REVISE_PRODUCERS else "")
                      + ", or evidence files that do not exist")
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
@@ -7659,7 +7659,7 @@ def _unverified_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 CHANGED_SINCE_BASE = "Changed since the item base (script-derived): "
 
 
-# Carry-forward's line of the commands that passed and environment.md does not name.
+# Reflect-and-revise's line of the commands that passed and environment.md does not name.
 PASSED_UNNAMED = "Commands that passed at the item's test stage and are not named in KNOWLEDGE/environment.md: "
 
 
@@ -7681,7 +7681,7 @@ def _passed_commands(root: Path, state: Mapping[str, Any], work_item: str | None
 
 
 def _unnamed_command_lines(root: Path, state: Mapping[str, Any], work_item: str | None) -> list[str]:
-    """Carry-forward's line of the commands that passed at the item's test stage and KNOWLEDGE/environment.md does not
+    """Reflect-and-revise's line of the commands that passed at the item's test stage and KNOWLEDGE/environment.md does not
     name (plan row VR-3)."""
     if state["status"] != "active" or state.get("active_improve"):
         return []
@@ -8071,7 +8071,7 @@ def _improve_line(state: Mapping[str, Any], stage: str) -> str:
         when = ("A done result starts the work item's Improve stage, before its test stage: it reviews the item's whole "
                 "change against its steps' tasks and criteria, Code craft and architecture.md, and commits warranted "
                 "edits.")
-    elif stage == "carry-forward":
+    elif stage == "reflect-and-revise":
         when = ("A done result that leaves no work item pending starts the run's single "
                 "end-of-work Improve stage over every executed item's change.")
     else:
@@ -8102,7 +8102,7 @@ def _allowed_outcome_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     lines = ["Allowed outcomes: " + outcomes + "."]
     if stage == "plan":
         lines.append("Optional work_items replaces the whole queue: list every item in order, not a delta.")
-    elif stage == "carry-forward":
+    elif stage == "reflect-and-revise":
         lines.append("Optional work_items replaces the queue after this item: list every still-required "
                      "future item in order, not a delta.")
     return lines
@@ -8272,7 +8272,7 @@ def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[
     # as ``focus_ids``, which counts the whole focus text.
     if stage in guidance.PLANNING_REVIEW_STAGES:
         return _numbered_focus(_planning_focus(state, child), state, child), []
-    if stage == "carry-forward":
+    if stage == "reflect-and-revise":
         return _numbered_focus(guidance.END_REVIEW_FOCUS_HEAD.rstrip(), state, child), [guidance.CODE_CRAFT.rstrip()]
     if stage in stage_spec.with_improve("item"):
         return (_numbered_focus(guidance.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), state, child),
@@ -8324,7 +8324,7 @@ def _improve_lint_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list
 
 def _regression_clause(stage: str) -> str:
     """The commit-message rule for a fix that changes code (F5), at the end-of-work review that owes it; '' elsewhere."""
-    if stage != "carry-forward":
+    if stage != "reflect-and-revise":
         return ""
     return (" A commit that changes code, not only tests, adds `Regression test: <the ID of the test in this commit "
             "that fails without the fix>` or `Regression test: none: <why no test can show it>`.")
@@ -8555,7 +8555,7 @@ def _focus_text(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
     stage = child["stage"]
     if stage in guidance.PLANNING_REVIEW_STAGES:
         return _planning_focus(state, child)
-    if stage == "carry-forward":
+    if stage == "reflect-and-revise":
         return guidance.END_REVIEW_FOCUS.rstrip()
     if stage in stage_spec.with_improve("item"):
         return guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip()
@@ -8598,13 +8598,13 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                      + "\nFull producer result: " + str(root / "state.md")
                      + "; field active_improve.seed_result. Read the complete required context before acting; "
                      "retain its decisions and constraints in the child contract.")
-    end_of_work = child["stage"] == "carry-forward"
+    end_of_work = child["stage"] == "reflect-and-revise"
     lines.extend([
         "", "Current action: Improve the completed " + child["stage"] + " result.",
         *(["End-of-work review: this is the run's single Improve "
            "after its executed steps. The candidate is every work item's delivered change since the "
-           "accepted plan (product code, tests, documentation and the carry-forward queue), not only "
-           "this carry-forward result. Use the accepted step results in state.md history and their "
+           "accepted plan (product code, tests, documentation and the reflect-and-revise queue), not only "
+           "this reflect-and-revise result. Use the accepted step results in state.md history and their "
            "evidence_refs as the step record; review across items before OUTER system tests and release."]
           if end_of_work else []),
         "The reviewed result stays pending until this Improve stage's complete imports the review.",
@@ -9532,12 +9532,12 @@ def _regression_refusal(repo: Path, child: Mapping[str, Any], message: str, pend
                         message_path: Path, command: str) -> str:
     """The refusal for a missing or unproven ``Regression test:`` line, '' when none is owed or the line holds.
 
-    Owed only at the end-of-work review (carry-forward), when this commit changes code that is not a test: that review
+    Owed only at the end-of-work review (reflect-and-revise), when this commit changes code that is not a test: that review
     fixes code after the tests ran, so the line names a test ID that a test file in this same commit holds, or
     ``none: <reason>`` when no test can show the fix.  Step reviews owe no line (owner decision: end-of-item only); the
     item's tests come after them.
     """
-    if child["stage"] != "carry-forward":
+    if child["stage"] != "reflect-and-revise":
         return ""
     code = [path for path in item_scope.behavioural_paths(pending) if item_scope.classify(path) != "test"]
     if not code:
@@ -10538,7 +10538,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     updated = reconcile(state, action_id, record, receipt)
             if updated != state:
                 # An Improve completion can start a new work item's inner loop (the end review may add work items); the
-                # transition captures its base.  The last item's carry-forward is accepted only when its end review
+                # transition captures its base.  The last item's reflect-and-revise is accepted only when its end review
                 # completes: its skill is committed here.
                 updated = accept_effects(core, root, state, updated, action_id=action_id, extra_writes=extra_writes)
             if not_enforced is not None:

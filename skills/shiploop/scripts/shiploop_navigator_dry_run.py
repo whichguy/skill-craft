@@ -14,10 +14,10 @@ import shiploop_stage_spec as stage_spec
 
 # Independently declared expected paths: do not derive these from routing code.
 BEFORE3 = 'intake discovery research spec test-strategy plan prepare'.split()
-WORK3 = ('step-plan test-spec validate-existing implement test document carry-forward').split()
+WORK3 = ('step-plan test-spec validate-existing implement test document reflect-and-revise').split()
 AFTER3 = ('system-test-author system-test product-acceptance release-plan release-check '
           'release release-verify operations handoff').split()
-# Stages whose result starts an Improve stage, besides the last carry-forward, for each
+# Stages whose result starts an Improve stage, besides the last reflect-and-revise, for each
 # planning_review option.  Declared independently of the navigator's tables.  Each step's
 # review follows its document stage (design T §8; one synthetic step here) in every mode
 # (planning_review none does not skip it); test-spec has no Improve review (owner, 2026-10-26).
@@ -50,10 +50,10 @@ def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[
     """Explicit producer/Improve declarations for the navigator graph.
 
     Improve follows only the planning stages the option reviews, each step's document stage and
-    the last item's carry-forward.
+    the last item's reflect-and-revise.
     """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
-    last_carry = len(path) - 1 - path[::-1].index('carry-forward')
+    last_carry = len(path) - 1 - path[::-1].index('reflect-and-revise')
     rows = []
     for index, (stage, target) in enumerate(zip(path, path[1:] + ['done'])):
         status = 'done' if target == 'done' else 'active'

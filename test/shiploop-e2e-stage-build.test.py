@@ -16,7 +16,7 @@ when Node is unavailable. The runs it builds are real ShipLoop runs (about a sec
   - validate-existing with every expectation matching (the fault repaired by ``repo/``): the engine settles the stage by script, no
     packet is issued, and the run stands at implement;
   - document: ``worktree/`` was laid before implement was recorded, so the stage has a change to document and an iteration record;
-  - carry-forward: the step was committed by the seed's effects; ``options.delegation`` reaches the run.
+  - reflect-and-revise: the step was committed by the seed's effects; ``options.delegation`` reaches the run.
 - Shipped ``ui-contract`` good references at step-plan, test-spec and the docs-only document stage pass the real, non-counting
   ``shiploop check`` gates. Explicit step-plan seed records of later UI cases are checked at a fresh step-plan seam. Implement
   references receive pure navigator shape coverage only: their real check runs the browser Proof. Request prompts remain literal
@@ -594,7 +594,7 @@ class Builds(unittest.TestCase):
         scenario(cls.cases, "document", "after-implement", base,
                  {"worktree/src/added.js": "module.exports = 2;\n", "notes/earlier.md": "Left by an earlier stage.\n"},
                  seed_records=records(E2))
-        scenario(cls.cases, "carry-forward", "step-committed", base, {"worktree/src/added.js": "module.exports = 2;\n"},
+        scenario(cls.cases, "reflect-and-revise", "step-committed", base, {"worktree/src/added.js": "module.exports = 2;\n"},
                  seed_records=records(E2), options={"delegation": "ask-agent"})
         scenario(cls.cases, "step-plan", "after-a-late-send-back",
                  dict(base, render=[{"proves": "P1", "packet_contains": "Fix forward: S1 is done (reviewed and committed)"}]),
@@ -609,7 +609,7 @@ class Builds(unittest.TestCase):
         cls.built = {}
         for sid in ("validate-existing/broken", "validate-existing/repaired", "document/after-implement"):
             cls.built[sid] = sb.render(sb.load(sid, cls.cases), cls.box / sid.replace("/", "-"))
-        cls.carried = sb.build(sb.load("carry-forward/step-committed", cls.cases), cls.box / "carry-forward")
+        cls.carried = sb.build(sb.load("reflect-and-revise/step-committed", cls.cases), cls.box / "reflect-and-revise")
         cls.routed = sb.render(sb.load("step-plan/after-a-late-send-back", cls.cases), cls.box / "routed")
 
     def test_a_route_reaches_the_step_plan_after_a_late_send_back_with_its_done_step_kept(self):
@@ -906,14 +906,14 @@ class Builds(unittest.TestCase):
         built = self.carried
         self.assertIsInstance(built, sb.Built)
         self.assertEqual((built.stage, built.current_stage, built.issued, built.settled),
-                         ("carry-forward", "carry-forward", True, False))
+                         ("reflect-and-revise", "reflect-and-revise", True, False))
         self.assertEqual(built.seeded["delegation"], "ask-agent")
         self.assertEqual(built.seeded["item_bases"], ["W1"])
         self.assertIn("feat(W1/S1)", git(built.worktree, "log", "--format=%s"), "the document stage's review was imported")
         self.assertEqual(git(built.worktree, "status", "--short", "src"), "", "and the overlay committed with it")
         self.assertEqual(built.cli, sb.DEFAULT_CLI)
-        self.assertEqual(built.run_dir, self.box / "carry-forward" / ".shiploop-runs" / "seed" / "run")
-        self.assertEqual(built.worktree, self.box / "carry-forward" / ".shiploop-runs" / "seed" / "worktree")
+        self.assertEqual(built.run_dir, self.box / "reflect-and-revise" / ".shiploop-runs" / "seed" / "run")
+        self.assertEqual(built.worktree, self.box / "reflect-and-revise" / ".shiploop-runs" / "seed" / "worktree")
         self.assertEqual([row["stage"] for row in built.history_added if row["stage"] == "document"], ["document"])
         self.assertTrue(all(set(row) == {"stage", "outcome", "action"} for row in built.history_added))
 
@@ -922,31 +922,31 @@ class Builds(unittest.TestCase):
         note_text = "Revise R-1 so navigation wraps around and add a follow-up item."
         note_md = store.dumps({"id": "N1", "written_at": "2026-11-23T08:00:00Z", "text": note_text},
                               "ShipLoop owner note")
-        data = {"about": "Carry-forward with an owed owner note.", "fixture": "node-base", "request_from": "node-fix-bug",
+        data = {"about": "Reflect-and-revise with an owed owner note.", "fixture": "node-base", "request_from": "node-fix-bug",
                 "tiers": ["render"], "planted": [{"id": "P1", "what": "w"}],
                 "render": [{"proves": "P1", "packet_contains": "N1"}]}
-        scenario(own / "cases", "carry-forward", "with-owner-note", data,
+        scenario(own / "cases", "reflect-and-revise", "with-owner-note", data,
                  {"worktree/src/added.js": "module.exports = 2;\n", "owner-notes/N1.md": note_md},
                  seed_records=records(E2))
-        sc = sb.load("carry-forward/with-owner-note", own / "cases")
+        sc = sb.load("reflect-and-revise/with-owner-note", own / "cases")
         built = sb.build(sc, own / "built")
         laid = built.run_dir / "owner-notes" / "N1.md"
         self.assertTrue(laid.is_file(), "owner-notes/N1.md must be laid into RUN/owner-notes/")
         self.assertEqual(laid.read_text(encoding="utf-8"), note_md)
         bundle = sb.render(sc, own / "rendered")
         self.assertTrue(bundle.issued)
-        self.assertEqual(bundle.current_stage, "carry-forward")
+        self.assertEqual(bundle.current_stage, "reflect-and-revise")
         self.assertIn("N1", bundle.packet)
         self.assertIn(note_text, bundle.packet)
 
     def test_a_build_writes_only_below_its_out_folder(self):
         self.assertEqual(sorted(path.name for path in self.box.iterdir()),
-                         ["carry-forward", "document-after-implement", "routed", "validate-existing-broken",
-                      "validate-existing-repaired"])
+                         ["document-after-implement", "reflect-and-revise", "routed", "validate-existing-broken",
+                          "validate-existing-repaired"])
         for name, folder in (("cases", self.cases), ("fixtures", HARNESS / "fixtures"), ("home", self.home)):
             self.assertEqual(snapshot(folder), self.watched[name], f"{name} was written by a build")
         self.assertEqual(sorted(path.name for path in self.cases.iterdir()),
-                         ["carry-forward", "document", "improve@spec", "release", "step-plan", "validate-existing"])
+                         ["document", "improve@spec", "reflect-and-revise", "release", "step-plan", "validate-existing"])
 
     def test_a_build_does_not_reuse_a_folder_that_holds_a_run(self):
         sc = sb.load("validate-existing/broken", self.cases)

@@ -11,7 +11,7 @@
       "id": "A1",
       "assumption": "TC-LAYOUT rendered verification has not run and remains open.",
       "disposition": "open",
-      "due_stage": "carry-forward",
+      "due_stage": "reflect-and-revise",
       "owner": "next implementer",
       "reason": "No rendered observation exists.",
       "settle": "Run the local browser check and retain its execution record."

@@ -100,18 +100,18 @@ class NarrativeTests(unittest.TestCase):
 
     def test_work_items_narrative_and_group_milestones(self) -> None:
         state = self.driver.planned(ROWS)
-        state = self.driver.advance_to(state, "carry-forward")
+        state = self.driver.advance_to(state, "reflect-and-revise")
         state = self.driver.produce(state, headline="Loader split into two modules; 12 tests added")
-        # The item boundary is `carry-forward`: this state, before any further advance, is a milestone.
+        # The item boundary is `reflect-and-revise`: this state, before any further advance, is a milestone.
         closed_item = state
-        self.assertTrue(navigator.narrative_facts(closed_item)["milestone"], "the carry-forward that closed W1")
+        self.assertTrue(navigator.narrative_facts(closed_item)["milestone"], "the reflect-and-revise that closed W1")
         state = self.driver.advance_to(state, "test-spec")
         facts = navigator.narrative_facts(state)
         self.assertFalse(facts["milestone"])  # mid-item
         self.assertEqual(facts["achieved"][0], {"label": "W1 Config loader refactor",
                                                 "text": "Loader split into two modules; 12 tests added"})
         self.assertEqual(facts["now"]["label"], "W2 Add --version flag (2 of 3) › Plan › test-spec")
-        self.assertEqual(facts["ahead"][0], {"label": "this item", "text": "Validate existing → Build → Carry forward"})
+        self.assertEqual(facts["ahead"][0], {"label": "this item", "text": "Validate existing → Build → Reflect and revise"})
         self.assertIn({"label": "W3 Document the flag", "text": ""}, facts["ahead"])
         self.assertIn("Preparation ✓", narrative.markdown(facts))
         self.assertIn("**Work items 1/3**", narrative.markdown(facts))
@@ -121,10 +121,10 @@ class NarrativeTests(unittest.TestCase):
     def test_only_the_run_boundaries_are_milestones_so_the_narrative_is_asked_for_few_times(self) -> None:
         """The narrative is a full summary a person reads at a boundary; asked 20 times an item run the model showed it
         at 61% (measured 2026-11-03 over 2,111 emissions in 102 runs). The milestones are the start, `prepare`, each
-        item's `carry-forward`, and the outer outcomes; every other stage carries the one-line status instead."""
+        item's `reflect-and-revise`, and the outer outcomes; every other stage carries the one-line status instead."""
         # The rule's membership, stated once: a boundary shows the narrative, every other stage does not.
         self.assertEqual(sorted(navigator._MILESTONE_STAGES),
-                         ["carry-forward", "handoff", "prepare", "product-acceptance", "release"])
+                         ["reflect-and-revise", "handoff", "prepare", "product-acceptance", "release"])
         # A stage that is not a boundary carries no narrative: test-spec follows step-plan inside the item's Plan group.
         mid_item = self.driver.advance_to(self.driver.planned(ROWS), "test-spec")
         self.assertFalse(navigator.narrative_facts(mid_item)["milestone"])
@@ -207,12 +207,12 @@ class NarrativeTests(unittest.TestCase):
         # Preparation, work items and release are all averages of unequal steps (a recorded preparation's stages ran
         # from 0.8 to 9.6 minutes, another's from 2.5 to 121); a forecast read 2.4 to 6.8 times short at its first
         # showing in five recorded preparations.
-        # Each scope is sampled at a milestone boundary (start, `prepare`, `carry-forward`, `product-acceptance`):
+        # Each scope is sampled at a milestone boundary (start, `prepare`, `reflect-and-revise`, `product-acceptance`):
         # since 2026-11-03 only those carry the narrative, so a mid-scope stage has no pace text to check.
         # `advance_to` stops BEFORE the stage runs, so the boundary's own acceptance is one more `produce`:
         # a boundary stage is a milestone once it is the last accepted stage.
         preparing = self.driver.produce(self.driver.advance_to(self.driver.state(), "prepare"))
-        closing_item = self.driver.produce(self.driver.advance_to(self.driver.planned(ROWS), "carry-forward"))
+        closing_item = self.driver.produce(self.driver.advance_to(self.driver.planned(ROWS), "reflect-and-revise"))
         releasing = self.driver.produce(self.driver.advance_to(closing_item, "product-acceptance"))
         for scope, state in (("preparation", preparing), ("work items", closing_item), ("release", releasing)):
             with self.subTest(scope):

@@ -106,7 +106,7 @@ class ClaudeReadingPathTests(SavedRuns):
         opens = self.path["packet_file_opens"]
         self.assertEqual((opens["count"], opens["of"]), (3, 8))
         self.assertEqual({r["stage"]: r["mode"] for r in opens["stages"] if r["mode"] != "none"},
-                         {"step-plan": "whole", "test-spec": "slice", "carry-forward": "slice"})
+                         {"step-plan": "whole", "test-spec": "slice", "reflect-and-revise": "slice"})
 
     def test_four_gates_did_not_run_and_each_is_named(self) -> None:
         gates = self.path["skipped_gates"]
@@ -445,7 +445,7 @@ class SkippedGateTests(unittest.TestCase):
                 run = Path(temp) / "run"
                 (run / "lint").mkdir(parents=True)
                 (run / "state.md").write_text(fence({"history": [{"stage": "document", "outcome": "done", "workitem": "W1"},
-                                                                 {"stage": "carry-forward", "outcome": "done", "workitem": "W1"}]}))
+                                                                 {"stage": "reflect-and-revise", "outcome": "done", "workitem": "W1"}]}))
                 if base:
                     (run / "lint" / "items").mkdir()
                     (run / "lint" / "items" / "W1.md").write_text(fence({"tree": "t"}))

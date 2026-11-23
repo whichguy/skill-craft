@@ -199,7 +199,7 @@ pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12.5px/1.5
       ${c.expect_paths.length ? `<div>Expected paths: <span class="mono">${c.expect_paths.map(esc).join(", ")}</span></div>` : ""}
       ${a ? `<div>Changed by the item: <span class="mono">${(a.changed || []).map(esc).join(", ") || "none"}</span>${(a.missing || []).length ? ` · <span class="pill fail">missing ${a.missing.map(esc).join(", ")}</span>` : ""}${(a.uncommitted_product || []).length ? ` · <span class="muted">uncommitted (assembled for the release): ${a.uncommitted_product.map(esc).join(", ")}</span>` : ""}</div>` : ""}
       ${checks ? `<div class="checks"><div class="muted">Case checks, run on a clean copy of the assembled candidate:</div>${checks}</div>` : ""}
-      ${c.queue_growth ? `<div>Work items added at carry-forward: ${c.queue_growth}</div>` : ""}
+      ${c.queue_growth ? `<div>Work items added at reflect-and-revise: ${c.queue_growth}</div>` : ""}
       ${(c.overshoot || []).length ? `<div><span class="pill fail">overshoot</span> ${c.overshoot.map(esc).join(", ")}</div>` : ""}
     </div>`;
   }

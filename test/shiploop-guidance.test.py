@@ -35,7 +35,7 @@ REPEATABLE_TEST_SUITE_ROUTE = (
 )
 TEST_FACILITY_STAGES = (
     "test-strategy", "plan", "step-plan", "test-spec", "test",
-    "carry-forward", "system-test-author", "release-plan",
+    "reflect-and-revise", "system-test-author", "release-plan",
 )
 REUSABLE_TEST_FACILITY_ROUTE = (
     "Reusable test facilities: "
@@ -58,12 +58,12 @@ RELEASE_OPERATION_ROUTE = (
 # Deliberately independent of the prompt catalog: these are the only stages
 # where a local skill must be discoverable before or during a skill decision.
 LOCAL_SKILL_ROUTE_STAGES = (
-    "discovery", "carry-forward",
+    "discovery", "reflect-and-revise",
 )
 # Packet re-cut (2026-10-11): step-plan dropped the guide label (its draft never cites it); it still prints the
 # repository knowledge index line, so its `skills` item can reread the index.
 LOCAL_SKILL_INDEX_STAGES = (
-    "discovery", "step-plan", "carry-forward",
+    "discovery", "step-plan", "reflect-and-revise",
 )
 LOCAL_SKILL_GUIDE_ROUTE = (
     "Repository-local skill guidance: "
@@ -140,7 +140,7 @@ CURRENT_SYSTEM_BASELINE_STAGE_ANCHORS = {
     "spec": "planning-and-review-handoff",
     "validate-existing": "evidence-and-authority",
     "document": "retain-across-runs",
-    "carry-forward": "retain-across-runs",
+    "reflect-and-revise": "retain-across-runs",
     "product-acceptance": "retain-across-runs",
     "handoff": "retain-across-runs",
 }
@@ -155,14 +155,14 @@ CURRENT_SYSTEM_BASELINE_ROUTES = {
 HOUSE_STYLE_GUIDE = "house-style.md"
 HOUSE_STYLE_GUIDANCE_LABEL = "House-style guidance"
 # Deliberately independent of the prompt catalog: extract at discovery, contract
-# at step planning, reread while building, retain at carry-forward.  Packet re-cut (2026-10-11): test code follows Code
+# at step planning, reread while building, retain at reflect-and-revise.  Packet re-cut (2026-10-11): test code follows Code
 # craft rule 1 and the diff check against the step plan's contract was verify's (retired, design T §9.1 2b-4c), so
 # neither stage carries the label.
 HOUSE_STYLE_STAGE_ANCHORS = {
     "discovery": "extract-the-house-style",
     "step-plan": "write-the-match-contract",
     "implement": "match-while-building",
-    "carry-forward": "retain-the-house-style",
+    "reflect-and-revise": "retain-the-house-style",
 }
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
@@ -760,7 +760,7 @@ class GuidanceTests(unittest.TestCase):
             if waiting["active_improve"] is None:
                 state = waiting
                 continue
-            # Only planning stages and the final carry-forward park a child.
+            # Only planning stages and the final reflect-and-revise park a child.
             pending, pending_packet = self.cold_packet(waiting)
             self.assertEqual(navigator.current_stage(pending), stage)
             self.assertIn("Current action: Improve the completed " + stage, pending_packet)
@@ -776,7 +776,7 @@ class GuidanceTests(unittest.TestCase):
 
         # Packet re-cut: test-strategy, plan and step-plan dropped the baseline guide label, so only the stages that still
         # cite it and park an Improve child are observed: document cites it and, since design T §8, parks the step review.
-        self.assertEqual(tuple(observed), ("spec", "document", "carry-forward"))
+        self.assertEqual(tuple(observed), ("spec", "document", "reflect-and-revise"))
 
     def test_cold_lifecycle_packets_keep_clause_surface_and_due_phase(self) -> None:
         """A compact requirement survives planning and due-stage reconciliation.
@@ -1018,7 +1018,7 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(
             tuple(improved),
             tuple(stage for stage in prompts.STAGES
-                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"document", "carry-forward"}),
+                  if stage in prompts.PLANNING_REVIEW_STAGES or stage in {"document", "reflect-and-revise"}),
         )
 
     def test_the_procedure_condition_reaches_where_procedures_originate_and_every_planning_review(self) -> None:
@@ -1174,8 +1174,8 @@ class GuidanceTests(unittest.TestCase):
 
                 pending, _action = self.produce(producer)
                 observed.append(target)
-                # The single item's carry-forward is the last item's, which parks its Improve child.
-                if target not in prompts.PLANNING_REVIEW_STAGES and target != "carry-forward":
+                # The single item's reflect-and-revise is the last item's, which parks its Improve child.
+                if target not in prompts.PLANNING_REVIEW_STAGES and target != "reflect-and-revise":
                     self.assertIsNone(pending["active_improve"])
                     continue
                 recovered_pending, pending_packet = self.cold_packet(pending)
@@ -1186,7 +1186,7 @@ class GuidanceTests(unittest.TestCase):
                 improved.append(target)
 
         self.assertEqual(tuple(observed), LOCAL_SKILL_INDEX_STAGES)
-        self.assertEqual(improved, ["step-plan", "carry-forward"])
+        self.assertEqual(improved, ["step-plan", "reflect-and-revise"])
 
     def test_the_step_plan_packet_asks_each_step_for_its_skills(self) -> None:
         """skill_na and the two skill stages are gone (8-stage loop, 2026-10-10): each step names its skills."""
@@ -1990,8 +1990,8 @@ ok 4 SLChessRulesTest.TC_2_startLegalMoves
 
         for stage in prompts.STAGES:
             routed = ("Reusable test facilities", "repeatable-test-suites.md#reuse-and-define-test-facilities") in prompts.STAGE_REFERENCES[stage]
-            # Packet re-cut: carry-forward records facility locators but defines none, so it cites no guide label.
-            self.assertEqual(routed, stage in TEST_FACILITY_STAGES and stage != "carry-forward", stage)
+            # Packet re-cut: reflect-and-revise records facility locators but defines none, so it cites no guide label.
+            self.assertEqual(routed, stage in TEST_FACILITY_STAGES and stage != "reflect-and-revise", stage)
         self.assertIsInstance(prompts.TEST_FACILITY_HANDOFF, str)
         facility_handoff = normalized(prompts.TEST_FACILITY_HANDOFF)
         for clause in (
@@ -2009,7 +2009,7 @@ ok 4 SLChessRulesTest.TC_2_startLegalMoves
             text = normalized(prompts.prompt(stage))
             with self.subTest(stage=stage):
                 self.assertNotIn("Test facilities (Reusable test facilities): reuse, configure or extend", text)
-                if stage == "carry-forward":
+                if stage == "reflect-and-revise":
                     self.assertIn("each test facility's locator, interface, readiness or gap, owner, revalidation condition", text)
                 else:
                     self.assertIn("Reusable test facilities", text)
@@ -2383,7 +2383,7 @@ ok 4 SLChessRulesTest.TC_2_startLegalMoves
     def test_state_assessment_is_routed_to_planning_and_its_improve_handoffs(self) -> None:
         assessment = "requirements-definition.md#state-and-data-change-assessment"
         reconciliation = "requirements-definition.md#initial-plan-reconciliation"
-        stages = {"spec", "test-strategy", "plan", "step-plan", "carry-forward", "release-plan"}
+        stages = {"spec", "test-strategy", "plan", "step-plan", "reflect-and-revise", "release-plan"}
         for stage in prompts.STAGES:
             locators = {locator for _label, locator in prompts.STAGE_REFERENCES[stage]}
             with self.subTest(stage=stage):
@@ -3201,7 +3201,7 @@ class UnattendedWordingTests(unittest.TestCase):
 
     def test_the_improve_packet_never_calls_its_own_review_independent(self) -> None:
         # The same packet says the trivial passes are self-passes, not independent reviewers.
-        for stage in ("spec", "plan", "step-plan", "carry-forward"):
+        for stage in ("spec", "plan", "step-plan", "reflect-and-revise"):
             with self.subTest(stage=stage):
                 self.assertNotIn("independent broader review", normalized(prompts.improve_prompt(stage)))
 

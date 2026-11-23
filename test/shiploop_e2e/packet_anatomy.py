@@ -195,7 +195,7 @@ RULES: tuple[Rule, ...] = (
     _r("backchain", r"^Selected Backchain and Until Loop resources", "indent"),
     _r("backchain", r"^(Backchain planning guide|Backchain audit resource|Loop resources for a repair|"
        r"Backchain graph check)"),
-    # --- planning sources and queue rules (render(): plan, step-plan, carry-forward)
+    # --- planning sources and queue rules (render(): plan, step-plan, reflect-and-revise)
     _r("work-queue-rules", r"^(Full ordered work queue|Proposed queue awaiting Improve|At plan, supplied work_items|"
        r"Revalidate the current work-item queue|Omit work_items to retain|Read every pending item)"),
     _r("planning-sources", r"^Current planning sources", "bullets"),
@@ -500,7 +500,7 @@ STAGE_GROUPS = (
     ("plan", ("plan",)), ("prepare", ("prepare",)),
     ("step-plan/test-spec", ("step-plan", "test-spec")), ("validate-existing", ("validate-existing",)),
     ("implement", ("implement",)), ("test", ("test",)), ("document", ("document",)), ("verify", ("verify",)),
-    ("carry-forward", ("carry-forward",)),
+    ("reflect-and-revise", ("reflect-and-revise",)),
     ("system-test-author/system-test/product-acceptance", ("system-test-author", "system-test", "product-acceptance")),
     ("release-plan", ("release-plan",)), ("release-check/release/release-verify/operations",
                                            ("release-check", "release", "release-verify", "operations")),
@@ -517,7 +517,7 @@ STAGE_GROUPS_V4 = (
     ("baseline/skill-assess/skill-validate", ("baseline", "skill-assess", "skill-validate")),
     ("test-red/green/refine/regression", ("test-red", "test-green", "test-refine", "regression")),
     ("implement", ("implement",)), ("document/static-checks/verify", ("document", "static-checks", "verify")),
-    ("integrate/integration-verify/carry-forward", ("integrate", "integration-verify", "carry-forward")),
+    ("integrate/integration-verify/reflect-and-revise", ("integrate", "integration-verify", "reflect-and-revise")),
     ("system-test-author/system-test/product-acceptance", ("system-test-author", "system-test", "product-acceptance")),
     ("release-plan", ("release-plan",)), ("release-check/release/release-verify/operations",
                                            ("release-check", "release", "release-verify", "operations")),

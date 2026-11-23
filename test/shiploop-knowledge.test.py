@@ -603,7 +603,7 @@ class RemovalTests(HomeFixture):
         for name in self.ENGINE_SCRIPTS:
             for number, line in enumerate((ROOT / "skills/shiploop/scripts" / name).read_text(encoding="utf-8").splitlines(), 1):
                 if self.SKILL_INDEX_TEMPLATE in line:
-                    continue  # the carry-forward result template says a skill index outside KNOWLEDGE/ may sit beside SHIPLOOP.md
+                    continue  # the reflect-and-revise result template says a skill index outside KNOWLEDGE/ may sit beside SHIPLOOP.md
                 if "SHIPLOOP.md" in line or "Repository knowledge index" in line:
                     with self.subTest(file=name, line=number):
                         self.assertIn(self.LOCATOR, line)
@@ -627,7 +627,7 @@ class RemovalTests(HomeFixture):
         self.assertEqual(knowledge.STAGE_FILES, {
             "discovery": (E,), "research": (E,), "spec": (S,), "test-strategy": (E, A), "plan": (A,), "prepare": (E,),
             "step-plan": (A, E), "validate-existing": (E,), "implement": (E, A), "test": (E,), "document": (S, A, E),
-            "carry-forward": (A, E),
+            "reflect-and-revise": (A, E),
             "system-test-author": (E,), "release-plan": (E,), "release-check": (E,), "release-verify": (E,), "operations": (E,)})
         for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
             for names in table.values():
@@ -638,7 +638,7 @@ class RemovalTests(HomeFixture):
         one-item form, it keeps spec.md as the steps wrote it, except a requirement an owed owner note asks to change, and
         sends an unmet clause to its work item or an open item.
 
-        The duty once asked for each satisfied R-<n> in spec.md with no test IDs there, and carry-forward took the test IDs
+        The duty once asked for each satisfied R-<n> in spec.md with no test IDs there, and reflect-and-revise took the test IDs
         out of the lines the steps had written (24 of its 27 changed-line cases; section 3 of
         docs/shiploop-end-of-inner-loop-journal.md).
         """
@@ -648,10 +648,10 @@ class RemovalTests(HomeFixture):
                 "due at the later outer stage that can settle it; name the R-<n> and what would settle the gap.")
         # The exception is the one duty 2 and the owed-notes block already state (ShipLoop 2.7.0): it is still printed there.
         self.assertIn("unless an owner note this stage owes asks for the requirement change",
-                      " ".join(prompts.DUTIES["carry-forward"].split()))
-        one_step = prompts.duty("carry-forward", one_step_item="W1")  # as a packet prints it (_one_step_carry_forward)
+                      " ".join(prompts.DUTIES["reflect-and-revise"].split()))
+        one_step = prompts.duty("reflect-and-revise", one_step_item="W1")  # as a packet prints it (_one_step_reflect_and_revise)
         self.assertIn("No item follows W1", one_step)
-        for form, text in (("whole", prompts.DUTIES["carry-forward"]), ("one step", one_step)):
+        for form, text in (("whole", prompts.DUTIES["reflect-and-revise"]), ("one step", one_step)):
             with self.subTest(form):
                 duty_1 = text[:text.index("2. **Queue**")]
                 bullets = [" ".join(row.split()) for row in re.split(r"(?m)^   - ", duty_1)[1:]]
@@ -660,24 +660,24 @@ class RemovalTests(HomeFixture):
                     found = re.match(r"KNOWLEDGE/(\w+\.md)[^:]*: (.*)", row)
                     if found:
                         named.setdefault(found.group(1), []).append(found.group(2))
-                self.assertTrue(set(knowledge.STAGE_FILES["carry-forward"]) <= set(named), sorted(named))
+                self.assertTrue(set(knowledge.STAGE_FILES["reflect-and-revise"]) <= set(named), sorted(named))
                 self.assertEqual({name: rows for name, rows in named.items()
-                                  if name not in knowledge.STAGE_FILES["carry-forward"]}, {"spec.md": [keep]})
+                                  if name not in knowledge.STAGE_FILES["reflect-and-revise"]}, {"spec.md": [keep]})
                 for gone in ("each R-<n> this item satisfied", "Test IDs live only in test code"):
                     self.assertNotIn(gone, " ".join(text.split()))
 
     def test_carry_forward_takes_a_step_plans_revision_to_later_items_and_is_not_blocked_by_it(self) -> None:
         """Design of 2026-11-22: a pending item's step plan sees the spec as a table of contents, so a requirement this
         item's step plan revised reaches it through its `context`; and the revision, accepted at step-plan, is not the
-        changed requirement that blocks carry-forward, in the full duty and in the one-step form (whose loop rule holds
+        changed requirement that blocks reflect-and-revise, in the full duty and in the one-step form (whose loop rule holds
         that block too)."""
-        full = " ".join(prompts.DUTIES["carry-forward"].split())
+        full = " ".join(prompts.DUTIES["reflect-and-revise"].split())
         self.assertIn("- affected future item (one that follows a requirement this item's step plan revised included): its "
                       "`context` carries decision locator, rationale, revalidation condition and, for such a requirement, the "
                       "changed behaviour and its R-<n> in KNOWLEDGE/spec.md (copy no transcript, invent no decision ledger; a "
                       "context summary is not proof). That revision, accepted at step-plan, is not the incompatible finding "
                       "below;", full)
-        one_step = " ".join(prompts.duty("carry-forward", one_step_item="W1").split())
+        one_step = " ".join(prompts.duty("reflect-and-revise", one_step_item="W1").split())
         self.assertIn("A requirement this item's step plan revised is accepted work, not the changed requirement that stops "
                       "the loop blocked.", one_step)
         self.assertNotIn("affected future item", one_step)                # no item follows in that form
@@ -685,18 +685,18 @@ class RemovalTests(HomeFixture):
     def test_the_references_say_one_rule_for_a_requirement_that_must_change(self) -> None:
         """Design of 2026-11-22: in a step it is a send-back and step-plan revises it and re-plans; elsewhere, and for a
         permission or an invocation contract, the run still pauses; a completed-work assumption that new evidence
-        invalidates is corrective work, as carry-forward's own duty says."""
+        invalidates is corrective work, as reflect-and-revise's own duty says."""
         def flat(name: str) -> str:
             return " ".join((ROOT / "skills/shiploop/references" / name).read_text(encoding="utf-8").split())
 
         for name, words in (
                 ("inner-loop.md", "or a requirement must change, `test-spec` through `document` report `send-back`"),
                 ("inner-loop.md", "step-plan revises such a requirement and re-plans"),
-                ("carry-forward.md", "a requirement that must change is a `send-back`, and step-plan revises it and re-plans"),
-                ("carry-forward.md", "a revision accepted there is no finding to block on"),
-                ("carry-forward.md", "A requirement first found here to need a change, or a changed permission or invocation "
+                ("reflect-and-revise.md", "a requirement that must change is a `send-back`, and step-plan revises it and re-plans"),
+                ("reflect-and-revise.md", "a revision accepted there is no finding to block on"),
+                ("reflect-and-revise.md", "A requirement first found here to need a change, or a changed permission or invocation "
                                      "contract, is not a queue edit: report `blocked` or pause for direction."),
-                ("carry-forward.md", "A completed-work assumption that new evidence invalidates is corrective work (below)."),
+                ("reflect-and-revise.md", "A completed-work assumption that new evidence invalidates is corrective work (below)."),
                 ("research-loop.md", "what it must say instead and the evidence: step-plan revises it and re-plans."),
                 ("research-loop.md", "| Requirement that must change, found elsewhere; changed permission or invocation "
                                      "contract | Pause for direction, or report `blocked`"),
@@ -708,7 +708,7 @@ class RemovalTests(HomeFixture):
                                           "change no send-back or owner note asks for.")):
             with self.subTest(reference=name, words=words[:60]):
                 self.assertIn(words, flat(name))
-        for name, gone in (("carry-forward.md", "permission, invocation contract or completed-work assumption is not a"),
+        for name, gone in (("reflect-and-revise.md", "permission, invocation contract or completed-work assumption is not a"),
                            ("research-loop.md", "Incompatible requirement, permission or completed-work assumption"),
                            ("behavioral-requirements.md", "stop and seek direction, not a silent spec edit"),
                            ("execution-planning.md", "scope, acceptance, writer or permission changes")):
@@ -877,7 +877,7 @@ class SectionsTests(HomeFixture):
                "test": ("environment.md",),
                # Design T §9.1 2b-3, option C (owner 2026-10-28): each step's document reflects on what it showed.
                "document": ("spec.md", "architecture.md", "environment.md"),
-               "carry-forward": ("architecture.md", "environment.md")}
+               "reflect-and-revise": ("architecture.md", "environment.md")}
 
     def test_the_stages_that_discover_commands_facts_and_decisions_keep_the_files_up_to_date(self) -> None:
         for stage, names in self.WRITERS.items():
@@ -953,11 +953,11 @@ class SectionsTests(HomeFixture):
 
     def test_a_writer_before_a_close_that_requires_its_file_names_that_close_and_one_after_every_close_names_none(self) -> None:
         # research feeds the prepare close; the inner stages feed the release-plan close (environment.md); architecture.md is
-        # required only at prepare, which is behind every inner stage, so implement and carry-forward promise no close for it.
+        # required only at prepare, which is behind every inner stage, so implement and reflect-and-revise promise no close for it.
         research = knowledge.stage_lines(self.state, "research")
         self.assertIn("ShipLoop refuses prepare if any of these is missing or empty: "
                       + str(self.repo / "docs/shiploop/environment.md") + ".", research)
-        for stage in ("step-plan", "validate-existing", "implement", "test", "carry-forward"):
+        for stage in ("step-plan", "validate-existing", "implement", "test", "reflect-and-revise"):
             with self.subTest(stage):
                 lines = knowledge.stage_lines(self.state, stage)
                 self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: "
@@ -1364,7 +1364,7 @@ class SectionNoticeCloseTests(HomeFixture):
             with self.subTest(stage):
                 out, _ = self.close(stage)
                 self.assertEqual(out.count(knowledge.NOTICE_PREFIX), len(knowledge.SECTIONS))
-        for stage in ("implement", "plan", "document", "carry-forward"):
+        for stage in ("implement", "plan", "document", "reflect-and-revise"):
             with self.subTest(stage):
                 self.assertEqual(self.close(stage), ("", ""))
 
@@ -1642,13 +1642,13 @@ class PlacementNoticeCloseTests(HomeFixture):
         self.append("architecture.md", "\n### AD-2 Bulk escalation\n\nWhy.\n")
         expected = knowledge.placement_notices(self.state)
         self.assertEqual(len(expected), 1)
-        out, err = self.close("carry-forward")
+        out, err = self.close("reflect-and-revise")
         self.assertEqual((out, err), (expected[0] + "\n", ""))
-        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "carry-forward"))
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "reflect-and-revise"))
         self.assertEqual(knowledge.placement_notices(self.state), [])  # HEAD holds the edit now: it is said once
 
     def test_it_is_said_for_any_stage_that_commits_the_home_and_a_stage_that_changed_nothing_says_nothing(self) -> None:
-        for stage in ("discovery", "prepare", "carry-forward", "release-plan", "release-verify", "operations"):
+        for stage in ("discovery", "prepare", "reflect-and-revise", "release-plan", "release-verify", "operations"):
             with self.subTest(stage):
                 self.previous() if stage == "discovery" else None
                 self.append("environment.md", "\n## Report of " + stage + "\n\nDone.\n")
@@ -1673,7 +1673,7 @@ class PlacementNoticeCloseTests(HomeFixture):
         self.assertNotIn(knowledge.PLACEMENT_PREFIX, "".join(self.close("handoff", terminal=True)))
         self.append("environment.md", "\n## Second\n\nDone.\n")
         with mock.patch.object(knowledge, "commit", side_effect=RuntimeError("cannot commit")):
-            out, err = self.close("carry-forward")
+            out, err = self.close("reflect-and-revise")
         self.assertEqual(out, "")
         self.assertEqual(err, "ShipLoop knowledge: cannot commit; the next accepted stage commits it.\n")
 
@@ -1681,14 +1681,14 @@ class PlacementNoticeCloseTests(HomeFixture):
         self.previous()
         self.append("environment.md", "\n## Preparation\n\nDone.\n")
         with mock.patch.object(knowledge, "placement_notices", side_effect=ValueError("boom")):
-            out, err = self.close("carry-forward")
+            out, err = self.close("reflect-and-revise")
         self.assertEqual((out, err), ("", ""))
-        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "carry-forward"))
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "reflect-and-revise"))
 
     def test_a_notice_never_changes_what_the_close_commits(self) -> None:
         self.previous()
         self.append("environment.md", "\n## Preparation\n\nDone.\n")
-        self.close("carry-forward")
+        self.close("reflect-and-revise")
         committed = set(git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
         self.assertEqual(committed, {"docs/shiploop/environment.md"})
         self.assertIn("## Preparation", (self.repo / "docs/shiploop/environment.md").read_text(encoding="utf-8"))
@@ -1702,7 +1702,7 @@ class PlacementDestinationTests(HomeFixture):
         return [line for line in knowledge.stage_lines(self.state, stage) if line.startswith("Keep ")]
 
     # The eight stages the saved ticket runs' 36 stray headings came from (the plan's D3); the others added none.
-    REPORTING = ("discovery", "test-strategy", "prepare", "carry-forward", "system-test-author", "release-plan", "release-verify",
+    REPORTING = ("discovery", "test-strategy", "prepare", "reflect-and-revise", "system-test-author", "release-plan", "release-verify",
                  "operations")
 
     def test_the_eight_reporting_stages_are_told_the_standing_facts_rule_once_with_their_sections_and_no_other_stage_is(self) -> None:
@@ -1733,7 +1733,7 @@ class PlacementDestinationTests(HomeFixture):
             "prepare": ("Record readiness under KNOWLEDGE/environment.md ## Targets and runtimes and ## Commands as standing "
                         "facts: the commands that start each runner and what a later run needs to start them; what you prepared "
                         "and observed goes in `summary`."),
-            "carry-forward": "Update in place under the sections named here, with no new ## heading for this item's results;",
+            "reflect-and-revise": "Update in place under the sections named here, with no new ## heading for this item's results;",
             "release-plan": ("Keep the standing procedure any release repeats (steps, commands, rollback; no candidate identity, "
                              "commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already "
                              "has, updated in place, else in one new section."),
@@ -2179,7 +2179,7 @@ class SubjectTests(HomeCase):
 
 class UnnamedCommandTests(HomeFixture):
     """knowledge.unnamed_commands and command_notices (efficiency plan U16, row VR-3): the commands that passed at the item's
-    test stage and environment.md's '## Commands' does not name, as a carry-forward line and one counted notice that never
+    test stage and environment.md's '## Commands' does not name, as a reflect-and-revise line and one counted notice that never
     refuses."""
 
     PASSED = ["npm test", "node   --test test/unit"]

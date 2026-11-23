@@ -89,12 +89,12 @@ WORK: Mapping[str, str] = {
         "check without counting)."),
     "document": (
         "Do duty items {items} of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
-    "carry-forward": (
+    "reflect-and-revise": (
         "Do duty items {items} of {run}/packets/{action}.md; write the skill trial to "
         "{run}/notes/{action}-skill-trial.md."),
 }
 
-# The carry-forward Work of a one-step one-item run (``one_step_run``): its duty item 3 names the trial file itself.
+# The reflect-and-revise Work of a one-step one-item run (``one_step_run``): its duty item 3 names the trial file itself.
 WORK_ONE_STEP = "Do duty items {items} of {run}/packets/{action}.md."
 
 # The implement step's repeat rule (implement-step fix plan section 3.4): it continues while an exit condition is
@@ -133,7 +133,7 @@ REPEAT: Mapping[str, str] = {
         "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong "
         "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it), or when a "
         "requirement, the step plan or a criterion is wrong (the stage then reports send-back). " + _NEVER_CANCEL),
-    "carry-forward": (
+    "reflect-and-revise": (
         "Repeat while an exit condition fails after an iteration; " + _NO_LIMIT + " Stop blocked when a finding is "
         "incompatible with the approved work (a changed requirement, permission or invocation contract): that is "
         "not a queue edit, unless an owner note this stage owes asks for the requirement change: then rewrite the "
@@ -292,7 +292,7 @@ def one_step_run(state: Mapping[str, Any]) -> Optional[str]:
 
     Proved from state alone: ``work_items`` is the whole ordered queue, completed and current items included, so one row
     means no item is pending and no other ran.  A plan that lists no steps (only a synthetic walk: the CLI gate requires
-    them) is one step when exactly one implement action was accepted done after it.  Carry-forward then prints its short
+    them) is one step when exactly one implement action was accepted done after it.  Reflect-and-revise then prints its short
     queue and skill duties.
     """
     items = [row for row in state.get("work_items") or () if isinstance(row, Mapping)]
@@ -359,7 +359,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
            item_paths: Sequence[Any] = ()) -> dict[str, Any]:
     """One stage's contract from plain values; ``contract`` supplies them from state (``route``: the delegation the
     action was issued with, which decides which duty items its packet prints; ``one_step``: the run is ``one_step_run``,
-    so carry-forward's Work is ``WORK_ONE_STEP``; ``anchors``: an inline step's ``step_anchors``; ``item_paths``: the
+    so reflect-and-revise's Work is ``WORK_ONE_STEP``; ``anchors``: an inline step's ``step_anchors``; ``item_paths``: the
     item's declared paths, which bound a step's scope instead of a path fence of its own)."""
     values = {"run": str(root), "action": action_id, "repo": repo, "items": _duty_items(stage, route)}
     scope = (f"Workspace {repo}. Work item {item}: only the paths its accepted step plan declares, plus "
@@ -379,7 +379,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
                  f"files this step's change affects ({_paths_text(DOC_FILES)}), which ShipLoop commits with the step, "
                  "and docs/shiploop/ for this step's knowledge record. Product documentation (README, API, user and "
                  "operator docs) stays with the product, never in docs/shiploop/. Preserve every other change.")
-    text = WORK_ONE_STEP if one_step and stage == "carry-forward" else WORK[stage]
+    text = WORK_ONE_STEP if one_step and stage == "reflect-and-revise" else WORK[stage]
     repeat = REPEAT[stage]
     work = _fill(text, values)
     if stage == "test" and commands:
@@ -392,7 +392,7 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
                   if stage == "validate-existing" else
                   "Commit nothing: ShipLoop commits the change when the document stage and its review are "
                   "accepted."
-                  if stage != "carry-forward" else
+                  if stage != "reflect-and-revise" else
                   "Commit nothing: ShipLoop commits a created or updated skill and the knowledge home.")
     home = Path(repo) / knowledge_home.HOME
     resources = [

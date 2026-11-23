@@ -170,7 +170,7 @@ class CliTests(unittest.TestCase):
 class PacketLineTests(unittest.TestCase):
     def test_the_line_is_in_backchain_producer_routes_only(self):
         """Every Backchain producer route whose check stands on its own carries the check sentence once; an inline
-        step-plan or carry-forward and product-acceptance print no route paragraph, and no Improve packet names the
+        step-plan or reflect-and-revise and product-acceptance print no route paragraph, and no Improve packet names the
         check.  No route requests a Backchain child (Backchain retired, owner decision 2026-11-16)."""
         check = prompts._BACKCHAIN_CHECK
         reads = "The printed `backchain-check` reads only a candidate graph"

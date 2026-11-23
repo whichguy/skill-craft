@@ -178,7 +178,7 @@ class ImproveCliFixture(unittest.TestCase):
         """
         if self.producer.get("outcome") == "done":
             # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
-            if stage in ("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
+            if stage in ("test-spec", "document", "verify", "reflect-and-revise", "system-test-author", "system-test",
                          "release-plan", "release-verify"):
                 self.producer.setdefault("assumptions", [])
             if stage == "document":
@@ -2199,7 +2199,7 @@ class LoopContractShapeTests(unittest.TestCase):
                     self.assertNotIn(gone, text)
 
 
-# The end-of-work review's producer: the last item's carry-forward, which records its skill decision.
+# The end-of-work review's producer: the last item's reflect-and-revise, which records its skill decision.
 END_OF_WORK = {"skill": {"decision": "none", "reason": "Synthetic fixture: no procedure repeated."}}
 
 
@@ -2218,7 +2218,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         """
         if self.producer.get("outcome") == "done":
             # The consumer contract's hand-off fields (2026-10-11), when the test did not set them.
-            if stage in ("test-spec", "document", "verify", "carry-forward", "system-test-author", "system-test",
+            if stage in ("test-spec", "document", "verify", "reflect-and-revise", "system-test-author", "system-test",
                          "release-plan", "release-verify"):
                 self.producer.setdefault("assumptions", [])
             if stage == "document":
@@ -2708,7 +2708,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
     def test_an_end_of_work_code_fix_names_its_test_in_the_commit_and_the_named_exit_commits(self):
         """Run-5 batch F5: the end-of-work review fixes code after the tests ran, so its commit names the test, in the
         same commit, that fails without the fix."""
-        self.begin("carry-forward", producer_extra=END_OF_WORK)
+        self.begin("reflect-and-revise", producer_extra=END_OF_WORK)
         self.code_change()
         self.write("fix: guard zero\n\nKey learnings: zero needs a guard.\n")
         first = self.refused()
@@ -2727,7 +2727,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
                          ["src/calc.py", "tests/test_calc.py"])
 
     def test_none_with_a_reason_is_the_other_exit_and_a_test_only_or_planning_commit_owes_no_line(self):
-        self.begin("carry-forward", producer_extra=END_OF_WORK)
+        self.begin("reflect-and-revise", producer_extra=END_OF_WORK)
         self.code_change()
         self.write("fix: rename\n\nKey learnings: none\nRegression test: none:\n")
         self.assertIn("Regression test: none: <why no test can show this fix>", self.line_one(self.refused()))
@@ -2754,7 +2754,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         (top / "app" / "tests" / "test_calc.py").write_text("def test_calc_rejects_zero():\n    pass\n", encoding="utf-8")
         pending = ["app/src/calc.py", "app/tests/test_calc.py"]
         message = "fix\n\nKey learnings: none\nRegression test: test_calc_rejects_zero\n"
-        self.assertEqual(navigator._regression_refusal(top / "app", {"stage": "carry-forward"}, message, pending,
+        self.assertEqual(navigator._regression_refusal(top / "app", {"stage": "reflect-and-revise"}, message, pending,
                                                        self.base / "m.md", "CMD"), "")
 
     def test_a_step_review_code_fix_owes_no_regression_line(self):
@@ -2810,7 +2810,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
         self.assertIn("Key learnings: exact examples catch drift.", self.head_message())
 
     IMPROVE_STAGES = ("spec", "test-strategy", "plan", "step-plan", "test-spec", "system-test-author", "release-plan",
-                      "carry-forward")
+                      "reflect-and-revise")
 
     def test_every_stage_builds_its_improve_contract_on_both_routes_with_the_commit_clause(self):
         """Size-free smoke over every Improve stage and route (the old guard measured the clause's byte cost)."""
@@ -3376,7 +3376,7 @@ class ImproveLintCommandTests(ImproveCliFixture):
     `shiploop lint` lints the current action, and while an Improve stage runs the cursor stays on the reviewed action,
     so the verb accepts only that action's id.  Every command in the Improve stage's own files names the Improve stage's
     id, and the handoff printed no lint command: in two DeepSeek flash brownfield runs (bf-ds-*-09c33b) all 7 lint
-    refusals were a reviewer's call with the Improve stage's id, at implement (4), carry-forward, system-test-author and
+    refusals were a reviewer's call with the Improve stage's id, at implement (4), reflect-and-revise, system-test-author and
     release-plan reviews.  The handoff now prints the command with the reviewed action's id, as producer packets print
     theirs; the Improve stage's own id stays refused (one supported version: no alias).
     """
@@ -3422,7 +3422,7 @@ class ImproveLintCommandTests(ImproveCliFixture):
 
     def test_a_carry_forward_reviews_printed_lint_command_runs_through_shiploop_lint(self):
         self.assert_the_printed_lint_command_runs(
-            "carry-forward", producer_extra={"skill": {"decision": "none", "reason": "No procedure repeated."}})
+            "reflect-and-revise", producer_extra={"skill": {"decision": "none", "reason": "No procedure repeated."}})
 
     def test_a_system_test_author_reviews_printed_lint_command_runs_through_shiploop_lint(self):
         self.assert_the_printed_lint_command_runs(
