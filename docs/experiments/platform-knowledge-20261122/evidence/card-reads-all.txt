@@ -1,0 +1,481 @@
+run folders read: 1354; whose discovery packet asked for the platform guide: 382
+
+run | case | host model effort | ShipLoop | status | targets section says | linked | opened (stage) | shown: card own-lines given of all (basis)
+2026-10-29/shiploop-learning-focus-192828-g585rz8u/run | hello | codex gpt-6.1-terra xhigh | 1.22.0 | done | none | - | - | - (session record)
+2026-10-30/shiploop-hook-missing-done-c0rbhqfg/published-verification-01 | hello-hook-continuation | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+2026-10-30/shiploop-hook-missing-done-c0rbhqfg/published-verification-02 | hello-hook-continuation | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run | battleship-salesforce | codex gpt-6.1-terra xhigh | 1.23.1 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-10-30/shiploop-serve-hello-fc0832 | hello | codex gpt-6.1-terra xhigh | 1.23.3 | done | none | - | - | - (session record)
+2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-01 | gym-membership-salesforce | codex gpt-6.1-terra high | 1.24.1 | blocked | no record | - | - | - (session record)
+2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-02 | gym-membership-salesforce | codex gpt-6.1-terra high | 1.24.1 | active | no record | - | - | - (session record)
+2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03 | gym-membership-salesforce | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | salesforce (test) | salesforce 148 of 148 (session record)
+2026-11-01/follow-on-gap-d79bc3/link1-a | custom | codex gpt-6.1-terra xhigh | 1.30.0 | done | none | - | - | - (session record)
+2026-11-01/follow-on-gap-d79bc3/link1-b | custom | codex gpt-6.1-terra xhigh | 1.30.0 | done | nothing said | - | - | - (session record)
+2026-11-01/follow-on-gap-d79bc3/link2-b | custom | codex gpt-6.1-terra xhigh | 1.30.1 | done | none | - | - | - (session record)
+2026-11-01/follow-on-live-436258/csv-report-1 | csv-report | codex gpt-6.1-terra xhigh | 1.27.0 | done | nothing said | - | - | - (session record)
+2026-11-01/follow-on-live-436258/csv-report-2 | csv-report | codex gpt-6.1-terra xhigh | 1.27.0 | done | none | - | - | - (session record)
+2026-11-01/follow-on-live-436258/hello-1 | hello | codex gpt-6.1-terra xhigh | 1.27.0 | done | nothing said | - | - | - (session record)
+2026-11-01/follow-on-live-436258/published-hello | hello | codex gpt-6.1-terra xhigh | 1.29.0 | done | none | - | - | - (session record)
+2026-11-01/follow-on-live-436258/seat-reservations-1 | seat-reservations | codex gpt-6.1-terra xhigh | 1.27.0 | done | none | - | - | - (session record)
+2026-11-01/follow-on-live2-dacc9b/link1-a | custom | codex gpt-6.1-terra xhigh | 1.29.0 | done | nothing said | - | - | - (session record)
+2026-11-01/follow-on-live2-dacc9b/link1-b | custom | codex gpt-6.1-terra xhigh | 1.29.0 | done | nothing said | - | - | - (session record)
+2026-11-01/follow-on-live2-dacc9b/link2-a | custom | codex gpt-6.1-terra xhigh | 1.29.0 | blocked | nothing said | - | - | - (session record)
+2026-11-01/follow-on-live2-dacc9b/link2-b | custom | codex gpt-6.1-terra xhigh | 1.29.0 | blocked | nothing said | - | - | - (session record)
+2026-11-01/follow-on-live2-dacc9b/link3-a | custom | codex gpt-6.1-terra xhigh | 1.29.0 | done | nothing said | - | - | - (session record)
+2026-11-01/follow-on-live2-dacc9b/link3-b | custom | codex gpt-6.1-terra xhigh | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-01/shiploop-hello-codex-floor-2c31ea | hello | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8 | hello | claude claude-sonnet-5-5 None | 1.26.3 | done | nothing said | - | - | - (tool results)
+e2e-runs/2026-11-03/narrative-battleship | battleship | codex gpt-6.1-terra high | 1.30.7 | active | no record | - | - | - (session record)
+e2e-runs/2026-11-03/narrative-relay-hello | hello | codex gpt-6.1-terra high | 1.30.4 | done | none | - | - | - (session record)
+e2e-runs/2026-11-03/narrative-round2 | hello | codex gpt-6.1-terra high | 1.30.7 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-03/narrative-round3 | hello | codex gpt-6.1-terra high | 1.30.7 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-04/archive-live2 | csv-report | codex gpt-6.1-terra high | 1.30.8 | done | none | - | - | - (session record)
+e2e-runs/2026-11-04/chess-sf-clean | chess-salesforce | codex gpt-6.1-terra high | 1.31.0 | done | none | - | - | - (session record)
+e2e-runs/2026-11-04/i5-none | hello | codex gpt-6.1-terra high | 1.30.8 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-04/i5-stage | hello | codex gpt-6.1-terra high | 1.30.8 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-04/m2-checkers | checkers | codex gpt-6.1-terra high | 1.30.8 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-04/m2-csv | csv-report | codex gpt-6.1-terra high | 1.30.8 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-04/marketplace-hello | hello | codex gpt-6.1-terra high | 1.30.8 | done | nothing said | - | - | - (session record)
+2026-11-05/chess-improvement/baseline-01 | chess-salesforce | codex gpt-6.1-terra xhigh | 1.31.0 | done | nothing said | - | - | salesforce 10 of 156, ui-frameworks 2 of 24 (session record)
+2026-11-05/chess-improvement/rerun-02 | chess-salesforce | codex gpt-6.1-terra xhigh | 1.31.0 | done | nothing said | - | - | - (session record)
+e2e-runs/2026-11-15/backchain-child-csv-729a1e | custom | codex gpt-6.1-terra xhigh | 1.36.2 | done | none | - | - | - (session record)
+e2e-runs/2026-11-15/backchain-default-none-csv-8df4c5 | custom | codex gpt-6.1-terra xhigh | 1.36.3 | done | nothing said | - | - | - (session record)
+e2e-runs/20261020/chess-sf-full-9e52e8 | chess-salesforce | grok grok-4.7 medium | 1.8.0 | active | no record | salesforce | salesforce (discovery) | aws 1 of 20, bash 1 of 24, node-express 1 of 27, salesforce 149 of 149, ui 1 of 30, ui-frameworks 1 of 24 (printed)
+e2e-runs/20261024/chess-sf-full-12a23d | chess-salesforce | grok grok-4.7 medium | 1.9.0 | done | cards: salesforce | salesforce | salesforce (discovery) | salesforce 148 of 148 (printed)
+e2e-runs/20261024/chess-sf-full-ed3292 | chess-salesforce | grok grok-4.7 medium | 1.9.0 | blocked | no record | salesforce | salesforce (discovery) | salesforce 148 of 148 (printed)
+20261024/gate-290-b60ed7-claude-batch/battleship | battleship | claude claude-sonnet-5-5 None | 1.9.0 | done | nothing said | - | - | - (tool results)
+20261024/gate-290-b60ed7-claude-batch/hello | hello | claude claude-sonnet-5-5 None | 1.9.0 | done | none | - | - | - (tool results)
+20261024/gate-290-b60ed7-claude-batch/seat-reservations | seat-reservations | claude claude-sonnet-5-5 None | 1.9.0 | done | none | - | - | - (tool results)
+e2e-runs/20261024/gate-290-b60ed7-claude-csv-report | csv-report | claude claude-sonnet-5-5 None | 1.9.0 | done | none | - | - | - (tool results)
+e2e-runs/20261024/gate-290-b60ed7-codex-hello | hello | codex gpt-6-luna xhigh | 1.9.0 | done | none | - | python (step-plan) | python 27 of 27 (session record)
+20261025/gate-2100-96810d-claude-web/battleship | battleship | claude claude-sonnet-5-5 None | 1.10.0 | done | none | - | - | - (tool results)
+20261025/gate-2100-96810d-claude-web/battleship-scoring | battleship-scoring | claude claude-sonnet-5-5 None | 1.10.1 | done | none | - | - | - (tool results)
+e2e-runs/20261025/gate-2132-f7ba78-grok-hello | hello | grok grok-4.7 medium | 1.13.1 | done | cards: python | - | python (discovery) | python 29 of 29, salesforce 1 of 148 (printed)
+20261025/gate-2132-f7ba78-grok-web/battleship | battleship | grok grok-4.7 medium | 1.13.1 | done | cards: node-express, ui | - | node-express (discovery), ui (discovery) | node-express 27 of 27, ui 30 of 30 (printed)
+20261025/gate-2132-f7ba78-grok-web/battleship-scoring | battleship-scoring | grok grok-4.7 medium | 1.13.1 | done | cards: node-express, ui | - | node-express (discovery), ui (discovery) | node-express 27 of 27, ui 30 of 30 (printed)
+e2e-runs/20261025/haiku55-max-battleship-d521a8 | battleship | claude claude-haiku-5-5 max | 1.11.0 | active | no record | - | - | - (tool results)
+20261025/trace-verify-1131-b096ae/hello | hello | claude claude-sonnet-5-5 None | 1.13.1 | done | nothing said | - | - | - (tool results)
+20261025/trace-verify-4fd9f1/hello | hello | claude claude-sonnet-5-5 None | 1.12.0 | done | none | - | - | - (tool results)
+e2e-runs/20261026/ds-flash-978478-battleship | battleship | claude deepseek-v4.1-flash:1017-cloud None | 1.15.0 | done | cards: node-express | - | node-express (discovery), ui (discovery) | node-express 27 of 27 (tool results)
+e2e-runs/20261026/live-2160-dc5a81-claude-battleship | battleship | claude claude-sonnet-5-5 None | 1.15.0 | active | no record | - | - | - (tool results)
+e2e-runs/20261026/live-2160-dc5a81-claude-hello | hello | claude claude-sonnet-5-5 None | 1.15.0 | active | no record | - | - | - (tool results)
+e2e-runs/20261026/live-sonnet-battleship-01b9b3 | battleship | claude claude-sonnet-5-5 None | 1.15.0 | done | none | - | - | - (tool results)
+e2e-runs/20261026/live-sonnet-hello-b01d1c | hello | claude claude-sonnet-5-5 None | 1.15.0 | done | none | - | - | - (tool results)
+e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello | hello | claude deepseek-v4.1-flash:1017-cloud None | 1.15.0 | done | cards: python | - | python (discovery) | python 29 of 29 (tool results)
+e2e-runs/20261027/v2170-ds-battleship-759a03 | battleship | claude deepseek-v4.1-flash:1017-cloud None | 1.16.0 | done | cards: node-express | - | node-express (discovery), ui (discovery) | node-express 27 of 27, ui 30 of 54 (tool results)
+e2e-runs/20261027/v2170-sonnet-battleship-491d9a | battleship | claude claude-sonnet-5-5 None | 1.16.0 | done | nothing said | - | - | - (tool results)
+e2e-runs/20261027/v2180-sonnet-battleship-36036c | battleship | claude claude-sonnet-5-5 None | 1.17.0 | done | none | - | - | - (tool results)
+e2e-runs/20261028/pa-ds-battleship-4ed4e3 | battleship | claude deepseek-v4.1-flash:1017-cloud None | 1.17.0 | done | cards: node-express, ui | - | node-express (discovery), ui (discovery) | node-express 22 of 27, ui 30 of 30 (tool results)
+e2e-runs/20261030/hello-terra-2243-0c81bf | hello | codex gpt-6.1-terra xhigh | 1.23.3 | done | nothing said | - | - | - (session record)
+e2e-runs/20261030/hello-terra-2243-5fb43e | hello | codex gpt-6.1-terra xhigh | 1.23.3 | paused | none | - | - | - (session record)
+20261101/smoke-2.30.0-0f125e/claude-hello | hello | claude claude-sonnet-5-5 None | 1.29.0 | done | none | - | - | - (tool results)
+e2e-runs/20261110/grok46-hello-1 | hello | grok grok-4.6 xhigh | 1.33.6 | active | no record | - | - | - (printed)
+e2e-runs/d20261122-360a9f/chess-1 | node-chess-engine | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+e2e-runs/d20261122-360a9f/expenses-1 | shared-expenses | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+e2e-runs/d20261122-360a9f/grokbot-1 | grokbot-local | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | ui (spec) | ui 54 of 54 (session record)
+e2e-runs/d20261122-360a9f/tickets-1 | ticket-assignment | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+e2e-runs/d20261122-b54ea4/chess-1 | node-chess-engine | codex gpt-6.2-sol medium | 2.6.0 | done | nothing said | - | - | - (session record)
+e2e-runs/d20261122-b54ea4/expenses-1 | shared-expenses | codex gpt-6.2-sol medium | 2.6.0 | done | nothing said | - | - | - (session record)
+e2e-runs/d20261122-b54ea4/grokbot-1 | grokbot-local | codex gpt-6.2-sol medium | 2.6.0 | done | nothing said | - | - | - (session record)
+e2e-runs/d20261122-b54ea4/tickets-1 | ticket-assignment | codex gpt-6.2-sol medium | 2.6.0 | done | nothing said | - | - | - (session record)
+e2e-runs/effort-eeff1/control-hello | hello | grok grok-4.7 medium | 1.9.0 | done | cards: python | - | python (discovery) | python 27 of 27 (printed)
+e2e-runs/effort-eeff1/control-seat-reservations | seat-reservations | grok grok-4.7 medium | 1.9.0 | done | cards: python | - | python (discovery) | gcp 1 of 20, python 27 of 27, salesforce 1 of 148 (printed)
+e2e-runs/effort-eeff1/treatment-hello | hello | grok grok-4.7 medium | 1.9.0 | done | cards: python | - | python (discovery) | python 27 of 27 (printed)
+e2e-runs/effort-eeff1/treatment-seat-reservations | seat-reservations | grok grok-4.7 medium | 1.9.0 | done | cards: python | - | python (discovery) | python 27 of 27, salesforce 2 of 148 (printed)
+e2e-runs/effort-eeff1-r1/control-hello | hello | grok grok-4.7 medium | 1.8.0 | done | cards: python | - | python (research) | python 27 of 27 (printed)
+e2e-runs/effort-eeff1-r1/treatment-hello | hello | grok grok-4.7 medium | 1.8.0 | done | none | - | python (research) | python 27 of 27, salesforce 2 of 149 (printed)
+e2e-runs/effort-eeff1-r1b/control-hello | hello | grok grok-4.7 medium | 1.8.0 | done | cards: python | - | python (discovery) | python 27 of 27, salesforce 1 of 149 (printed)
+e2e-runs/effort-eeff1-r1b/control-hello-failed-no-session-id | hello | grok grok-4.7 medium | 1.8.0 | active | no record | - | python (discovery) | python 27 of 27 (printed)
+e2e-runs/effort-eeff1-r1b/treatment-hello | hello | grok grok-4.7 medium | 1.8.0 | done | cards: python | - | python (discovery) | python 27 of 27 (printed)
+r-20261121-2c3d50/w1/d1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w1/d2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w1/d3 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w1/h1 | hello | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w2/d4 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w2/d5 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w2/d6 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w2/h2 | hello | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r-20261121-2c3d50/w3/s1 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | nothing said | - | - | - (tool results)
+e2e-runs/r-20261122-ffb3fb/k1 | hello | codex gpt-6.2-sol medium | 2.5.0 | done | nothing said | - | - | - (session record)
+e2e-runs/r-20261122-ffb3fb/k2 | ticket-due-times | codex gpt-6.2-sol medium | 2.5.0 | done | nothing said | - | - | - (session record)
+e2e-runs/r-20261122-ffb3fb/k3 | ticket-due-times | codex gpt-6.2-sol medium | 2.5.0 | done | nothing said | - | - | - (session record)
+e2e-runs/r-20261122-ffb3fb/k4 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.5.0 | None | nothing said | - | - | - (tool results)
+e2e-runs/ratchet-pilot-20261120-b6eab2/g-shiploop-sol-high | grokbot-local | codex gpt-6.2-sol high | 2.3.0 | done | nothing said | - | ui (improve) | ui 54 of 54 (session record)
+dadleet/e2e-runs/terra-high-user-listing | user-listing | codex gpt-6.1-terra high | 1.23.3 | done | none | - | - | - (session record)
+e2e-runs-brownfield/20261028/bf-ds-ticket-assignment-09c33b | ticket-assignment | claude deepseek-v4.1-flash:1017-cloud None | 1.17.0 | done | none | - | - | - (tool results)
+e2e-runs-brownfield/20261028/bf-ds-ticket-escalation-09c33b | ticket-escalation | claude deepseek-v4.1-flash:1017-cloud None | 1.17.0 | done | none | - | - | - (tool results)
+e2e-runs-brownfield/20261028/bf-ds-user-listing-09c33b | user-listing | claude deepseek-v4.1-flash:1017-cloud None | 1.17.0 | done | none | - | - | salesforce 1 of 148 (tool results)
+e2e-runs-brownfield/20261029/bf-codex-r1-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.20.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield/20261029/bf-codex-r1-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.20.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield/20261029/bf-codex-r1-user-listing | user-listing | codex gpt-6.1-terra xhigh | 1.20.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield/20261029/bf-codex-r2-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.21.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield/20261029/bf-codex-r2-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.21.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield/20261029/bf-codex-r2-user-listing | user-listing | codex gpt-6.1-terra xhigh | 1.21.0 | done | none | - | - | - (session record)
+e2e-runs-brownfield/20261029/bf-ds-r1-ticket-assignment | ticket-assignment | claude deepseek-v4.1-flash:1017-cloud None | 1.20.0 | None | no record | - | - | salesforce 1 of 148 (tool results)
+e2e-runs-brownfield/20261029/hooks-after-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.22.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield/20261029/hooks-after-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.22.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield/20261029/hooks-after-user-listing | user-listing | codex gpt-6.1-terra xhigh | 1.22.0 | done | none | - | - | - (session record)
+e2e-runs-brownfield/20261029/hooks-before-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.22.0 | done | none | - | - | - (session record)
+e2e-runs-brownfield/20261029/hooks-before-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.22.0 | done | none | - | - | - (session record)
+e2e-runs-brownfield/20261029/hooks-before-user-listing | user-listing | codex gpt-6.1-terra xhigh | 1.22.0 | done | nothing said | - | - | - (session record)
+e2e-runs-brownfield-interrupted/20261029/hooks-before-ticket-escalation-attempt1-paused-at-step-plan | ticket-escalation | codex gpt-6.1-terra xhigh | 1.22.0 | paused | none | - | - | - (session record)
+e2e-runs-f31/20261101/A-csv-report-s1 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+e2e-runs-f31/20261101/A-csv-report-s2 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+e2e-runs-f31/20261101/A-csv-report-s3 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+e2e-runs-f31/20261101/B-csv-report-s1 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+e2e-runs-f31/20261101/B-csv-report-s2 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+e2e-runs-f31/20261101/B-csv-report-s3 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+e2e-runs-f31/20261101-r2/V-csv-report-s1 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+e2e-runs-f31/20261101-r2/V-csv-report-s2 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+e2e-runs-f31/20261101-r2/V-csv-report-s3 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+e2e-runs-hostonly/20261031/sf-live-2 | battleship-salesforce | codex gpt-6.1-terra xhigh | 1.26.1 | done | nothing said | - | - | - (session record)
+e2e-runs-hostonly/20261031/ui-live-2 | battleship-salesforce-ui | codex gpt-6.1-terra xhigh | 1.26.1 | done | none | - | - | - (session record)
+e2e-runs-hostonly/20261031/ui-live-3 | battleship-salesforce-ui | codex gpt-6.1-terra xhigh | 1.26.1 | done | none | - | - | - (session record)
+e2e-runs-house-style/20261115/hs-1 | ticket-due-times | grok grok-4.6 xhigh | 1.36.0 | active | no record | - | node-express (discovery) | node-express 27 of 27, ui 1 of 54 (printed)
+e2e-runs-house-style/20261115/hs-2 | ticket-due-times | grok grok-4.6 xhigh | 1.36.0 | active | no record | - | node-express (discovery) | node-express 27 of 27, ui 1 of 54 (printed)
+e2e-runs-house-style/20261115/hs-3 | ticket-due-times | grok grok-4.6 xhigh | 1.36.0 | active | no record | - | node-express (discovery) | node-express 27 of 27, salesforce 1 of 164, ui 1 of 54 (printed)
+20261031/e2/A1-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.26.0 | done | none | - | - | - (session record)
+20261031/e2/A1-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.26.0 | done | none | - | - | - (session record)
+20261031/e2/A2-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/A2-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/A3-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/A3-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/B1-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/B1-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/B2-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/B2-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/B3-ticket-assignment | ticket-assignment | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+20261031/e2/B3-ticket-escalation | ticket-escalation | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+e2e-runs-multipass/20261031/mp-codex-ticket-comments | ticket-comments | codex gpt-6.1-terra xhigh | 1.26.0 | done | nothing said | - | - | - (session record)
+e2e-runs-multipass/20261031/mp-codex-ticket-sla | ticket-sla | codex gpt-6.1-terra xhigh | 1.26.1 | done | nothing said | - | - | - (session record)
+20261101/chain-b/B1-user-listing | user-listing | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/chain-b/B2-user-roles | user-roles | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/chain-b/B3-user-team-listing | user-team-listing | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/chain-b/B4-user-page-size | user-page-size | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/r4/R4a-comments-seeded-fix | ticket-comments | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+20261101/r4/R4a0-comments-seeded-old | ticket-comments | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+20261101/r4/R4b-comments-tidy-fix | ticket-comments | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+20261101/r4/R4b0-comments-tidy-old | ticket-comments | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+20261101/r4/R4c-sla-tidy-fix | ticket-sla | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+20261101/r4/R4c0-sla-tidy-old | ticket-sla | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-multipass/20261101/smoke-2.31.0-codex-hello | hello | codex gpt-6.1-terra xhigh | 1.30.0 | done | none | - | - | - (session record)
+e2e-runs-outcome/20261101/a2-slot-1 | custom | codex gpt-6.1-terra xhigh | 1.30.2 | paused | none | - | - | - (session record)
+e2e-runs-outcome/20261101/a2-slot-2 | custom | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+e2e-runs-outcome/20261101/a2-slot-3 | hello | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+e2e-runs-outcome/20261101/slot-1 | custom | codex gpt-6.1-terra xhigh | 1.30.2 | None | none | - | - | - (session record)
+e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87 | hello | claude deepseek-v4.1-flash:1017-cloud None | 1.17.0 | done | none | - | - | - (tool results)
+e2e-runs-pf/20261031/hello-r1 | hello | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-pf/20261031/hello-r2 | hello | codex gpt-6.1-terra high | 1.25.0 | done | none | - | - | - (session record)
+e2e-runs-pf/20261031/ticket-assignment-r1 | ticket-assignment | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-pf/20261031/ticket-assignment-r2 | ticket-assignment | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-pf/20261031/user-listing-r1 | user-listing | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-pf/20261031/user-listing-r2 | user-listing | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-planning-points/20261114/pp-1 | ticket-due-times | grok grok-4.6 xhigh | 1.34.3 | done | cards: node-express | - | node-express (discovery) | node-express 27 of 27, salesforce 3 of 164, ui 1 of 54 (printed)
+e2e-runs-planning-points/20261114/pp-2 | ticket-due-times | grok grok-4.6 xhigh | 1.34.3 | done | cards: node-express | - | node-express (discovery), ui (plan) | bash 2 of 24, gcp 1 of 20, node-express 27 of 27, salesforce 2 of 164, ui 1 of 54 (printed)
+e2e-runs-planning-points/20261114/pp-3 | ticket-due-times | grok grok-4.6 xhigh | 1.34.3 | active | no record | - | node-express (discovery), ui (plan) | bash 1 of 24, node-express 27 of 27, ui 1 of 54 (printed)
+e2e-runs-planning-points/20261114/pp-4 | ticket-due-times | grok grok-4.6 xhigh | 1.34.3 | done | cards: node-express | - | node-express (discovery) | apps-script 1 of 75, bash 1 of 24, node-express 27 of 27, python 1 of 29, salesforce 4 of 164, ui 2 of 54 (printed)
+e2e-runs-qr/20261031/A-ticket-assignment-s1 | ticket-assignment | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/A-ticket-assignment-s2 | ticket-assignment | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/A-ticket-assignment-s3 | ticket-assignment | codex gpt-6.1-terra high | 1.24.1 | paused | no record | - | - | - (session record)
+e2e-runs-qr/20261031/A-user-listing-s1 | user-listing | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/A-user-listing-s2 | user-listing | codex gpt-6.1-terra high | 1.24.1 | done | none | - | - | - (session record)
+e2e-runs-qr/20261031/A-user-listing-s3 | user-listing | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/B-ticket-assignment-s1 | ticket-assignment | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/B-ticket-assignment-s2 | ticket-assignment | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/B-ticket-assignment-s3 | ticket-assignment | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/B-user-listing-s1 | user-listing | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/B-user-listing-s2 | user-listing | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-qr/20261031/B-user-listing-s3 | user-listing | codex gpt-6.1-terra high | 1.24.1 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s1 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s10 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | none | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s2 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | none | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s3 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s4 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s5 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s6 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | none | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s7 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | none | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s8 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | none | - | - | - (session record)
+e2e-runs-r3/20261101/A-shared-expenses-s9 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s1 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s10 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s2 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s3 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s4 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s5 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s6 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | none | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s7 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s8 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | nothing said | - | - | - (session record)
+e2e-runs-r3/20261101/B-shared-expenses-s9 | shared-expenses | codex gpt-6.1-terra high | 1.29.0 | done | none | - | - | - (session record)
+e2e-runs-r3/20261101/smoke-b-s1 | shared-expenses | codex gpt-6.1-terra high | 1.28.0 | done | nothing said | - | - | - (session record)
+e2e-runs-refusal-probe/20261115/hello-seeded-hook-1 | hello | grok grok-4.6 xhigh | 1.36.0 | done | nothing said | - | - | python 29 of 29 (printed)
+e2e-runs-refusal-probe/20261115/tdt-hook-1 | ticket-due-times | grok grok-4.6 xhigh | 1.36.0 | active | no record | - | node-express (discovery) | node-express 27 of 27 (printed)
+e2e-runs-sdlc10/20261120/grok-46-xhigh-due-1 | ticket-due-times | grok grok-4.6 xhigh | 2.4.0 | done | none | - | node-express (discovery) | apps-script 1 of 75, aws 1 of 20, bash 1 of 24, node-express 27 of 27, salesforce 3 of 166, ui 1 of 54, ui-frameworks 1 of 24 (printed)
+e2e-runs-sdlc10/20261120/sol-high-due-1 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261120/sol-high-due-2 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261120/sol-high-due-3 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261120/sol-high-due-4 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261120/sol-high-expenses-1 | shared-expenses | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261120/sol-high-expenses-2 | shared-expenses | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-1 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-2 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-3 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-4 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-5 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-6 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-7 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-g-8 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-1 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-2 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-3 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-4 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-5 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-6 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-7 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-n-8 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-1 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-2 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-3 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-4 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-5 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-6 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-7 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-e2/e2-plain-8 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | active | no record | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-high-due-p1 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-high-due-p2 | ticket-due-times | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p1 | shared-expenses | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-high-expenses-p2 | shared-expenses | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-medium-due-p1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-medium-due-p2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p1 | shared-expenses | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc10/20261121-paired/sol-medium-expenses-p2 | shared-expenses | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc11/20261121/shared-expenses-sonnet-high | shared-expenses | claude claude-sonnet-5-5 high | 2.4.0 | done | none | - | - | - (tool results)
+e2e-runs-sdlc11/20261121/ticket-assignment-sol-high | ticket-assignment | codex gpt-6.2-sol high | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc12/20261121/sonnet-high-due | ticket-due-times | claude claude-sonnet-5-5 high | 2.4.1 | done | nothing said | - | bash (test) | - (tool results)
+e2e-runs-sdlc12/20261121/sonnet-high-expenses | shared-expenses | claude claude-sonnet-5-5 high | 2.4.1 | done | none | - | - | - (tool results)
+e2e-runs-sdlc12/20261121/sonnet-medium-due | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | nothing said | - | - | - (tool results)
+e2e-runs-sdlc12/20261121/sonnet-medium-expenses | shared-expenses | claude claude-sonnet-5-5 medium | 2.4.1 | done | nothing said | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/assign-high-1 | ticket-assignment | claude claude-sonnet-5-5 high | 2.4.1 | active | no record | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/assign-medium-1 | ticket-assignment | claude claude-sonnet-5-5 medium | 2.4.1 | done | none | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/due-high-2 | ticket-due-times | claude claude-sonnet-5-5 high | 2.4.1 | done | none | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/due-high-3 | ticket-due-times | claude claude-sonnet-5-5 high | 2.4.1 | active | no record | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/due-medium-2 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | none | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/due-medium-3 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | active | no record | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/expenses-high-2 | shared-expenses | claude claude-sonnet-5-5 high | 2.4.1 | done | none | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/expenses-high-3 | shared-expenses | claude claude-sonnet-5-5 high | 2.4.1 | active | no record | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/expenses-medium-2 | shared-expenses | claude claude-sonnet-5-5 medium | 2.4.1 | done | none | - | - | - (tool results)
+e2e-runs-sdlc13/20261121/expenses-medium-3 | shared-expenses | claude claude-sonnet-5-5 medium | 2.4.1 | active | none | - | - | - (tool results)
+r15/plan-samples/candidate-sol-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | active | no record | - | - | - (session record)
+r15/plan-samples/candidate-sol-2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | active | no record | - | - | - (session record)
+r15/plan-samples/candidate-sonnet-1 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | active | no record | - | - | - (tool results)
+r15/plan-samples/candidate-sonnet-2 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | active | no record | - | - | - (tool results)
+r15/plan-samples/control-sol-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | active | no record | - | - | - (session record)
+r15/plan-samples/control-sol-2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | active | no record | - | - | - (session record)
+r15/plan-samples/control-sonnet-1 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | active | no record | - | - | - (tool results)
+r15/plan-samples/control-sonnet-2 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | active | no record | - | - | - (tool results)
+r15b/20261121/sol-A-due-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r15b/20261121/sol-A-due-2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r15b/20261121/sol-B-due-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r15b/20261121/sol-B-due-2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r15b/20261121/sol-B-expenses | shared-expenses | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r15b/20261121/sonnet-A-due | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | nothing said | - | - | - (tool results)
+r15b/20261121/sonnet-B-due | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | nothing said | - | - | - (tool results)
+r15b/20261121/sonnet-B-expenses | shared-expenses | claude claude-sonnet-5-5 medium | 2.4.1 | done | none | - | - | - (tool results)
+r15c/20261121/sol-C-due-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r15c/20261121/sonnet-C-due-1 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | nothing said | - | - | - (tool results)
+r15c/20261121/sonnet-C-due-2 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | none | - | - | - (tool results)
+r15d/20261121/sol-D-due-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.1 | done | nothing said | - | - | - (session record)
+r15d/20261121/sonnet-D-due-1 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | none | - | - | - (tool results)
+r15d/20261121/sonnet-D-due-2 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.4.1 | done | nothing said | - | - | - (tool results)
+r15e/20261122/sol-E-due-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.5.0 | done | nothing said | - | - | - (session record)
+r15e/20261122/sonnet-E-due-1 | ticket-due-times | claude claude-sonnet-5-5 medium | 2.5.0 | done | nothing said | - | - | - (tool results)
+e2e-runs-sdlc8/20261120/shared-expenses-sonnet-high | shared-expenses | claude claude-sonnet-5-5 high | 2.3.0 | done | none | - | - | - (tool results)
+e2e-runs-sdlc8/20261120/ticket-assignment-sol-medium | ticket-assignment | codex gpt-6.2-sol medium | 2.3.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/rehearsal-L-sol-medium-hello | hello | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/rehearsal-S-sol-medium-hello | hello | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-due-L-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-due-L-2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-due-S-1 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-due-S-2 | ticket-due-times | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-expenses-L-1 | shared-expenses | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-expenses-L-2 | shared-expenses | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-expenses-S-1 | shared-expenses | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sol-medium-expenses-S-2 | shared-expenses | codex gpt-6.2-sol medium | 2.4.0 | done | nothing said | - | - | - (session record)
+e2e-runs-sdlc9/20261120/sonnet-high-due-L-1 | ticket-due-times | claude claude-sonnet-5-5 high | 2.4.0 | done | nothing said | - | - | - (tool results)
+e2e-runs-sdlc9/20261120/sonnet-high-due-L-2 | ticket-due-times | claude claude-sonnet-5-5 high | 2.4.0 | done | nothing said | - | - | - (tool results)
+e2e-runs-sdlc9/20261120/sonnet-high-due-S-1 | ticket-due-times | claude claude-sonnet-5-5 high | 2.4.0 | done | nothing said | - | - | - (tool results)
+e2e-runs-sdlc9/20261120/sonnet-high-due-S-2 | ticket-due-times | claude claude-sonnet-5-5 high | 2.4.0 | done | nothing said | - | - | - (tool results)
+e2e-runs-sp/20261101/csv-report-s1 | csv-report | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-sp/20261101/csv-report-s2 | csv-report | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-sp/20261101/hello-s1 | hello | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+20261101/round2-release/csv-report-s1 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/round2-release/csv-report-s2 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+20261101/round2-release/csv-report-s3 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+20261101/round2-release/shared-expenses-s1 | shared-expenses | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/round2-release/shared-expenses-s2 | shared-expenses | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+20261101/round2-release/shared-expenses-s3 | shared-expenses | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/round2-verify/csv-report-s1 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/round2-verify/csv-report-s2 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+20261101/round2-verify/csv-report-s3 | csv-report | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+20261101/round2-verify/shared-expenses-s1 | shared-expenses | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/round2-verify/shared-expenses-s2 | shared-expenses | codex gpt-6.1-terra xhigh | 1.30.2 | done | none | - | - | - (session record)
+20261101/round2-verify/shared-expenses-s3 | shared-expenses | codex gpt-6.1-terra xhigh | 1.30.2 | done | nothing said | - | - | - (session record)
+20261101/sp1-xhigh/csv-report-s1 | csv-report | codex gpt-6.1-terra xhigh | 1.26.2 | done | none | - | - | - (session record)
+20261101/sp1-xhigh/csv-report-s2 | csv-report | codex gpt-6.1-terra xhigh | 1.26.2 | done | none | - | - | - (session record)
+20261101/sp1-xhigh/hello-s1 | hello | codex gpt-6.1-terra xhigh | 1.26.2 | done | nothing said | - | - | - (session record)
+20261101/sp1-xhigh/ticket-import-s1 | ticket-import | codex gpt-6.1-terra xhigh | 1.27.0 | done | none | - | - | - (session record)
+20261101/sp1-xhigh/ticket-import-s2 | ticket-import | codex gpt-6.1-terra xhigh | 1.27.0 | done | none | - | - | - (session record)
+20261101/sp1-xhigh/ticket-import-s3 | ticket-import | codex gpt-6.1-terra xhigh | 1.27.0 | done | nothing said | - | - | - (session record)
+20261112/fix-forward-smoke/csv-report-s1 | csv-report | codex gpt-6.1-terra xhigh | 1.33.10 | done | nothing said | - | - | - (session record)
+20261112/fix-forward-smoke/shared-expenses-s1 | shared-expenses | codex gpt-6.1-terra xhigh | 1.33.10 | done | nothing said | - | - | - (session record)
+20261114/closeout-whole/B-csv-report | csv-report | codex gpt-6.1-sol medium | 1.34.2 | done | nothing said | - | - | - (session record)
+20261114/closeout-whole/B-shared-expenses | shared-expenses | codex gpt-6.1-sol medium | 1.34.2 | done | nothing said | - | node-express (step-plan) | node-express 27 of 27 (session record)
+20261114/closeout-whole/T-csv-report | csv-report | codex gpt-6.1-sol medium | 1.34.2 | done | nothing said | - | python (implement) | python 29 of 29 (session record)
+20261114/closeout-whole/T-shared-expenses | shared-expenses | codex gpt-6.1-sol medium | 1.34.2 | done | nothing said | - | node-express (implement) | node-express 27 of 27 (session record)
+20261101/trials/005-C-sf-ui-38-a2 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101/trials/017-T1-sf-ui-03-a2 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101/trials/055-T1-sf-ui-18-a1 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | salesforce | salesforce (discovery) | salesforce 139 of 166 (printed)
+20261101/trials/069-T1-sf-ui-06-a1 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101/trials/087-T2-sf-ui-03-a1 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101/trials/126-T1-sf-ui-09-a4 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101/trials/140-T2-sf-ui-38-a1 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101/trials/161-T2-sf-ui-11-a1 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101/trials/170-C-sf-ui-33-a1 | custom | codex gpt-6.1-terra xhigh | 1.26.2 | active | no record | - | - | - (printed)
+20261101-guard/trials/098-GOLD-sf-ui-13-a1 | custom | codex gpt-6.1-terra xhigh | 1.28.0 | None | no record | - | - | - (printed)
+dadleet/e2e-runs-startroute/20261101-release-smoke-codex | hello | codex gpt-6.1-terra xhigh | 1.30.0 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/A-hello-s1 | hello | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/A-hello-s2 | hello | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/A-hello-s3 | hello | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/A-hello-s4 | hello | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/A-hello-s5 | hello | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/A-hello-s6 | hello | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/A-ticket-assignment-s1 | ticket-assignment | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/A-ticket-assignment-s2 | ticket-assignment | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/A-user-listing-s1 | user-listing | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/A-user-listing-s2 | user-listing | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/B-hello-s1 | hello | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/B-hello-s2 | hello | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/B-hello-s3 | hello | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/B-hello-s4 | hello | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/B-hello-s5 | hello | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/B-hello-s6 | hello | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/B-ticket-assignment-s1 | ticket-assignment | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/B-user-listing-s1 | user-listing | codex gpt-6.1-terra high | 1.26.2 | done | nothing said | - | - | - (session record)
+e2e-runs-tl/20261101/B-user-listing-s2 | user-listing | codex gpt-6.1-terra high | 1.26.2 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/M-hello-s1 | hello | codex gpt-6.1-terra high | 1.26.4 | done | none | - | - | - (session record)
+e2e-runs-tl/20261101/M-user-listing-s1 | user-listing | codex gpt-6.1-terra high | 1.26.4 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/A-ticket-import-s1 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | paused | no record | - | - | - (session record)
+e2e-runs-xr/20261031/A-ticket-import-s2 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/A-ticket-import-s3 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/A-ticket-import-s4 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | paused | no record | - | - | - (session record)
+e2e-runs-xr/20261031/A-ticket-import-s5 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/A-ticket-import-s6 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | paused | no record | - | - | - (session record)
+e2e-runs-xr/20261031/B-ticket-import-s1 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/B-ticket-import-s2 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/B-ticket-import-s3 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/B-ticket-import-s4 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/B-ticket-import-s5 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/B-ticket-import-s7 | ticket-import | codex gpt-6.1-terra high | 1.25.0 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/F-ticket-import-s1 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/F-ticket-import-s2 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/F-ticket-import-s3 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/F-ticket-import-s4 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/P-ticket-import-s1 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/P-ticket-import-s2 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/P-ticket-import-s3 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+e2e-runs-xr/20261031/P-ticket-import-s4 | ticket-import | codex gpt-6.1-terra high | 1.25.1 | done | nothing said | - | - | - (session record)
+
+== of the 382 asked runs, 316 delivered a docs/shiploop/environment.md
+   targets section: cards: 18 of 316
+   targets section: none: 89 of 316
+   targets section: nothing said: 209 of 316
+== of the 18 runs that named a card
+   the script printed its testing link: 1 of 18
+   the model was given that link line: 1 of 18
+   the builder opened a named card: 18 of 18
+   the model was given at least one own line of a named card: 18 of 18
+   share of a named card's own lines given, where any: median 100% (81% to 100%; 21 cards)
+== of all 382 asked runs
+   the builder opened any card: 37 of 382
+   the model was given an own line of any card: 40 of 382
+
+   the file names a card anywhere, not only in the targets section: 20 of 316
+   the file mentions a platform guide or card anywhere: 109 of 316
+
+== by model family, runs with a delivered environment.md: runs | named a card | said none | nothing said | opened any card | given any card line
+   terra | 192 | 0 | 60 | 132 | 1 | 2
+   sol | 58 | 0 | 0 | 58 | 5 | 5
+   sonnet | 40 | 0 | 22 | 18 | 1 | 0
+   grok | 17 | 14 | 2 | 1 | 16 | 17
+   deepseek | 8 | 4 | 4 | 0 | 4 | 5
+   luna | 1 | 0 | 1 | 0 | 1 | 1
+
+== stage of the first open of each card, all asked runs: discovery 32, test 2, step-plan 2, research 2, plan 2, implement 2, spec 1, improve 1
+
+== by host: runs | named a card | said none | opened any card | given any card line
+   claude | 60 | 4 | 26 | 5 | 6
+   codex | 296 | 0 | 61 | 8 | 9
+   grok | 26 | 14 | 2 | 24 | 25
+== by case: runs | named a card | said none | opened any card | given any card line
+   battleship | 12 | 4 | 3 | 4 | 4
+   battleship-salesforce | 2 | 0 | 0 | 0 | 0
+   battleship-salesforce-ui | 2 | 0 | 2 | 0 | 0
+   battleship-scoring | 2 | 1 | 1 | 1 | 1
+   checkers | 1 | 0 | 0 | 0 | 0
+   chess-salesforce | 6 | 1 | 1 | 3 | 4
+   csv-report | 27 | 0 | 14 | 1 | 1
+   custom | 24 | 0 | 5 | 1 | 1
+   grokbot-local | 3 | 0 | 0 | 2 | 2
+   gym-membership-salesforce | 3 | 0 | 0 | 1 | 1
+   hello | 58 | 7 | 24 | 10 | 11
+   hello-hook-continuation | 2 | 0 | 0 | 0 | 0
+   node-chess-engine | 2 | 0 | 0 | 0 | 0
+   seat-reservations | 4 | 2 | 2 | 2 | 2
+   shared-expenses | 52 | 0 | 16 | 2 | 2
+   ticket-assignment | 29 | 0 | 4 | 0 | 1
+   ticket-comments | 5 | 0 | 0 | 0 | 0
+   ticket-due-times | 87 | 3 | 5 | 10 | 9
+   ticket-escalation | 12 | 0 | 4 | 0 | 0
+   ticket-import | 23 | 0 | 2 | 0 | 0
+   ticket-sla | 3 | 0 | 0 | 0 | 0
+   user-listing | 20 | 0 | 6 | 0 | 1
+   user-page-size | 1 | 0 | 0 | 0 | 0
+   user-roles | 1 | 0 | 0 | 0 | 0
+   user-team-listing | 1 | 0 | 0 | 0 | 0
+
+card | runs that named it | opened it | were given a line of it
+   apps-script | 0 | 0 | 2
+   aws | 0 | 0 | 2
+   bash | 0 | 1 | 5
+   gcp | 0 | 0 | 2
+   node-express | 8 | 16 | 17
+   python | 9 | 13 | 15
+   salesforce | 1 | 5 | 18
+   ui | 3 | 9 | 15
+   ui-frameworks | 0 | 0 | 3
+
+what the targets section says about the platform guide, first such line of each run that names no card:
+   11 x - Platform guide: none.
+   3 x Observed: Node >=22, standard library only (README.md, package.json); local Node v26.12.1. The service listens
+   2 x - **Platform guide**: none of `GUIDES/platforms/` applies; the service is plain Node.js on a POSIX host.
+   2 x Binding: local source checkout is delivery target, Node >=22, standard library only (README.md, package.json).
+   1 x Local source checkout is the delivery target; isolated worktree returns to it at handoff. No remote target or 
+   1 x The initial repository is empty (baseline commit 4a05a9f). Python 3.9.6 is available locally; the standard lib
+   1 x Local Python 3 CLI, standard library only; interpreter observed: 3.9.6. Execution checkout starts empty at bas
+   1 x Current follow-up baseline: local worktree and source branch, Python Python 3.9.6, standard library; no platfo
+   1 x Local command-line users run Python 3; observed Python 3.9.6. No external dependencies or services. Delivery i
+   1 x Local development and delivery: source checkout, returned from isolated worktree; no configured CI, remote or 
+   1 x The initially empty local checkout is the delivery target; its isolated worktree is the development and test t
+   1 x Local source checkout; Python 3.9.6. Workspace return delivers the source; no hosted target or CI configured. 
+   1 x Binding: local Python 3 CLI, standard library only. Delivery is source return to original checkout; no deploym
+   1 x Binding: Salesforce Developer Edition alias de; all org commands use --target-org de. Source returned to initi
+   1 x Local command-line consumer, Python 3 standard library; observed Python 3.9.6. `python3 -m unittest --help` st
+   1 x - Local only: Python 3.15.1 (observed `python3 --version`), stdlib only. No delivery target, CI, deploy or pub
+   1 x - Delivery route: the source checkout receives the worktree delta at the final guarded return; no CI, deploy o
+   1 x - **Proposal:** Keep the implementation local and stateless, using Python's standard library. No platform guid
+   1 x - Target: local `node server.js`, PORT env var, default 3000 (request S2). No hosting, deploy or CI; delivery 
+   1 x - Observed: Python 3.9.6 runs the script and standard-library unittest suite. Source: `python3 --version`, `he
+   1 x - **Development and test (observed):** this Git worktree. Runtime is CPython 3.9.6 at `/usr/bin/python3`. No d
+   1 x Binding: local Node >=20 (package.json), no npm dependencies; Node v26.12.1 observed. HTTP server is process-l
+   1 x - No platform guide applies (`GUIDES/platforms/` not used): there is no cloud/platform target.
+   1 x Observed: Node v26.12.1 locally; package.json requires Node >=20 and has no dependencies. The local source che
+   1 x Binding: local source checkout is the delivery target; the isolated worktree returns to the original branch at

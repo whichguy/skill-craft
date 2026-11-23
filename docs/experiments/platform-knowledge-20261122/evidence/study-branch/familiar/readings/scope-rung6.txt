@@ -1,0 +1,976 @@
+id | host | ShipLoop | source files (status +added -removed) | test files | docs files/+lines | pre-existing source changed (not src/app.js) | auth lines | store/instance lines | token lines | original tests
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+n01 | codex | done | src/app.js M+2-1, src/routes/stock.js A+37-0 | test/stock.test.js A+69-0 | 3/+120 | none | 0 | 0 | 0 | 7 of 7 pass
+n02 | claude | done | src/app.js M+11-1, src/routes/stock.js A+44-0 | test/stock.test.js A+165-0, test/system.test.js A+65-0 | 3/+154 | none | 0 | 0 | 3 | 7 of 7 pass
+n03 | codex | done | src/app.js M+2-1, src/routes/stock.js A+37-0 | test/items.test.js M+61-0 | 3/+119 | none | 0 | 0 | 0 | 7 of 7 pass
+n04 | claude | done | src/app.js M+2-1, src/routes/stock.js A+47-0 | test/stock.test.js A+120-0, test/system.test.js A+64-0 | 3/+149 | none | 0 | 0 | 0 | 7 of 7 pass
+n05 | codex | done | src/app.js M+3-2, src/routes/stock.js A+39-0 | test/items.test.js M+86-0 | 3/+136 | none | 0 | 0 | 1 | 7 of 7 pass
+n06 | codex | done | src/app.js M+3-2, src/routes/stock.js A+43-0 | test/stock.test.js A+91-0 | 3/+92 | none | 0 | 0 | 1 | 7 of 7 pass
+n07 | claude | done | src/app.js M+9-1, src/routes/stock.js A+48-0 | test/request-id.test.js A+84-0, test/stock.test.js A+204-0, test/system.test.js A+96-0 | 3/+329 | none | 1 | 0 | 1 | 7 of 7 pass
+
+n01: product work, returned (ShipLoop done), from d011f56dcb9a107cf33ea5db60e570dd2b9444c8
+n02: product work, returned (ShipLoop done), from d011f56dcb9a107cf33ea5db60e570dd2b9444c8
+n03: product work, returned (ShipLoop done), from d011f56dcb9a107cf33ea5db60e570dd2b9444c8
+n04: product work, returned (ShipLoop done), from d011f56dcb9a107cf33ea5db60e570dd2b9444c8
+n05: product work, returned (ShipLoop done), from d011f56dcb9a107cf33ea5db60e570dd2b9444c8
+n06: product work, returned (ShipLoop done), from d011f56dcb9a107cf33ea5db60e570dd2b9444c8
+n07: product work, returned (ShipLoop done), from d011f56dcb9a107cf33ea5db60e570dd2b9444c8
+[
+ {
+  "id": "n01",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-n/n01",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "off",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-n/arm-off/build/plugins/skill-craft",
+  "prior": "prior-nodeplain",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 10.0,
+  "host_minutes": 10.0,
+  "tokens": {
+   "input_peak": 164797,
+   "processed": 8046326,
+   "output": 20581
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n01/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "d011f56dcb9a107cf33ea5db60e570dd2b9444c8",
+  "files": [
+   {
+    "path": "README.md",
+    "status": "M",
+    "added": 21,
+    "removed": 0,
+    "kind": "other"
+   },
+   {
+    "path": "docs/shiploop/architecture.md",
+    "status": "A",
+    "added": 34,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/environment.md",
+    "status": "A",
+    "added": 57,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/spec.md",
+    "status": "A",
+    "added": 29,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "src/app.js",
+    "status": "M",
+    "added": 2,
+    "removed": 1,
+    "kind": "source"
+   },
+   {
+    "path": "src/routes/stock.js",
+    "status": "A",
+    "added": 37,
+    "removed": 0,
+    "kind": "source"
+   },
+   {
+    "path": "test/stock.test.js",
+    "status": "A",
+    "added": 69,
+    "removed": 0,
+    "kind": "test"
+   }
+  ],
+  "totals": {
+   "source": {
+    "files": 2,
+    "added": 39,
+    "removed": 1
+   },
+   "test": {
+    "files": 1,
+    "added": 69,
+    "removed": 0
+   },
+   "docs": {
+    "files": 3,
+    "added": 120,
+    "removed": 0
+   },
+   "other": {
+    "files": 1,
+    "added": 21,
+    "removed": 0
+   }
+  },
+  "pre_existing_source_changed": [],
+  "mentions": {
+   "authorization": {
+    "lines": 0,
+    "found": []
+   },
+   "shared_state": {
+    "lines": 0,
+    "found": []
+   },
+   "header_token": {
+    "lines": 0,
+    "found": []
+   }
+  },
+  "original_tests": {
+   "fixture": "pk-nodeplain",
+   "files": [
+    "test/items.test.js"
+   ],
+   "exit": 0,
+   "tests": 7,
+   "pass": 7,
+   "fail": 0,
+   "failing": [],
+   "tail": null
+  }
+ },
+ {
+  "id": "n02",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-n/n02",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-n/arm-declared/build/plugins/skill-craft",
+  "prior": "prior-nodeplain",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 16.4,
+  "host_minutes": 16.5,
+  "tokens": {
+   "input_peak": 362614,
+   "processed": 34297840,
+   "output": 120211
+  },
+  "cost_usd": 5.9384,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n02/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "d011f56dcb9a107cf33ea5db60e570dd2b9444c8",
+  "files": [
+   {
+    "path": "README.md",
+    "status": "M",
+    "added": 18,
+    "removed": 0,
+    "kind": "other"
+   },
+   {
+    "path": "docs/shiploop/architecture.md",
+    "status": "A",
+    "added": 26,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/environment.md",
+    "status": "A",
+    "added": 76,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/spec.md",
+    "status": "A",
+    "added": 52,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "src/app.js",
+    "status": "M",
+    "added": 11,
+    "removed": 1,
+    "kind": "source"
+   },
+   {
+    "path": "src/routes/stock.js",
+    "status": "A",
+    "added": 44,
+    "removed": 0,
+    "kind": "source"
+   },
+   {
+    "path": "test/stock.test.js",
+    "status": "A",
+    "added": 165,
+    "removed": 0,
+    "kind": "test"
+   },
+   {
+    "path": "test/system.test.js",
+    "status": "A",
+    "added": 65,
+    "removed": 0,
+    "kind": "test"
+   }
+  ],
+  "totals": {
+   "source": {
+    "files": 2,
+    "added": 55,
+    "removed": 1
+   },
+   "test": {
+    "files": 2,
+    "added": 230,
+    "removed": 0
+   },
+   "docs": {
+    "files": 3,
+    "added": 154,
+    "removed": 0
+   },
+   "other": {
+    "files": 1,
+    "added": 18,
+    "removed": 0
+   }
+  },
+  "pre_existing_source_changed": [],
+  "mentions": {
+   "authorization": {
+    "lines": 0,
+    "found": []
+   },
+   "shared_state": {
+    "lines": 0,
+    "found": []
+   },
+   "header_token": {
+    "lines": 3,
+    "found": [
+     "src/app.js: /** The id the response carries in X-Org-Request-Id: the request's own value when it has one, else a new UUID. */",
+     "src/app.js: const own = req.headers['x-org-request-id'];",
+     "src/app.js: res.setHeader('X-Org-Request-Id', requestId(req));"
+    ]
+   }
+  },
+  "original_tests": {
+   "fixture": "pk-nodeplain",
+   "files": [
+    "test/items.test.js"
+   ],
+   "exit": 0,
+   "tests": 7,
+   "pass": 7,
+   "fail": 0,
+   "failing": [],
+   "tail": null
+  }
+ },
+ {
+  "id": "n03",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-n/n03",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-n/arm-declared/build/plugins/skill-craft",
+  "prior": "prior-nodeplain",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 10.1,
+  "host_minutes": 10.1,
+  "tokens": {
+   "input_peak": 180382,
+   "processed": 7336325,
+   "output": 19801
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n03/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "d011f56dcb9a107cf33ea5db60e570dd2b9444c8",
+  "files": [
+   {
+    "path": "README.md",
+    "status": "M",
+    "added": 19,
+    "removed": 0,
+    "kind": "other"
+   },
+   {
+    "path": "docs/shiploop/architecture.md",
+    "status": "A",
+    "added": 30,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/environment.md",
+    "status": "A",
+    "added": 66,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/spec.md",
+    "status": "A",
+    "added": 23,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "src/app.js",
+    "status": "M",
+    "added": 2,
+    "removed": 1,
+    "kind": "source"
+   },
+   {
+    "path": "src/routes/stock.js",
+    "status": "A",
+    "added": 37,
+    "removed": 0,
+    "kind": "source"
+   },
+   {
+    "path": "test/items.test.js",
+    "status": "M",
+    "added": 61,
+    "removed": 0,
+    "kind": "test"
+   }
+  ],
+  "totals": {
+   "source": {
+    "files": 2,
+    "added": 39,
+    "removed": 1
+   },
+   "test": {
+    "files": 1,
+    "added": 61,
+    "removed": 0
+   },
+   "docs": {
+    "files": 3,
+    "added": 119,
+    "removed": 0
+   },
+   "other": {
+    "files": 1,
+    "added": 19,
+    "removed": 0
+   }
+  },
+  "pre_existing_source_changed": [],
+  "mentions": {
+   "authorization": {
+    "lines": 0,
+    "found": []
+   },
+   "shared_state": {
+    "lines": 0,
+    "found": []
+   },
+   "header_token": {
+    "lines": 0,
+    "found": []
+   }
+  },
+  "original_tests": {
+   "fixture": "pk-nodeplain",
+   "files": [
+    "test/items.test.js"
+   ],
+   "exit": 0,
+   "tests": 7,
+   "pass": 7,
+   "fail": 0,
+   "failing": [],
+   "tail": null
+  }
+ },
+ {
+  "id": "n04",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-n/n04",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "route": "off",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-n/arm-off/build/plugins/skill-craft",
+  "prior": "prior-nodeplain",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 15.9,
+  "host_minutes": 15.9,
+  "tokens": {
+   "input_peak": 327798,
+   "processed": 28190968,
+   "output": 119840
+  },
+  "cost_usd": 5.1882,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n04/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "d011f56dcb9a107cf33ea5db60e570dd2b9444c8",
+  "files": [
+   {
+    "path": "README.md",
+    "status": "M",
+    "added": 17,
+    "removed": 0,
+    "kind": "other"
+   },
+   {
+    "path": "docs/shiploop/architecture.md",
+    "status": "A",
+    "added": 26,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/environment.md",
+    "status": "A",
+    "added": 83,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/spec.md",
+    "status": "A",
+    "added": 40,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "src/app.js",
+    "status": "M",
+    "added": 2,
+    "removed": 1,
+    "kind": "source"
+   },
+   {
+    "path": "src/routes/stock.js",
+    "status": "A",
+    "added": 47,
+    "removed": 0,
+    "kind": "source"
+   },
+   {
+    "path": "test/stock.test.js",
+    "status": "A",
+    "added": 120,
+    "removed": 0,
+    "kind": "test"
+   },
+   {
+    "path": "test/system.test.js",
+    "status": "A",
+    "added": 64,
+    "removed": 0,
+    "kind": "test"
+   }
+  ],
+  "totals": {
+   "source": {
+    "files": 2,
+    "added": 49,
+    "removed": 1
+   },
+   "test": {
+    "files": 2,
+    "added": 184,
+    "removed": 0
+   },
+   "docs": {
+    "files": 3,
+    "added": 149,
+    "removed": 0
+   },
+   "other": {
+    "files": 1,
+    "added": 17,
+    "removed": 0
+   }
+  },
+  "pre_existing_source_changed": [],
+  "mentions": {
+   "authorization": {
+    "lines": 0,
+    "found": []
+   },
+   "shared_state": {
+    "lines": 0,
+    "found": []
+   },
+   "header_token": {
+    "lines": 0,
+    "found": []
+   }
+  },
+  "original_tests": {
+   "fixture": "pk-nodeplain",
+   "files": [
+    "test/items.test.js"
+   ],
+   "exit": 0,
+   "tests": 7,
+   "pass": 7,
+   "fail": 0,
+   "failing": [],
+   "tail": null
+  }
+ },
+ {
+  "id": "n05",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-n/n05",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-n/arm-declared-discovery/build/plugins/skill-craft",
+  "prior": "prior-nodeplain",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 12.1,
+  "host_minutes": 12.1,
+  "tokens": {
+   "input_peak": 200812,
+   "processed": 10379196,
+   "output": 26091
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n05/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "d011f56dcb9a107cf33ea5db60e570dd2b9444c8",
+  "files": [
+   {
+    "path": "README.md",
+    "status": "M",
+    "added": 24,
+    "removed": 0,
+    "kind": "other"
+   },
+   {
+    "path": "docs/shiploop/architecture.md",
+    "status": "A",
+    "added": 35,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/environment.md",
+    "status": "A",
+    "added": 78,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/spec.md",
+    "status": "A",
+    "added": 23,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "src/app.js",
+    "status": "M",
+    "added": 3,
+    "removed": 2,
+    "kind": "source"
+   },
+   {
+    "path": "src/routes/stock.js",
+    "status": "A",
+    "added": 39,
+    "removed": 0,
+    "kind": "source"
+   },
+   {
+    "path": "test/items.test.js",
+    "status": "M",
+    "added": 86,
+    "removed": 0,
+    "kind": "test"
+   }
+  ],
+  "totals": {
+   "source": {
+    "files": 2,
+    "added": 42,
+    "removed": 2
+   },
+   "test": {
+    "files": 1,
+    "added": 86,
+    "removed": 0
+   },
+   "docs": {
+    "files": 3,
+    "added": 136,
+    "removed": 0
+   },
+   "other": {
+    "files": 1,
+    "added": 24,
+    "removed": 0
+   }
+  },
+  "pre_existing_source_changed": [],
+  "mentions": {
+   "authorization": {
+    "lines": 0,
+    "found": []
+   },
+   "shared_state": {
+    "lines": 0,
+    "found": []
+   },
+   "header_token": {
+    "lines": 1,
+    "found": [
+     "src/routes/stock.js: res.setHeader('X-Org-Request-Id', req.headers['x-org-request-id'] ?? randomUUID());"
+    ]
+   }
+  },
+  "original_tests": {
+   "fixture": "pk-nodeplain",
+   "files": [
+    "test/items.test.js"
+   ],
+   "exit": 0,
+   "tests": 7,
+   "pass": 7,
+   "fail": 0,
+   "failing": [],
+   "tail": null
+  }
+ },
+ {
+  "id": "n06",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-n/n06",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-n/arm-declared-discovery/build/plugins/skill-craft",
+  "prior": "prior-nodeplain",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 9.5,
+  "host_minutes": 9.5,
+  "tokens": {
+   "input_peak": 155233,
+   "processed": 5378933,
+   "output": 18885
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n06/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "d011f56dcb9a107cf33ea5db60e570dd2b9444c8",
+  "files": [
+   {
+    "path": "README.md",
+    "status": "M",
+    "added": 21,
+    "removed": 0,
+    "kind": "other"
+   },
+   {
+    "path": "docs/shiploop/architecture.md",
+    "status": "A",
+    "added": 27,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/environment.md",
+    "status": "A",
+    "added": 38,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/spec.md",
+    "status": "A",
+    "added": 27,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "src/app.js",
+    "status": "M",
+    "added": 3,
+    "removed": 2,
+    "kind": "source"
+   },
+   {
+    "path": "src/routes/stock.js",
+    "status": "A",
+    "added": 43,
+    "removed": 0,
+    "kind": "source"
+   },
+   {
+    "path": "test/stock.test.js",
+    "status": "A",
+    "added": 91,
+    "removed": 0,
+    "kind": "test"
+   }
+  ],
+  "totals": {
+   "source": {
+    "files": 2,
+    "added": 46,
+    "removed": 2
+   },
+   "test": {
+    "files": 1,
+    "added": 91,
+    "removed": 0
+   },
+   "docs": {
+    "files": 3,
+    "added": 92,
+    "removed": 0
+   },
+   "other": {
+    "files": 1,
+    "added": 21,
+    "removed": 0
+   }
+  },
+  "pre_existing_source_changed": [],
+  "mentions": {
+   "authorization": {
+    "lines": 0,
+    "found": []
+   },
+   "shared_state": {
+    "lines": 0,
+    "found": []
+   },
+   "header_token": {
+    "lines": 1,
+    "found": [
+     "src/routes/stock.js: const REQUEST_ID_HEADER = 'x-org-request-id';"
+    ]
+   }
+  },
+  "original_tests": {
+   "fixture": "pk-nodeplain",
+   "files": [
+    "test/items.test.js"
+   ],
+   "exit": 0,
+   "tests": 7,
+   "pass": 7,
+   "fail": 0,
+   "failing": [],
+   "tail": null
+  }
+ },
+ {
+  "id": "n07",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-n/n07",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-n/arm-declared-discovery/build/plugins/skill-craft",
+  "prior": "prior-nodeplain",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 21.7,
+  "host_minutes": 21.7,
+  "tokens": {
+   "input_peak": 458793,
+   "processed": 46272627,
+   "output": 164414
+  },
+  "cost_usd": 7.9486,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n07/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "d011f56dcb9a107cf33ea5db60e570dd2b9444c8",
+  "files": [
+   {
+    "path": "README.md",
+    "status": "M",
+    "added": 29,
+    "removed": 0,
+    "kind": "other"
+   },
+   {
+    "path": "docs/shiploop/architecture.md",
+    "status": "A",
+    "added": 50,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/environment.md",
+    "status": "A",
+    "added": 191,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "docs/shiploop/spec.md",
+    "status": "A",
+    "added": 88,
+    "removed": 0,
+    "kind": "docs"
+   },
+   {
+    "path": "src/app.js",
+    "status": "M",
+    "added": 9,
+    "removed": 1,
+    "kind": "source"
+   },
+   {
+    "path": "src/routes/stock.js",
+    "status": "A",
+    "added": 48,
+    "removed": 0,
+    "kind": "source"
+   },
+   {
+    "path": "test/request-id.test.js",
+    "status": "A",
+    "added": 84,
+    "removed": 0,
+    "kind": "test"
+   },
+   {
+    "path": "test/stock.test.js",
+    "status": "A",
+    "added": 204,
+    "removed": 0,
+    "kind": "test"
+   },
+   {
+    "path": "test/system.test.js",
+    "status": "A",
+    "added": 96,
+    "removed": 0,
+    "kind": "test"
+   }
+  ],
+  "totals": {
+   "source": {
+    "files": 2,
+    "added": 57,
+    "removed": 1
+   },
+   "test": {
+    "files": 3,
+    "added": 384,
+    "removed": 0
+   },
+   "docs": {
+    "files": 3,
+    "added": 329,
+    "removed": 0
+   },
+   "other": {
+    "files": 1,
+    "added": 29,
+    "removed": 0
+   }
+  },
+  "pre_existing_source_changed": [],
+  "mentions": {
+   "authorization": {
+    "lines": 1,
+    "found": [
+     "src/routes/stock.js: * caller, like itemsRoutes: the service has no authentication. */"
+    ]
+   },
+   "shared_state": {
+    "lines": 0,
+    "found": []
+   },
+   "header_token": {
+    "lines": 1,
+    "found": [
+     "src/app.js: const REQUEST_ID_HEADER = 'x-org-request-id';"
+    ]
+   }
+  },
+  "original_tests": {
+   "fixture": "pk-nodeplain",
+   "files": [
+    "test/items.test.js"
+   ],
+   "exit": 0,
+   "tests": 7,
+   "pass": 7,
+   "fail": 0,
+   "failing": [],
+   "tail": null
+  }
+ }
+]

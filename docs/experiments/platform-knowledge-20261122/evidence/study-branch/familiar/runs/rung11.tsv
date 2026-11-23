@@ -1,0 +1,3 @@
+t01	codex	gpt-6.2-sol	medium	$ROOT/prior-nodeplain-named	$ROOT/arm-off/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+t02	codex	gpt-6.2-sol	medium	$ROOT/prior-nodeplain-named	$ROOT/arm-off/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+t03	claude	claude-sonnet-5-5	medium	$ROOT/prior-nodeplain-named	$ROOT/arm-off/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt

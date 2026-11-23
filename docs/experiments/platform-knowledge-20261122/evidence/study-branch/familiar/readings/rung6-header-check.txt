@@ -1,0 +1,128 @@
+== n01
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n01/work",
+ "started": true,
+ "factory": "src/app.js createServer",
+ "calls": [
+  {
+   "name": "valid",
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "hc-1db5ccad-5ff0-4437-a7b9-7ec158716001",
+   "status": 200,
+   "header": false,
+   "value": null,
+   "echoed": false,
+   "status_as_requested": true,
+   "pass": false
+  },
+  {
+   "name": "refused",
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": false,
+   "value": null,
+   "status_as_requested": true,
+   "pass": false
+  }
+ ],
+ "route_missing": false,
+ "statuses": "as the request says (200, 400)",
+ "verdict": "fail"
+}
+== n02
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n02/work",
+ "started": true,
+ "factory": "src/app.js createServer",
+ "calls": [
+  {
+   "name": "valid",
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "hc-d445479d-ee6b-4d78-b40b-6ab25993e7c6",
+   "status": 200,
+   "header": true,
+   "value": "hc-d445479d-ee6b-4d78-b40b-6ab25993e7c6",
+   "echoed": true,
+   "status_as_requested": true,
+   "pass": true
+  },
+  {
+   "name": "refused",
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": true,
+   "value": "e2dca8fc-f191-407e-83a4-5a2942e98167",
+   "status_as_requested": true,
+   "pass": true
+  }
+ ],
+ "route_missing": false,
+ "statuses": "as the request says (200, 400)",
+ "verdict": "pass"
+}
+== n03
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n03/work",
+ "started": true,
+ "factory": "src/app.js createServer",
+ "calls": [
+  {
+   "name": "valid",
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "hc-574c4b5d-ab32-4894-b987-d08f5017b058",
+   "status": 200,
+   "header": false,
+   "value": null,
+   "echoed": false,
+   "status_as_requested": true,
+   "pass": false
+  },
+  {
+   "name": "refused",
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": false,
+   "value": null,
+   "status_as_requested": true,
+   "pass": false
+  }
+ ],
+ "route_missing": false,
+ "statuses": "as the request says (200, 400)",
+ "verdict": "fail"
+}
+== n04
+{
+ "product": "/Users/dadleet/e2e-runs-pk/20261122-n/n04/work",
+ "started": true,
+ "factory": "src/app.js createServer",
+ "calls": [
+  {
+   "name": "valid",
+   "request": "GET /stock?ids=P-1001,P-1002",
+   "sent": "hc-97e90937-46f2-4c6f-a96d-97b995056af2",
+   "status": 200,
+   "header": false,
+   "value": null,
+   "echoed": false,
+   "status_as_requested": true,
+   "pass": false
+  },
+  {
+   "name": "refused",
+   "request": "GET /stock",
+   "sent": null,
+   "status": 400,
+   "header": false,
+   "value": null,
+   "status_as_requested": true,
+   "pass": false
+  }
+ ],
+ "route_missing": false,
+ "statuses": "as the request says (200, 400)",
+ "verdict": "fail"
+}

@@ -1,0 +1,6 @@
+r01	codex	gpt-6.2-sol	medium	$ROOT/prior-nodeplain	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+r02	codex	gpt-6.2-sol	medium	$ROOT/prior-nodeplain	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+r03	claude	claude-sonnet-5-5	medium	$ROOT/prior-nodeplain	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+r04	codex	gpt-6.2-sol	medium	$ROOT/prior-nodeplain-facts-override	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+r05	codex	gpt-6.2-sol	medium	$ROOT/prior-nodeplain-facts-override	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+r06	claude	claude-sonnet-5-5	medium	$ROOT/prior-nodeplain-facts-override	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt

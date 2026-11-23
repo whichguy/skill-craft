@@ -1,0 +1,3 @@
+u01	codex	gpt-6.2-sol	medium	/Users/dadleet/e2e-runs-pk/20261122-n/prior-nodeplain-named	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+u02	codex	gpt-6.2-sol	medium	/Users/dadleet/e2e-runs-pk/20261122-n/prior-nodeplain-named	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt
+u03	claude	claude-sonnet-5-5	medium	/Users/dadleet/e2e-runs-pk/20261122-n/prior-nodeplain-named	$ROOT/arm-live-spec/build/plugins/skill-craft	docs/experiments/platform-knowledge-20261122/familiar/node-request.txt

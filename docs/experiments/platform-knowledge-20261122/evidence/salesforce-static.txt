@@ -1,0 +1,10 @@
+run	C1	C2(tabcmp/tabfiles/lwcComp)	C3(ps/tabSet/classAcc/app)	C4(nontest/sharing)	C5	C6(lines/tap)	C7	C8(lightning__Tab,.sfdx,tap,PSTabSetting,with sharing,bulk)
+run	one(.sf)	1 / 1 / lwcComponent in 1	1 / tabSettings 1 / classAccesses 1 / app 1	2 / 1	0 of 0	74 / tap 1	1	Y Y Y Y Y Y
+gym-published-baseline-03	no .gitignore	1 / 1 / lwcComponent in 1	1 / tabSettings 1 / classAccesses 1 / app 1	1 / 1	1 of 1	58 / tap 2	1	Y Y Y Y Y Y
+chess-sf-clean	no .gitignore	1 / 1 / lwcComponent in 1	0 / tabSettings 0 / classAccesses 0 / app 1	2 / 2	0 of 0	94 / tap 1	1	Y Y Y Y Y Y
+baseline-01	both	1 / 1 / lwcComponent in 1	0 / tabSettings 0 / classAccesses 0 / app 1	2 / 1	0 of 0	91 / tap 0	2	Y Y Y Y Y Y
+rerun-02	both	1 / 1 / lwcComponent in 1	0 / tabSettings 0 / classAccesses 0 / app 1	2 / 1	0 of 0	84 / tap 0	2	Y Y Y Y Y Y
+chess-sf-full-12a23d	both	1 / 1 / lwcComponent in 1	0 / tabSettings 0 / classAccesses 0 / app 1	2 / 0	0 of 0	446 / tap 163	2	Y Y Y Y Y Y
+sf-live-2	no .gitignore	1 / 1 / lwcComponent in 1	1 / tabSettings 1 / classAccesses 1 / app 1	2 / 1	0 of 0	56 / tap 1	1	Y Y Y Y Y Y
+ui-live-2	no .gitignore	1 / 1 / lwcComponent in 1	1 / tabSettings 1 / classAccesses 1 / app 1	2 / 1	0 of 0	46 / tap 1	1	Y Y Y Y Y Y
+ui-live-3	both	1 / 1 / lwcComponent in 1	1 / tabSettings 1 / classAccesses 1 / app 1	2 / 1	0 of 0	37 / tap 0	1	Y Y Y Y Y Y

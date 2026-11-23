@@ -1,0 +1,326 @@
+id | host | arm (select/planning) | ShipLoop | wall min | output tokens | cost $ | token src/test/docs/other | plan packets holding entry | entry given at plan | card named in a call | environment.md names card
+--- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+r04 | codex | declared/inline | done | 15.8 | 26918 | - | 2/1/5/1 | 1 of 1 | no | 1 | yes
+r05 | codex | declared/inline | done | 10.0 | 21256 | - | 2/5/4/0 | 0 of 1 | no | 2 | yes
+r06 | claude | declared/inline | done | 21.5 | 160701 | 8.0213 | 3/21/18/2 | 1 of 1 | no | 5 | yes
+
+r04: product work, returned (ShipLoop done)
+r05: product work, returned (ShipLoop done)
+r06: product work, returned (ShipLoop done)
+[
+ {
+  "id": "r04",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/r04",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-facts-override",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 15.8,
+  "host_minutes": 15.8,
+  "tokens": {
+   "input_peak": 193644,
+   "processed": 10613164,
+   "output": 26918
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/r04/work",
+  "found": "work, returned (ShipLoop done)",
+  "select_route": "declared",
+  "card": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft/skills/shiploop/references/platforms/node-express.md",
+  "entry": "N-GATEWAY",
+  "token": "X-Corp-Trace",
+  "packets": {
+   "plan_packets": 1,
+   "plan_packets_holding": 1,
+   "holding": [
+    "/Users/dadleet/e2e-runs-pk/20261122-r/r04/.shiploop-runs/work-20261122-233809-e7edd6/run/packets/sent/9befdbb3ab3618ec.md"
+   ],
+   "other_stages_holding": [
+    "carry-forward",
+    "document",
+    "implement",
+    "product-acceptance",
+    "release-verify",
+    "spec",
+    "test",
+    "test-spec",
+    "test-strategy"
+   ]
+  },
+  "entry_given_at_plan": false,
+  "card_reads": [
+   {
+    "at": "2026-11-22T23:39:39Z",
+    "at_ts": 1795390779.508,
+    "tool": "exec",
+    "excerpt": "returns UUID v4.'); JS cat '${r}/notes/node-primitives.log'`}),tools.exec_command({cmd:`cat '${p}/references/platforms/node-express.md'`})]).then(a=>a.forEach(o=>text(o.value?.output??o)))",
+    "seconds_after_packet": -118.5,
+    "in_plan_window": false
+   }
+  ],
+  "token_in_product": {
+   "source": {
+    "files": 1,
+    "occurrences": 2,
+    "paths": [
+     "src/app.js"
+    ]
+   },
+   "test": {
+    "files": 1,
+    "occurrences": 1,
+    "paths": [
+     "test/stock.test.js"
+    ]
+   },
+   "docs": {
+    "files": 3,
+    "occurrences": 5,
+    "paths": [
+     "docs/shiploop/architecture.md",
+     "docs/shiploop/environment.md",
+     "docs/shiploop/spec.md"
+    ]
+   },
+   "other": {
+    "files": 1,
+    "occurrences": 1,
+    "paths": [
+     "README.md"
+    ]
+   }
+  },
+  "environment_names_card": true
+ },
+ {
+  "id": "r05",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/r05",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-facts-override",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 10.0,
+  "host_minutes": 10.0,
+  "tokens": {
+   "input_peak": 148419,
+   "processed": 5746114,
+   "output": 21256
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/r05/work",
+  "found": "work, returned (ShipLoop done)",
+  "select_route": "declared",
+  "card": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft/skills/shiploop/references/platforms/node-express.md",
+  "entry": "N-GATEWAY",
+  "token": "X-Corp-Trace",
+  "packets": {
+   "plan_packets": 1,
+   "plan_packets_holding": 0,
+   "holding": [],
+   "other_stages_holding": [
+    "spec"
+   ]
+  },
+  "entry_given_at_plan": false,
+  "card_reads": [
+   {
+    "at": "2026-11-22T23:38:53Z",
+    "at_ts": 1795390733.272,
+    "tool": "exec",
+    "excerpt": "onst s=load(\"s\"),r=load(\"r\");text(await tools.exec_command({cmd:`rg -n -i 'trace|request.id' \"${s}/references/platforms/node-express.md\"; ls \"${s}/references/platforms\"; cat \"${r}/../workspace.md\"`}));store(\"helper\",load(\"helper\").replace('text(x.output.s",
+    "seconds_after_packet": -98.4,
+    "in_plan_window": false
+   },
+   {
+    "at": "2026-11-22T23:39:09Z",
+    "at_ts": 1795390749.968,
+    "tool": "exec",
+    "excerpt": "helper\"))({evidence_refs:[r+\"/notes/research.md\",r+\"/../worktree/docs/shiploop/environment.md\",s+\"/references/platforms/node-express.md\"],headline:\"Reconciled the production gateway contract\",outcome:\"done\",summary:\"Use the repository’s newer gateway obse",
+    "seconds_after_packet": -81.7,
+    "in_plan_window": false
+   }
+  ],
+  "token_in_product": {
+   "source": {
+    "files": 1,
+    "occurrences": 2,
+    "paths": [
+     "src/app.js"
+    ]
+   },
+   "test": {
+    "files": 1,
+    "occurrences": 5,
+    "paths": [
+     "test/stock.test.js"
+    ]
+   },
+   "docs": {
+    "files": 2,
+    "occurrences": 4,
+    "paths": [
+     "docs/shiploop/environment.md",
+     "docs/shiploop/spec.md"
+    ]
+   },
+   "other": {
+    "files": 0,
+    "occurrences": 0,
+    "paths": []
+   }
+  },
+  "environment_names_card": true
+ },
+ {
+  "id": "r06",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/r06",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "route": "inline",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-facts-override",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 21.5,
+  "host_minutes": 21.5,
+  "tokens": {
+   "input_peak": 450414,
+   "processed": 47693301,
+   "output": 160701
+  },
+  "cost_usd": 8.0213,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/r06/work",
+  "found": "work, returned (ShipLoop done)",
+  "select_route": "declared",
+  "card": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec/build/plugins/skill-craft/skills/shiploop/references/platforms/node-express.md",
+  "entry": "N-GATEWAY",
+  "token": "X-Corp-Trace",
+  "packets": {
+   "plan_packets": 1,
+   "plan_packets_holding": 1,
+   "holding": [
+    "/Users/dadleet/e2e-runs-pk/20261122-r/r06/.shiploop-runs/work-20261122-233754-f069fd/run/packets/sent/6e889fa6943df180.md"
+   ],
+   "other_stages_holding": [
+    "carry-forward",
+    "document",
+    "product-acceptance",
+    "release-verify",
+    "research",
+    "spec",
+    "test-strategy"
+   ]
+  },
+  "entry_given_at_plan": false,
+  "card_reads": [
+   {
+    "at": "2026-11-22T23:38:26Z",
+    "at_ts": 1795390706.619,
+    "tool": "Bash",
+    "excerpt": "/skill-craft/skills/shiploop/references; ls $G/platforms/ 2>&1; grep -n -i \\\"header\\\\|trace\\\\|request-id\\\" $G/platforms/node-express.md | head -20\", \"description\": \"Check platform guide for header notes\"}",
+    "seconds_after_packet": -279.7,
+    "in_plan_window": false
+   },
+   {
+    "at": "2026-11-22T23:38:31Z",
+    "at_ts": 1795390711.093,
+    "tool": "Edit",
+    "excerpt": "ks this header today (grep, observed): the existing routes' answers lack it, and\\n the platform guide GUIDES/platforms/node-express.md (N-GATEWAY) still names the old `X-Org-Request-Id`; this\\n repository's observed fact (X-Corp-Trace) governs.\"}",
+    "seconds_after_packet": -275.3,
+    "in_plan_window": false
+   },
+   {
+    "at": "2026-11-22T23:38:34Z",
+    "at_ts": 1795390714.622,
+    "tool": "Edit",
+    "excerpt": "checks this header today (grep, observed): the existing routes' answers lack it. The\\n platform guide GUIDES/platforms/node-express.md (N-GATEWAY) still names the old `X-Org-Request-Id`; this\\n repository's observed fact (`X-Corp-Trace`) governs.\\n\"}",
+    "seconds_after_packet": -271.7,
+    "in_plan_window": false
+   },
+   {
+    "at": "2026-11-22T23:38:45Z",
+    "at_ts": 1795390725.995,
+    "tool": "Bash",
+    "excerpt": "(matches). Facts recorded in environment.md: local Node observed 26.12.1. Conflict found and resolved: GUIDES/platforms/node-express.md N-GATEWAY says X-Org-Request-Id, repo environment.md says X-Corp-Trace (observed in gateway log 2026-10-21, platform te",
+    "seconds_after_packet": -260.4,
+    "in_plan_window": false
+   },
+   {
+    "at": "2026-11-22T23:38:57Z",
+    "at_ts": 1795390737.773,
+    "tool": "Bash",
+    "excerpt": "needed.\\n\\n## Conclusions\\n- Gateway header: X-Corp-Trace (environment.md Platform facts; evidenced). GUIDES/platforms/node-express.md N-GATEWAY names the stale X-Org-Request-Id; repo fact governs.\\n- Header seam: `res.setHeader('X-Corp-Trace', req.heade",
+    "seconds_after_packet": -248.6,
+    "in_plan_window": false
+   }
+  ],
+  "token_in_product": {
+   "source": {
+    "files": 1,
+    "occurrences": 3,
+    "paths": [
+     "src/app.js"
+    ]
+   },
+   "test": {
+    "files": 3,
+    "occurrences": 21,
+    "paths": [
+     "test/items.test.js",
+     "test/stock.test.js",
+     "test/system.test.js"
+    ]
+   },
+   "docs": {
+    "files": 3,
+    "occurrences": 18,
+    "paths": [
+     "docs/shiploop/architecture.md",
+     "docs/shiploop/environment.md",
+     "docs/shiploop/spec.md"
+    ]
+   },
+   "other": {
+    "files": 1,
+    "occurrences": 2,
+    "paths": [
+     "README.md"
+    ]
+   }
+  },
+  "environment_names_card": true
+ }
+]

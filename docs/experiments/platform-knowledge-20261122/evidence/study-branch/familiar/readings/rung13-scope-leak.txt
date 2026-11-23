@@ -1,0 +1,251 @@
+id | host | start copied_into | delivered copied_into | ids found (delivered) | lines found (delivered) | token start->delivered | longest shared run start->delivered (words) | new_copy_by_words
+--- | --- | --- | --- | --- | --- | --- | --- | ---
+v01 | codex | no | no | none | 0 | 0->1 | N-INSTANCES 2->2, N-AUTHZ 2->2, N-GATEWAY 2->2 | no
+v02 | codex | no | no | none | 0 | 0->0 | N-INSTANCES 2->2, N-AUTHZ 2->2, N-GATEWAY 2->2 | no
+v03 | claude | no | no | none | 0 | 0->7 | N-INSTANCES 2->2, N-AUTHZ 2->2, N-GATEWAY 2->3 | no
+
+v01: product work, returned (ShipLoop done), from 47ec05140368bb579581a3e9ad77c15cab217782
+v02: product work, returned (ShipLoop done), from 47ec05140368bb579581a3e9ad77c15cab217782
+v03: product work, returned (ShipLoop done), from 47ec05140368bb579581a3e9ad77c15cab217782
+[
+ {
+  "id": "v01",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/v01",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "lookup",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec-lookup/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-named",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 11.2,
+  "host_minutes": 11.3,
+  "tokens": {
+   "input_peak": 173189,
+   "processed": 8936173,
+   "output": 23956
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/v01/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "47ec05140368bb579581a3e9ad77c15cab217782",
+  "start": {
+   "present": true,
+   "copied_into": false,
+   "ids_found": [],
+   "lines_found": [],
+   "token_count": 0
+  },
+  "delivered": {
+   "present": true,
+   "copied_into": false,
+   "ids_found": [],
+   "lines_found": [],
+   "token_count": 1
+  },
+  "runs": {
+   "N-INSTANCES": {
+    "start": {
+     "words": 2,
+     "text": "and the"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "and the"
+    }
+   },
+   "N-AUTHZ": {
+    "start": {
+     "words": 2,
+     "text": "in the"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "has no"
+    }
+   },
+   "N-GATEWAY": {
+    "start": {
+     "words": 2,
+     "text": "the request"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "the request"
+    }
+   }
+  },
+  "new_copy_by_words": false,
+  "card": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/node-express.md",
+  "token": "X-Org-Request-Id"
+ },
+ {
+  "id": "v02",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/v02",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "route": "lookup",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec-lookup/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-named",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 10.5,
+  "host_minutes": 10.6,
+  "tokens": {
+   "input_peak": 160403,
+   "processed": 7012808,
+   "output": 22312
+  },
+  "cost_usd": null,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/v02/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "47ec05140368bb579581a3e9ad77c15cab217782",
+  "start": {
+   "present": true,
+   "copied_into": false,
+   "ids_found": [],
+   "lines_found": [],
+   "token_count": 0
+  },
+  "delivered": {
+   "present": true,
+   "copied_into": false,
+   "ids_found": [],
+   "lines_found": [],
+   "token_count": 0
+  },
+  "runs": {
+   "N-INSTANCES": {
+    "start": {
+     "words": 2,
+     "text": "and the"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "and the"
+    }
+   },
+   "N-AUTHZ": {
+    "start": {
+     "words": 2,
+     "text": "in the"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "has no"
+    }
+   },
+   "N-GATEWAY": {
+    "start": {
+     "words": 2,
+     "text": "the request"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "the request"
+    }
+   }
+  },
+  "new_copy_by_words": false,
+  "card": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/node-express.md",
+  "token": "X-Org-Request-Id"
+ },
+ {
+  "id": "v03",
+  "out": "/Users/dadleet/e2e-runs-pk/20261122-r/v03",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "route": "lookup",
+  "plugin_dir": "/Users/dadleet/e2e-runs-pk/20261122-r/arm-live-spec-lookup/build/plugins/skill-craft",
+  "prior": "prior-nodeplain-named",
+  "harness_pass": true,
+  "shiploop_status": "done",
+  "shiploop_stage": "done",
+  "process_status": "exited",
+  "checks": [
+   {
+    "command": "npm test",
+    "pass": true
+   }
+  ],
+  "wall_minutes": 31.9,
+  "host_minutes": 31.9,
+  "tokens": {
+   "input_peak": 525999,
+   "processed": 63834726,
+   "output": 230439
+  },
+  "cost_usd": 10.6207,
+  "product": "/Users/dadleet/e2e-runs-pk/20261122-r/v03/work",
+  "found": "work, returned (ShipLoop done)",
+  "start_head": "47ec05140368bb579581a3e9ad77c15cab217782",
+  "start": {
+   "present": true,
+   "copied_into": false,
+   "ids_found": [],
+   "lines_found": [],
+   "token_count": 0
+  },
+  "delivered": {
+   "present": true,
+   "copied_into": false,
+   "ids_found": [],
+   "lines_found": [],
+   "token_count": 7
+  },
+  "runs": {
+   "N-INSTANCES": {
+    "start": {
+     "words": 2,
+     "text": "and the"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "kept in"
+    }
+   },
+   "N-AUTHZ": {
+    "start": {
+     "words": 2,
+     "text": "in the"
+    },
+    "delivered": {
+     "words": 2,
+     "text": "has no"
+    }
+   },
+   "N-GATEWAY": {
+    "start": {
+     "words": 2,
+     "text": "the request"
+    },
+    "delivered": {
+     "words": 3,
+     "text": "carries the header."
+    }
+   }
+  },
+  "new_copy_by_words": false,
+  "card": "/Users/dadleet/src/skill-craft/.claude/worktrees/pk-candidate-0d73cf/skills/shiploop/references/platforms/node-express.md",
+  "token": "X-Org-Request-Id"
+ }
+]

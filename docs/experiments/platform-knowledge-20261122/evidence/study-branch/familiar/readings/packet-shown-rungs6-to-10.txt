@@ -1,0 +1,40 @@
+run | model, effort | spec stage: instruction lines given | reference lines given | guide lines of the list given
+20261122-n/k11 | gpt-6.2-sol medium | 110 of 110 | 9 of 57 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-n/k12 | gpt-6.2-sol medium | 9 of 110 | 9 of 57 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-n/n01 | gpt-6.2-sol medium | 96 of 110 | 8 of 58 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-n/n03 | gpt-6.2-sol medium | 28 of 110 | 16 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-n/n05 | gpt-6.2-sol medium | 34 of 110 | 18 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-n/n06 | gpt-6.2-sol medium | 110 of 110 | 9 of 54 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-n/q01 | gpt-6.2-sol medium | 99 of 110 | 11 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-n/q02 | gpt-6.2-sol medium | 35 of 110 | 9 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-r/r01 | gpt-6.2-sol medium | 71 of 125 | 24 of 58 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-r/r02 | gpt-6.2-sol medium | 113 of 125 | 7 of 56 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-r/r04 | gpt-6.2-sol medium | 115 of 125 | 9 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+20261122-r/r05 | gpt-6.2-sol medium | 125 of 125 | 9 of 55 | Behavior-model guidance no, State and data assessment no, Requirements definition guide no
+
+Codex runs read: 12. By stage, over every packet whose stage was submitted:
+stage | packets | instruction lines given: every one | four fifths or more | under a third | of the lines no earlier packet of the run printed: four fifths or more | under a third | reference lines given: median share (lowest to highest) | a quarter or less
+intake | 12 | 12 | 12 | 0 | 12 of 12 | 0 of 12 | 100% (100% to 100%) | 0
+discovery | 12 | 10 | 12 | 0 | 12 of 12 | 0 of 12 | 89% (13% to 100%) | 3
+research | 12 | 5 | 8 | 0 | 10 of 12 | 0 of 12 | 14% (9% to 48%) | 8
+spec | 12 | 3 | 7 | 4 | 7 of 12 | 4 of 12 | 16% (12% to 41%) | 9
+test-strategy | 12 | 0 | 3 | 7 | 5 of 12 | 7 of 12 | 14% (10% to 77%) | 11
+plan | 12 | 0 | 6 | 2 | 6 of 12 | 3 of 12 | 16% (13% to 47%) | 11
+prepare | 12 | 0 | 1 | 7 | 1 of 12 | 7 of 12 | 16% (10% to 100%) | 10
+step-plan | 13 | 0 | 4 | 2 | 7 of 13 | 0 of 13 | 29% (25% to 65%) | 2
+test-spec | 13 | 0 | 1 | 7 | 2 of 13 | 8 of 13 | 17% (12% to 33%) | 9
+implement | 13 | 0 | 2 | 8 | 4 of 13 | 8 of 13 | 12% (6% to 31%) | 10
+test | 12 | 0 | 1 | 7 | 1 of 12 | 8 of 12 | 9% (8% to 30%) | 10
+document | 12 | 0 | 0 | 6 | 1 of 12 | 6 of 12 | 10% (6% to 34%) | 10
+carry-forward | 12 | 0 | 1 | 8 | 2 of 12 | 8 of 12 | 12% (8% to 40%) | 11
+system-test-author | 12 | 0 | 5 | 2 | 6 of 12 | 3 of 12 | 15% (11% to 30%) | 10
+system-test | 12 | 0 | 1 | 10 | 1 of 12 | 10 of 12 | 14% (7% to 29%) | 11
+product-acceptance | 12 | 0 | 1 | 8 | 3 of 12 | 8 of 12 | 12% (7% to 18%) | 12
+release-plan | 12 | 0 | 1 | 0 | 4 of 12 | 0 of 12 | 20% (15% to 25%) | 11
+release-check | 12 | 0 | 3 | 4 | 6 of 12 | 4 of 12 | 15% (9% to 25%) | 12
+release | 12 | 0 | 1 | 4 | 5 of 12 | 4 of 12 | 15% (7% to 29%) | 11
+release-verify | 12 | 0 | 2 | 1 | 5 of 12 | 1 of 12 | 14% (8% to 17%) | 12
+operations | 12 | 1 | 3 | 3 | 7 of 12 | 2 of 12 | 13% (7% to 28%) | 11
+handoff | 12 | 0 | 2 | 2 | 6 of 12 | 5 of 12 | 23% (9% to 43%) | 6
+
+{"spec packets where the list's line for a guide was given": {"Behavior-model guidance": [0, 12], "State and data assessment": [0, 12], "Requirements definition guide": [0, 12]}}
