@@ -178,6 +178,8 @@ import shiploop_prompts as prompts  # noqa: E402
 import shiploop_reference as run_reference  # noqa: E402
 import shiploop_standalone_improve as standalone_improve  # noqa: E402
 import shiploop_store as store  # noqa: E402
+import shiploop_test_counts as test_counts  # noqa: E402
+import shiploop_test_loop as test_loop  # noqa: E402
 
 
 def render_with_guides(*args, **kwargs) -> str:
@@ -1285,15 +1287,117 @@ class GuidanceTests(unittest.TestCase):
                         }
                         self.assertIn(anchor, headings)
 
-    def test_the_salesforce_card_names_the_reporter_shiploop_reads_and_the_remote_test_route(self) -> None:
-        """An org-run Apex test: the reporter the reader can use, and why the base run leaves it out (a remote test, which
-        e074ccd3 made the base run skip; the card no longer sends a model to red_na)."""
-        card = " ".join((REFERENCES / "platforms" / "salesforce.md").read_text(encoding="utf-8").split())
-        for phrase in ("with a reporter it can read", "--result-format tap", "an `ok` or `not ok` line per test",
-                       "put the outcome word after the test name", "refused as unread",
-                       "so it is a remote test (Remote tests below)", "the test stage's base run does not run it"):
-            self.assertIn(phrase, card)
-        self.assertNotIn("red_na", card.split("## Remote tests")[0])
+    # Trimmed copies of real `sf apex run test` output saved by the E2E run chess-sf-full-12a23d (2026-10-25), with the
+    # org user name removed: the human table from a verify record, the TAP stream from a check-only record.
+    APEX_HUMAN = """=== Test Results
+TEST NAME                                  OUTCOME  MESSAGE  RUNTIME (MS)
+─────────────────────────────────────────  ───────  ───────  ────────────
+SLChessRulesTest.TC_10_epCapture           Pass              52
+SLChessRulesTest.TC_19_controllerMates     Pass              128
+SLChessRulesTest.TC_1_startFen             Pass              17
+SLChessRulesTest.TC_2_startLegalMoves      Pass              54
+
+
+=== Test Summary
+NAME                 VALUE
+───────────────────  ──────
+Outcome              Passed
+Tests Ran            4
+Pass Rate            100%
+"""
+    APEX_TAP = """1..4
+ok 1 SLChessRulesTest.TC_10_epCapture
+ok 2 SLChessRulesTest.TC_19_controllerMates
+ok 3 SLChessRulesTest.TC_1_startFen
+ok 4 SLChessRulesTest.TC_2_startLegalMoves
+# Run "sf apex get test -i  -o <user> --result-format <format>" to retrieve test results in a different format.
+"""
+    APEX_IDS = ("TC_1_startFen", "TC_19_controllerMates")
+
+    def test_the_salesforce_cards_apex_reporter_advice_is_what_the_judge_does_with_each_format(self) -> None:
+        """The Salesforce card's Testing section tells an author which `sf apex run test` format to record and what
+        ShipLoop does with each; each claim is checked here against the judge on real output.  Until 2026-11-22 this
+        test pinned the phrase "refused as unread", true at c700eb29 and false from e074ccd3 (the base run stopped
+        running a remote command, the only path to the base judge's `unread`), and the pin kept the stale sentence in
+        place.  When a behaviour assertion fails, the judge changed: correct the card sentence its subtest quotes in the
+        same change (a judge change of that kind is a product decision)."""
+        card = (REFERENCES / "platforms" / "salesforce.md").read_text(encoding="utf-8")
+        section = normalized(card.split("\n## Testing\n", 1)[1].split("\n## ", 1)[0])
+        self.assertNotIn("refused as unread", section)
+        self.assertNotIn("red_na", normalized(card).split("## Remote tests")[0])  # the card sends no model to red_na
+        recorded = re.search(r"`(sf apex run test [^`]*--result-format tap)`", section)
+        self.assertIsNotNone(recorded, "the Testing section records no `sf apex run test ... --result-format tap`")
+        self.assertIn("`--result-format human`", section)
+        tap = recorded.group(1)
+        human = tap.replace("--result-format tap", "--result-format human")
+        default = tap.replace(" --result-format tap", "")
+        self.assertNotIn(tap, (human, default))
+
+        def changed(text: str, old: str, new: str) -> str:
+            mutated = text.replace(old, new)
+            self.assertNotEqual(mutated, text, "the sample holds no " + repr(old))
+            return mutated
+
+        def judged(command: str, output: str, code: int, **extra: object) -> str:
+            row = {"command": command, "suite": "focused", "ids": self.APEX_IDS, **extra}
+            return test_loop.judge(row, code, output)["status"]
+
+        human_failed = changed(self.APEX_HUMAN, "TC_1_startFen             Pass", "TC_1_startFen             Fail")
+        tap_failed = changed(self.APEX_TAP, "ok 3 SLChessRulesTest.TC_1_startFen",
+                             "not ok 3 SLChessRulesTest.TC_1_startFen")
+
+        said = ("so it is a remote test (Remote tests below)", "the test stage's base run does not run it")
+        with self.subTest(claim=said):
+            for phrase in said:
+                self.assertIn(phrase, section)
+            # In any format the row is `remote` before the base judge is asked, so its `unread` cannot be reached.
+            for command in (tap, human, default):
+                base = test_loop._remote_base({"command": command, "suite": "focused", "ids": self.APEX_IDS})
+                self.assertIsNotNone(base, command)
+                self.assertEqual(base["status"], "remote", command)
+                self.assertIn(base["status"], test_loop.BASE_GOOD, command)
+
+        said = "which ShipLoop reads and counts"
+        with self.subTest(claim=said):
+            self.assertIn(said, section)
+            self.assertEqual(test_counts.outcomes(self.APEX_TAP, self.APEX_IDS), dict.fromkeys(self.APEX_IDS, "passed"))
+            self.assertEqual(test_counts.count(self.APEX_TAP, 0), {"ran": 4, "failed": 0, "runners": ["tap"]})
+
+        said = "so a `not ok` test fails the command even when it exits 0"
+        with self.subTest(claim=said):
+            self.assertIn(said, section)
+            self.assertEqual(judged(tap, tap_failed, 0), "failed")
+
+        said = "put the outcome word after the test name, which ShipLoop does not read"
+        with self.subTest(claim=said):
+            self.assertIn(said, section)
+            self.assertEqual(test_counts.outcomes(self.APEX_HUMAN, self.APEX_IDS),
+                             dict.fromkeys(self.APEX_IDS, "shown"))
+
+        said = ("ShipLoop still accepts a focused command that uses them when it exits 0 and its output names every "
+                "listed test ID")
+        with self.subTest(claim=said):
+            self.assertIn(said, section)
+            unlisted = "TC_3_neverRun"
+            self.assertNotIn(unlisted, self.APEX_HUMAN)
+            for command in (human, default):
+                self.assertEqual(judged(command, self.APEX_HUMAN, 0), "passed", command)
+                self.assertEqual(judged(command, self.APEX_HUMAN, 0, ids=[*self.APEX_IDS, unlisted]), "ids-missing",
+                                 command)
+            self.assertEqual(judged(tap, self.APEX_TAP, 0), "passed")  # the advised format works
+
+        said = "only the exit code then catches a failed test"
+        with self.subTest(claim=said):
+            self.assertIn(said, section)
+            self.assertEqual(judged(human, human_failed, 0), "passed")
+            self.assertEqual(judged(human, human_failed, 1), "failed")
+
+        said = "no test count is read, so its `min_tests` is not checked"
+        with self.subTest(claim=said):
+            self.assertIn(said, section)
+            self.assertIsNone(test_counts.count(self.APEX_HUMAN, 0))
+            self.assertEqual(judged(human, self.APEX_HUMAN, 0, min_tests=5), "passed")
+            self.assertEqual(judged(tap, self.APEX_TAP, 0, min_tests=5), "too-few-tests")
 
     def test_the_apps_script_card_points_deployed_tests_at_the_stateful_target_route(self) -> None:
         """Only the Salesforce card lists Remote tests: it names the shell commands that test an org. No command this
