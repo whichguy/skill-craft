@@ -23,15 +23,19 @@ holding the requester's reply (``program/replies.json``):
   deadline or the delivery's end sends nothing and says so;
 - ``--answer-late``: ``--answer-at plan``, so the run holds the answer for a new run;
 - ``--note-at STAGE``: when ``STAGE``'s packet first prints, the start-up row of the current list is chosen the same
-  way, its "Decided:" part is classified (``classify_decided``: ``command`` when an operator must run something first
-  or the service refuses to start while due times are missing, ``start`` when a start fills them in), and the note of
+  way, its "Decided:" part is classified (``classify_decided``: ``command`` on a sign of a separate command an operator
+  runs first or of a refusal to start while due times are missing, else ``start``), and the note of
   ``../shiploop-answers/late-notes.json`` that contradicts that decision is sent as a PLAIN note (no ``--default``), so
-  every delivery shows whether a late plain note is taken in; a row it cannot classify gets nothing;
-- none of these: nothing is sent.
+  every delivery shows whether a late plain note is taken in; only a list with no start-up row, or a tie, gets nothing;
+- none of these (silent): nothing is sent.
+
+The three answer modes send ``note --default <selector>``, the answer route of a candidate engine
+(``shiploop_answers``).  In an engine without that module they refuse at start (exit 2, nothing sent), and the rows
+are read as that engine prints them, with no selector; ``--reply``, ``--note-at`` and the silent mode work in both.
 
 ``--self-test`` checks the argument parsing of the modes, classifies every row ``late-notes.json`` labels and fails if
-one differs from its label or cannot be classified, then runs the row choice and the classification over the printed
-rows saved under ``evidence/``; no run is read and nothing is sent.
+one differs from its label, then runs the row choice and the classification over the printed rows saved under
+``evidence/``; no run is read and nothing is sent.
 
 Either way it writes what it saw and did beside the output folder, in ``<out>-requester.json``, and ends.
 
@@ -54,11 +58,19 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
 
 import run_choice
-import shiploop_answers as answers
 import shiploop_defaults as defaults
 import shiploop_navigator as navigator
 import shiploop_stage_spec as stage_spec
 import shiploop_trace
+
+try:
+    import shiploop_answers as answers  # the answer route: a candidate engine only
+except ImportError:
+    answers = None
+# The modes that send ``note --default <selector>``: they need an engine with the answer route (``shiploop_answers``).
+ANSWER_MODES = ("answer", "answer-at", "answer-late")
+NO_ANSWER_ROUTE = ("requester: --answer, --answer-at and --answer-late need an engine with the answer route "
+                   "(skills/shiploop/scripts/shiploop_answers.py), which this one does not have; nothing was sent")
 
 SUFFIX = "-requester.json"
 POLL_SECONDS = 2.0
@@ -73,13 +85,18 @@ LATER = tuple(stage_spec.STAGES)[tuple(stage_spec.STAGES).index(defaults.SHOWN_A
 # What ``--note-at`` sends, and the rows a reader labelled (written before any such delivery; never in a delivery).
 LATE_NOTES = HERE.parent / "shiploop-answers" / "late-notes.json"
 DECIDED = re.compile(r"Decided:(.*?) Otherwise:", re.DOTALL)
-# What a start-up row's "Decided:" part decided, read from what it says.  ``command``: an operator runs something of
-# its own first (offline, a run of a backfill, migration, command or script, npm run, the writer or service stopped
-# for it), or the service refuses or fails to start while due times are missing.  ``start``: a start of the service
-# fills them in: a start named together with filling them (writes, persists, backfills, fills, prepares, populates,
-# migrates, rewrites, saves), with the file that start produced, or with the inputs a due time is computed from.  A
-# command signal decides the class whatever else the row says: then the operator still runs something, or the start
-# is refused.  "Before enabling it" or "then enable and restart" is the flag being switched, not a command.
+# What the start-up row's "Decided:" part decided, read from what it says.  ``command``: it shows a sign of a separate
+# command an operator runs first (offline, a run of a backfill, migration, command or script, npm run, the writer or
+# service stopped for it), or of a refusal (the service refuses or fails to start while due times are missing).  A
+# command signal decides the class whatever else the row says.  Otherwise the row is ``start``: the row choice already
+# found it is the decision of how the tickets on file get their due times, and with no separate command and no refusal
+# a start of the service is what gives them.  The start signals (a start named together with filling them: writes,
+# persists, backfills, fills, prepares, populates, migrates, rewrites, saves; the file that start produced; the inputs
+# a due time is computed from) are recorded when found; a row without them is taken as start, and the record says so
+# (round 3 lost three of seven deliveries to rows such as "Start the upgraded service with the feature off and verify
+# the data file before enabling", which name the start but not the filling).  "Before enabling it" or "then enable and
+# restart" is the flag being switched, not a command.
+FELL_THROUGH = "taken as start: no sign of a separate command or a refusal"
 COMMAND_SIGNALS = {
     "offline": re.compile(r"\boffline\b", re.IGNORECASE),
     "refuses to start": re.compile(r"\brefus\w*|\bfails? to start\b|\b(?:will|does) not start\b|\bblocks? (?:enabled )?"
@@ -167,15 +184,17 @@ def decided_part(row: str) -> str:
 
 
 def classify_decided(text: str) -> dict:
-    """{"class": "command" | "start" | None, "signals": [...]} for a start-up row's Decided part (``COMMAND_SIGNALS``,
-    ``START_SIGNALS``)."""
+    """{"class": "command" | "start", "signals": [...], "note": ...} for the Decided part of the row ``choose_row``
+    picked as the start-up row (``COMMAND_SIGNALS``, ``START_SIGNALS``): ``command`` on a sign of a separate command or
+    a refusal, else ``start``, never unclassified.  ``note`` is ``FELL_THROUGH`` when the row is start for want of a
+    command sign and not by a start that fills, else None."""
     command = [name for name, pattern in COMMAND_SIGNALS.items() if pattern.search(text)]
     if command:
-        return {"class": "command", "signals": command}
+        return {"class": "command", "signals": command, "note": None}
     start = [name for name, pattern in START_SIGNALS.items() if pattern.search(text)]
-    if START_WORD.search(text) and start:
-        return {"class": "start", "signals": ["a start", *start]}
-    return {"class": None, "signals": start + (["a start"] if START_WORD.search(text) else [])}
+    signals = (["a start"] if START_WORD.search(text) else []) + start
+    return {"class": "start", "signals": signals,
+            "note": None if START_WORD.search(text) and start else FELL_THROUGH}
 
 
 def note_for(rows: list[str]) -> dict:
@@ -192,9 +211,8 @@ def note_for(rows: list[str]) -> dict:
         return plan
     found = classify_decided(decided_part(rows[choice["chosen"] - 1]))
     plan.update(row_class=found["class"], row_class_signals=found["signals"])
-    if found["class"] is None:
-        plan["ended"] = "could not tell what the row decided; nothing was sent"
-        return plan
+    if found["note"]:
+        plan["row_class_note"] = found["note"]
     notes = json.loads(LATE_NOTES.read_text(encoding="utf-8"))
     plan["note_sent"] = notes["sent_when_the_row_decided"][found["class"]]
     plan["text"] = notes["notes"][plan["note_sent"]]
@@ -202,17 +220,19 @@ def note_for(rows: list[str]) -> dict:
 
 
 def labelled_test() -> int:
-    """Every row ``late-notes.json`` labels, classified and compared with its label; 1 when one differs or is None."""
+    """Every row ``late-notes.json`` labels, classified and compared with its label; 1 when one differs."""
     labelled = json.loads(LATE_NOTES.read_text(encoding="utf-8"))["labelled_rows"]
-    wrong = 0
+    wrong = total = 0
     for relative, label in labelled.items():
         if relative == "_about":
             continue
         row = (LATE_NOTES.parent / relative).read_text(encoding="utf-8").strip()
         found = classify_decided(decided_part(row))
         ok = found["class"] == label
-        wrong += not ok
-        print(f"{'ok  ' if ok else 'DIFF'} {relative}: {found['class']} (label {label}; {', '.join(found['signals'])})")
+        wrong, total = wrong + (not ok), total + 1
+        print(f"{'ok  ' if ok else 'DIFF'} {relative}: {found['class']} (label {label}; "
+              f"{', '.join(found['signals']) or 'no signal'}{'; ' + found['note'] if found['note'] else ''})")
+    print(f"labelled rows: {total - wrong} of {total} classified as labelled")
     return 1 if wrong else 0
 
 
@@ -227,7 +247,8 @@ def self_test() -> int:
                   else "nothing: no row qualifies")
         if choice["chosen"]:
             found = classify_decided(decided_part(rows[choice["chosen"] - 1]))
-            picked = f"class {found['class']} ({', '.join(found['signals'])}): " + picked
+            picked = (f"class {found['class']} ({', '.join(found['signals']) or 'no signal'}"
+                      f"{'; ' + found['note'] if found['note'] else ''}): " + picked)
         scores = ", ".join(f"{candidate['row']}={candidate['score']}" for candidate in choice["candidates"])
         print(f"{path.relative_to(HERE)}: row {choice['chosen'] or '-'} of {len(rows)} (scores {scores}; selector "
               f"{choice['selector'] or 'none printed'}): {picked}")
@@ -306,10 +327,15 @@ def wait_for_stage(out: Path, run_dir: Path, stage: str, deadline: float) -> tup
 
 
 def current_rows(run_dir: Path) -> list[str]:
-    """The list of the current accepted spec result, as the packet prints its rows (each with its selector)."""
+    """The list of the current accepted spec result, as this engine's packet prints its rows: each with its selector
+    where the engine has the answer route, without one where it has not."""
     state = shiploop_trace.current_state(run_dir) or {}
     entries = defaults.recorded(state) or []
-    return defaults.row_lines(entries, selector=answers.selector_of(state)) if entries else []
+    if not entries:
+        return []
+    if answers is None:
+        return defaults.row_lines(entries)
+    return defaults.row_lines(entries, selector=answers.selector_of(state))
 
 
 def answer_row(record: dict, out: Path, run_dir: Path, case: str, choice: dict, sent_at: str) -> None:
@@ -424,14 +450,19 @@ def main() -> int:
     parser = arguments()
     args = parser.parse_args()
     if args.self_test:
-        for argv in (["--answer-at", "implement"], ["--answer-late"], ["--answer"], ["--note-at", "implement"]):
+        for argv in (["--answer-at", "implement"], ["--answer-late"], ["--answer"], ["--note-at", "implement"],
+                     ["--reply"], []):
             mode, stage = mode_of(parser.parse_args(["--out", "x", "--case", CASES[0], *argv]))
-            print(f"arguments {' '.join(argv)}: mode {mode}, stage {stage}")
+            refused = " (refused here: this engine has no shiploop_answers)" if mode in ANSWER_MODES and not answers else ""
+            print(f"arguments {' '.join(argv) or '(none: silent)'}: mode {mode}, stage {stage}{refused}")
         failed = labelled_test()
         return self_test() or failed
+    mode, stage = mode_of(args)
+    if mode in ANSWER_MODES and answers is None:
+        print(NO_ANSWER_ROUTE, file=sys.stderr)
+        return 2
     if args.out is None or args.case is None:
         parser.error("--out and --case are required unless --self-test")
-    mode, stage = mode_of(args)
     record = watch(args.out, args.case, time.time() + args.hours * 3600, mode, stage)
     args.out.with_name(args.out.name + SUFFIX).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key: record.get(key) for key in ("mode", "stage_waited_for", "stage_seen_at", "block_printed",

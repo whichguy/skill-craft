@@ -1,0 +1,1 @@
+1. R-3 How do operators populate the file before exposing due? Decided: Operators start the candidate with the switch off and confirm stored coverage before enabling. Otherwise: A separate migration CLI adds a deployment command. Selector: 1@fa1ff647.

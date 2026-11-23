@@ -1,0 +1,1 @@
+4. R-5 How do due times get into the file before the flag is on? Decided: The new release writes due into the data file at its first start even with the flag off, so operators can check the file before switching on. Otherwise: Backfill only when DUE_TIMES=on; but then the file would not hold due times before the switch, contradicting the request. Selector: 4@c698bd15.

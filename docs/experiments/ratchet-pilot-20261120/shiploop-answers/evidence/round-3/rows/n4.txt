@@ -1,0 +1,1 @@
+3. R-3 How do operators stage rollout? Decided: Run the offline migration before enabling the flag. Startup fails early if the file still has missing deadlines. Otherwise: An automatic activation-time migration would couple rollout and file conversion. Selector: 3@dd814407.

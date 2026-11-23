@@ -5093,3 +5093,168 @@ answer word for word in `shiploop-notes/review/`). What they changed, in the ord
   did exactly that. The deliveries registered in the design's section 5 are what test it on both drivers.
 
 Section 4 of the design lists all ten with what was done.
+
+### The build (2026-11-22 14:58 to 16:22)
+
+An Opus worker built the design's section 2 from a brief, on the candidate's branch, with no commit of its own. As
+built it is commit `f429c90a90b09b85021c91289576aa9103e06f90`: 28 paths.
+
+- **Engine.** `shiploop_owner_notes.py` is rewritten around the row: its shape (`canonical`), where each note
+  stands (`ledger`, `standing`), who owes a row (`owes`, `owed`), the row's checks (`faults`), the refusal's
+  formatter (`refusal`, `unreadable`, `arrived`), what a stage is told (`packet_forms`, `template_rows`) and what
+  the requester sees (`done_lines`, `html_section`). `shiploop_navigator.py` calls one gate (`_notes_gate`) where
+  the hold sat in `dispatch`, before the loop receipt and every other gate, again before a check's yes is reused,
+  and at a review's import (`_import_notes_gate`); `_end_read` reads the notes once more at `handoff`. The hold, the
+  record of what a print showed, the `check` notice and the delivery record are gone from the engine, the trace, the
+  trace page and the story.
+- **Tests.** The owner-notes suite is rewritten through the real CLI with both streams read (45 tests); the loophole
+  suite has a fixture for each row of the design's section 3 (12 tests); the suites that pin packet tiers, bounds,
+  gate words, the trace and the harness's note helper are brought in line.
+- **Its own checks, run one after another:** the two suites above and eighteen others pass (among them
+  navigator-contract 127 tests, callback-contract 117, e2e-analysis 303, actual-improve-cli 107, handoff 170). With
+  the gate made a no-op, 14 of the 45 note tests fail, as they should. A scripted run with no note, driven through
+  the CLI on `main`'s engine and on the candidate with the same inputs, prints the same 40 command outputs.
+- **Beside the engine:** the stand-in requester's rule for telling what a start-up row decided is repaired (a sign of
+  a separate command or of a refusal makes it `command`, anything else is `start`; it now classifies all 24 rows a
+  reader labelled, where the earlier rule lost four of seven deliveries of round 3), and a reader for the coming
+  deliveries is written (`shiploop-notes/read_notes.py`).
+
+### The review of the code (16:24 to 16:40): "Fix first"
+
+The latest Sol at maximum effort read a neutral copy: the design, the diff against `main`, the files as built and
+`main`'s versions of the changed scripts. Question and answer are word for word in `shiploop-notes/review/`
+(`sol-code-question.md`, `sol-code-answer.md`). Eleven defects, a list of fixtures that would pass on a broken
+engine, and an audit of the change note. Nothing in it is against the design; its one design remark is that parity
+for a run with no note has to say whether `trace --json` is inside it.
+
+What it confirmed by tracing: the gate is applied once, with one read of the notes, on each path by which a
+producer's `done` result is accepted; the ledger and `owes` strand no open note and ask for no settled one in any
+ordinary state of the run; the `item` rules at `plan` and `carry-forward` are the design's; the old bookkeeping is
+gone from the live engine.
+
+The defects, in the order they matter to a real run:
+
+- **The standing instructions still said "blocked".** The new block and the reference tell `carry-forward` to
+  revise a requirement an owner note changes; the stage's main duty and the rule of its Until Loop still said a
+  changed requirement means stop and report `blocked`, and `document`'s duty still said to send it back. A session
+  that followed the older sentence would have stopped the run at the very step the candidate exists for. This is
+  the path the deliveries registered below test.
+- **Ways a note could be let through or mis-accounted:** a note file that cannot be read was skipped, not refused;
+  a note written after a settled note's file was removed reused its id and inherited its row; a changed draft on a
+  parked action got a yes from `check` and a refusal from `complete`; a review's malformed `notes` was skipped when
+  the parked result had none.
+- **The end of the run:** the last read sat before the report was rendered, so the saved report and the done packet
+  could list different notes, and the note command could tell the owner "no stage read it" about a note `handoff`
+  had settled.
+- **The first line was not always the sentence to act on:** a row with a mistyped id crashed the formatter, a
+  scalar `notes` and a duplicate row got a misleading line, and two refusals (a note that arrives during `handoff`,
+  a review's import) had their own shorter wording.
+- **Smaller:** placeholder text such as `...` passed as a `detail`; with a hundred notes the minimal result template
+  overflowed the head; the harness's readers graded a saved run of the older engine differently than before; two
+  public texts (`shiploop --help`, the README) still described settlement by printing.
+
+The fixtures it named as passing on a broken engine: the second-step ledger test stopped before the second step's
+result was accepted; the reconcile test settled the note at a stage the rewind does not remove; the end-of-run
+fixture asserted the opposite of the loophole it names.
+
+### What was fixed before the deliveries, and what waits (16:47 to 17:40)
+
+The owner's instruction of about 17:00 (below) arrived while an Opus worker was eleven minutes into fixing all
+eleven findings. The worker took its half-made changes back out of the tree and kept three, each with tests shown
+failing on the build as committed:
+
+- **The standing texts.** `document`'s duty now ends "report send-back naming the R-<n>, unless an owner note asks
+  for the change: then the note is carried and this step is finished as planned". `carry-forward`'s duty and the rule
+  of its Until Loop now end "it is no queue edit, unless an owner note this stage owes asks for the requirement
+  change: then rewrite the requirement in place, queue the work and report done". The clauses are static: they do
+  not depend on which notes are on file, so a loop's receipt can never be invalidated by a note that arrives later.
+  ("Rewrite", not "revise": the loops suite refuses the retired outcome word "revise" in a repeat rule.)
+- **The first line for a mistyped row.** A row whose `note` is not an id no longer crashes the formatter: `"notes"
+  has a row whose "note" is "typo", which is not an owner note id (N<k>): fix or remove it in RESULT, then run this
+  again.` A scalar: `"notes" is not a list: give it in RESULT as a list with one row per owed note (N1), then run
+  this again.` Two rows for one note: `"notes" has two rows for N1: keep exactly one in RESULT, then run this
+  again.` The harness's matchers for refusal lines (`test/shiploop_e2e/metrics.py`) and the deliveries' reader know
+  the three forms.
+- **One refusal's wording** printed `({listed})` for want of an `f` prefix.
+
+Checks, one after another: the owner-notes suite (49 tests), the loophole suite (12), and sixteen suites that read
+the duty and loop texts or the packet (loops 67, guidance 93, lint 129, test-loop 241, knowledge 163, handoff 170,
+navigator-contract 127, callback-contract 117, e2e-analysis 303 and seven smaller ones): all pass. The wide tier
+has not been run on this commit and is not run before the deliveries.
+
+The change note's parity sentence is corrected for the two standing clauses. Every other finding of the review
+waits (the design's section 6 lists each with why): none can be met by a delivery of the first rung, and none is
+needed at all if the candidate is not accepted. The worker's unfinished work on four of them is kept outside the
+tree, uncommitted.
+
+### The plan cut to what changes the decision (the owner's word, 2026-11-22 about 17:00)
+
+The owner, word for word: "Make sure that we're actually implementing things we're sure of, or we're running tests
+to either validate or invalidate something that would specifically change a major decision, not just for
+curiosity."
+
+Checked against that, three parts of the plan did not earn their place, and each is changed before any run:
+
+- **Hardening before proof.** All eleven review findings were being fixed before anything showed that the candidate
+  works on Sol at all. Only three bear on what a real delivery meets: the standing instructions that contradicted
+  the new rule, the refusal's first line for a row a model can plausibly mistype (an id that is not `N<k>`, a
+  scalar, a duplicate), and a wording bug in one refusal. Those go in now. The other findings wait, and are fixed
+  only if the first rung passes and the recommendation is to accept.
+- **The wide test tier before the deliveries.** It shows that no other suite is broken, which matters for `main`
+  and not for a delivery run from a detached copy. It runs once, at the end, on the final commit, and only if the
+  recommendation is to accept.
+- **Twelve deliveries.** The design's section 5 fixed six and two during the build and three and one before the
+  plan. That count is superseded here, before any of them ran: the readings M1 to M5 stand as written there, and
+  the deliveries become rungs, each with the decision it serves.
+
+### Registered before any delivery of the candidate (2026-11-22 17:38)
+
+**The decision.** What is recommended to the owner: accept the candidate into `main`, or not yet. It is the
+owner's decision; nothing is built on a result without the owner.
+
+**First rung: is a note sent during the build taken in?** This is the one case where the released engine loses the
+note on Sol (n4, n5 and d5: the model was never given the words) and the case the candidate exists for. Four
+deliveries, case `ticket-due-times`, each beside the stand-in requester, which sends its note when the first
+`implement` packet prints (`note-at-implement`): g1, g2, g3 on Codex with gpt-6.2-sol at medium, and k1 on Claude
+Code with claude-sonnet-5-5 at medium. The Sonnet delivery is there because the standing texts of two stages
+changed and Sonnet took such a note in on the released engine (m1): it can only show a loss.
+
+| What the first rung shows | What is done next |
+| --- | --- |
+| Sol takes the note in (M1, M2 and M3 hold) in 3 of 3, and Sonnet in 1 of 1 | The second rung |
+| Sol in 0 or 1 of 3 | Stop. No further run, no further fix. Reported as it stands; the recommendation is "not yet", with what the model was given in each delivery |
+| Sol in 2 of 3 | The miss is read first (was the model given the refusal's first line and the note's words; what row did it write). If the cause is a defect of the build that can be named, it is reported, not patched and rerun. If it is not, three more of the same (g4, g5, g6) decide between "works with a known rate" and "not yet" |
+| Sonnet does not take it in, or its run stops | Not yet, whatever Sol shows: the candidate would make a driver worse |
+
+**Second rung, only after the first passes: does the new gate break a note sent early?** Two deliveries on Sol
+(h1, h2), the note sent when the packet with the list prints (`note-at-test-strategy`, before the plan). On the
+released engine a note at that point was held and reached the model in three deliveries of four (d1, d2, d4), so
+this rung can only show a loss: a run that stops, or one that ends out of step with itself. A loss means "not yet";
+no loss means the recommendation is to accept, and then the remaining review findings are fixed and the wide tests
+run before anything is offered for `main`. No Sonnet delivery here: it would change the recommendation only if Sol
+passed and Sonnet failed on the easier path, and nothing on file points that way.
+
+**The readings** are M1 to M5 of the design's section 5 (`shiploop-notes/DESIGN.md`), fixed there before any code.
+How each is read:
+
+- `shiploop-notes/read_notes.py` over the run folder: for each delivery the note sent and the stage open then, each
+  refusal that named the note, every `notes` row in the order accepted, where the note stands at the end, the
+  requirement at the end, what the done packet and the report say, and the harness's verdicts.
+- `shiploop-answers/given_to_model.py` over each session's own record: whether the model was given the note's
+  words, and (with `--words`) whether it was given the first line of a refusal.
+- The five start-up checks are the harness's own held-out checks; no check is rescored or rerun with changed rules.
+- Whether the requirement at the end states the note's wish is read by a Sonnet reader on an export that names
+  neither the mode nor the checks.
+
+**Counted apart, never as a pass or a failure of the candidate:** a delivery whose stand-in sent nothing (a list
+with no start-up row, or a tie between rows); one whose stand-in misread the row (the note then does not contradict
+the decision); one that did not finish for a cause outside ShipLoop (the driver's service, the harness). Each is
+named with its cause. A rung left with fewer than its deliveries by such a loss is filled up with new deliveries of
+the same kind, named in the record.
+
+**What I expect, written before the first run.** First rung: Sonnet takes the note in. On Sol I expect the note to
+be accounted for in all three (M1), and taken in (M2) in two or three; the ways I think it can miss are a session
+that carries the note at `implement` and then, at `carry-forward`, writes `declined` or `already` rather than
+revising the requirement and queueing the work, and a session that writes a row from the refusal's first line
+without opening the note's file, which the row's `detail` will show. A delivery that takes the note in should cost
+about one more work item than a run with no note (4.4 minutes in m1). Second rung: no loss.

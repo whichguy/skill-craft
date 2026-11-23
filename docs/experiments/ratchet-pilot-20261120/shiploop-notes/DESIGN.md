@@ -11,6 +11,11 @@ How this note came to be: sections 1 to 3 were first written at 14:35 on 2026-11
 each finding and what was done with it. Sections 2, 3 and 5 are the design as it stands after the review. No code
 existed when this was written.
 
+Since then (same day): the build (16:22), a review of the code by the same reviewer (16:40, "Fix first", eleven
+defects; section 6), and the owner's instruction at about 17:00 to build only what is sure and to run only what
+would change a major decision. That instruction cut the fixes made before the deliveries to three and the deliveries
+to rungs; where it changed a sentence of sections 2 or 5 the sentence says so.
+
 ## 1. What is wrong today, measured
 
 An owner note (`shiploop note --run-dir RUN --text "..."`) is the run owner's way to say something to a run in
@@ -53,8 +58,11 @@ to read; a note a stage cannot act on is carried forward to a stage that can; an
 list every note with what was done.
 
 ShipLoop stays unattended: nothing asks, nothing waits, no stage pauses, no loop gets a limit. A run in which no
-note is written prints and stores what 2.6.0 does (the one exception is the list of allowed keys in the refusal
-of an unsupported result key).
+note is written prints and stores what 2.6.0 does, with two exceptions: the standing duties of `document` and
+`carry-forward` and the rule of `carry-forward`'s loop each carry one clause saying what an owner note that asks for
+a requirement change means (2.3; made static after the review of the code, section 6, so that an instruction never
+depends on which notes are on file), and the refusal of an unsupported result key lists `notes` among the allowed
+keys. `trace --json` is outside this claim: its note fields change (2.7).
 
 ### 2.1 The row
 
@@ -276,6 +284,11 @@ delivery the record holds: the note sent, the stage open then, whether the model
 
 - **During the build**: six on Sol, two on Sonnet; the note is sent when the first `implement` packet prints.
 - **Before the plan**: three on Sol, one on Sonnet; the note is sent when the list is printed.
+- **These two counts are superseded (2026-11-22 about 17:00, before any delivery ran).** The owner: run only what
+  would change a major decision. The deliveries are rungs, registered in the journal's section 29: first three on
+  Sol and one on Sonnet with the note during the build, the one case the released engine loses; then, only if that
+  passes, two on Sol with the note before the plan, which can only show a loss; three more on Sol during the build
+  only if the first rung is split. Each rung has its stop rule there. The readings M1 to M5 below stand as written.
 - The control is on file: on the released engine a plain note during the build was not taken in on Sol (n4, n5: 2
   of 2) and was taken in on Sonnet (m1: 1 of 1).
 
@@ -297,3 +310,32 @@ Readings:
 - The design is wrong if a delivery loses a note that was written in time, cannot get past the refusal, or reports
   `applied` while the product still does what the note contradicts. If M1, M2 or M3 fails, the candidate is
   reported as it stands and nothing more is built on it without the owner.
+
+
+## 6. The review of the code, and what was done with it
+
+The same reviewer read the build as committed (`review/sol-code-question.md`, `review/sol-code-answer.md`, word for
+word): "Fix first", eleven defects, fixtures that would pass on a broken engine, an audit of the change note.
+Nothing in it is against sections 2 to 5.
+
+The owner's instruction of about 17:00 decided the order: before the first deliveries only what a real delivery can
+meet is fixed. The rest waits, and is fixed only if the first rung passes and the recommendation is to accept; if
+the candidate is not accepted none of it is needed.
+
+| # | Finding | Decision |
+| --- | --- | --- |
+| 3 | The standing duties of `document` and `carry-forward` and the rule of `carry-forward`'s loop still said to send back or report `blocked` on a changed requirement, against the owed-notes block and 2.3 | **Fixed before the deliveries.** The exception is in the three standing texts, statically. This is the path the first rung tests |
+| 7 (first part) | A row whose `note` is not an id crashed the formatter; a scalar `notes` and two rows for one note got a misleading first line | **Fixed before the deliveries.** A model can mistype a row in a real run, and on Sol the first line may be all it is given. The first line now says what is wrong and what to do for each |
+| - | Found in reading `_row_fault`: one refusal printed `({listed})` literally | **Fixed before the deliveries** |
+| 1 | A note file that cannot be read or decoded is skipped, so a result passes without its row | Waits. Needed for `main`; no delivery meets it |
+| 2 | A note written after a settled note's file was removed reuses its id and inherits its row | Waits. Needed for `main`; needs a file removed by hand |
+| 4 | The last read at `handoff` sits before the report is rendered: the saved report and the done packet can list different notes, and the note command can say "no stage read it" of a note `handoff` settled; a reused yes is not replaced by a no there | Waits. A race at the instant a run ends; what cannot be closed is recorded as a limit in section 3 |
+| 5 | A changed draft on a parked action gets a yes from `check` and a refusal from `complete` | Waits |
+| 6 | A placeholder (`...`, text in angle brackets) passes as a `detail`; a lone surrogate passes admission and fails at the write | Waits. If a delivery of the first rung writes a placeholder, that is read as a row filled in as a form, and counted against M2 |
+| 7 (rest) | The refusals for a note arriving during `handoff` and for a review's import have their own shorter wording; three notices can print before a refusal on rare paths | Waits |
+| 8 | A review's malformed `notes` is skipped when the parked result had none, and refused later by another check | Waits |
+| 9 | With a hundred notes the minimal result template overflows the head | Waits; a size no run on file comes near, and likely a recorded limit |
+| 10 | The harness's readers grade a saved run of the released engine differently than before (a held callback counted as a refusal; a delivered note read as open) | Waits. Needed for `main`, so that saved evidence is never rescored; the deliveries of this candidate are new runs and are read by `read_notes.py` |
+| 11 | `shiploop --help` and the README's "Steer a run in flight" still describe settlement by printing | Waits. Needed for `main` |
+| audit | The change note's parity sentence was too broad | The sentence is corrected with the fix of finding 3; the rest of the audit waits with its findings |
+| fixtures | Tests that would pass on a broken engine (the ledger across a second step, the reconcile, the end of the run) and paths with no test | Wait with the findings they belong to. The tests for what was fixed now were shown failing on the build as committed |
