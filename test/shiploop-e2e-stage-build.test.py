@@ -243,6 +243,7 @@ class Schema(Temp):
             ("a pass rule above the samples", lambda d, f: d.update(live={"samples": 2, "pass": 3}), "live.pass"),
             ("an unknown live key", lambda d, f: d.update(live={"budget": 1}), "live: unknown key 'budget'"),
             ("repo that is a file", lambda d, f: lay(f, {"repo": "x"}), "repo must be a folder"),
+            ("owner-notes that is a file", lambda d, f: lay(f, {"owner-notes": "x"}), "owner-notes must be a folder"),
             ("oracle that is a file", lambda d, f: lay(f, {"oracle": "x"}), "oracle must be a folder"),
             ("oracle folder that resolves outside", lambda d, f: ((f.parent / "oracle-outside").mkdir(),
                                                                     (f / "oracle").symlink_to(f.parent / "oracle-outside",
@@ -758,8 +759,8 @@ class Builds(unittest.TestCase):
         data["request"] = copy.deepcopy(request)
         seed_records = records(E1, E2)
         data["seed_records"] = copy.deepcopy(seed_records)
-        folder = scenario(self.cases, "validate-existing", "inline-request", data,
-                          {**GOOD_FILES, "repo/src/strings.js": "module.exports = {};\n"})
+        scenario(self.cases, "validate-existing", "inline-request", data,
+                 {**GOOD_FILES, "repo/src/strings.js": "module.exports = {};\n"})
         sc = sb.load("validate-existing/inline-request", self.cases)
         before = copy.deepcopy(sc.data)
 
@@ -915,6 +916,28 @@ class Builds(unittest.TestCase):
         self.assertEqual(built.worktree, self.box / "carry-forward" / ".shiploop-runs" / "seed" / "worktree")
         self.assertEqual([row["stage"] for row in built.history_added if row["stage"] == "document"], ["document"])
         self.assertTrue(all(set(row) == {"stage", "outcome", "action"} for row in built.history_added))
+
+    def test_owner_notes_overlay_is_laid_into_run_and_printed_in_packet(self):
+        own = Path(tempfile.mkdtemp(prefix="stage-owner-notes-", dir=self.temp))
+        note_text = "Revise R-1 so navigation wraps around and add a follow-up item."
+        note_md = store.dumps({"id": "N1", "written_at": "2026-11-23T08:00:00Z", "text": note_text},
+                              "ShipLoop owner note")
+        data = {"about": "Carry-forward with an owed owner note.", "fixture": "node-base", "request_from": "node-fix-bug",
+                "tiers": ["render"], "planted": [{"id": "P1", "what": "w"}],
+                "render": [{"proves": "P1", "packet_contains": "N1"}]}
+        scenario(own / "cases", "carry-forward", "with-owner-note", data,
+                 {"worktree/src/added.js": "module.exports = 2;\n", "owner-notes/N1.md": note_md},
+                 seed_records=records(E2))
+        sc = sb.load("carry-forward/with-owner-note", own / "cases")
+        built = sb.build(sc, own / "built")
+        laid = built.run_dir / "owner-notes" / "N1.md"
+        self.assertTrue(laid.is_file(), "owner-notes/N1.md must be laid into RUN/owner-notes/")
+        self.assertEqual(laid.read_text(encoding="utf-8"), note_md)
+        bundle = sb.render(sc, own / "rendered")
+        self.assertTrue(bundle.issued)
+        self.assertEqual(bundle.current_stage, "carry-forward")
+        self.assertIn("N1", bundle.packet)
+        self.assertIn(note_text, bundle.packet)
 
     def test_a_build_writes_only_below_its_out_folder(self):
         self.assertEqual(sorted(path.name for path in self.box.iterdir()),

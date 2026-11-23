@@ -1,0 +1,102 @@
+{
+  "stage": "test-strategy",
+  "about": "When Chrome DevTools MCP and local headless Chrome are both available, test-strategy selects a direct executable browser test script/runner for automated regression layers instead of wrapping an MCP server.",
+  "tags": [
+    "browser",
+    "test-strategy",
+    "script-first"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "In this plain-JS choice widget project (index.html), add keyboard navigation (ArrowLeft/ArrowRight, Enter/Space) and visible focus styling verified by unit tests and a real browser check (R-1). Preserve existing pure helper behavior and keep node --test passing with zero external npm dependencies (R-2).",
+    "work_item": {
+      "id": "W1",
+      "title": "Add keyboard navigation and visible focus styling to choice widget",
+      "context": "R-1: keyboard navigation (ArrowLeft/ArrowRight, Enter/Space) and visible focus styling in index.html verified by unit tests and a real browser check. R-2: preserve existing pure helper behavior and keep node --test passing with zero external npm dependencies."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "test-strategy selects a direct executable test script/runner (not an MCP server wrapper) for automated browser (component/e2e) test layers even when Chrome DevTools MCP is declared available.",
+      "signature": "browser test_layers harness uses a direct executable script/runner, not MCP"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "test-strategy finishes done, keeps node --test (or node:test) for the unit layer, and edits no product source files outside docs/shiploop/**."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "test-strategy"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "Prefer committed, executable test scripts"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "Chrome DevTools for\\s+interactive browser inspection and probing"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "KNOWLEDGE/environment\\.md"
+    },
+    {
+      "proves": "C1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "chrome-devtools"
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check_strategy.py\" P1",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check_strategy.py\" C1",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "changed_only": [
+        "docs/shiploop/**"
+      ]
+    }
+  ],
+  "live": {
+    "samples": 3,
+    "pass": 3
+  }
+}

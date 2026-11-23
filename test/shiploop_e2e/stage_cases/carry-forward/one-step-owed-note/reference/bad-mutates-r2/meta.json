@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C1"
+  ],
+  "why": "Applies N1 and queues W2, but alters R-2 in docs/shiploop/spec.md."
+}

@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C1"
+  ],
+  "why": "Drops the node:test unit layer from test_layers and edits product source src/format.js during test-strategy."
+}

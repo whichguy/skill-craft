@@ -10,6 +10,7 @@ A scenario folder holds ``scenario.json`` and, optionally:
     repo/                files laid over the fixture BEFORE the baseline commit (where a planted fault lives)
     worktree/            files laid into the execution checkout at the seed point (what earlier stages left)
     notes/               files laid into RUN/notes/
+    owner-notes/         files laid into RUN/owner-notes/
     reference/good/      result.json (an accepted result, an object with "outcome") and tree/ (laid over the seed tree)
     reference/good-<slug>/ another accepted result, checked like good/
     reference/bad-<slug>/ the same, plus meta.json {"fails": ["P1", ...], "why": "..."}: the ids this output must make the
@@ -435,7 +436,7 @@ def validate(data: Any, scenario_dir: Path) -> list[str]:
         if wanted != "all" and (isinstance(wanted, bool) or not isinstance(wanted, int) or wanted < 1
                                 or (isinstance(samples, int) and not isinstance(samples, bool) and wanted > samples)):
             problems.append('live.pass must be "all" or a number of samples from 1 to live.samples')
-    for name in ("repo", "worktree", "notes"):
+    for name in ("repo", "worktree", "notes", "owner-notes"):
         if (scenario_dir / name).exists() and not (scenario_dir / name).is_dir():
             problems.append(f"{name} must be a folder")
     helpers = scenario_dir / "oracle"
@@ -798,6 +799,8 @@ def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
     state = store.read_record(run_dir / "state.md")
     if (sc.dir / "notes").is_dir():
         _lay(sc.dir / "notes", run_dir / "notes")
+    if (sc.dir / "owner-notes").is_dir():
+        _lay(sc.dir / "owner-notes", run_dir / "owner-notes")
     return Built(run_dir=run_dir, worktree=Path(state["repo"]), cli=cli, stage=sc.stage, issued=not seeded["settled"],
                  settled=seeded["settled"], current_stage=seeded["stage"],
                  history_added=[{key: row.get(key) for key in ("stage", "outcome", "action")}

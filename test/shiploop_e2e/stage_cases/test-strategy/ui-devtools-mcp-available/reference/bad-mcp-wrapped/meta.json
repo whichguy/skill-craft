@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "Selects Chrome DevTools MCP as the automated regression harness for component and e2e layers instead of a direct executable test script/runner."
+}

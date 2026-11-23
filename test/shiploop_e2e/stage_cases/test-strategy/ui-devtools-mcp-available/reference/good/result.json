@@ -1,0 +1,38 @@
+{
+  "outcome": "done",
+  "summary": "Keep node --test (node:test) for pure helper unit tests and use a committed standalone Node CDP browser script driving local headless Chrome for automated component and e2e browser checks, reserving Chrome DevTools MCP for interactive inspection.",
+  "evidence_refs": [
+    "docs/shiploop/environment.md",
+    "docs/shiploop/architecture.md"
+  ],
+  "test_layers": [
+    {
+      "code": "src/format.js and choice keyboard helper",
+      "layer": "unit",
+      "harness": "node --test (node:test)",
+      "status": "available",
+      "reason": "Existing zero-dependency Node test runner covers pure helper behavior and keyboard state transitions."
+    },
+    {
+      "code": "index.html choice widget keyboard navigation and focus styling",
+      "layer": "component",
+      "harness": "node scripts/check-browser.mjs (standalone Node CDP script driving local headless Chrome)",
+      "status": "available",
+      "reason": "Direct committed executable script verifies DOM keyboard navigation and computed focus styles deterministically; Chrome DevTools MCP stays for interactive probing only."
+    },
+    {
+      "code": "index.html end-to-end keyboard selection flow",
+      "layer": "e2e",
+      "harness": "node scripts/check-browser.mjs (standalone Node CDP script driving local headless Chrome)",
+      "status": "available",
+      "reason": "Repeatable headless Chrome script runs the full ArrowLeft/ArrowRight and Enter/Space user flow over local HTTP."
+    }
+  ],
+  "targets": [
+    {
+      "target": "local Node.js and ephemeral headless Chrome process",
+      "keeps_state": "no",
+      "base_state_route": "n/a"
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "stage": "carry-forward",
+  "about": "In a one-step run with an owed owner note N1 requesting wrap-around keyboard navigation, carry-forward settles N1 as applied, queues the follow-up work item with follows, revises R-1 in place in docs/shiploop/spec.md, and leaves R-2 and product source files untouched.",
+  "tags": [
+    "owner-notes",
+    "carry-forward",
+    "one-step"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "In this plain-JS choice widget project (index.html), add keyboard navigation (ArrowLeft/ArrowRight, Enter/Space) and visible focus styling verified by unit tests and a real browser check (R-1). Preserve existing pure helper behavior and keep node --test passing with zero external npm dependencies (R-2).",
+    "work_item": {
+      "id": "W1",
+      "title": "Add keyboard navigation helper for choice widget",
+      "context": "R-1: keyboard navigation (ArrowLeft/ArrowRight, Enter/Space) and visible focus styling. R-2: preserve existing pure helper behavior and keep node --test passing with zero external npm dependencies."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "seed_records": {
+    "step-plan": {
+      "paths": [
+        "src/keyboard.js"
+      ],
+      "follows": [
+        "R-1",
+        "R-2",
+        "AD-1"
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "task": "Add src/keyboard.js with initial clamped ArrowLeft/ArrowRight index helper.",
+          "deps": [],
+          "criteria": [
+            "C1"
+          ],
+          "proof": "test -f src/keyboard.js && node --test",
+          "paths": [
+            "src/keyboard.js"
+          ],
+          "skills": []
+        }
+      ],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "src/keyboard.js exports nextChoiceIndex and existing node --test passes. Confirm by: node --test. Serves R-1 and R-2."
+        }
+      ],
+      "test_commands": [
+        {
+          "command": "node --test",
+          "suite": "focused",
+          "ids": [
+            "TC-1"
+          ],
+          "criteria": [
+            "C1"
+          ]
+        },
+        {
+          "command": "node --test",
+          "suite": "regression"
+        }
+      ],
+      "expectations": [
+        {
+          "id": "E1",
+          "state": "absent",
+          "statement": "src/keyboard.js does not exist yet on the base",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "src/keyboard.js"
+          ],
+          "check": "test ! -e src/keyboard.js"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "One-step carry-forward settles owed owner note N1 with did='applied' and item, queues the follow-up work item in work_items carrying follows, and revises R-1 in place in docs/shiploop/spec.md without altering R-2.",
+      "signature": "notes row N1 applied with item matching queued work_items entry and R-1 revised in docs/shiploop/spec.md"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "carry-forward finishes done, keeps R-2 unchanged in docs/shiploop/spec.md, and makes no product source edits outside docs/shiploop/**."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "carry-forward"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "N1"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "Revise R-1 so ArrowLeft/ArrowRight wraps around"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "No item follows W1: omit `work_items`\\."
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check_carry_forward.py\" P1",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check_carry_forward.py\" C1",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "changed_only": [
+        "docs/shiploop/**"
+      ]
+    }
+  ],
+  "live": {
+    "samples": 3,
+    "pass": 3
+  }
+}

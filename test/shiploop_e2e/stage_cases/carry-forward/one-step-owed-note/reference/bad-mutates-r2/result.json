@@ -1,0 +1,32 @@
+{
+  "outcome": "done",
+  "summary": "Applied owner note N1 by revising R-1 for wrap-around navigation, queuing W2, and rewriting R-2 to permit external test libraries.",
+  "evidence_refs": [
+    "docs/shiploop/spec.md",
+    "docs/shiploop/environment.md"
+  ],
+  "notes": [
+    {
+      "note": "N1",
+      "did": "applied",
+      "detail": "Revised R-1 in docs/shiploop/spec.md for wrap-around navigation and queued W2.",
+      "item": "W2"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "W2",
+      "title": "Implement wrap-around ArrowLeft/ArrowRight navigation and tests",
+      "follows": [
+        "R-1",
+        "R-2",
+        "AD-1"
+      ],
+      "context": "Implement wrap-around ArrowLeft/ArrowRight navigation per revised R-1 and add tests."
+    }
+  ],
+  "skill": {
+    "decision": "none",
+    "reason": "One-step run with no repeated procedure."
+  }
+}

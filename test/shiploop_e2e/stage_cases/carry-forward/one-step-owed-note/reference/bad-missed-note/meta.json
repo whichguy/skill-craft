@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "Omits owner note N1 settlement and follow-up work_items, and leaves R-1 unrevised in docs/shiploop/spec.md."
+}

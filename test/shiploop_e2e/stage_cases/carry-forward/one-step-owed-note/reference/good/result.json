@@ -1,0 +1,32 @@
+{
+  "outcome": "done",
+  "summary": "Applied owner note N1 by revising R-1 in place in docs/shiploop/spec.md for wrap-around ArrowLeft/ArrowRight navigation and queuing follow-up work item W2 to implement wrap-around and its tests.",
+  "evidence_refs": [
+    "docs/shiploop/spec.md",
+    "docs/shiploop/environment.md"
+  ],
+  "notes": [
+    {
+      "note": "N1",
+      "did": "applied",
+      "detail": "Revised R-1 in place in docs/shiploop/spec.md for wrap-around ArrowLeft/ArrowRight navigation and queued W2 to implement wrap-around and its tests.",
+      "item": "W2"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "W2",
+      "title": "Implement wrap-around ArrowLeft/ArrowRight navigation and tests",
+      "follows": [
+        "R-1",
+        "R-2",
+        "AD-1"
+      ],
+      "context": "Owner note N1 revised R-1 so ArrowLeft/ArrowRight wraps from last to first and first to last. Update src/keyboard.js and add unit/browser tests while preserving R-2."
+    }
+  ],
+  "skill": {
+    "decision": "none",
+    "reason": "One-step run with no repeated procedure and no repository-local skills configured."
+  }
+}

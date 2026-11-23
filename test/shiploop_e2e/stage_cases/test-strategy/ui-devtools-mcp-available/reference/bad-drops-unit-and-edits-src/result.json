@@ -1,0 +1,24 @@
+{
+  "outcome": "done",
+  "summary": "Plan standalone headless Chrome CDP checks and pre-edit src/format.js without keeping the unit layer.",
+  "evidence_refs": [
+    "docs/shiploop/environment.md",
+    "docs/shiploop/architecture.md"
+  ],
+  "test_layers": [
+    {
+      "code": "index.html choice widget keyboard navigation and focus styling",
+      "layer": "component",
+      "harness": "node scripts/check-browser.mjs (standalone Node CDP script driving local headless Chrome)",
+      "status": "available",
+      "reason": "Direct committed executable script verifies DOM keyboard navigation and focus styles."
+    }
+  ],
+  "targets": [
+    {
+      "target": "local ephemeral headless Chrome process",
+      "keeps_state": "no",
+      "base_state_route": "n/a"
+    }
+  ]
+}
