@@ -434,6 +434,20 @@ def planning_review_sentence(improve_skill: str) -> str:
     return f"Start ShipLoop with the run option --planning-review none and --improve-skill {improve_skill}."
 
 
+def delegation_sentence(delegation: str) -> str:
+    """The sentence that makes the model start ShipLoop with a non-default `--delegation` option."""
+    return f"Start ShipLoop with the run option --delegation {delegation}."
+
+
+def delegation_choice(requested: str | None, earlier: dict | None) -> str | None:
+    if earlier is None:
+        return requested
+    recorded = earlier.get("delegation")
+    if requested is not None and requested != recorded:
+        raise SystemExit(f"--delegation {requested} on a resume: the run's own delegation is {recorded or 'not recorded'}")
+    return recorded
+
+
 def case_prompt(prompt: str, improve_skill: str | None) -> str:
     """The case's own prompt: ``prompt`` without the sentence ``--planning-review none`` appended to it (planning_review_sentence of
     the run's recorded ``improve_skill``). What prompt_sha256 hashes: the mode is a key of its own, and the sentence names an
@@ -2784,6 +2798,9 @@ def parser() -> argparse.ArgumentParser:
                         "ShipLoop with it (none also names this plugin's Improve card, --improve-skill, which that mode "
                         "requires). A named case keeps its case, style and baseline key; without the option the prompt "
                         "is the case's own and the engine's default applies. Not with --seed-at")
+    p.add_argument("--delegation", choices=("inline", "agents", "ask-agent"), default=None,
+                   help="the ShipLoop run option: append --delegation <value> to the prompt for a non-default route "
+                        "(agents or ask-agent); inline/omitted leaves the case prompt untouched. Not with --seed-at")
     p.add_argument("--output", type=Path, help="new directory for this attempt (default: under $TMPDIR)")
     p.add_argument("--host", choices=[*sorted(hosts.HOSTS), "all"], default=hosts.RUN_DEFAULT_HOST,
                    help=f"the host that drives ShipLoop (default: {hosts.RUN_DEFAULT_HOST}); 'all' only with --preflight-only "
@@ -4191,6 +4208,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.planning_review and args.seed_at:
         raise SystemExit("--planning-review with --seed-at: the harness starts a seeded run itself and records its stages "
                          "without doing them, so the option would change nothing")
+    if args.delegation and args.seed_at:
+        raise SystemExit("--delegation with --seed-at: seeded runs set their own delegation")
     if args.stop_after_start and (args.suite or args.seed_at or args.resume_run or args.continue_from
                                  or args.predecessor_registration or args.keep_platform):
         raise SystemExit("--stop-after-start ends a new run at its first start: it does not go with --suite, --seed-at, "
@@ -4220,6 +4239,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                             earlier=earlier.get("platform_prefix"))
         RUN_PREFIX = (name, prefix) if prefix else None  # the checks, prompt and platform it recorded are renamed already
         planning_review = planning_review_choice(args.planning_review, earlier)
+        delegation_opt = delegation_choice(args.delegation, earlier)
         # The platform the run started with (invocation.json), not whatever cases.json says now: its cleanup is what undoes it.
         seed_built = None  # a resume continues the run the seed made
         platform_spec = validate_platform(name, (earlier.get("platform") or {})["spec"]) if (earlier.get("platform") or {}).get("spec") else None
@@ -4315,6 +4335,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
         refuse_unmatched_keep_checks(name, platform_spec, checks)
         planning_review = planning_review_choice(args.planning_review, None)
+        delegation_opt = delegation_choice(args.delegation, None)
         registered_input = registered_predecessor(args, name)
         if follows and not (args.continue_from or registered_input):
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
@@ -4521,6 +4542,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # The run option rides in the prompt the model is given (and prompt.txt keeps), as it did in a custom --prompt.
         improve_skill = str(improve_card(plugin_dir).absolute())
         prompt = f"{prompt} {planning_review_sentence(improve_skill)}"
+    if delegation_opt and delegation_opt != "inline" and not resumed:
+        prompt = f"{prompt} {delegation_sentence(delegation_opt)}"
     seeded = earlier.get("seeded") if resumed else None
     owner_note_at = earlier.get("owner_note_at") if resumed else args.owner_note_at
     # The CLI of the host and plugin the run started on (a resume on another host keeps it): every prompt below names it.
@@ -4614,7 +4637,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
                   "owner_note_at": owner_note_at, "needs": needs, "environment": start_environment,
                   **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
-                  "planning_review": planning_review, "improve_skill": improve_skill,
+                  "planning_review": planning_review, "delegation": delegation_opt, "improve_skill": improve_skill,
                   # why each null identity field of this launch is null (empty: all known)
                   "identity_unmeasured": {**({} if launch_build else {"host_build": launch_why}),
                                           **({} if versions.get("plugin_sha256") else {"plugin_sha256": plugin_why})}}

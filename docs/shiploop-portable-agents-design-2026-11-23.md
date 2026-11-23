@@ -525,4 +525,32 @@ All prompts were generated from a single template module asserting **zero** host
    - In Test B2's synthetic fixture, `setup_fixtures.py` fast-forwarded `prepare → step-plan` via `navigator.apply()`, skipping `lint-base`, so ShipLoop's `_commit_stage` left `calc.py`/`test_calc.py` uncommitted with its documented "no base captured" path (fixture artifact, not a worker or ShipLoop fault).
    - `cursor-agent` CLI (`2026.09.23`) remains unqualified until `cursor-agent login`; forked vs. fresh *code-review quality* (confirmation bias) remains a Phase 3 paired E2E measurement.
 
+---
+
+## 10. Phase 3 registration: paired E2E comparison (`--delegation inline` vs. `--delegation agents`) + live Cursor IDE delivery (registered 2026-11-23, before any run)
+
+### Tree & apparatus
+
+- Branch `cursor/shiploop-always-agents-df4c` (Phase 1 `f5fc1bf01` + Phase 2 `4f1a50bb0` + harness `--delegation` option in `test/shiploop_e2e/run.py`), run with `--source checkout` and external output/baseline under `~/e2e-runs/phase3-agents-20261123/`.
+
+### Arms & cases
+
+1. **Paired brownfield delivery (`ticket-assignment`, 3 case checks + 18 held-out `ticket_assignment_accept` checks):**
+   - **Codex `gpt-6.2-sol` medium** (`inline` vs. `agents`, launched together)
+   - **Claude Code `claude-sonnet-5-5` medium** (`inline` vs. `agents`, launched together)
+2. **Live Cursor IDE whole delivery (`csv-report`, 5 `csv_report.py` checks):**
+   - One blind fresh Cursor IDE `Task` parent executing the checkout's `skills/shiploop/scripts/shiploop` from `workspace start --delegation agents` through `handoff` + workspace return (`status == "done"`, `report.html`), graded by the exact 5 `csv_report.py` checks from `cases.json`.
+
+### Pre-registered measures & pass bar
+
+- **Verdicts & correctness:** all 6 E2E verdicts (`invoked`, `plugin`, `process`, `shiploop`, `committed`, `checks`), held-out acceptance (`18/18` on `ticket-assignment`), and `5/5` `csv_report.py` checks on Cursor IDE.
+- **Hybrid delegation fidelity (read from state, `passes.md`, `skill-calls.jsonl`, and raw host traces):**
+  - `state.md` `delegation` matches arm (`inline` vs. `agents`);
+  - every `agents` Improve stage writes `CHILD/worker-brief.md` and records `Review mode: fork (delegation: agents)` for planning/outer reviews and `Review mode: fresh (delegation: agents)` for `document` and `carry-forward` (or `inline-fallback` if fallback occurred);
+  - `0` subagent `shiploop complete` calls;
+  - on Claude Code, `skill-calls.jsonl` records `agent_id` for delegated `improve` Skill calls and satisfies the real Skill-call gate.
+- **Efficiency & isolation:** wall-clock seconds, review seconds, parent vs. child token counts (Claude `usage` vs. `modelUsage`; Codex parent vs. child rollout JSONL), Claude dollar cost, and Surface 2 read-only fan-out count.
+- **Decision rule:** Passing all verdicts, case checks, held-out checks, and Hybrid fidelity checks qualifies `--delegation agents` as an opt-in route and satisfies ShipLoop's release preflight (recorded in `test/shiploop_e2e/LEARNINGS.md`). Whether to flip `DEFAULT_DELEGATION` from `"inline"` to `"agents"` stays an explicit owner decision after reading the paired quality, token, cost, and time table.
+
+
 
