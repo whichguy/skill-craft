@@ -118,7 +118,7 @@ pending outcome may leave the list only through an explicit settled row (require
 Settlement keys must equal the prior pending keys minus the submitted ones, and missing, extra and duplicate rows are
 refused. That change followed reproduced bypasses.
 
-### Deciding evidence first (running now)
+### Deciding evidence first (done: see "Defect 3 decided by the census" below)
 
 A free census of every open row in the same 255 deliveries: what its due stage did with it (re-listed, queued,
 recorded in the knowledge home, addressed in the summary, or dropped), and whether a dropped one was a real obligation.
@@ -153,3 +153,79 @@ The outputs go to `docs/experiments/end-of-inner-loop-20261122/open-items/`. The
     release-plan, release-verify).
 - **Live.** The E2E round on both drivers. Open items occur in about 25 of 224 document results, so the route may not
   run live; the report says so if it does not.
+
+## Review result (Sol 6.2 at max, 19:07 to 19:21, 2026-11-22; `review/sol-fix-review.md`) and what was done with it
+
+Run: read-only, neutral export of the source, the pinning tests, this design, the spec-to-plan map and the owner-notes
+candidate's prompt diff; served `gpt-6.2-sol`, effort max, no fallback, exit 0. Sol ran read-only in-memory probes of
+the short carry-forward duty, duplicate IDs, silent settlement and an outer revisit, and did not run the full suites.
+
+Adopted in the build (branch `fix/carry-forward-spec-47da85`, main-compatible, no owner-note clause yet):
+
+- **The one-bullet patch was incomplete.** The bullet now routes a gap to its work item in duty 2 or to an open item due
+  at the later outer stage, naming the R-n and what would settle it. `shiploop_primary.check_queue`'s refusal no longer
+  says "or write the entry first". A sentence in `carry-forward.md` and a clause in `project-knowledge.md` say
+  carry-forward does not edit spec.md. The end-of-work review hand-off gets the same line if there is one clear place
+  for it.
+- **"Each step's document has already marked what it met"** is dropped from the text: a step with no code or test change
+  has an automatic not-applicable document (Sol, `_document_entry`).
+- **No script gate** stays the decision (the plain rule first). Sol agrees: the claim the record supports is "no verified
+  harmful producer rewrite", and a check that does not block the candidate's owner-note route needs its notes ledger and
+  a binding from a note to a requirement ID, which it has in free text only. Offered as an option after the candidate
+  lands.
+
+Not taken, or not built here:
+
+- **The owner-note clause in the shared duty.** The candidate's session keeps its exception in duty 2 and in the loop
+  rule, and prints the owed-note rule in its own block in the one-step form as well (its reply, 2026-11-22), so this
+  change adds no owner-note text. Sol had noted that duty 2 is replaced in the one-step rendering.
+- **Defect 3, the open-item guard.** Sol confirms the drop is real in the code (`_settled` is called only by `open_items`;
+  a later done result with an empty list hides the row) and that every reader loses it: the packet, the generated
+  release-verify commit body, the handoff's lessons, the report's Open items table. It also found the minimal guard
+  larger than this design had: IDs are unique only within one result, so matching needs a stable origin action and ID;
+  a queued item needs its own disposition naming the item; outer revisits and review imports need their own checks;
+  and old runs need an activation boundary. The census still decides. If no consequential drop is found, nothing is built
+  and the ordering bypass is recorded in the journal so a later real loss can reopen it.
+- **Defect 2, the no-note half.** Sol recommends `blocked` with the requirement ID, the conflict and the choices, when a
+  step finds that a requirement itself must change and nobody has decided it; ordinary send-back stays for correcting a
+  plan or test against the accepted requirement. The strongest case against asking is a local correction already
+  dictated by the accepted request, where the amended-plan route is enough. It is the owner's decision.
+- **Queueing must reach a cold planner** (an added item's context must name the revised requirement, because step-plan
+  sees only the spec's outline): for the owner-note route, the candidate's session.
+- **Corrected evidence for defect 2:** the saved runs show two candidate runs rewriting a requirement at step-plan
+  after a send-back (`k1`, `g3`) and one at carry-forward (`g2`).
+
+## Defect 3 decided by the census: variant B, nothing built (2026-11-22)
+
+Census (`open-items/census.out`, `census.json.gz`, `census.py`; one Opus agent, no model, no run; the totals recounted
+by the main session from the raw file). Corpus: 255 runs, 69 with an open row after the plan, 313 current open rows
+(56 on exact release builds; pool by version and driver in `census.out`).
+
+| What the due stage did with the row | Rows |
+|---|---|
+| Same ID, about the same item | 64 |
+| Re-listed under a new ID | 12 |
+| Put in the work queue | 4 |
+| Recorded in documents only, the due stage silent (both about finding F-1 in one run: recorded in architecture.md and the changelog earlier, named later in summaries, lessons and handoff) | 2 |
+| Addressed in the result text | 230 |
+| Not due yet (the run stopped first) | 1 |
+| **Dropped with nothing said** | **0** |
+
+The guard as designed (re-list every owed item by its ID, at a stage whose result has an `assumptions` list) would have
+refused 42 of 68 such results: system-test 21 of 23, release-verify 18 of 27, carry-forward 3 of 15, release-plan 0 of 3.
+No refused result held a dropped item, so there is no right catch. It would also pass the one silent case, because the
+due stage's own A2 is a different item. IDs are local to one result (9 rows have the same ID on a different item; 12
+rows come back under new IDs), so an ID key refuses the wrong things and passes the wrong ones. 156 of the 312 settled
+rows were due at stages whose result has no list to check (handoff 115, product-acceptance 36, operations 5).
+
+Decision (the owner's "go for the simpler": a guard with no right catch on record costs wrong refusals): nothing is
+built for defect 3. The ordering bypass in `_settled` is real in the code and stays on record here and in the journal;
+it has cost nothing on record. A later real loss reopens it, and the cheapest instrument would then be content-based and
+limited to stages that have a list. The owner can overrule.
+
+Two findings beside the question, recorded and not acted on:
+
+- The final report's Open items table shows no non-plan row in all 68 runs that reached handoff: the handoff's own done
+  result settles handoff-due rows before the report renders. They appear in Unverified, Follow-on and Lessons.
+- `unverified` is a parallel channel: one release-verify result with an empty `assumptions` list carried all seven
+  owed rows there.

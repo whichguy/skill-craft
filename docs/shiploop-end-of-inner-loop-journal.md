@@ -451,3 +451,38 @@ deliveries) the count was 9 of 78, with step-plan rewriting an R-n in 2 of the 3
 - The cheapest deciding evidence: the owner-notes candidate's late-note deliveries already on disk
   (`~/e2e-runs/r-20261122-5d2cbc/`, another session's), especially `g2`, where a requirement changed at the last
   carry-forward with no item left to re-plan it. Did that delivery still meet the new requirement?
+
+## 10. Fixing the three defects (2026-11-22; owner: "Yes, fix them"; in progress)
+
+The owner answered "Yes, fix them" to the three defects of section 5, and later asked to check in whatever there was so
+far (about 19:15). Design, its outside review and the decisions: `docs/experiments/end-of-inner-loop-20261122/fix-design.md`
+(commit bfbd04ff188e2e5acf444de80fa9a203c7cecad3 for the first version).
+
+- **Coordination.** The owner-notes candidate (branch `shiploop-notes-85299a`, another session, "accepted" by the owner at
+  18:48 by its account) edits the same sentences of carry-forward's and document's duties. It releases first (about
+  20:30); it takes the half of defect 2 that needs an owner note; defect 1 lands after it. It declined to carry the
+  three-line change in its own release, because its confirming delivery must speak for its change alone.
+- **Outside review of the design** (Sol 6.2 at max, 19:07 to 19:21, `review/sol-fix-review.md`): the one-bullet patch was
+  incomplete (the queue refusal's "or write the entry first", the two reference files, and the end-of-work review
+  hand-off also invite a spec edit); "each step's document has already marked what it met" was dropped (a step with no
+  code or test change has an automatic not-applicable document); no gate on carry-forward's spec edits, agreed; for
+  defect 2, blocked with the requirement ID, the conflict and the choices when a step finds that a requirement must
+  change and nobody has decided it; the open-item guard is larger than the first design (IDs are unique only inside one
+  result).
+- **Defect 1, built on a branch, main-compatible part.** `fix/carry-forward-spec-47da85` (base bfbd04ff; built by an Opus
+  worker at xhigh from an exact brief, no commit by the worker; diff read by the main session). carry-forward's duty 1,
+  the queue refusal at carry-forward, one sentence and one clause in the two references, the end-of-work hand-off, tests
+  that fail on the old text, a patch note. The plan's refusal stays byte-identical. Quick tier on the final bytes: 35
+  of 35 suites, 1,418 tests; the carry-forward packet grows by 30 characters. No model has run on it. Not on main: the
+  owner-note exception must be added after the candidate lands, then an E2E round on Sol 6.2 medium and Sonnet 5.5
+  medium (release preflight), then the release.
+- **Defect 3, decided by a census, nothing built** (`open-items/`; details in the design): 255 runs, 313 open rows, 312
+  settled, 1 not due yet, 0 dropped; the approved guard by item ID would have refused 42 of 68 due-stage results with no
+  right catch, because IDs are local to one result. Recorded as a real code gap with no cost on record; the owner can
+  overrule.
+- **Defect 2, the no-note half:** a product-behaviour choice for the owner, not built: a step finds that a requirement
+  itself must change and no owner note covers it. Sol recommends stopping and asking; the strongest case against asking
+  is a local correction already dictated by the accepted request.
+- **Method notes.** Sol's second review cited candidate runs as `k1` and `g3` (step-plan after a send-back) and `g2`
+  (carry-forward), correcting the summary in section 9. The open-items agent's and the build worker's numbers were
+  recounted or diffed by the main session before use (total rows, classes, the guard count; the source diff).
