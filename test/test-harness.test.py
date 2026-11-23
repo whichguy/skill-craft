@@ -73,6 +73,20 @@ def scan(paths):
     return findings, files_read, bytes_read
 
 
+def self_test_detail(output):
+    """Assertion detail for the bundled self-test: every recorded FAIL line, then the tail.
+
+    The self-test's output is far longer than the 1,500-character tail used before, so a
+    failing check near the start was cut off and the wrapper reported only a summary with
+    no failing line (CI 45134262405 attempt 2, PASS=278 FAIL=1 with the line lost).
+    """
+    failing = [line for line in output.splitlines() if line.startswith("  FAIL  ")]
+    tail = output[-1500:]
+    if not failing:
+        return tail
+    return "\n".join(failing) + "\n--- last 1500 characters ---\n" + tail
+
+
 def tree_state(root):
     """Every real file under root with its size. Bytecode caches are ignored: CI's own guard allows them, and another
     suite importing a module concurrently could create one between two reads."""
@@ -89,7 +103,7 @@ class TimeoutEvidence(unittest.TestCase):
     WRAPPER = r'''
 import importlib.util, json, os, signal, sys, time
 from pathlib import Path
-source, scenario, scratch = sys.argv[1:]
+source, scenario, scratch, timeout_secs = sys.argv[1:]
 root = Path(scratch)
 spec = importlib.util.spec_from_file_location("hard_supervisor", source)
 module = importlib.util.module_from_spec(spec)
@@ -126,7 +140,7 @@ def link(src, dst, *args, **kwargs):
         barrier()
     return result
 module.os.link = link
-sys.argv = [source, "--timeout-secs", "1", "--repo", scratch,
+sys.argv = [source, "--timeout-secs", timeout_secs, "--repo", scratch,
             "--run-dir", str(root / "run"), "--", sys.executable,
             str(root / "worker.py"), scratch, scenario, "command-secret-must-not-persist"]
 raise SystemExit(module.main())
@@ -151,26 +165,26 @@ while True:
     time.sleep(0.01)
 '''
 
-    def assert_complete(self, artifact):
+    def assert_complete(self, artifact, timeout_secs=1):
         self.assertIsNotNone(artifact, "timeout evidence must precede cleanup")
         doc = json.loads(artifact["text"])
         self.assertEqual(set(doc), {"stop", "timeout_secs", "elapsed_ms", "worker_executable", "worker_argument_count"})
         self.assertEqual(doc["stop"], "hard_timeout")
-        self.assertEqual(doc["timeout_secs"], 1)
-        self.assertTrue(0 < doc["elapsed_ms"] < 1000, doc)
+        self.assertEqual(doc["timeout_secs"], timeout_secs)
+        self.assertTrue(0 < doc["elapsed_ms"] < timeout_secs * 1000, doc)
         self.assertEqual(doc["worker_executable"], Path(sys.executable).name)
         self.assertEqual(doc["worker_argument_count"], 4)
         self.assertEqual(artifact["mode"], 0o600)
         self.assertNotIn("command-secret-must-not-persist", artifact["text"])
 
-    def scenario(self, name):
+    def scenario(self, name, timeout_secs=1):
         with tempfile.TemporaryDirectory() as scratch:
             root = Path(scratch)
             wrapper = root / "wrapper.py"
             wrapper.write_text(self.WRAPPER)
             (root / "worker.py").write_text(self.WORKER)
             source = SKILL / "scripts" / "run-harness-hard-supervisor.py"
-            argv = [sys.executable, str(wrapper), str(source), name, scratch]
+            argv = [sys.executable, str(wrapper), str(source), name, scratch, str(timeout_secs)]
             env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
             started_wall = time.time()
             started = time.monotonic()
@@ -178,8 +192,8 @@ while True:
             marker = root / "barrier.json"
             barrier = None
             try:
-                # Same 1s + existing 1500ms external slack; no production cap changes.
-                until = started + 2.5
+                # Cap + existing 1500ms external slack; no production cap changes.
+                until = started + timeout_secs + 1.5
                 while time.monotonic() < until and proc.poll() is None:
                     if marker.exists() and marker.stat().st_size:
                         barrier = json.loads(marker.read_text())
@@ -218,15 +232,15 @@ while True:
                 self.assertIsNotNone(barrier, "operation barrier was not reached")
                 self.assertEqual(barrier["scenario"], name)
                 self.assertEqual(proc.returncode, 124, stderr)
-                self.assertLess(elapsed, 2.5)
+                self.assertLess(elapsed, timeout_secs + 1.5)
                 self.assertIn("test-harness hard timeout:", stderr)
                 for label, entry in pids.items():
                     self.assertTrue(not entry["state"] or entry["state"].startswith("Z"), (label, entry))
                 for stage in leftovers:
                     self.assertEqual(stage["mode"], 0o600)
                 if name in ("cleanup", "published"):
-                    self.assert_complete(barrier["final"])
-                    self.assert_complete(artifact)
+                    self.assert_complete(barrier["final"], timeout_secs)
+                    self.assert_complete(artifact, timeout_secs)
                 elif name.startswith("write-"):
                     self.assertIsNone(barrier["final"], "incomplete final pathname visible at write barrier")
                     self.assertIsNone(artifact, "interrupted pre-publication must not expose final bytes")
@@ -255,7 +269,13 @@ while True:
                 proc.communicate()
 
     def test_evidence_precedes_deadline_consuming_cleanup(self):
-        self.scenario("cleanup")
+        # Only this scenario gets a larger cap. At a 1s cap the supervisor has the
+        # ~0.2s cleanup reserve between deciding the timeout and the hard alarm to
+        # write and fsync the evidence; a stalled runner left the staging file empty
+        # and the cleanup barrier was never reached (CI 45134262405 attempt 1). A 4s
+        # cap widens that one reserve to ~0.9s without widening every scenario's cap,
+        # changing any production limit, or retrying until a pass.
+        self.scenario("cleanup", timeout_secs=4)
 
     def test_interrupted_write_never_exposes_incomplete_final(self):
         for name in ("write-empty", "write-prefix"):
@@ -270,6 +290,8 @@ while True:
 
 class SelfTest(unittest.TestCase):
     def test_the_bundled_self_test_passes_in_a_scratch_home(self):
+        synthetic = "  FAIL  synthetic early failure\n" + "x" * 3000 + "\n=== summary: PASS=1 FAIL=1 ===\n"
+        self.assertIn("  FAIL  synthetic early failure", self_test_detail(synthetic))
         before = tree_state(SKILL)
         with tempfile.TemporaryDirectory() as scratch:
             home, tmp = Path(scratch) / "home", Path(scratch) / "tmp"
@@ -278,12 +300,12 @@ class SelfTest(unittest.TestCase):
             env = {k: v for k, v in os.environ.items() if not k.startswith("TEST_HARNESS_") and k != "XDG_STATE_HOME"}
             env.update(HOME=str(home), TMPDIR=str(tmp), PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_NOSYSTEM="1")
             run = subprocess.run(["bash", str(SELF_TEST)], env=env, capture_output=True, text=True, timeout=900, check=False)
-            tail = (run.stdout + run.stderr)[-1500:]
-            self.assertEqual(run.returncode, 0, tail)
+            detail = self_test_detail(run.stdout + run.stderr)
+            self.assertEqual(run.returncode, 0, detail)
             summary = re.search(r"^=== summary: PASS=(\d+) FAIL=(\d+) ===$", run.stdout, re.M)
-            self.assertIsNotNone(summary, tail)
-            self.assertEqual(summary.group(2), "0", tail)
-            self.assertGreaterEqual(int(summary.group(1)), MINIMUM_ASSERTIONS, tail)
+            self.assertIsNotNone(summary, detail)
+            self.assertEqual(summary.group(2), "0", detail)
+            self.assertGreaterEqual(int(summary.group(1)), MINIMUM_ASSERTIONS, detail)
             self.assertEqual(list(home.iterdir()), [], "the self-test must not write under the caller's HOME")
         self.assertEqual(tree_state(SKILL), before, "the self-test must leave the skill's own tree as it found it")
 
