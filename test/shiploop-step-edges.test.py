@@ -184,6 +184,51 @@ class SendBackMidItemTests(unittest.TestCase):
             nav.finish_improve(state, child["action_id"], NC.receipt("step-plan"), reopened)
         self.assertEqual(self.settle(), "test-spec", "the reviewed amendment as submitted imports")
 
+    EXCEPTION = ("a required requirement, test ID or case dropped or weakened compared with the prior accepted version, "
+                 "except a requirement change the send-back or an owner note asks for: check that change against its "
+                 "evidence instead;")
+    PLAIN = "a required requirement, test ID or case dropped or weakened compared with the prior accepted version;"
+
+    def test_only_the_review_of_a_sent_back_step_plan_excepts_the_requirement_change_it_was_asked_for(self) -> None:
+        # Design of 2026-11-22: the planning review's condition on a weakened requirement would undo the rewrite the
+        # send-back asked for.  Every hand-off here is the file ShipLoop wrote at that review's start.
+        self.start()
+        self.drive_to_step_plan()
+        self.accept(self.two_step_plan())
+        first = self.state()["active_improve"]
+        self.assertEqual(first["stage"], "step-plan")
+        earlier = {path: " ".join(path.read_text(encoding="utf-8").split())
+                   for path in (self.repo / ".shiploop-improve").rglob("handoff.md")}
+        self.assertIn(nav.improve_handoff_path(first), earlier)
+        planning = {path: text for path, text in earlier.items() if "Planning review focus" in text}
+        self.assertGreaterEqual(len(planning), 4, "spec, test-strategy, plan and the first step plan")
+        for path, text in planning.items():
+            self.assertIn(self.PLAIN, text, path)
+            self.assertNotIn("the send-back or an owner note asks for", text, path)
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(NC.result())
+        (self.repo / "notes.md").write_text("# notes.md\n")
+        self.accept(NC.result(summary="Wrote notes.md."))
+        self.settle()
+        self.accept(NC.result(outcome="send-back", summary="R-1 must name the todo format, because notes.md shows two."))
+        self.accept(self.amended(self.two_step_plan(notes_works=True)))
+        child = self.state()["active_improve"]
+        self.assertEqual(child["stage"], "step-plan")
+        redone = " ".join(nav.improve_handoff_path(child).read_text(encoding="utf-8").split())
+        self.assertIn(self.EXCEPTION, redone)
+        self.assertNotIn(self.PLAIN, redone)
+        self.assertEqual(nav._focus_text(self.state(), child), "\n".join(nav._improve_focus(self.state(), child)[0]),
+                         "the two readers of the focus agree")
+        # The step's own review after it says nothing of it.
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(NC.result())
+        (self.repo / "todo.md").write_text("# todo.md\n")
+        self.accept(NC.result(summary="Wrote todo.md."))
+        child = self.state()["active_improve"]
+        self.assertEqual(child["stage"], "document")
+        self.assertNotIn("the send-back or an owner note asks for",
+                         " ".join(nav.improve_handoff_path(child).read_text(encoding="utf-8").split()))
+
     def test_a_done_step_without_criteria_stays_valid_when_the_amendment_gains_one(self) -> None:
         # Sol's review (P2): sizing asks every step for criteria once the plan has any; a done step keeps its accepted row,
         # which had none, so an amendment that adds C2 for S2 must still pass.

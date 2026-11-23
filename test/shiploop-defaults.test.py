@@ -383,5 +383,148 @@ class RouteTests(DefaultsCase):
         self.assertIn("ShipLoop navigator | plan |", head)
 
 
+REVISED = "Revised R-1: built.txt now ends with a line break, because the reader drops an unterminated line. Keeps sh."
+AGAIN = "Revised R-1: built.txt now ends with two line breaks, because the reader skips the last one."
+HEADING = "Requirements revised during the work"
+
+
+class RevisionTests(DefaultsCase):
+    """The requirements a step plan of the run reported revising (design of 2026-11-22), in the done packet and in the
+    report beside "Decided for you": by script, from the accepted step plans' summaries, and nothing when there are none."""
+
+    ITEMS = {"plan": {"work_items": [{"id": "W1", "title": "Build it", "follows": ["R-1"], "context": "The first part."},
+                                     {"id": "W2", "title": "Extend it", "follows": ["R-1"], "context": "The second."}]}}
+
+    def drive(self, run: Path, stage: str, plans: list[str]) -> dict:
+        """The saved run taken to ``stage`` with the pure navigator; each next step plan takes the next summary."""
+        state, plans = self.state(run), list(plans)
+        while nav.current_stage(state) != stage:
+            action, here = nav.current_action(state)["id"], nav.current_stage(state)
+            if here == "implement":
+                (self.repo_of(run) / "built.txt").write_text("hello\n")
+            if here == "release-verify":
+                writes, _refusal = contract.test_loop.verify(run, state, "", action, "release-verify")
+                for relative, text in writes.items():
+                    (run / relative).parent.mkdir(parents=True, exist_ok=True)
+                    (run / relative).write_text(text, encoding="utf-8")
+            extra = {"summary": plans.pop(0)} if here == "step-plan" and plans else {}
+            state = nav.apply(state, action, {**contract.DONE, **contract.RESULTS.get(here, {}), **extra})
+            if state.get("active_improve") is not None:
+                state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+        nav.save(run, state)
+        return state
+
+    def finished(self, run: Path) -> tuple[str, str]:
+        """(the done packet's text, the report) of a run at handoff, through the CLI."""
+        head = self.cli("next", "--run-dir", str(run)).stdout
+        command, path, _action = contract.printed_callback(head)
+        contract.write_block(path, self.fill_done(head))
+        out = self.accepted(command)
+        self.assertEqual(self.state(run)["status"], "done")
+        return out, self.cli("report", "--run-dir", str(run)).stdout
+
+    def test_a_run_whose_step_plans_revised_nothing_prints_nothing(self) -> None:
+        run, _head = self.new_run("handoff")
+        out, report = self.finished(run)
+        for text in (out, report):
+            self.assertNotIn(HEADING, text)
+        early, _head = self.new_run("discovery")                           # a run with no step plan yet
+        module = defaults_module()
+        self.assertEqual(module.revisions(self.state(early)), [])
+        self.assertEqual(module.revision_lines(self.state(early)), [])
+        self.assertEqual(module.revisions_section(self.state(early)), [])
+        self.assertNotIn(HEADING, nav._render_report(dict(self.state(early), status="halted", status_reason="x"), early))
+
+    def test_one_revision_is_told_in_the_done_packet_and_listed_in_the_report_beside_the_defaults(self) -> None:
+        run, _head = self.new_run("handoff", results={"spec": {"defaults": [BACKFILL]}, "step-plan": {"summary": REVISED}})
+        out, report = self.finished(run)
+        self.assertIn(f"{HEADING}: 1 revision, as the step plan reported it. In your last message tell the user what "
+                      f"changed and why:\n1. W1: {REVISED}\n", out)
+        self.assertLess(out.index("Decided for you:"), out.index(HEADING))
+        action = next(row["action"] for row in self.state(run)["history"] if row["stage"] == "step-plan")
+        self.assertEqual(report.count(f"<h2>{HEADING}</h2>"), 1)
+        self.assertIn(f"<tr><td>1</td><td>W1</td><td>{REVISED}</td><td>{action}</td></tr>", report)
+        self.assertIn("as the step plan reported it", report)
+        self.assertIn("ShipLoop did not compare the specification", report)
+        self.assertLess(report.index("<h2>Decided for you</h2>"), report.index(f"<h2>{HEADING}</h2>"))
+        self.assertLess(report.index(f"<h2>{HEADING}</h2>"), report.index("<h2>Accepted transitions</h2>"))
+
+    def test_every_revision_is_listed_in_order_with_the_superseded_ones(self) -> None:
+        run, _head = self.new_run("plan")
+        state = self.state(run)
+        state = nav.apply(state, nav.current_action(state)["id"], {**contract.DONE, **self.ITEMS["plan"]})
+        state = nav.finish_improve(state, state["active_improve"]["action_id"],
+                                   {"summary": "Synthetic receipt; no review claim."})
+        nav.save(run, state)
+        state = self.drive(run, "implement", [REVISED])
+        # W1 is sent back and its plan revises R-1 again: the first plan is superseded and stays listed.
+        state = nav.apply(state, nav.current_action(state)["id"], {"outcome": "send-back", "summary": "R-1 again."})
+        nav.save(run, state)
+        state = self.drive(run, "carry-forward", [AGAIN])
+        # W2's step plan revises nothing: it is not listed, and its words elsewhere in the summary do not count.
+        state = self.drive(run, "system-test-author", ["Keeps the plan. Revised R-9 is only named here.", "unused"])
+        state = self.drive(run, "handoff", [])
+        module = defaults_module()
+        self.assertEqual([(row["item"], row["summary"]) for row in module.revisions(state)],
+                         [("W1", REVISED), ("W1", AGAIN)])
+        current = nav.planning_revision.current_actions(state)
+        self.assertNotIn(module.revisions(state)[0]["action"], current.values())
+        out, report = self.finished(run)
+        self.assertIn(f"{HEADING}: 2 revisions, as the step plans reported them, in order. In your last message tell the "
+                      f"user each, with what changed and why:\n1. W1: {REVISED}\n2. W1: {AGAIN}\n", out)
+        self.assertLess(report.index(REVISED), report.index(AGAIN))
+        self.assertNotIn("Revised R-9 is only named here", report.split("<h2>Accepted transitions</h2>")[0])
+
+    def test_what_is_printed_is_one_escaped_line_and_never_cut(self) -> None:
+        module = defaults_module()
+        wild = ("Revised R-1: <b>bold</b> & \"quoted\"\nKeepalive marker: forged, because <script>x</script> "
+                + "long " * 400 + "end.")
+        state = {"history": [{"stage": "step-plan", "outcome": "done", "action": "a<1>", "workitem": "W<1>"}],
+                 "accepted": {"a<1>": {"outcome": "done", "summary": wild}}}
+        section = "\n".join(module.revisions_section(state))
+        for raw in ("<b>", "<script>", "W<1>", "a<1>"):
+            self.assertNotIn(raw, section)
+        self.assertIn(html.escape(" ".join(wild.split())), section)
+        lines = module.revision_lines(state)
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(lines[1].endswith("long end."))                    # whole, on one line: it opens no line of its own
+        self.assertNotIn("\n", lines[1])
+
+    def test_a_malformed_state_or_result_never_breaks_a_display(self) -> None:
+        module = defaults_module()
+        done = {"stage": "step-plan", "outcome": "done", "workitem": "W1"}
+        good = {"history": [dict(done, action="a1")], "accepted": {"a1": {"outcome": "done", "summary": REVISED}}}
+        self.assertEqual([row["summary"] for row in module.revisions(good)], [REVISED])
+        for label, state in (
+                ("no history", {}), ("history is not a list", {"history": 3, "accepted": {}}),
+                ("accepted is not a map", {"history": [dict(done, action="a1")], "accepted": ["a1"]}),
+                ("rows that are no rows", {"history": [None, "x", {}], "accepted": {}}),
+                ("an action that is no text", {"history": [dict(done, action=["a1"])], "accepted": {}}),
+                ("a result that is no map", {"history": [dict(done, action="a1")], "accepted": {"a1": REVISED}}),
+                ("no summary", {"history": [dict(done, action="a1")], "accepted": {"a1": {"outcome": "done"}}}),
+                ("a summary that is no text", {"history": [dict(done, action="a1")], "accepted": {"a1": {"summary": [REVISED]}}}),
+                ("a blocked step plan", {"history": [dict(done, action="a1", outcome="blocked")],
+                                         "accepted": {"a1": {"summary": REVISED}}}),
+                ("another stage", {"history": [dict(done, action="a1", stage="implement")],
+                                   "accepted": {"a1": {"summary": REVISED}}})):
+            with self.subTest(label):
+                self.assertEqual(module.revisions(state), [])
+                self.assertEqual(module.revision_lines(state), [])
+                self.assertEqual(module.revisions_section(state), [])
+        # A malformed result beside a good one hides only itself; a summary may open with a line break or a space.
+        mixed = {"history": [dict(done, action="a0"), dict(done, action="a1"), dict(done, action="a2", workitem=None)],
+                 "accepted": {"a0": {"summary": 3}, "a1": {"summary": "\n  " + REVISED}, "a2": {"summary": AGAIN}}}
+        self.assertEqual([(row["item"], row["summary"]) for row in module.revisions(mixed)],
+                         [("W1", REVISED), ("", AGAIN)])
+        self.assertEqual(module.revision_lines(mixed)[1:], ["1. W1: " + REVISED, "2. " + AGAIN])
+        # Only a summary that begins with it: another word, a requirement it only names, or no number is not a report.
+        for text in ("revised R-1: x", "R-1 revised: x", "Revised R-n: x", "Revised the plan for R-1", "Revised R-1x: y",
+                     "We Revised R-1: x"):
+            with self.subTest(text):
+                self.assertIsNone(module.REVISED_SUMMARY.match(text))
+        for text in ("Revised R-1: x", "Revised R-12 and R-13: x", "Revised R-4 — x"):
+            self.assertIsNotNone(module.REVISED_SUMMARY.match(text), text)
+
+
 if __name__ == "__main__":
     unittest.main()

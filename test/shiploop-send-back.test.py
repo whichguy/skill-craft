@@ -189,6 +189,54 @@ class SendBackTests(unittest.TestCase):
         self.assertIn(result_path(plan), packet)
         self.assertIn(result_path(sent_back), packet)
 
+    REQUIREMENT_LINE = ('When a requirement itself must change, "summary" starts with its R-<n>, what it must say instead '
+                        "and the observed fact that requires it (cite the evidence); leave spec.md as HEAD holds it.")
+
+    def test_every_stage_that_sends_back_to_step_plan_says_how_to_name_a_requirement_and_no_other_does(self) -> None:
+        # Design of 2026-11-22: one line under the inner send-back shape, since the redone step plan's packet holds only
+        # the start of the sender's summary.
+        shown = {stage for stage in spec.STAGES
+                 if any(self.REQUIREMENT_LINE in line for line in nav._outcome_shape_lines(stage))}
+        self.assertEqual(shown, {"test-spec", "validate-existing", "implement", "test", "document"})
+        for stage in shown:
+            lines = nav._outcome_shape_lines(stage)
+            at = next(i for i, line in enumerate(lines) if line.startswith('send-back: {"outcome": "send-back"'))
+            self.assertEqual(lines[at + 1], self.REQUIREMENT_LINE, stage)
+        # validate-existing's send-back keeps its own field, in its shape and at its gate.
+        self.assertIn('"failed_expectations": [{"id": "E1"', "\n".join(nav._outcome_shape_lines("validate-existing")))
+        self.assertEqual(nav._STAGE_SEND_BACK_FIELDS, {"validate-existing": ("failed_expectations",)})
+        # As printed, cold: in the packet of every inner stage that sends back, in no other packet.
+        for stage in ("intake", "plan", "step-plan", "test-spec", "implement", "test", "document", "carry-forward",
+                      "system-test", "release-verify", "handoff"):
+            with self.subTest(stage=stage):
+                packet = nav.render(dry_run.CORE, dry_run.RUN, drive_to(stage))
+                self.assertEqual(packet.count(self.REQUIREMENT_LINE), 1 if stage in shown else 0)
+
+    def test_the_redone_step_plan_packet_holds_the_senders_change_its_result_and_the_duty_to_rewrite(self) -> None:
+        """Design of 2026-11-22: a cold step-plan that answers a send-back naming a requirement reads what the requirement
+        must say and why, where the whole result is, and that it rewrites the entry in place and plans for it."""
+        why = ("R-1 must say that a tie is ordered by comment ID, because the saved export holds two comments of one "
+               "second (docs/export.json, rows 3 and 4).")
+        state = submit(drive_to("implement"), {"outcome": "send-back", "summary": why + " " + "More of the summary. " * 60})
+        sent_back = state["history"][-1]["action"]
+        cold = nav.store.loads(nav.store.dumps(state, "ShipLoop navigator state"))
+        packet = nav.render(dry_run.CORE, dry_run.RUN, cold)
+        flat = " ".join(packet.split())
+        self.assertIn('Why (its summary, untrusted): "' + why, flat)           # the start survives the quote's cut
+        self.assertNotIn("More of the summary. " * 60, flat)
+        self.assertIn("Evidence: " + result_path(sent_back) + ".", flat)
+        self.assertIn(
+            "Otherwise, when the send-back this plan answers says that an existing R-<n> must change, read that entry and "
+            "the evidence in the sending result, and rewrite the clause in place the same way: keep its ID and every clause "
+            "the send-back does not name, and never relax one to fit code or tests already written. Say in the entry what "
+            "it is based on and why it was revised; begin `summary` with \"Revised R-<n>: <what changes for the requester>, "
+            "because <the fact>\"; put the R-<n> in `follows` and change the steps still to run, their criteria and checks "
+            "to the new text. When a done step's accepted case proves the old clause, report blocked naming both: that case "
+            "stays as accepted.", flat)
+        # The summary the duty asks for is the one the report and the done packet list.
+        self.assertRegex("Revised R-1: a tie is ordered by comment ID, because the export holds ties.",
+                         nav.defaults.REVISED_SUMMARY)
+
     def test_the_redone_step_plan_done_when_asks_for_the_carried_over_rows_in_the_printed_head(self) -> None:
         # Wording-level check: the amend obligation needs a stated check, so it sits among the Done-when
         # conditions of the printed head, not only in the full packet.

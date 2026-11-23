@@ -6444,6 +6444,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
                 f"Report: {root / 'report.html'}",
                 *owner_notes.done_lines(root, state),
                 *defaults.done_lines(state),
+                *defaults.revision_lines(state),
                 *follow_on.done_lines(state, root, _command(core)),
                 "This is agent-declared completion from accepted navigator results; it does not independently prove checks, repository state, artifacts, deployment, or external effects.",
             ]
@@ -6675,6 +6676,14 @@ def _handoff_shape_lines(stage: str, template: str) -> list[str]:
             + "; \"learned_from\": [\"<commit ID>\"]"]
 
 
+# The line under an inner stage's send-back shape: the redone step plan rewrites a requirement when the send-back says it
+# must change (its duty 10), and its packet quotes the first ``REVISIT_SUMMARY`` characters of the summary, so the
+# requirement, its replacement and the fact come first.
+_REQUIREMENT_SEND_BACK = ('When a requirement itself must change, "summary" starts with its R-<n>, what it must say '
+                          "instead and the observed fact that requires it (cite the evidence); leave spec.md as HEAD "
+                          "holds it.")
+
+
 def _outcome_shape_lines(stage: str) -> list[str]:
     """The exact fields of each allowed outcome other than done, printed under the done template.
 
@@ -6695,6 +6704,8 @@ def _outcome_shape_lines(stage: str) -> list[str]:
                       + (', "failed_expectations": [{"id": "E1", "actual": "<what is actually true>", "route": '
                          '"steps"}]' if "failed_expectations" in _STAGE_SEND_BACK_FIELDS.get(stage, ()) else "")
                       + '}')
+        if stage_spec.send_back_target(stage) == stage_spec.SEND_BACK_TO:
+            shapes.append(_REQUIREMENT_SEND_BACK)
     if "add-work" in allowed:
         shapes.append("add-work: " + stage_spec.ADD_WORK_SHAPE)
     return ['Fill the template: each key once, every placeholder (<...> and "...") replaced, "outcome" and "summary" '
@@ -8236,13 +8247,22 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
     ]
 
 
+def _planning_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
+    """The planning review focus of the reviewed stage: a step plan that was sent back may hold the requirement change it
+    was asked for, so its review alone prints that exception (``guidance.planning_review_focus``)."""
+    stage = child["stage"]
+    sent_back = (stage == stage_spec.SEND_BACK_TO
+                 and _sent_back_results(state, stage, _current_work_item(state)) is not None)
+    return guidance.planning_review_focus(sent_back).rstrip()
+
+
 def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[list[str], list[str]]:
     """(the review focus, the Code craft rubric) for the reviewed stage; the rubric is [] where the focus has none."""
     stage = child["stage"]
     # The focus is numbered F1..Fn when FOCUS_IDS is on (U19); the Code craft rubric has no bullets, so the ids are the same
     # as ``focus_ids``, which counts the whole focus text.
     if stage in guidance.PLANNING_REVIEW_STAGES:
-        return _numbered_focus(guidance.PLANNING_REVIEW_FOCUS.rstrip(), state, child), []
+        return _numbered_focus(_planning_focus(state, child), state, child), []
     if stage == "carry-forward":
         return _numbered_focus(guidance.END_REVIEW_FOCUS_HEAD.rstrip(), state, child), [guidance.CODE_CRAFT.rstrip()]
     if stage in stage_spec.with_improve("item"):
@@ -8407,7 +8427,7 @@ def _focus_text(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
     """The review focus conditions of the child's stage (planning, end-of-work or implement step), or ''."""
     stage = child["stage"]
     if stage in guidance.PLANNING_REVIEW_STAGES:
-        return guidance.PLANNING_REVIEW_FOCUS.rstrip()
+        return _planning_focus(state, child)
     if stage == "carry-forward":
         return guidance.END_REVIEW_FOCUS.rstrip()
     if stage in stage_spec.with_improve("item"):
@@ -8941,6 +8961,7 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
             "<h2>Original request</h2>",
             f"<pre>{html.escape(state['prompt'])}</pre>",
             *defaults.html_section(state),
+            *defaults.revisions_section(state),
             *owner_notes.html_section(root, state),
             "<h2>Accepted transitions</h2>",
             "<table><thead><tr><th>Stage</th><th>Outcome</th><th>Work item</th><th>Summary</th><th>Evidence references</th></tr></thead><tbody>",

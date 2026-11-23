@@ -4113,7 +4113,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         refused = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
         self.assertNotEqual(refused.returncode, 0)
         text = refused.stdout + refused.stderr
-        self.assertIn("to change a requirement, report send-back naming it", text)
+        self.assertIn("to change a requirement, report send-back naming it and what it must say.", text)
         self.assertIn("changed or removed: R-1: Synthetic requirement.", text)
         # An unmarked line is refused too, with the mark it needs.
         spec.write_text(self.git("show", "HEAD:docs/shiploop/spec.md").replace(
@@ -4339,6 +4339,52 @@ class StepReflectionCliTests(inner_fixture.RunDriver):
         sha = self.step_commit_sha()
         self.assertIn("docs/shiploop/spec.md", inner_fixture.git(self.repo, "show", "--name-only", "--format=", sha).split())
         self.assertIn(marked, inner_fixture.git(self.repo, "show", sha + ":docs/shiploop/spec.md"))
+
+    def submit_as_it_stands(self, result: dict) -> subprocess.CompletedProcess:
+        """Submit ``result`` at the current inner stage through the real CLI; its loop is not run or restarted here."""
+        action = navigator.current_action(self.state())["id"]
+        path = self.run_dir / "inbox" / (action + ".md")
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(store.dumps(dict(result), "result"))
+        return subprocess.run([sys.executable, "-B", str(SCRIPTS / "shiploop"), "complete", "--run-dir", str(self.run_dir),
+                               "--action", action, "--result", str(path)], cwd=self.base, text=True, capture_output=True,
+                              timeout=120, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_PROGRESS": "off",
+                                                "SHIPLOOP_KEEPALIVE": "off"})
+
+    def test_a_changed_requirement_at_document_is_refused_and_send_back_is_the_accepted_exit(self) -> None:
+        """Design of 2026-11-22 (Astra's review): the spec gate's refusal opened the send-back it names at document as at
+        implement, and document's ``check_terminal`` did not honour it.  The stage's Until Loop has completed by the time
+        a done is submitted, so the exit the refusal names was refused: "a complete document loop reports outcome done"."""
+        self.start()
+        self.drive_to("document")
+        spec = self.spec()
+        committed = spec.read_text()
+        done = inner_fixture.loop(self.run_dir, self.state(),
+                                  dict(inner_fixture.DONE, knowledge=dict(self.RECORD), assumptions=[]))
+        receipt = json.loads(navigator.loops.receipt_path(
+            self.run_dir, navigator.current_action(self.state())["id"]).read_text(encoding="utf-8"))
+        self.assertEqual(receipt["status"], "complete")
+        sent = {"outcome": "send-back", "summary": "R-1 must say that entry() refuses None, because the run of entry(None) "
+                                                   "returned None and its caller then failed (RUN/notes).",
+                "headline": "R-1 must change.", "evidence_refs": list(done["evidence_refs"])}
+        # A completed loop alone supports only done: no gate has named the send-back yet.
+        closed = self.submit_as_it_stands(sent)
+        self.assertNotEqual(closed.returncode, 0)
+        self.assertIn("a complete document loop reports outcome done", closed.stdout + closed.stderr)
+        spec.write_text(committed.replace(self.SPEC_LINE, "R-1: A different requirement.\n"))
+        refused = self.submit_as_it_stands(done)
+        self.assertNotEqual(refused.returncode, 0)
+        text = refused.stdout + refused.stderr
+        self.assertIn("changed or removed: R-1: Synthetic requirement.", text)
+        self.assertIn("to change a requirement, report send-back naming it", text)
+        # The exit the refusal names, with spec.md as HEAD holds it, through the same gate.
+        spec.write_text(committed)
+        accepted = self.submit_as_it_stands(sent)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+        state = self.state()
+        self.assertEqual(navigator.current_stage(state), "step-plan")
+        self.assertEqual(state["history"][-1]["stage"], "document")
+        self.assertEqual(state["history"][-1]["outcome"], "send-back")
 
     def test_the_document_packet_names_the_step_its_mark_and_the_reflection(self) -> None:
         self.start()

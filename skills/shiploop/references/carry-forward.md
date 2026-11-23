@@ -77,12 +77,19 @@ future queue:
   it does not reopen an earlier stage.
 - **Future items.** Revise the queue so each affected future item carries the
   compact decision/convention locator, rationale and revalidation condition in
-  its existing `context`, with supporting sources in `evidence_refs`. A needed
+  its existing `context`, with supporting sources in `evidence_refs`. An item
+  that follows a requirement this item's step plan revised is affected: its
+  `context` also carries the changed behaviour and its `R-<n>` in
+  `KNOWLEDGE/spec.md`. A needed
   research or preparation prerequisite becomes its own item that precedes every
   affected consumer. Scheduling it is not answering it.
-- **Incompatible findings.** A changed requirement, permission, invocation
-  contract or completed-work assumption is not a queue edit: report `blocked`
-  or pause for direction.
+- **Incompatible findings.** A requirement first found here to need a change, or
+  a changed permission or invocation contract, is not a queue edit: report
+  `blocked` or pause for direction. In a step (`test-spec` through `document`) a
+  requirement that must change is a `send-back`, and step-plan revises it and
+  re-plans ([inner loop](inner-loop.md#send-back-back-to-the-step-plan)): a
+  revision accepted there is no finding to block on. A completed-work assumption
+  that new evidence invalidates is corrective work (below).
 - **Owner notes.** An owner note this stage owes a row for (one written or
   carried since the item began) is that direction, so it is no reason to block.
   This stage settles each such note: `applied` with the pending work item of the

@@ -240,6 +240,21 @@ class ContractTests(Synthetic):
                 for retired in ("revise", "replan"):
                     self.assertNotIn(retired, text)
 
+    def test_the_loop_rules_of_document_and_step_plan_allow_the_stops_their_duties_name(self):
+        """Design of 2026-11-22: a send-back or a blocked result needs a stopped loop's receipt.  Document's rule allowed a
+        stop only for a behaviour that cannot be observed, so the send-backs its duties 3 and 7 name had no loop to end;
+        step-plan's allowed one only for an item the plan no longer requires, against its duty 10's frozen-case exit."""
+        for stage, stop in (
+                ("document", " Stop blocked only when a behaviour cannot be observed here (name it), or when a "
+                             "requirement, the step plan or a criterion is wrong (the stage then reports send-back). "),
+                ("step-plan", " Stop blocked only when the plan no longer requires the item, or when a done step's "
+                              "accepted case proves a clause this plan must rewrite. ")):
+            with self.subTest(stage=stage):
+                text = loops.REPEAT[stage]
+                self.assertIn(stop, text)
+                self.assertIn(" there is no iteration limit", text)
+                self.assertTrue(text.endswith(loops._NEVER_CANCEL))
+
     def test_implement_contract_names_the_current_step_and_the_items_paths_with_no_step_fence(self):
         """The inline step's scope is its assigned criteria within the item's declared paths (implement-step fix plan
         D3: no step path fence), and its Work names the step."""
@@ -736,6 +751,20 @@ class CheckTerminalTests(Synthetic):
         self.refused(state, result, "still offers a next or done command")
         receipt.write_text("not json")
         self.refused(state, result, "is not valid JSON")
+
+    def test_an_opened_send_back_is_accepted_at_implement_and_document_and_opens_nothing_else(self):
+        """The marker of a refused done (``open_send_back``) lets that action's send-back past its completed loop, at both
+        stages whose gate writes it, and no other outcome."""
+        for stage in ("implement", "document"):
+            with self.subTest(stage=stage):
+                state, receipt = self.start(stage)
+                refs = {"evidence_refs": [str(receipt)]}
+                self.report(receipt, TRIVIAL)
+                self.refused(state, {"outcome": "send-back", **refs}, f"a complete {stage} loop reports outcome done")
+                loops.open_send_back(self.root, "A-" + stage, "Restore spec.md to what HEAD holds.\nFound: ...")
+                self.assertIsNone(loops.check_terminal(self.root, state, {"outcome": "send-back", **refs}))
+                self.refused(state, {"outcome": "blocked", **refs}, f"a complete {stage} loop reports outcome done")
+                self.assertEqual(loops.check_terminal(self.root, state, {"outcome": "done", **refs}), receipt)
 
     def test_outside_an_inner_stage_there_is_no_loop_to_check(self):
         self.refused({"stage": "spec"}, {"outcome": "done"}, "not in an inner stage")

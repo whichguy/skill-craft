@@ -666,6 +666,55 @@ class RemovalTests(HomeFixture):
                 for gone in ("each R-<n> this item satisfied", "Test IDs live only in test code"):
                     self.assertNotIn(gone, " ".join(text.split()))
 
+    def test_carry_forward_takes_a_step_plans_revision_to_later_items_and_is_not_blocked_by_it(self) -> None:
+        """Design of 2026-11-22: a pending item's step plan sees the spec as a table of contents, so a requirement this
+        item's step plan revised reaches it through its `context`; and the revision, accepted at step-plan, is not the
+        changed requirement that blocks carry-forward, in the full duty and in the one-step form (whose loop rule holds
+        that block too)."""
+        full = " ".join(prompts.DUTIES["carry-forward"].split())
+        self.assertIn("- affected future item (one that follows a requirement this item's step plan revised included): its "
+                      "`context` carries decision locator, rationale, revalidation condition and, for such a requirement, the "
+                      "changed behaviour and its R-<n> in KNOWLEDGE/spec.md (copy no transcript, invent no decision ledger; a "
+                      "context summary is not proof). That revision, accepted at step-plan, is not the incompatible finding "
+                      "below;", full)
+        one_step = " ".join(prompts.duty("carry-forward", one_step_item="W1").split())
+        self.assertIn("A requirement this item's step plan revised is accepted work, not the changed requirement that stops "
+                      "the loop blocked.", one_step)
+        self.assertNotIn("affected future item", one_step)                # no item follows in that form
+
+    def test_the_references_say_one_rule_for_a_requirement_that_must_change(self) -> None:
+        """Design of 2026-11-22: in a step it is a send-back and step-plan revises it and re-plans; elsewhere, and for a
+        permission or an invocation contract, the run still pauses; a completed-work assumption that new evidence
+        invalidates is corrective work, as carry-forward's own duty says."""
+        def flat(name: str) -> str:
+            return " ".join((ROOT / "skills/shiploop/references" / name).read_text(encoding="utf-8").split())
+
+        for name, words in (
+                ("inner-loop.md", "or a requirement must change, `test-spec` through `document` report `send-back`"),
+                ("inner-loop.md", "step-plan revises such a requirement and re-plans"),
+                ("carry-forward.md", "a requirement that must change is a `send-back`, and step-plan revises it and re-plans"),
+                ("carry-forward.md", "a revision accepted there is no finding to block on"),
+                ("carry-forward.md", "A requirement first found here to need a change, or a changed permission or invocation "
+                                     "contract, is not a queue edit: report `blocked` or pause for direction."),
+                ("carry-forward.md", "A completed-work assumption that new evidence invalidates is corrective work (below)."),
+                ("research-loop.md", "what it must say instead and the evidence: step-plan revises it and re-plans."),
+                ("research-loop.md", "| Requirement that must change, found elsewhere; changed permission or invocation "
+                                     "contract | Pause for direction, or report `blocked`"),
+                ("research-loop.md", "| Completed-work assumption that new evidence invalidates | Corrective work with "
+                                     "revalidation, ahead of its consumers. |"),
+                ("behavioral-requirements.md", "in a step, a requirement that must change is a `send-back`, and step-plan "
+                                               "revises it with its evidence and re-plans; elsewhere, stop and seek direction."),
+                ("execution-planning.md", "Pause for incompatible scope, writer or permission changes, and for an acceptance "
+                                          "change no send-back or owner note asks for.")):
+            with self.subTest(reference=name, words=words[:60]):
+                self.assertIn(words, flat(name))
+        for name, gone in (("carry-forward.md", "permission, invocation contract or completed-work assumption is not a"),
+                           ("research-loop.md", "Incompatible requirement, permission or completed-work assumption"),
+                           ("behavioral-requirements.md", "stop and seek direction, not a silent spec edit"),
+                           ("execution-planning.md", "scope, acceptance, writer or permission changes")):
+            with self.subTest(gone=name):
+                self.assertNotIn(gone, flat(name))
+
     def test_run_label_is_the_old_folder_name_and_names_no_folder(self) -> None:
         self.assertEqual(knowledge.run_label(self.state), "add-a-fleet-command-tab-to-abcdef")
         self.assertEqual(knowledge.run_label(dict(self.state, prompt="!!!")), "feature-abcdef")

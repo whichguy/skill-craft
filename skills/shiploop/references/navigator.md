@@ -819,10 +819,12 @@ requester three times: the packet of the next stage, `test-strategy`, prints the
 in its progress line; the done packet lists them and tells the host to say them in its last message; and the report
 has them under "Decided for you", directly after the request. ShipLoop asks nothing, waits for nothing and never
 blocks a stage for what an entry says. The rows are what the spec stage recorded. When a later stage rewrites a
-requirement a row names (an owner's note can lead to that), the done packet and the report mark the row "changed
-after the spec stage"; a line added to the requirement is not a rewrite. ShipLoop has no route of its own that
-reopens an accepted specification for a sentence sent during the run, so the displays name the way that always
-holds: a new run on the delivered project.
+requirement a row names (an owner's note or a step's send-back can lead to that), the done packet and the report mark
+the row "changed after the spec stage"; a line added to the requirement is not a rewrite. ShipLoop has no route of its
+own that reopens an accepted specification for a sentence sent during the run, so the displays name the way that always
+holds: a new run on the delivered project. Beside the list, the done packet (with the instruction to tell the user) and
+the report show every requirement a step plan of the run reported revising: each accepted `step-plan` result whose
+summary begins `Revised R-<n>`, in order, superseded ones included. ShipLoop compares no text for it.
 
 A done result of any producer stage also carries `notes` when the run's owner wrote notes it owes a row for
 (status-display.md#owner-notes): one `{"note", "did", "detail"}` per note, `did` one of `applied`, `already`,

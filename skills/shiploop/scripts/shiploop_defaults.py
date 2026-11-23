@@ -25,6 +25,10 @@ spec stage recorded.  A later stage can rewrite a requirement (the first real de
 the next stage rewrote the clause and the product followed), so the done packet and the report mark a row whose
 requirement no longer reads as the spec stage left it (``changed``), or say that this cannot be told.
 
+Beside the list the requester is shown every requirement a step plan of the run reported revising (``revisions``, owner
+2026-11-22: a step that finds a requirement must change sends its item back, and step-plan rewrites it).  Those rows are
+the step plans' own reports: ShipLoop compares no text, so a revision a plan did not report is not listed.
+
 Like ``primary`` and ``follow_on``, the stored shape is loose (a list of text mappings, so every saved run loads
 whatever a later edit does to the field set) and the exact shape is held at the CLI gate only.
 """
@@ -39,6 +43,7 @@ from typing import Any
 
 import shiploop_knowledge_home as knowledge
 import shiploop_planning_revision as planning_revision
+import shiploop_stage_spec as stage_spec
 
 STAGES = frozenset(("spec",))
 FIELD = "defaults"
@@ -282,12 +287,71 @@ def html_section(state: Mapping[str, Any]) -> list[str]:
     return [f"<h2>{HEADING}</h2>", note]
 
 
+REVISIONS_HEADING = "Requirements revised during the work"
+# How a step plan that rewrote a requirement begins its summary (its duty 10).
+REVISED_SUMMARY = re.compile(r"Revised R-\d+\b")
+
+
+def revisions(state: Mapping[str, Any]) -> list[dict[str, str]]:
+    """The requirements a step plan of the run reported revising: every accepted done step-plan result whose summary
+    begins with ``REVISED_SUMMARY``, in the order the run accepted them, as {item, action, summary} with the summary whole
+    on one line.  A plan that a later send-back superseded stays in the list, and so does one that answered an owner note.
+    A malformed row or result is left out: a display never breaks on one."""
+    history, accepted = state.get("history"), state.get("accepted")
+    rows = []
+    for entry in history if isinstance(history, list) and isinstance(accepted, Mapping) else ():
+        if not (isinstance(entry, Mapping) and entry.get("stage") == stage_spec.SEND_BACK_TO
+                and entry.get("outcome") == "done" and isinstance(entry.get("action"), str)):
+            continue
+        result = accepted.get(entry["action"])
+        summary = result.get("summary") if isinstance(result, Mapping) else None
+        if isinstance(summary, str) and REVISED_SUMMARY.match(_text(summary)):
+            rows.append({"item": _text(entry.get("workitem") or ""), "action": entry["action"],
+                         "summary": _text(summary)})
+    return rows
+
+
+def _revisions_reported(rows: Sequence[Any]) -> str:
+    return ("1 revision, as the step plan reported it" if len(rows) == 1 else
+            f"{len(rows)} revisions, as the step plans reported them, in order")
+
+
+def revision_lines(state: Mapping[str, Any]) -> list[str]:
+    """What the done packet says about ``revisions``, with the instruction to tell the user; nothing without one."""
+    rows = revisions(state)
+    if not rows:
+        return []
+    return [f"{REVISIONS_HEADING}: {_revisions_reported(rows)}. In your last message tell the user "
+            + ("what changed and why:" if len(rows) == 1 else "each, with what changed and why:"),
+            *(f"{number}. {row['item']}: {row['summary']}" if row["item"] else f"{number}. {row['summary']}"
+              for number, row in enumerate(rows, 1))]
+
+
+def revisions_section(state: Mapping[str, Any]) -> list[str]:
+    """The report's section on ``revisions``, beside ``html_section``; nothing when there are none.  Every value is
+    escaped."""
+    rows = revisions(state)
+    if not rows:
+        return []
+    heads = ("", "Work item", "What its step plan reported", "Result")
+    return [f"<h2>{REVISIONS_HEADING}</h2>",
+            "<p>A step plan of this run reported revising a requirement after the specification was accepted: "
+            + html.escape(_revisions_reported(rows)) + ". ShipLoop did not compare the specification. A later step plan "
+            "may have changed a requirement again; the specification holds each as it now stands.</p>\n"
+            "<table><thead><tr>" + "".join("<th>" + head + "</th>" for head in heads) + "</tr></thead><tbody>\n"
+            + "\n".join("<tr>" + "".join("<td>" + html.escape(str(value)) + "</td>" for value in
+                                         (number, row["item"], row["summary"], row["action"])) + "</tr>"
+                        for number, row in enumerate(rows, 1)) + "\n</tbody></table>"]
+
+
 __all__ = (
     "CHANGED",
     "EMPTY",
     "FIELD",
     "FIELDS",
     "HEADING",
+    "REVISED_SUMMARY",
+    "REVISIONS_HEADING",
     "ROWS_PRINT",
     "SHAPE",
     "SHOWN_AT",
@@ -302,6 +366,9 @@ __all__ = (
     "html_section",
     "packet_lines",
     "recorded",
+    "revision_lines",
+    "revisions",
+    "revisions_section",
     "row_lines",
     "shows",
 )

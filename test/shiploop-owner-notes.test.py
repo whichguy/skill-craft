@@ -1076,9 +1076,10 @@ EXCEPTION = ("unless an owner note this stage owes asks for the requirement chan
 # carry-forward's duty 1 keeps spec.md as the steps wrote it (2026-11-22); its one exception is the rewrite EXCEPTION allows.
 SPEC_EXCEPTION = ("except a requirement that an owner note this stage owes asks to change (rewrite that entry in place, as "
                   "the owner notes block says)")
-# document's duty as released: six real deliveries of six that got a note during the build sent the step back to
-# step-plan; none finished the step as planned (accept brief, item H).
-DOCUMENT_SENTENCE = ("Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.")
+# document's duty: six real deliveries of six that got a note during the build sent the step back to step-plan; none
+# finished the step as planned (accept brief, item H).  Since 2026-11-22 it asks for what the requirement must say too.
+DOCUMENT_SENTENCE = ("Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n> and what "
+                     "it must say.")
 # step-plan's knowledge duty with the clause every delivery's route needs (coordinator's item K): the four sessions that
 # got a note during the build sent the step back and rewrote the requirement at step-plan, against the released "write
 # nothing else in KNOWLEDGE/".
@@ -1095,10 +1096,10 @@ def flat(text: str) -> str:
 class StandingTextTests(unittest.TestCase):
     """Fix brief item 3, accept brief item H and item K: the carry-forward duty and the carry-forward loop's rule carry
     the owner-note exception in their standing text, whatever notes are on file (that stage cannot send back); document's
-    duty is the released sentence, so a stage of a work item whose step a note changes may send it back; and step-plan's
+    duty says no word of a note, so a stage of a work item whose step a note changes may send it back; and step-plan's
     knowledge duty lets it rewrite the requirement such a note changes, which is where every such delivery did it."""
 
-    def test_carry_forward_carries_the_exception_and_document_its_released_sentence(self) -> None:
+    def test_carry_forward_carries_the_exception_and_document_its_own_sentence(self) -> None:
         import shiploop_loops as loops
         import shiploop_prompts as prompts
         for route in (prompts.INLINE, prompts.ASK_AGENT):
@@ -1413,14 +1414,20 @@ class ReconcileTakesOutTheSettlingResultTests(NoteRun):
         self.assertEqual([entry["stage"] for entry in owner_notes.ledger(self.state(run))["N1"]], ["research"])
 
 
-class RouteTests(NoteRun):
-    """The route every real delivery took (accept brief, "Tests"), pinned through the CLI: a note written while
-    implement is open is refused there; the step goes back to step-plan with a send-back that holds no row; step-plan
-    owes the row and is accepted with applied; the item's later stages and its carry-forward owe nothing.  And the
-    other shape seen: carried at step-plan, then already at that item's carry-forward."""
+class RouteRun(NoteRun):
+    """A run whose item goes back to step-plan, with the planning review on: the review's import, the living spec and
+    R-1's rewrite."""
 
     OLD_R1 = "- R-1: built.txt exists."
     NEW_R1 = "- R-1: built.txt exists and holds the greeting the owner's note N1 asks for."
+
+    def commit_spec(self, run: Path) -> Path:
+        """R-1's entry as the spec stage's knowledge commit leaves it (the positioning records results without commits)."""
+        living = self.repo_of(run) / nav.knowledge.HOME / "spec.md"
+        living.parent.mkdir(parents=True, exist_ok=True)
+        living.write_text(contract.LIVING_SPEC, encoding="utf-8")
+        self.assertTrue(nav.knowledge.commit(self.state(run), "spec").commit)
+        return living
 
     def finish_review(self, run: Path) -> str:
         """Finish a parked review with the pure API and run what its import runs after the gates (the save, the
@@ -1445,13 +1452,16 @@ class RouteTests(NoteRun):
         path = self.repo_of(run) / nav.knowledge.HOME / "spec.md"
         path.write_text(self.spec_of(run).replace(self.OLD_R1, self.NEW_R1), encoding="utf-8")
 
+
+class RouteTests(RouteRun):
+    """The route every real delivery took (accept brief, "Tests"), pinned through the CLI: a note written while
+    implement is open is refused there; the step goes back to step-plan with a send-back that holds no row; step-plan
+    owes the row and is accepted with applied; the item's later stages and its carry-forward owe nothing.  And the
+    other shape seen: carried at step-plan, then already at that item's carry-forward."""
+
     def test_a_note_during_implement_goes_back_to_step_plan_and_is_settled_there(self) -> None:
         run, head = self.new_run("implement")
-        # R-1's entry as the spec stage's knowledge commit leaves it (the positioning records results without commits).
-        living = self.repo_of(run) / nav.knowledge.HOME / "spec.md"
-        living.parent.mkdir(parents=True, exist_ok=True)
-        living.write_text(contract.LIVING_SPEC, encoding="utf-8")
-        self.assertTrue(nav.knowledge.commit(self.state(run), "spec").commit)
+        living = self.commit_spec(run)
         self.note(run)
         refused = self.refuse(run, head, self.result(head), verb="check", loop=False)   # a check runs inside the loop
         self.assertTrue(self.first_line(refused).startswith("ShipLoop check: owner note N1 is not accounted for: read "),
@@ -1460,7 +1470,7 @@ class RouteTests(NoteRun):
         self.rewrite_r1(run)
         (self.repo_of(run) / "built.txt").write_text("hello\n")
         refused = self.refuse(run, head, self.result(head, row(did="applied", detail="R-1 now says what N1 asks")))
-        self.assertIn("; to change a requirement, report send-back naming it.", refused)
+        self.assertIn("; to change a requirement, report send-back naming it and what it must say.", refused)
         self.assertIn("Found: changed or removed: " + self.OLD_R1, refused)
         living.write_text(contract.LIVING_SPEC, encoding="utf-8")       # the tree as the step began, for the send-back
         (self.repo_of(run) / "built.txt").unlink()
@@ -1509,6 +1519,102 @@ class RouteTests(NoteRun):
         ledger = owner_notes.ledger(self.state(run))
         self.assertEqual([(entry["stage"], entry["did"]) for entry in ledger["N1"]],
                          [("step-plan", "carried"), ("carry-forward", "already")])
+
+
+class RequirementRouteTests(RouteRun):
+    """The same route with no note (owner, 2026-11-22: "Let step-plan rewrite"; design of 2026-11-22): a step finds that a
+    requirement must change and sends back naming it; the redone step plan rewrites the entry in place, says so in its
+    summary and is accepted through its review; the rewrite is in HEAD, test-spec quotes it through ``follows``, the next
+    implement's step gate takes it as its baseline, and the done packet and the report tell the requester."""
+
+    NEW_R1 = ("- R-1: built.txt exists and ends with a line break (revised at step-plan: the reader drops an unterminated "
+              "line, evidence.txt).")
+    SUMMARY = ("Revised R-1: built.txt now ends with a line break, because the reader drops an unterminated line. Retains "
+               "the sh harness.")
+
+    def sent(self) -> dict:
+        return {"outcome": "send-back", "headline": "R-1 must change.", "evidence_refs": [str(self.evidence)],
+                "summary": "R-1 must say that built.txt ends with a line break, because the reader drops an unterminated "
+                           "line (evidence.txt)."}
+
+    def test_a_requirement_a_step_finds_must_change_is_rewritten_at_the_redone_step_plan(self) -> None:
+        run, head = self.new_run("implement")
+        living = self.commit_spec(run)
+        # The step may not write it: the gate's refusal names the send-back, whose result may then go.
+        self.rewrite_r1(run)
+        (self.repo_of(run) / "built.txt").write_text("hello\n")
+        refused = self.refuse(run, head, self.result(head))
+        self.assertIn("; to change a requirement, report send-back naming it and what it must say.", refused)
+        living.write_text(contract.LIVING_SPEC, encoding="utf-8")
+        (self.repo_of(run) / "built.txt").unlink()
+        head = self.accept(head, self.sent(), loop=False)
+        self.assertIn("ShipLoop navigator | step-plan |", head)
+        sender = self.state(run)["history"][-1]["action"]
+        packet = flat(contract.full_packet_text(head))
+        self.assertIn("\"" + self.sent()["summary"] + "\" Evidence: RUN/results/" + sender + ".md.", packet)
+        self.assertIn("rewrite the clause in place the same way", packet)
+        self.assertEqual(self.owes(head), [])                             # no note: the send-back is the direction
+        # The rewrite, in place: the ID stays and no copy of the old clause; the mandated summary; follows names it.
+        self.rewrite_r1(run)
+        head = self.accept(head, self.result(head, summary=self.SUMMARY, follows=["R-1"]))
+        self.assertIn("ShipLoop navigator | improve |", head)             # the redone plan is reviewed
+        head = self.finish_review(run)
+        self.assertIn(self.NEW_R1, self.spec_of(run, "HEAD"))
+        self.assertNotIn(self.OLD_R1, self.spec_of(run, "HEAD").splitlines())
+        # test-spec is handed the rewritten entry by value, through follows.
+        self.assertIn("ShipLoop navigator | test-spec |", head)
+        packet = contract.full_packet_text(head)
+        self.assertIn(self.NEW_R1, packet)
+        self.assertNotIn(self.OLD_R1, packet.splitlines())
+        head = self.accept(head, self.result(head))
+        if "ShipLoop navigator | improve |" in head:
+            head = self.finish_review(run)
+        # The next implement's step gate compares with the rewritten text: going back to the old clause is refused, the
+        # rewritten spec with this step's own line in the entry is accepted.
+        self.assertIn("ShipLoop navigator | implement |", head)
+        (self.repo_of(run) / "built.txt").write_text("hello\n")
+        rewritten = self.spec_of(run)
+        living.write_text(contract.LIVING_SPEC, encoding="utf-8")
+        self.assertIn("Found: changed or removed: " + self.NEW_R1, self.refuse(run, head, self.result(head)))
+        living.write_text(rewritten.replace(self.NEW_R1, self.NEW_R1 + "\n  Met by built.txt. (W1/S1)"), encoding="utf-8")
+        head = self.accept(head, self.result(head))
+        self.assertIn("ShipLoop navigator | test |", head)
+        # The requester is told, in the done packet and in the report beside "Decided for you".
+        self.walk(run, self.at("handoff"))
+        head = self.next(run)
+        out = flat(self.accept(head, self.result(head)))
+        self.assertIn("Requirements revised during the work: 1 revision, as the step plan reported it. In your last message "
+                      "tell the user what changed and why: 1. W1: " + self.SUMMARY, out)
+        report = self.cli("report", "--run-dir", str(run)).stdout
+        self.assertIn("<h2>Requirements revised during the work</h2>", report)
+        self.assertIn(self.SUMMARY, report)
+
+    def test_a_requirement_the_document_stage_finds_must_change_takes_the_same_route(self) -> None:
+        run, head = self.new_run("document", entered=True)
+        living = self.commit_spec(run)
+        self.rewrite_r1(run)
+        refused = self.refuse(run, head, self.result(head))
+        self.assertIn("Found: changed or removed: " + self.OLD_R1, refused)
+        living.write_text(contract.LIVING_SPEC, encoding="utf-8")
+        head = self.accept(head, self.sent(), loop=False)                 # the exit the refusal names, accepted
+        self.assertIn("ShipLoop navigator | step-plan |", head)
+        self.assertIn("document sent W1 back to step-plan (send-back 1)", flat(contract.full_packet_text(head)))
+
+    def test_a_revision_reaches_a_later_item_through_its_context_and_unrelated_work_stays(self) -> None:
+        run, _head = self.new_run("prepare", results=THREE_ITEMS)
+        self.commit_spec(run)
+        self.rewrite_r1(run)                                              # as W1's step plan left R-1
+        self.walk(run, self.at("carry-forward", "W1"), results={**THREE_ITEMS, "step-plan": {"summary": self.SUMMARY}})
+        head = self.next(run)
+        packet = flat(contract.full_packet_text(head))
+        self.assertIn("one that follows a requirement this item's step plan revised included", packet)
+        self.assertIn("is not the incompatible finding below", packet)
+        carried = ("The second part. W1's step plan revised R-1: built.txt ends with a line break (KNOWLEDGE/spec.md R-1); "
+                   "recheck when the reader changes.")
+        head = self.accept(head, self.result(head, work_items=[dict(ITEMS[1], context=carried), dict(ITEMS[2])]))
+        self.assertIn("ShipLoop navigator | step-plan |", head)
+        self.assertIn("Work item context: " + carried, flat(contract.full_packet_text(head)))
+        self.assertEqual(self.state(run)["work_items"][2], ITEMS[2])      # W3 is as the plan left it
 
 
 if __name__ == "__main__":
