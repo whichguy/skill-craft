@@ -17,6 +17,10 @@ available from a checkout without changing the installed skill. A plugin release
 is needed when packaged skill sources under `skills/` change, not merely because
 this harness changed.
 
+For independent builds of the Codybot Salesforce package, use the
+[manual Codybot test case](manual/codybot/README.md). Each invocation starts
+from the same Markdown brief in a fresh Git project.
+
 ## Inspect and repair retained evidence
 
 Identify the current owned checkout without starting a host or changing a saved run:
@@ -1509,17 +1513,12 @@ boundary against deliberate benchmark gaming.
 detectors, mixed behavior/byte suites and production edits, plus invalid observations, through the same observer used by live runs. A tests-only win
 has a narrow claim: compare normal application workflows too before adopting a generic ShipLoop change.
 
-### Salesforce Grok chat case
+### Salesforce chat cases
 
-[`grok-chat-salesforce`](GROK_CHAT.md) is an opt-in exploratory case with an elaborated
-prompt for an Apex/LWC assistant, guided setup and confirmed record changes.
-Its acceptance check currently returns UNKNOWN deliberately: source/deployment/Apex
-smoke checks cannot qualify the live chat, UI, authorization or code/comment review.
-
-[`grok-chat-salesforce-full`](GROK_CHAT_FULL.md) adds a frozen public interface,
-operator-prepared provider credentials, independent Apex and authenticated UI
-checks, and an attended source-bound quality review. It preserves the exploratory
-case and uses the existing Until Loop and default app cleanup.
+The former `grok-chat-salesforce` and `grok-chat-salesforce-full` catalog cases
+were retired. The [Codybot case](manual/codybot/README.md) has its own launcher
+and uses the installed ShipLoop skill. Its brief defines the package's release
+scenarios, including the observations that need an authorized subscriber org.
 
 ### What version is tested
 
