@@ -81,6 +81,16 @@ future queue:
 - **Incompatible findings.** A changed requirement, permission, invocation
   contract or completed-work assumption is not a queue edit: report `blocked`
   or pause for direction.
+- **Owner notes.** An owner note this stage owes a row for (one written or
+  carried since the item began) is that direction, so it is no reason to block.
+  This stage settles each such note: `applied` with the pending work item of the
+  queue it leaves that does the work in `item` (never the current item or a
+  finished one), `already` when the run already does it, or `declined` with the
+  reason; it may not carry one. When a note changes a requirement, revise that
+  requirement's entry in `KNOWLEDGE/spec.md` in place (the ID stays; the entry
+  says the owner note revised it; keep no copy of the old clause inside it) and
+  queue the item that follows it, so its step plan and tests are written for the
+  revised text. The item just finished stays as it was planned.
 
 Omitting `work_items` keeps every future item. Supplying it replaces the
 **entire future queue** after the current item; it does not append. Read the

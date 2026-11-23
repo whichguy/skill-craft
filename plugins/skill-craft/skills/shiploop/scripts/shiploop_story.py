@@ -106,7 +106,7 @@ def _event_status(name, kind, row, code):
             return None
         if code == 0:
             return "ok"
-        word = ("held" if row.get("held") else "not passed" if row.get("verb") == "check"
+        word = ("not passed" if row.get("verb") == "check"
                 else "interrupted" if row.get("crashed") == "KeyboardInterrupt"
                 else "crashed" if row.get("crashed") else "refused")
         return f"{word} (exit {code})"

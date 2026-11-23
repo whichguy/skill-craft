@@ -1392,7 +1392,9 @@ Change no product file in this stage.
      topic, opening only its matching section.
 10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
-    in KNOWLEDGE/.
+    in KNOWLEDGE/, unless an owner note this stage owes asks for a requirement change: then rewrite that requirement in
+    place in KNOWLEDGE/spec.md (the ID stays; its entry keeps no copy of the old clause) and plan the step for the
+    rewritten text.
 """ + _STEP_PLAN_NO_GRAPH + """\
 12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
     used.
@@ -1591,7 +1593,8 @@ preparatory commit); a mismatch there is a send-back.
    - affected future item: its `context` carries decision locator, rationale, revalidation condition (copy no
      transcript, invent no decision ledger; a context summary is not proof);
    - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
-     loop and report blocked; it is no queue edit.
+     loop and report blocked; it is no queue edit, unless an owner note this stage owes asks for the requirement
+     change: then rewrite the requirement in place, queue the work and report done.
    To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "follows", "context"}` in
    prerequisite order, no completed or current ID, keeping unrelated pending work and each primary requirement in
    some item's `follows` (a completed or current item counts). Explain each removal, merge or supersession in the summary. Omit `work_items` to keep the

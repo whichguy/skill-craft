@@ -57,9 +57,6 @@ PAGE_TEXT_LIMIT = 12 * 1024 * 1024  # guard: the page stays openable in a browse
 # Set by the CLI while a traced command runs on a current run; packets printed at any other time (a routed verb such as
 # lint, a test calling emit directly) write nothing.
 ACTIVE = False
-# The owner notes a `shiploop check` printed in place of holding the callback (the navigator appends them; the CLI
-# clears it when a command line starts and puts it on that command's line as ``shown``).
-SHOWN: list[str] = []
 
 
 # ---------------------------------------------------------------------------------------------------------- writer
@@ -149,12 +146,10 @@ def record_packet(root: str | Path, state: Mapping[str, Any], text: str, printed
         return False
     child = state.get("active_improve") or {}
     stage, action, item = _cursor(state)
-    import shiploop_owner_notes as owner_notes
-
     return record(root, "packet", action=child.get("improve_action") or (action or {}).get("id"),
                   stage="improve" if child else stage, item=item, reviewed=child.get("stage"),
                   status=state.get("status"), rev=state.get("revision"), chars=len(text), printed=len(printed),
-                  whole=whole, sha=sha, file=file, head_file=head, notes=owner_notes.quoted_ids(printed) or None)
+                  whole=whole, sha=sha, file=file, head_file=head)
 
 
 def cursor_facts(state: Mapping[str, Any]) -> dict[str, Any]:
@@ -176,26 +171,21 @@ def accepted_between(before: Mapping[str, Any], after: Mapping[str, Any]) -> lis
 
 def record_command(root: str | Path, argv: Sequence[str], code: int, started: float, *,
                    before: Mapping[str, Any] | None, after: Mapping[str, Any] | None, error: str | None,
-                   note: str | None = None, held: Sequence[str] | None = None, shown: Sequence[str] | None = None,
-                   crashed: str | None = None) -> bool:
+                   note: str | None = None, crashed: str | None = None) -> bool:
     """Record one ShipLoop command line that named the run: ``before`` and ``after`` are the saved states around it
     (``after`` is None when the command saved nothing it could report).  ``note`` is the owner note a ``note`` command
-    wrote, ``held`` the notes a held callback printed, ``shown`` the notes a check printed in place of that hold; the notes
-    an accepted step delivered come from the two states.
+    wrote; where each note stands is read from the accepted results (``notes_model``).
     ``crashed`` names the exception that ended the command before it answered (``KeyboardInterrupt`` for an interrupt)."""
     verb = argv[0] if argv else ""
     first = cursor_facts(before) if before is not None else None
     last = cursor_facts(after) if after is not None else first
     pairs = {name: [(first or {}).get(name), (last or {}).get(name)] for name in ("rev", "stage", "cursor")} if last else {}
     accepted = accepted_between(before, after) if before is not None and after is not None else []
-    known = set((before or {}).get("owner_notes") or {})
-    delivered = sorted((set((after or {}).get("owner_notes") or {}) - known), key=lambda note: int(note[1:]))
     return record(
         root, "command", verb=verb, action=_flag(argv, "--action"), exit=code,
         ms=round((time.monotonic() - started) * 1000),
         **pairs, status=(last or {}).get("status"), accepted=accepted or None, error=error if code else None,
-        note=note, held=list(held) if held else None, shown=list(shown) if shown else None, delivered=delivered or None,
-        crashed=crashed,
+        note=note, crashed=crashed,
     )
 
 
@@ -273,9 +263,6 @@ def _normal_event(row):
         if row.get("kind") == "command":
             value = row.get(key)
             row[key] = value if isinstance(value, list) and len(value) == 2 and all(isinstance(x, (str, int, type(None))) for x in value) else [None, None]
-    for key in ("notes", "held", "shown", "delivered"):
-        value = row.get(key)
-        row[key] = [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
     row["accepted"] = [item for item in row.get("accepted", []) if isinstance(item, dict) and isinstance(item.get("action"), str)] if isinstance(row.get("accepted", []), list) else []
     return row
 
@@ -315,7 +302,6 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
         return [row for _, row in observation_io.stream(captures[name])]
     clock = time.time() if now is None else now
     accepted_at = {action: _parse(stamp) for action, stamp in (timeline.get("accepted") or {}).items()}
-    trace_path = run / TRACE_FILE
     def sourced_stream(name):
         stream(name)
         value = captures[name]
@@ -481,7 +467,6 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
             "accepted": len(history), "commands": counts["command"], "packets": counts["packet"],
             "reprints": sum(bool(event.get("repeat")) for event in events),
             "refusals": sum(refused(event) for event in commands),
-            "held": sum(bool(event.get("held")) for event in commands),
             "checks_failed": sum(event.get("exit") not in (0, None) and event.get("verb") == "check" for event in commands),
             "crashed": sum(bool(event.get("crashed")) for event in commands),
             "continuations": sum(event.get("decision") == "continue" for event in hooks),
@@ -492,56 +477,43 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
 
 
 def refused(event: Mapping[str, Any]) -> bool:
-    """A command that exited non-zero, other than a check (``shiploop check``), which reports and never completes, a
-    callback held once for owner notes, which refuses nothing the model submitted, and a command interrupted or crashed
-    before it answered (``crashed``)."""
+    """A command that exited non-zero, other than a check (``shiploop check``), which reports and never completes, and a
+    command interrupted or crashed before it answered (``crashed``).  A result refused for its owner notes is a
+    refusal like any other."""
     return (event.get("kind") == "command" and event.get("exit") not in (0, None) and event.get("verb") != "check"
-            and not event.get("held") and not event.get("crashed"))
+            and not event.get("crashed"))
 
 
 def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
                 accepted_at: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Every owner note: its text (screened), when it was written, and where it stands: waiting (no print has shown
-    it), shown (a packet quoted it whole, or a hold printed it: a held callback, or a check in its place) or delivered
-    (by which step, and whether that step's summary cites its id)."""
+    """Every owner note on file and every note id in the ledger: its text (screened; None when its file is gone or does
+    not read, with ``file_gone`` true when the file is no longer in the run folder), when it was written, where it
+    stands (open: no row; carried: its latest row is carried; settled) and every row a result gave it, read from the
+    accepted results (``owner_notes.ledger``).  ``owed_by`` says who accounts for a note that is not settled.
+    ``events`` is kept for the reader's signature."""
     import shiploop_owner_notes as owner_notes
 
-    done = owner_notes.delivered(state)
-    steps = {entry.get("action"): index for index, entry in enumerate(state.get("history") or [], 1)}
-    results = state.get("accepted") or {}
-    quoted_in: dict[str, list[Any]] = defaultdict(list)
-    held_in: dict[str, list[Any]] = defaultdict(list)
-    for event in events:
-        for note_id in (event.get("notes") or []) if event["kind"] == "packet" else []:
-            if event.get("action") not in quoted_in[note_id]:
-                quoted_in[note_id].append(event.get("action"))
-        for note_id in [*(event.get("held") or []), *(event.get("shown") or [])] if event["kind"] == "command" else []:
-            held_in[note_id].append(event.get("action"))
-    # What the current action's prints showed, from the record the hold reads (the trace may lack a line).
-    try:
-        raw, _ = observation_io._read_beneath(run, "owner-notes/shown.json", ANSWER_LIMIT)
-        shown = json.loads(raw)
-        if not isinstance(shown, dict) or not isinstance(shown.get("action"), str):
-            shown = {}
-    except (OSError, ValueError):
-        shown = {}
-    for key, into in (("packet", quoted_in), ("held", held_in)):
-        for note_id in shown.get(key) or []:
-            if shown["action"] not in into[note_id]:
-                into[note_id].append(shown["action"])
-    rows = []
-    for note in _safe_notes(run):
-        note_id, action = note["id"], done.get(note["id"])
-        summary = str((results.get(action) or {}).get("summary") or "") if action else ""
-        rows.append({
-            "id": note_id, "at": note["written_at"], "text": _screened(note["text"]), "chars": len(note["text"]),
-            "file": note["file"], "state": "delivered" if action else
-            "shown" if quoted_in.get(note_id) or held_in.get(note_id) else "waiting",
-            "quoted_in": quoted_in.get(note_id, []), "held_in": held_in.get(note_id, []), "delivered_by": action,
-            "step": steps.get(action), "delivered_at": _iso(accepted_at.get(action)) if action else None,
-            "cited": bool(re.search(r"\b" + note_id + r"\b", summary)) if action else None,
+    ledger = owner_notes.ledger(state)
+    found = _safe_notes(run)
+    on_file = {note["id"] for note in found}
+    found += [{"id": note_id, "written_at": None, "text": None, "file": f"owner-notes/{note_id}.md"}
+              for note_id in ledger if note_id not in on_file and owner_notes.NOTE_ID.fullmatch(note_id)]
+    notes = []
+    for note in sorted(found, key=lambda note: int(note["id"][1:])):
+        rows = ledger.get(note["id"], [])
+        text = note["text"]
+        notes.append({
+            "id": note["id"], "at": note["written_at"], "text": None if text is None else _screened(text),
+            "chars": 0 if text is None else len(text), "file": note["file"],
+            "file_gone": text is None and not os.path.lexists(Path(run) / note["file"]),
+            "state": owner_notes.standing(rows),
+            "owed_by": None if owner_notes.standing(rows) == "settled" else owner_notes.owed_by(rows),
+            "rows": [{"step": row["step"], "action": row["action"], "stage": row["stage"], "item": row.get("workitem"),
+                      "where": f"{(row['workitem'] + ' ') if row.get('workitem') else ''}{row['stage']}",
+                      "did": row["did"], "detail": _screened(row["detail"]), "names": row.get("item"),
+                      "at": _iso(accepted_at.get(row["action"]))} for row in rows],
         })
-    return rows
+    return notes
 
 
 def _safe_notes(run):
@@ -871,13 +843,7 @@ def event_line(event: Mapping[str, Any]) -> str:
             text += f" · now {stage[1]} r{rev[1]}"
         if event.get("note"):
             text += f" · wrote owner note {event['note']}"
-        if event.get("delivered"):
-            text += " · delivered owner note" + ("s " if len(event["delivered"]) > 1 else " ") + ", ".join(event["delivered"])
-        if event.get("shown"):
-            text += " · printed owner note" + ("s " if len(event["shown"]) > 1 else " ") + ", ".join(event["shown"])
-        if event.get("held"):
-            text += " · held for owner note" + ("s " if len(event["held"]) > 1 else " ") + ", ".join(event["held"])
-        elif event.get("exit"):
+        if event.get("exit"):
             label = ("check: " if event.get("verb") == "check" else "interrupted: " if event.get("crashed") == "KeyboardInterrupt"
                      else "crashed: " if event.get("crashed") else "refused: ")
             text += " · " + label + _one_line(event.get("error") or "(no message recorded)")
@@ -979,8 +945,7 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
     if run["traced"]:
         lines.append(f"Totals:   {counts['accepted']} accepted · {_count(counts['commands'], 'command')} · "
                      f"{counts['refusals']} refused · {_count(counts['checks_failed'], 'check')} failed · "
-                     + (f"{_count(counts['held'], 'callback')} held for owner notes · " if counts.get("held") else "")
-                     + f"{_count(counts['packets'], 'packet')} ({_count(counts['reprints'], 'reprint')}) · "
+                     f"{_count(counts['packets'], 'packet')} ({_count(counts['reprints'], 'reprint')}) · "
                      f"{_count(counts['continuations'], 'hook continuation')} · {_count(counts['skills'], 'skill call')}")
     else:
         # Not measured is not zero: a run before the trace recorded no commands, refusals, packets or hook stops.
@@ -996,16 +961,19 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
 
 
 def notes_summary(notes: Sequence[Mapping[str, Any]]) -> list[str]:
-    """One digest line for the owner's notes, when there are any: each one's id and where it stands."""
+    """One digest line for the owner's notes, when there are any: each one's id and where it stands (open, carried or
+    settled), with its latest row."""
     if not notes:
         return []
     parts = []
     for note in notes:
-        if note["state"] == "delivered":
-            cited = " (cited)" if note.get("cited") else " (not cited in its summary)"
-            parts.append(f"{note['id']} delivered" + (f" #{note['step']}" if note.get("step") else "") + cited)
+        last = (note.get("rows") or [None])[-1]
+        if note["state"] == "settled":
+            parts.append(f"{note['id']} settled ({last['did']} at {last['where']} #{last['step']})")
+        elif note["state"] == "carried":
+            parts.append(f"{note['id']} carried (by {last['where']} #{last['step']}, for {note['owed_by']})")
         else:
-            parts.append(f"{note['id']} " + ("shown, not delivered yet" if note["state"] == "shown" else "waiting for a packet"))
+            parts.append(f"{note['id']} open (no row yet; {note['owed_by']} owes one)")
     return [f"Notes:    {_count(len(notes), 'owner note')} · " + " · ".join(parts)]
 
 

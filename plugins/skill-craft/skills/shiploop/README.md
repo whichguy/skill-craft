@@ -1,4 +1,4 @@
-# ShipLoop navigator 2.6.1
+# ShipLoop navigator 2.7.0
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
@@ -342,8 +342,8 @@ Leave an instruction for the next step without stopping anything:
 python3 "$SKILL_ROOT/scripts/shiploop" note --run-dir "$RUN" --text "Reuse the existing date helper; do not add a library."
 ```
 
-The next packet quotes the note until a step that showed it is accepted. `note` takes no lock, so it never waits for a command the
-model is running.
+The next done result must account for the note with a row in its `notes` (applied, already, carried or declined), and ShipLoop
+refuses that result until it does. `note` takes no lock, so it never waits for a command the model is running.
 
 ### 6. Pause for the night, resume in the morning
 
@@ -617,7 +617,7 @@ and it is the highest-risk combination. See [run options](references/run-options
 | You want to | Do this | What it does |
 |---|---|---|
 | See where it is | `status`, `progress.html`, `view --serve` | Read-only; `--serve` shows the pages in a browser at `127.0.0.1` |
-| Tell it something | `note --text` | The next packet quotes it; delivered once a step that showed it is accepted |
+| Tell it something | `note --text` | The next done result must account for it with a row (applied, already, carried or declined); the report lists what each stage did |
 | Stop for now | `pause --reason` | Keeps the pending action; `resume` continues |
 | Answer a question | `resume --answer` | Only your own words count |
 | Stop for good | `halt --reason` | Terminal |

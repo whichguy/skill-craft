@@ -84,7 +84,7 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
-    "knowledge", "added_tests", "question_categories", "questions", "defaults",
+    "knowledge", "added_tests", "question_categories", "questions", "defaults", "notes",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -132,7 +132,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "settled", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions", "defaults",
+    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions", "defaults", "notes",
 )
 _STATE_KEYS = frozenset(
     (
@@ -164,7 +164,6 @@ _STATE_KEYS = frozenset(
         "revisions",
         "lint",
         "planning_review",
-        "owner_notes",
     )
 )
 # Run-level execution delegation.  Every run records it; new runs default to
@@ -530,13 +529,11 @@ class NavigatorError(ValueError):
     """Raised for a rejected navigator state, control, or result."""
 
 
-class NotesHeld(NavigatorError):
-    """A ``complete`` held once for owner notes its action's packet did not print in full (``shiploop_owner_notes``):
-    its text prints the notes; ``held`` names them."""
+class NotesOwed(NavigatorError):
+    """A result refused because it does not account for the owner notes it owes (``shiploop_owner_notes.refusal``).
 
-    def __init__(self, text: str, held: Sequence[str]) -> None:
-        super().__init__(text)
-        self.held = list(held)
+    Its text has no command prefix: the CLI prints ``ShipLoop check:`` or ``ShipLoop navigator:`` before it, so the
+    first physical line names the notes, their folder and the result file, and can be acted on alone."""
 
 
 def _need(condition: bool, message: str) -> None:
@@ -1287,6 +1284,13 @@ def _canonical_result(
             result["defaults"] = defaults.canonical(value["defaults"])
         except defaults.DefaultsError as exc:
             raise NavigatorError(str(exc)) from exc
+    if owner_notes.FIELD in value:
+        # Shape only, on a done result of any producer stage (a done-only field): the rows owed and their content are
+        # checked when the result is admitted (``owner_notes.faults``), so a stored result reloads without a note file.
+        try:
+            result[owner_notes.FIELD] = owner_notes.canonical(value[owner_notes.FIELD])
+        except owner_notes.NoteError as exc:
+            raise NavigatorError(str(exc)) from exc
     for key in ("question_categories", "questions"):
         if key in value:
             # Shape only (intake duty 9): the CLI gate checks the ledger (``_check_intake_questions``). Kept whole, so the
@@ -1568,7 +1572,7 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     _need("lint" in keys,
           "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
           + FRESH_RUN_HINT)
-    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "delegation_hold", "owner_notes"} - keys)
+    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "delegation_hold"} - keys)
     _need(not unexpected and not missing,
           "navigator state has unsupported or missing fields ("
           + "; ".join(part for part in (
@@ -1721,8 +1725,6 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
                            and hold["route"] in DELEGATIONS
                            and hold["route"] != recorded_delegation(state)),
           "invalid delegation hold")
-    _need("owner_notes" not in state or owner_notes.validate(state["owner_notes"], _ACTION_ID),
-          "invalid owner notes record")
     _need(state["lint"] in LINT_MODES,
           "unsupported lint option; expected one of " + ", ".join(LINT_MODES))
     _need(state["planning_review"] in PLANNING_REVIEW_MODES,
@@ -2116,10 +2118,6 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     store.atomic_write_text(path, text)
     printed = printed_text(core, root, state, path, text, timeline=timeline)
     print(printed, end="")
-    # Which owner notes this print showed whole, for the callback hold and delivery (only a traced command's print: a
-    # view or a routed verb leaves the run as it was).
-    if trace.ACTIVE and state["status"] == "active" and not state.get("active_improve"):
-        owner_notes.record_shown(root, current_action(state)["id"], printed)
     # The run trace keeps every packet as sent (``next`` rewrites the file above in place); a display record, never state.
     trace.record_packet(root, state, text, printed)
     return text
@@ -2371,11 +2369,12 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         guidance.OWNER_RULE,
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else [])]))
-    # Keep owner instructions before long stage guidance: a host may elide the middle of a complete print.
-    # Their existing bounded quote block stays near the packet path and callback, so recorded quotes remain visible.
-    notes_block, notes_forms = owner_notes.packet_forms(root, state)
+    # Keep owner instructions before long stage guidance: a host may elide the middle of a complete print.  The notes
+    # this stage owes a row for are read once for the whole packet (its block, template row and checked line agree).
+    owed = owner_notes.owed(state, owner_notes.notes(root), stage, workitem)
+    notes_block, notes_forms = owner_notes.packet_forms(root, state, stage, owed)
     blocks.append(_Block("owner-notes", P1, notes_block, shrink=tuple(notes_forms)))
-    blocks.append(_Block("goal", P0, _goal_lines(state, stage, root)))
+    blocks.append(_Block("goal", P0, _goal_lines(state, stage, root, notes_owed=bool(owed))))
     loop = _loop_lines(root, state, stage, action_id, workitem)
     # An inline implement step's packet puts its Step block right after Done when and ends with its loop, in the file and
     # in the head (implement-step fix plan D4 and section 3.1); every other looped stage keeps its loop here.
@@ -2404,7 +2403,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("unverified-rule", P1, _unverified_rule(state, stage)))
     blocks.extend(_stage_input_blocks(core, root, state, stage, action_id, workitem, inner))
     blocks.append(_Block("result", P0, [
-        *_result_contract_lines(root, state, stage, action_id, workitem), ""]))
+        *_result_contract_lines(root, state, stage, action_id, workitem, owed=owed), ""]))
     pass_log = [line for line in _context_index_lines(root, state, stage, workitem) if line.startswith("This action's pass log")]
     references = _reference_global_lines(root, state, core)
     # The symbols come first: the prose above uses them, so they are the last lookup a short head gives up.  The guides
@@ -2418,7 +2417,7 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     blocks.append(_Block("backchain-route", LOOKUP,
                          [backchain, *cited.backchain, ""] if backchain else []))
     blocks.append(_Block("builds-on", LOOKUP, _builds_on_lines(root, state, stage, workitem)))
-    blocks.append(_Block("owner-notes-delivered", LOOKUP, owner_notes.delivered_lines(root, state)))
+    blocks.append(_Block("owner-notes-accounted", LOOKUP, owner_notes.accounted_lines(root, state, owed)))
     blocks.append(_Block("progress-view", CHROME, [_progress_view_line(core, root, state)]))
     blocks.append(_Block("pause", CHROME, [
         "Pause without consuming the action: " + _callback(core, root, "pause", reason="<who asked and why>")
@@ -5459,11 +5458,13 @@ TARGET_PLACEHOLDER = "<the Test targets row it runs on; delete this key for a co
 CRITERION_PLACEHOLDER = "<condition. Confirm by: what the command observes; pass when <expected result>>"
 
 
-def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None = None) -> str:
+def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None = None, *,
+                     notes: Sequence[Mapping[str, str]] = ()) -> str:
     """Render a current-action template without making the host track anchors.
 
     ``receipt`` is the final receipt a loop stage's done must cite: it is the one evidence_refs entry the template
-    can fill in, because ShipLoop names its path before the loop runs.
+    can fill in, because ShipLoop names its path before the loop runs.  ``notes`` are the rows of the owner notes the
+    stage owes (``owner_notes.template_rows``); the template has no ``notes`` key when it owes none.
     """
     result: dict[str, Any] = {
         "outcome": "done",
@@ -5471,6 +5472,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         "summary": TEST_SUMMARY_PLACEHOLDER if stage in test_loop.STAGES else guidance.summary_placeholder(stage),
         "evidence_refs": [str(receipt)] if receipt is not None else [EVIDENCE_PLACEHOLDER],
     }
+    if notes:
+        result[owner_notes.FIELD] = [dict(row) for row in notes]
     if stage == primary.STAGE:
         result["primary"] = [primary.PLACEHOLDER]
     if stage in defaults.STAGES:
@@ -6406,7 +6409,6 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
     # A paused, blocked, halted or done packet: the status, the run rules and what the run left to say.
     prelude, inner, outer = graph(state)
     stage = current_stage(state)
-    action = current_action(state)
     workitem = _current_work_item(state)
     route = delegation(state)
     lines = [
@@ -6440,6 +6442,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
             [
                 "It's all complete.",
                 f"Report: {root / 'report.html'}",
+                *owner_notes.done_lines(root, state),
                 *defaults.done_lines(state),
                 *follow_on.done_lines(state, root, _command(core)),
                 "This is agent-declared completion from accepted navigator results; it does not independently prove checks, repository state, artifacts, deployment, or external effects.",
@@ -6451,6 +6454,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
             [
                 "Halted, unfinished: " + _required_excerpt(state["status_reason"], root, "status_reason"),
                 f"Report: {root / 'report.html'}",
+                *owner_notes.open_lines(root, state),
                 "No callback is valid while halted.",
             ]
         )
@@ -6587,21 +6591,27 @@ def _loop_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str
 
 
 def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, action_id: str,
-                           work_item: str | None = None) -> list[str]:
+                           work_item: str | None = None, *, owed: Sequence[Mapping[str, Any]] = ()) -> list[str]:
     """The result path, template and outcomes, printed right under the callback.
 
     Hosts that truncate long tool output keep the head of a packet, so the
-    contract the callback checks travels with the callback instead of at the end.
+    contract the callback checks travels with the callback instead of at the end.  ``owed`` are the owner notes this
+    stage owes a row for: the template, and the minimal one a long template falls back to, carry one row each.
     """
-    result_template = _result_template(state, stage, _loop_receipt(root, state, stage, action_id, work_item)).rstrip()
+    rows = owner_notes.template_rows(stage, owed)
+    result_template = _result_template(state, stage, _loop_receipt(root, state, stage, action_id, work_item),
+                                       notes=rows).rstrip()
     lines: list[str] = []
     if len(result_template) > 6000:
         lines.append("The delivery template is too large to inline. Read the complete delivery contract "
                      "in state.md accepted/history and the Consumer-delivery schema before adding the "
                      "required delivery_assessment to the minimal result below. A partial template "
                      "does not waive any required observation.")
+        if owed:
+            lines.append(owner_notes.fallback_line(root, owed))
         result_template = _compact_record({"outcome": "done", "headline": HEADLINE_PLACEHOLDER, "summary": "...",
-                                           "evidence_refs": [EVIDENCE_PLACEHOLDER]}).rstrip()
+                                           "evidence_refs": [EVIDENCE_PLACEHOLDER],
+                                           **({owner_notes.FIELD: rows} if rows else {})}).rstrip()
     return [
         *lines,
         "Result template:",
@@ -6847,9 +6857,11 @@ PROSE_PATH_LINES = re.compile(
     r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
     r"This stage's result before the add-work: |"
     r"Proposed queue awaiting Improve: |"
-    # The owner-notes lines that name note files (shiploop_owner_notes): a head's one-line floor, the notes a head names
-    # for room, and the delivered list.  A quoted note's own text stays as the owner wrote it.
-    r"Owner notes? N\d+[ ,]|Owner notes already delivered:| {4}N\d+(?:, N\d+)*(?: and N\d+)? (?:is|are) not printed here|"
+    # The owner-notes lines that name note files (shiploop_owner_notes): the block's header, a head's one-line floor and
+    # a minimal template's line, the notes a head names for room, and the lookup line of the notes accounted for.  A
+    # quoted note's own text stays as the owner wrote it.
+    r"Owner notes this stage must account for \(|Owner notes? N\d+[ ,]|Owner notes accounted for: |"
+    r" {4}N\d+(?:, N\d+)*(?: and N\d+)? (?:is|are) not printed here|"
     # The Improve handoff's lines that name the child's files as prose (its commit-message and review-evidence lines that
     # carry a command stay literal): the opening, the receipt, the owner record, the review and check files.
     r"ShipLoop started this review when the Improve stage began: it wrote the opening |Child latest packet receipt: |"
@@ -7415,14 +7427,15 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
             for line in lines]
 
 
-def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
+def _stage_gates(stage: str, state: Mapping[str, Any], *, notes_owed: bool = False) -> list[str]:
     """Return the stage-specific refusal phrases for ``stage`` that ``_checked_line`` lists before
     ``_COMMON_GATES``, or an empty list when none apply. They come from ``stage`` and module-level stage tables
     read at call time; ``state`` is read only for the consumer-delivery gate (``consumer_delivery.checked_lines``: a
-    marked run's release-plan names the necessity and authority it refuses while they are unsettled). Raises
-    ``KeyError`` if a ``RECORDED_COMMANDS`` field owned by ``stage`` has no ``_RECORDED_GATES`` entry.
+    marked run's release-plan names the necessity and authority it refuses while they are unsettled). ``notes_owed``
+    (the stage owes a row for an owner note) puts the notes gate first. Raises ``KeyError`` if a ``RECORDED_COMMANDS``
+    field owned by ``stage`` has no ``_RECORDED_GATES`` entry.
     """
-    gates = []
+    gates = [owner_notes.gate_words(stage)] if notes_owed else []
     if stage == request_file.INTAKE:
         gates.append("a summary that leaves a sentence of the request uncited (each S<n> of RUN/request.md)")
         gates.append("a key-question ledger that is malformed or keeps a template placeholder")
@@ -7485,7 +7498,7 @@ def _improve_rerun_clause(stage: str) -> str:
     return "no command reruns over it here, so check it yourself before importing."
 
 
-def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
+def _checked_line(row: Any, state: Mapping[str, Any], *, notes_owed: bool = False) -> str:
     """How this stage's result is checked, so a model holding only this packet knows what judges its work.
 
     One line (aggressive re-cut, 2026-10-11): what ShipLoop runs at done, then only the refusals that go beyond the
@@ -7493,7 +7506,7 @@ def _checked_line(row: Any, state: Mapping[str, Any]) -> str:
     the same gates on a draft and prints the first refusal's fix (a gate raises at the first fault it finds, so a
     result with two faults needs two runs); an outer stage's callback is its own check (decision D3, phases B and C plan).
     """
-    extra = _stage_gates(row.name, state)
+    extra = _stage_gates(row.name, state, notes_owed=notes_owed)
     runs = "; then ".join(_check_text(run, row.name, state) for run in row.complete_runs
                           if run != "step-proof" or step_view(state, _current_work_item(state)) is not None)
     return ("Checked by: at done ShipLoop " + (runs + "; it also refuses " if runs else "refuses ")
@@ -7521,8 +7534,9 @@ def _implement_scope(state: Mapping[str, Any], stage: str) -> Mapping[str, Any] 
     return loops.current_step(state, work_item) if work_item is not None else None
 
 
-def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
-    """Lead an active packet with the stage's goal and done-when; a producer also gets its checks and considerations."""
+def _goal_lines(state: Mapping[str, Any], stage: str, root: Path, *, notes_owed: bool = False) -> list[str]:
+    """Lead an active packet with the stage's goal and done-when; a producer also gets its checks and considerations
+    (``notes_owed``: the stage owes a row for an owner note, which its checked line names)."""
     if state["status"] != "active":
         return []
     row = loops.worded_stage(stage, _implement_scope(state, stage))
@@ -7548,7 +7562,8 @@ def _goal_lines(state: Mapping[str, Any], stage: str, root: Path) -> list[str]:
                 *(["- " + revised] if sent_back and sent_back.previous else [])]
     # The stage table's develop/test/deploy/tools considerations are folded into each duty (packet re-cut,
     # 2026-10-11), so the packet no longer prints them as a second list.
-    return ["Goal: " + row.goal[0].upper() + row.goal[1:].rstrip(".") + ".", *done, _checked_line(row, state)]
+    return ["Goal: " + row.goal[0].upper() + row.goal[1:].rstrip(".") + ".", *done,
+            _checked_line(row, state, notes_owed=notes_owed)]
 
 
 def _unverified_row(row: Mapping[str, Any]) -> str:
@@ -8139,7 +8154,8 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
         focus, craft = _improve_focus(state, child)
         head += [*_improve_handoff_top(core, root, state), "", "## What this review looks for", *focus, "",
                  "## Commit", *_improve_commit_lines(core, root, state, child), *_improve_lint_lines(core, root, state),
-                 "", *(["## Code craft", *craft, ""] if craft else [])]
+                 "", *owner_notes.review_lines(root, child["seed_result"]),
+                 *(["## Code craft", *craft, ""] if craft else [])]
     head += ["## What the reviewed stage worked from", *context, "", "## The review"]
     return prose_symbols(_render_improve(core, root, state, head), core, Path(root), state, child=child_dir)
 
@@ -8333,7 +8349,7 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
     (``_improve_recovery_lines``).
     """
     child = state["active_improve"]
-    action_id, stage = child["action_id"], child["stage"]
+    stage = child["stage"]
     lines = [f"ShipLoop navigator | {IMPROVE_STAGE} | revision {state['revision']} | the {stage} result"]
     if child["skill"] is None:
         card = state.get("improve_skill") or IMPROVE_CARD_BLANK
@@ -8925,6 +8941,7 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
             "<h2>Original request</h2>",
             f"<pre>{html.escape(state['prompt'])}</pre>",
             *defaults.html_section(state),
+            *owner_notes.html_section(root, state),
             "<h2>Accepted transitions</h2>",
             "<table><thead><tr><th>Stage</th><th>Outcome</th><th>Work item</th><th>Summary</th><th>Evidence references</th></tr></thead><tbody>",
             *rows,
@@ -10027,6 +10044,55 @@ def _answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str
     return shiploop_check.answer_key(root, state, action_id, stage, workitem, draft, lint_option=lint_mode(state))
 
 
+def _notes_gate(root: Path, state: Mapping[str, Any], action_id: str, stage: str | None, workitem: str | None,
+                submitted: Any, *, checking: bool) -> list[dict[str, Any]]:
+    """Refuse a result that does not account for the owner notes it owes (design 2.4); returns the notes read.
+
+    The notes are read once for this admission, and the rows owed and everything the refusal prints come from that
+    read; a notes folder that cannot be read refuses the result.  A refused check is recorded as its no, and so is a
+    refused ``complete`` whose earlier check said yes on the same files, so that yes is never taken."""
+    path = _result_input_path(root, action_id)
+    try:
+        found = owner_notes.read(root)
+        problems = owner_notes.faults(found, state, str(stage), workitem, submitted, folder=root / owner_notes.DIR)
+        text = owner_notes.refusal(root, path, found, state, str(stage), workitem, problems) if problems else ""
+    except owner_notes.NoteError as exc:
+        found, text = [], owner_notes.unreadable(exc, path)
+    if not text:
+        return found
+    key = _answer_key(root, state, action_id, stage, workitem, path)
+    if checking or (test_loop.reuse_eligible(state, stage, workitem, test_loop.stage_commands(state, stage, workitem)[0])
+                    and shiploop_check.matching_yes(root, action_id, key) is not None):
+        shiploop_check.record_answer(root, action_id, stage, key, yes=False, reason=text)
+    raise NotesOwed(text)
+
+
+def _end_read(root: Path, action_id: str, first: Sequence[Mapping[str, Any]]) -> None:
+    """The second read of the notes when a completion ends the run: a note that arrived since the admission's read
+    refuses it, so the run never ends with a note no stage was given."""
+    path = _result_input_path(root, action_id)
+    try:
+        now = owner_notes.read(root)
+    except owner_notes.NoteError as exc:
+        raise NotesOwed(owner_notes.unreadable(exc, path)) from exc
+    known = {note["id"] for note in first}
+    late = [note for note in now if note["id"] not in known]
+    if late:
+        raise NotesOwed(owner_notes.arrived(root, path, late))
+
+
+def _import_notes_gate(root: Path, state: Mapping[str, Any], child: Mapping[str, Any], effective: Any,
+                       final_path: Any) -> None:
+    """Refuse a review whose result takes effect without the owner notes rows the reviewed result held (design 2.4):
+    a done result keeps a row for exactly those notes, each valid; a note that arrived during the review is not taken
+    in here, and a result of another outcome holds none and leaves the notes owed."""
+    problems = owner_notes.import_faults(child["seed_result"], effective, state, child["stage"],
+                                         _current_work_item(state), folder=root / owner_notes.DIR)
+    if problems:
+        raise NotesOwed(owner_notes.import_refusal(root, final_path, owner_notes.parked_ids(child["seed_result"]),
+                                                   child["stage"], problems))
+
+
 def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, stage: str | None,
               workitem: str | None, submitted: Any, *, count: bool) -> tuple[list[str], list[str]]:
     """Would ShipLoop accept this result now?  The one question ``complete`` acts on and its check asks (phases B and
@@ -10137,6 +10203,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     _need(isinstance(command, str), "navigator command is missing")
     terminal_knowledge_closed = False
     gate_lines: list[str] = []  # the test stage's gate outcomes, printed after the packet
+    notes_read: list[dict[str, Any]] | None = None  # the owner notes this admission read (``_notes_gate``)
     _need(command in {
         "init", "next", "status", "context", "report", "complete", "check", "pause", "resume", "halt",
         "improve-bind", "improve-start", "improve-commit", "improve-pass", "improve-reconcile", "delegation",
@@ -10225,6 +10292,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     receipt = _derived_improve_receipt(child, args, root, state, core)
                     final_result = receipt.get("final_result")
                     effective_result = child["seed_result"] if final_result is None else final_result
+                    _import_notes_gate(root, state, child, effective_result, getattr(args, "final_result", None))
                     _check_submitted_evidence(effective_result, None)
                     _check_submitted_unverified(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
@@ -10342,15 +10410,12 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         # nothing accepted, counted or committed.  It runs inside the stage's own loop, whose receipt is still
         # active, so the receipt check waits for complete.
         checking = command == "check"
-        if state["status"] == "active" and action_id not in state["accepted"]:
-            # An owner note this action's packet did not print whole holds the callback once, before any gate runs
-            # (owner decision D2, 2026-10-26): the model sees it before this step is committed.
-            held = owner_notes.to_hold(root, state, action_id)
-            if held and owner_notes.mark_held(root, action_id, held):
-                if not checking:
-                    raise NotesHeld(owner_notes.hold_text(held), [note["id"] for note in held])
-                print(owner_notes.hold_text(held, check=True))
-                trace.SHOWN.extend(note["id"] for note in held)  # the check printed the hold: its trace line says so
+        if (state["status"] == "active" and action_id not in state["accepted"]
+                and (state.get("active_improve") or {}).get("action_id") != action_id):
+            # The owner notes (design 2.4): read once for this admission, before the loop receipt and every other gate,
+            # so a note is the first thing a refused result says.  A producer's replay of its parked result is not an
+            # admission (apply takes it only when it is the parked result exactly).
+            notes_read = _notes_gate(root, state, action_id, cursor_stage, cursor_item, submitted, checking=checking)
         if (state["status"] == "active" and action_id not in state["accepted"]
                 and cursor_stage in loops.STAGES and not checking):
             # Every inner stage runs one Until Loop (owner decision 2026-10-10): its receipt is checked first.
@@ -10424,8 +10489,6 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             return 0
         updated = apply(state, action_id, submitted)
         if updated != state:
-            # The owner notes this action's packet showed are delivered by its accepted step, in the same save.
-            updated = owner_notes.deliver(root, updated, action_id)
             terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)
             if terminal_knowledge_closed:
                 _knowledge_close(state, updated, root, terminal=True)
@@ -10450,6 +10513,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
     if updated != state:
         # Only ``complete`` advances the graph here; an Improve import runs its own transition above.
         if command == "complete":
+            if notes_read is not None and updated.get("status") == "done":
+                # The end of the run (design 2.4): the notes are read once more just before the final save, so a note
+                # that arrived since this admission's read refuses the completion instead of reaching no stage.
+                _end_read(root, action_id, notes_read)
             updated = accept_effects(core, root, state, updated, action_id=action_id, preparatory=preparatory,
                                      terminal_closed=terminal_knowledge_closed)
         else:

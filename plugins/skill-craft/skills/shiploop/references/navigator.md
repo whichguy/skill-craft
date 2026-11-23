@@ -306,7 +306,8 @@ which says to open the packet file with a file tool before acting when output wa
 elided, or the closing line `=== end ShipLoop print ===` is missing. That line detects a cut tail;
 it does not rule out a missing middle. ShipLoop prints the complete packet for every state,
 without a length-based cutoff; a host may still cut its tool output. Stopped and done packets
-also name their saved file. Owner notes precede stage guidance to keep their quoted content early. The pointer also explains
+also name their saved file. The owner notes a stage owes a row for precede stage guidance to keep their quoted content
+early, with the duty to account for each in the result's `notes` (status-display.md#owner-notes). The pointer also explains
 that the file's References block lists the other references (the run's `reference.md` and `context-index.md`
 among them) and what each holds. The one legal callback for the current owner is the third line
 after the header, labelled `Callback for this stage` and giving the reason to run it exactly as
@@ -485,6 +486,7 @@ The semantic result contract is small:
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. A path may lead with `RUN/`, `KNOWLEDGE/`, `WORKTREE/` or `GUIDES/` (the packet's symbols): ShipLoop expands it before any check and stores the absolute path; another all-capital word and a slash is refused as an unknown root. An inner stage's Until Loop receipt is listed by ShipLoop when the result leaves it out. The template's placeholder is refused. |
 | `work_items` | Ordered `{id,title,follows?,context?}` items at `plan` before execution, at `carry-forward` for future-only work, or required new IDs for an outer `add-work`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
+| `notes` | On a `done` result of any stage that owes rows for the run owner's notes: one `{"note", "did", "detail"}` per owed note, `did` one of `applied`, `already`, `carried` (not at `carry-forward` or `handoff`) and `declined`; an applied row at `plan` or `carry-forward` also names its `item`. The packet's owner-notes block and template say which notes are owed. See [owner notes](status-display.md#owner-notes). |
 
 Each term in these fields, the packets and the refusals has one meaning, defined in [the glossary](glossary.md),
 which also lists the retired terms.
@@ -821,6 +823,18 @@ requirement a row names (an owner's note can lead to that), the done packet and 
 after the spec stage"; a line added to the requirement is not a rewrite. ShipLoop has no route of its own that
 reopens an accepted specification for a sentence sent during the run, so the displays name the way that always
 holds: a new run on the delivered project.
+
+A done result of any producer stage also carries `notes` when the run's owner wrote notes it owes a row for
+(status-display.md#owner-notes): one `{"note", "did", "detail"}` per note, `did` one of `applied`, `already`,
+`carried` and `declined`, with `item` on an applied row at `plan` and `carry-forward` naming a work item of the queue
+the result leaves (at `carry-forward` a pending one, never the current or a finished item). The notes are read once
+per admission, before the loop receipt and every other gate, and a result that misses an owed row, adds one, or holds
+a row of the wrong shape is refused with a first line that names the notes, their folder and the result file;
+`carry-forward` and `handoff` may not carry. The stored rows are shape-only, so a saved result reloads without the
+note files. Where a note stands is read from the rows of every accepted done result in order (`open`, `carried`,
+`settled`); the packet quotes what a stage owes, the done packet and the report's "Your notes" say what became of
+each, with whether a named item was completed, is still queued or left the queue. ShipLoop checks that a row exists
+and that an item it names is in the queue; it does not check that the work does what the row says.
 
 `handoff` also lists in `follow_on` what the run leaves for a later run: one entry for each leftover, classified once
 (`gap`, `decision`, `person`, `capability`, `extension`, `debt`, `note`), each citing a record the run holds in `source`.
