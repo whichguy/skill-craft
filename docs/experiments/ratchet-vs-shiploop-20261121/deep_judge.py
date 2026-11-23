@@ -64,8 +64,9 @@ EXPLORE = 12  # probes of the auditor's own beyond the inventory, the same for e
 PLAYWRIGHT = "/Users/dadleet/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright"
 BROWSER = ("/Users/dadleet/Library/Caches/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-mac-arm64/"
            "chrome-headless-shell")
-SHARES = 3  # an inventory of more than SHARE_OVER items is audited in this many shares by separate sessions
-SHARE_OVER = 80
+# An inventory (stated items plus the unstated ones kept) is audited by separate sessions in shares by its size: one
+# share up to the first bound, two up to the second, three above it. Grokbot (153 items) takes three, roundtable (89) two.
+SHARE_BOUNDS = (80, 120)
 # The ticket case's calibrated defects (test/fixtures/quality/reference_ticket_assignment.py) that break a behaviour
 # the request states, and those that break one the request leaves unsaid but the new feature raises.
 STATED_DEFECTS = ("closed-assignable", "cli-no-assignee", "empty-filter-ignored", "filter-or", "listing-hides-assignee",
@@ -546,12 +547,15 @@ def rate_packet(root: Path, case: str) -> None:
 
 
 def shares_of(inv: dict) -> list:
-    """The inventory's item ids in shares: one share for a short inventory; for a long one the stated items in
-    SHARES - 1 runs of equal length and the unstated items as the last share."""
+    """The inventory's item ids in shares, as many as SHARE_BOUNDS gives for its size: one share for a short
+    inventory; for a longer one the stated items in one run less than the shares, of equal length, and the unstated
+    items as the last share. With two shares the first is every stated item (the proved items among them) and the
+    second the unstated items; the last share also makes the auditor's own probes."""
     stated, unstated = [item["id"] for item in inv["stated"]], [item["id"] for item in inv["unstated"]]
-    if len(stated) + len(unstated) <= SHARE_OVER:
+    count = 1 + sum(len(stated) + len(unstated) > bound for bound in SHARE_BOUNDS)
+    if count == 1:
         return [stated + unstated]
-    size = -(-len(stated) // (SHARES - 1))
+    size = -(-len(stated) // (count - 1))
     return [stated[start:start + size] for start in range(0, len(stated), size)] + [unstated]
 
 
