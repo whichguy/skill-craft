@@ -209,18 +209,18 @@ Honesty boundary (`ARCHITECTURE.md`): cells distinguish **measured** behavior fr
 
 | Dimension | Claude Code | Codex | Grok Build | Cursor (IDE & CLI) | OpenCode |
 |---|---|---|---|---|---|
-| **Qualification status** | **Qualified** for neutral spawn/fan-out (`2.1.325`, `E1`/`E9`–`E13`); **unqualified** for direct ShipLoop review brief | **Qualified** for neutral spawn/fan-out (`0.169.0`, `E1`/`E9`–`E13`); **pilot** for old consumer-owned route | **Qualified** for neutral spawn/fan-out (`1.0.77`, `E1`/`E9`–`E13`); **unqualified** for direct ShipLoop review brief | **Schema-inspected (IDE, 2026-11-23); UNQUALIFIED** for runtime (CLI `2026.09.18` passed old managed-worktree pilot only) | **Pilot only** (`1.18.31` persistent TUI with experimental flag); **UNQUALIFIED** |
+| **Qualification status** | **Qualified** for neutral spawn, fork, foreground parallel, micro review brief, F17 read-only, and subagent `PostToolUse(Skill)` (`2.1.330`, Phase 0 2026-11-23) | **Qualified** for neutral spawn, fork (`fork_turns: "all"`), fresh (`"none"`), micro review brief, and F17 read-only (`0.171.0`, Phase 0 2026-11-23) | **Qualified** for neutral fresh spawn, foreground parallel, micro review brief, and F17 read-only (`1.0.92`, Phase 0 2026-11-23); **no native fork** | **Cursor IDE: Qualified** for fresh, fork (`resume: "self"`), foreground parallel (93% overlap), micro review brief, and F17 read-only (Phase 0 2026-11-23). **Cursor CLI (`2026.09.23`): UNQUALIFIED** (`agent login` needed) | **Pilot only** (`1.18.31` persistent TUI); **UNQUALIFIED** |
 | **Native spawn tool** | `Agent` (listed as `Task` in init stream) | `spawn_agent` (`collaboration.spawn_agent`) | `spawn_subagent` | `Task` (`cursor` namespace) | `task` |
-| **General-purpose worker type** | `general-purpose` | *(default general-purpose)* | `general-purpose` (never `explore`/`plan` for coding) | `generalPurpose` *(camelCase!)* | *(default general-purpose)* |
-| **Fresh context rule** | Omit `resume`; non-fork `Agent` | `fork_turns: "none"` *(required)* | Omit `resume_from` | Omit `resume` (**never** `resume: "self"`) | Omit `task_id` |
-| **Forked context rule (inherit history)** | **Check in Phase 0** (verify live `Agent` / fork schema) | **Check in Phase 0** (`fork_turns` non-`"none"` values) | **Check in Phase 0** (`spawn_subagent` schema — likely fresh-only) | `resume: "self"` *(verified in live `Task` schema 2026-11-23; test behavior in Phase 0)* | **Check in Phase 0** (likely fresh-only) |
-| **Forbidden isolation args** | **Omit `isolation: "worktree"`** (creates 2nd checkout) | *(none on spawn)* | *(none on spawn)* | **Omit `environment: "cloud"`** (runs on remote VM/worktree) | *(none on spawn)* |
-| **Native `cwd` on spawn?** | **No** — prefix every Bash call with `cd "<WORKTREE>" &&` + abs file paths | **No** — set `workdir` on every shell call + abs file paths | **Yes** (`cwd: "<WORKTREE>"`), still verify `pwd` + Git root | **No** *(verified in live `Task` schema 2026-11-23)* — set `working_directory` on Shell + abs file paths | **No** — set `workdir` on every bash call + abs file paths |
-| **Serial review mode (Surface 1)** | **Foreground** (`run_in_background: false` / omitted) — blocks cleanly until return | **Async** `spawn_agent` + `wait_agent(timeout_ms=120000)` | **Foreground** (`background: false`) — blocks cleanly until return | **Foreground** (`run_in_background: false`) — blocks cleanly until return | Foreground (or `background: true` in persistent TUI only; one-shot CLI exits early) |
-| **Parallel read-only fan-out (Surface 2)** | Multiple `Agent(run_in_background=true)` in one turn; notifications re-enter parent (do **not** poll) | Up to **3 workers** (`4` slots incl. parent); `wait_agent(timeout_ms=120000)` | Multiple `spawn_subagent(background=true)` in one turn; `get_command_or_subagent_output(timeout_ms=120000)` | Multiple `Task(run_in_background=true)` in one turn; auto-notifies after turn ends (do **not** poll); confirm concurrency cap in Phase 0 | Experimental flag `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true` in TUI only; otherwise run serial |
-| **Steer / cancel running worker** | `SendMessage` + `TaskStop` | Native interrupt | `kill_command_or_subagent` | `Task(resume=id, interrupt=true)` (no dedicated stop-only tool) | Unqualified |
-| **Subagent nesting / depth** | Configurable (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`); headless nested unstable on `2.1.296` — **Surface 1 & 2 are depth 1 only** | Depth 1 sufficient | Depth 1 in local `1.0.50` guide — **Surface 1 & 2 are depth 1 only** | Depth 1 sufficient; confirm in Phase 0 | Depth 1 sufficient |
-| **Keepalive & Skill-call hooks** | `PostToolUse` (Bash, Skill), `Stop`, `SessionEnd` work in interactive + `-p`; see §4.2 for subagent Skill-call fix | `PostToolUse`, `Stop`, `SessionEnd` work in interactive + `exec`; no Skill hook | `PostToolUse`, `Stop` (8/turn cap), `SessionEnd` work in interactive + `-p`; no Skill hook | `afterShellExecution`, `stop`, `sessionEnd` work in IDE; **`cursor-agent -p` never fires `stop`** (`shiploop-drive` required for unattended CLI); no Skill hook | Plugin `session.idle` in TUI; `opencode run` needs `shiploop-drive`; no Skill hook |
+| **General-purpose worker type** | `general-purpose` (or omit) | *(default general-purpose)* | *(default general-purpose; `subagentType` absent in `1.0.92` schema)* | `generalPurpose` *(camelCase!)* | *(default general-purpose)* |
+| **Fresh context rule** | Omit `resume`; `subagent_type: "general-purpose"` (never `"fork"`) | **`fork_turns: "none"`** *(required — `"all"` is the `0.171.0` default!)* | Omit `resume_from` | Omit `resume` (**never** `resume: "self"`) | Omit `task_id` |
+| **Forked context rule (inherit history)** | **`subagent_type: "fork"`** *(verified live `2.1.330`; inherits parent model/effort, ignores overrides)* | **`fork_turns: "all"`** *(verified live `0.171.0`; also default)* | **Not supported** (`has_fork: false`; falls back cleanly to fresh worker + `CHILD/worker-brief.md`) | **`resume: "self"`** *(verified live IDE 2026-11-23)* | **Unqualified** (likely fresh-only) |
+| **Forbidden isolation args** | **Omit `isolation`** (`"worktree"` / `"remote"`) | *(none on spawn)* | **Omit `isolation: "worktree"`** *(added in `1.0.92`; mutually exclusive with `cwd`)* | **Omit `environment: "cloud"`** (runs on remote VM/worktree) | *(none on spawn)* |
+| **Native `cwd` on spawn?** | **No** — prefix every Bash call with `cd "<WORKTREE>" &&` + abs file paths | **No** — set `workdir` on every shell call + abs file paths | **Yes** (`cwd: "<WORKTREE>"`), still verify `pwd` + Git root | **No** *(verified live IDE)* — set `working_directory` on Shell + abs file paths | **No** — set `workdir` on every bash call + abs file paths |
+| **Serial review mode (Surface 1)** | **Foreground** (`run_in_background: false`) — blocks cleanly until return | **Async** `spawn_agent` + `wait_agent(timeout_ms=120000)` | **Foreground** (`background: false`, waits up to 10 min) — blocks cleanly until return | **Foreground** (`run_in_background: false`) — blocks cleanly until return | Foreground (or `background: true` in persistent TUI only) |
+| **Parallel read-only fan-out (Surface 2)** | **Foreground parallel:** multiple `Agent(run_in_background=false)` in one turn *(verified live `2.1.330`: 3 workers concurrent in one turn, zero `Stop`-hook yield!)* | Up to **3 workers** (`4` slots incl. parent); `spawn_agent(fork_turns="none")` + `wait_agent(timeout_ms=120000)` | **Foreground parallel:** multiple `spawn_subagent(background=false)` in one turn *(verified live `1.0.92` concurrent streaming)*; or `background=true` + `get_command_or_subagent_output(timeout_ms=120000)` | **Foreground parallel:** multiple `Task(run_in_background=false)` in one turn *(verified live IDE: 5.60 s / 6.00 s = 93% overlap, zero `Stop`-hook yield!)* | Experimental flag `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true` in TUI only; otherwise run serial |
+| **Steer / cancel running worker** | `SendMessage` + `TaskStop` | `interrupt_agent` (`collaboration.interrupt_agent`) | `kill_command_or_subagent` | `Task(resume=id, interrupt=true)` (no dedicated stop-only tool) | Unqualified |
+| **Subagent nesting / depth** | Depth 1 only for Surface 1 & 2 | Depth 1 only | Depth 1 only | Depth 1 only | Depth 1 only |
+| **Keepalive & Skill-call hooks** | `PostToolUse(Skill)` **VERIFIED FIRING** inside BOTH fresh and forked depth-1 subagents (`2.1.330`) with parent's exact `session_id` + `agent_id` + `agent_type`! | `PostToolUse`, `Stop`, `SessionEnd` work in interactive + `exec`; no Skill hook | `PostToolUse`, `Stop` (8/turn cap), `SessionEnd` work; no Skill hook | IDE hooks active; `cursor-agent -p` never fires `stop` (`shiploop-drive` needed); IDE shell sandbox allows `../.shiploop-runs` and `.git`; no Skill hook | Plugin `session.idle` in TUI; `opencode run` needs `shiploop-drive`; no Skill hook |
 
 Notice a major simplification achieved by this design: **both Surface 1 and Surface 2 are strictly depth 1** (parent → leaf worker; leaf workers never spawn subagents). That eliminates every nested-subagent failure mode seen on Grok (`1.0.50`) and headless Claude (`2.1.296`).
 
@@ -244,70 +244,74 @@ Notice a major simplification achieved by this design: **both Surface 1 and Surf
     "claude": {
       "name": "Claude Code",
       "status": "qualified",
-      "tested": ["2.1.325"],
+      "tested": ["2.1.325", "2.1.330"],
       "tools": {"spawn": ["Agent", "Task"], "stop": ["TaskStop"]},
       "worker_type": "general-purpose",
       "serial_mode": "foreground",
+      "parallel_mode": "foreground",
       "cwd_on_spawn": false,
-      "fresh_args": {},
-      "fork_args": null,
-      "background_args": {"run_in_background": true},
+      "fresh_args": {"subagent_type": "general-purpose", "run_in_background": false},
+      "fork_args": {"subagent_type": "fork", "run_in_background": false},
+      "background_args": {"subagent_type": "general-purpose", "run_in_background": true},
       "forbidden_fresh_args": ["isolation", "resume"],
-      "collect_parallel": "completion notifications re-enter the parent as new turns; do not poll",
+      "collect_parallel": "issue multiple foreground Agent(run_in_background=false) calls in one turn (zero Stop-hook yield); if backgrounded, notifications re-enter as new turns — do not poll",
       "observation_timeout_ms": null,
       "capacity": null,
-      "hint": "Use a fresh general-purpose Agent (omit isolation and resume); foreground for a serial review, run_in_background=true for parallel readers (do not poll); prefix every Bash command with cd \"<WORKTREE>\" &&."
+      "hint": "Use Agent (omit isolation and resume): subagent_type=\"general-purpose\" for fresh workers, subagent_type=\"fork\" for a forked review; use run_in_background=false (multiple foreground calls in one turn run concurrently); prefix every Bash command with cd \"<WORKTREE>\" &&."
     },
     "codex": {
       "name": "Codex",
       "status": "qualified",
-      "tested": ["0.169.0"],
-      "tools": {"spawn": ["spawn_agent"], "wait": ["wait_agent"]},
+      "tested": ["0.169.0", "0.171.0"],
+      "tools": {"spawn": ["spawn_agent"], "wait": ["wait_agent"], "stop": ["interrupt_agent"]},
       "worker_type": null,
       "serial_mode": "async-wait",
+      "parallel_mode": "async-wait",
       "cwd_on_spawn": false,
       "fresh_args": {"fork_turns": "none"},
-      "fork_args": null,
+      "fork_args": {"fork_turns": "all"},
       "background_args": {"fork_turns": "none"},
       "forbidden_fresh_args": [],
       "collect_parallel": "wait_agent with timeout_ms: 120000, not short polls",
       "observation_timeout_ms": 120000,
       "capacity": {"workers": 3, "slots": 4, "parent_holds": 1},
-      "hint": "Use spawn_agent with fork_turns=\"none\" (at most 3 concurrent workers; 4 slots include the parent), wait with wait_agent timeout_ms=120000 (no short polls), and pass explicit workdir on every shell command."
+      "hint": "Use spawn_agent: fork_turns=\"none\" for fresh workers (default is \"all\"), fork_turns=\"all\" for a forked review; at most 3 concurrent workers (4 slots include the parent); wait with wait_agent timeout_ms=120000 (no short polls); pass explicit workdir on every shell command."
     },
     "grok": {
       "name": "Grok Build",
       "status": "qualified",
-      "tested": ["1.0.77"],
+      "tested": ["1.0.77", "1.0.92"],
       "tools": {"spawn": ["spawn_subagent"], "wait": ["get_command_or_subagent_output"], "stop": ["kill_command_or_subagent"]},
-      "worker_type": "general-purpose",
+      "worker_type": null,
       "serial_mode": "foreground",
+      "parallel_mode": "foreground",
       "cwd_on_spawn": true,
-      "fresh_args": {},
+      "fresh_args": {"background": false, "isolation": "none"},
       "fork_args": null,
-      "background_args": {"background": true},
-      "forbidden_fresh_args": ["resume_from"],
-      "collect_parallel": "get_command_or_subagent_output with all task ids and timeout_ms: 120000",
+      "background_args": {"background": true, "isolation": "none"},
+      "forbidden_fresh_args": ["resume_from", "isolation"],
+      "collect_parallel": "issue multiple spawn_subagent(background=false) calls in one turn (blocks up to 10 min), or background=true with get_command_or_subagent_output(timeout_ms=120000)",
       "observation_timeout_ms": 120000,
       "capacity": null,
-      "hint": "Use general-purpose spawn_subagent with cwd=\"<WORKTREE>\" and omit resume_from (never explore/plan for coding); foreground for a serial review, background=true + get_command_or_subagent_output(timeout_ms=120000) for parallel readers."
+      "hint": "Use spawn_subagent with cwd=\"<WORKTREE>\", background=false, and omit resume_from and isolation=\"worktree\" (no native fork on Grok: use the fresh brief); multiple foreground calls in one turn run concurrently."
     },
     "cursor": {
       "name": "Cursor",
-      "status": "unqualified",
-      "tested": [],
+      "status": "pilot-ide",
+      "tested": ["ide-2026-11-23"],
       "tools": {"spawn": ["Task"]},
       "worker_type": "generalPurpose",
       "serial_mode": "foreground",
+      "parallel_mode": "foreground",
       "cwd_on_spawn": false,
-      "fresh_args": {"subagent_type": "generalPurpose"},
-      "fork_args": {"subagent_type": "generalPurpose", "resume": "self"},
+      "fresh_args": {"subagent_type": "generalPurpose", "run_in_background": false},
+      "fork_args": {"subagent_type": "generalPurpose", "resume": "self", "run_in_background": false},
       "background_args": {"subagent_type": "generalPurpose", "run_in_background": true},
       "forbidden_fresh_args": ["resume", "environment"],
-      "collect_parallel": "background subagents notify on completion after the parent turn ends; do not poll",
+      "collect_parallel": "issue multiple foreground Task(run_in_background=false) calls in one turn (93% overlap verified, zero Stop-hook yield); if backgrounded, notifications arrive after turn end — do not poll",
       "observation_timeout_ms": null,
       "capacity": null,
-      "hint": "Use Task with subagent_type=\"generalPurpose\" (omit resume and environment=\"cloud\"); run_in_background=false for a serial review, run_in_background=true for parallel readers (do not poll); set working_directory on every shell call and use absolute file paths."
+      "hint": "Use Task with subagent_type=\"generalPurpose\" (omit environment=\"cloud\"): omit resume for fresh workers, resume=\"self\" for a forked review; use run_in_background=false (multiple foreground calls in one turn run concurrently); set working_directory on every shell call and use absolute file paths."
     },
     "opencode": {
       "name": "OpenCode",
@@ -316,6 +320,7 @@ Notice a major simplification achieved by this design: **both Surface 1 and Surf
       "tools": {"spawn": ["task"]},
       "worker_type": null,
       "serial_mode": "foreground",
+      "parallel_mode": "foreground",
       "cwd_on_spawn": false,
       "fresh_args": {},
       "fork_args": null,
@@ -353,11 +358,11 @@ Today (`skills/shiploop/scripts/shiploop_navigator.py` lines 442–443), the Cla
 
 Fix both layers cleanly:
 
-1. **Claude Code subagent Skill-call capture (`skills/shiploop/scripts/shiploop_keepalive.py` + `shiploop_skill_calls.py`):**
-   - Keep `observe`, `stop`, and `session-end` strictly ignoring subagents (`_is_subagent(payload)`), so a worker can never steal keepalive ownership.
-   - In the `skill` hook (`PostToolUse` on `Skill`), when `session` has no binding (or `_is_subagent(payload)` is true), inspect `tool_input.args` for the literal prefix `ShipLoop Improve: <handoff_path>`. If `<handoff_path>` resolves to a file inside `<RUN>/.shiploop-improve/...` where `<RUN>/state.md` exists, append the call directly to `<RUN>/skill-calls.jsonl` (including `agent_id`, which `shiploop_skill_calls.record_call()` already supports on line 75!).
-   - Then remove the `if delegation(state) != guidance.INLINE: enforce = False` bypass in `_skill_call_record()`! On Claude Code with hooks active, a fresh Improve worker that skips invoking the `improve` skill is caught by the exact same gate as an inline run.
-   - *(Note: verify in Phase 0 whether Claude Code fires `PostToolUse` for `Skill` inside a subagent; if Claude Code suppresses `PostToolUse` inside subagents, document that measured limit honestly rather than assuming it fires!)*
+1. **Claude Code subagent Skill-call capture (SIMPLIFIED BY PHASE 0!):**
+   - Phase 0 (`2.1.330`) verified live that Claude Code's `PostToolUse(Skill)` hook **ALREADY fires inside BOTH fresh (`general-purpose`) and forked (`fork`) depth-1 subagents**, carrying the parent's **exact `session_id`** plus `agent_id` and `agent_type`!
+   - And `skills/shiploop/scripts/shiploop_keepalive.py::skill_call()` (lines 444–459) **already does not filter out `_is_subagent()`** and already passes `agent_id=payload.get("agent_id")` to `shiploop_skill_calls.record_call()`!
+   - Therefore, keeping the Skill-call gate **enforced** on `--delegation agents` requires **zero hook rewrite** on Claude Code: simply allow `delegation(state) in (guidance.INLINE, guidance.AGENTS)` in `shiploop_navigator.py::_skill_call_record()` (line 442), and add `"CURSOR_AGENT"` alongside `"CURSOR_PLUGIN_ROOT"` in `shiploop_keepalive.py::NESTED_NON_CLAUDE` (line 464)!
+   - Keep `observe`, `stop`, and `session-end` ignoring `_is_subagent(payload)`, so workers never steal keepalive ownership.
 2. **Host-neutral review provenance (all hosts — Cursor, Codex, Grok, Claude, OpenCode):**
    - All existing script-enforced review gates remain active for fresh workers: `improve-pass` form validation, `checks.md` freshness check, `review-<n>.md` anti-repetition check, lint gate, step Proof/test rerun, and Until Loop receipt match.
    - Add a `review_mode` field (`fresh-worker` | `inline-fallback` | `inline`) passed on `shiploop complete --action=<improve id>` (optional, defaulting from `delegation`) and recorded in `RUN/improve/<reviewed action>/passes.md` and `trace.jsonl`, so E2E audits and Run Review can measure how often reviews ran fresh vs fell back.
@@ -435,7 +440,7 @@ Record measured versions and outcomes in `host-bindings.json` (only hosts passin
 
 ### Phase 2 — ShipLoop direct worker briefs, Surface 2 guidance, and gate/provenance updates
 
-- Implement `DELEGATIONS = ("inline", "agents")` (keeping `inline` as default until Phase 3), `CHILD/worker-brief.md`, updated `improve_packet()`, Surface 2 read-only fan-out guidance + F17 rules on `discovery`/`research`/`product-acceptance`, emit-time 2-line host hints, `passes.md` `review_mode` provenance, and Claude subagent Skill-call recording (if Phase 0 confirms `PostToolUse` fires in subagents).
+- Implement `DELEGATIONS = ("inline", "agents", "ask-agent")` (keeping `inline` as default until Phase 3), `CHILD/worker-brief.md`, updated `improve_packet()`, Surface 2 read-only fan-out guidance + F17 rules on `discovery`/`research`/`product-acceptance`, emit-time 2-line host hints, `passes.md` `review_mode` provenance, and enabling the existing Claude Code Skill-call gate on `"agents"` (Phase 0 confirmed `PostToolUse(Skill)` already fires inside both fresh and forked subagents with the parent's `session_id`).
 - Update `skills/improve/references/shiploop-route*.md` and `skills/shiploop/references/{run-options,improve-context,navigator,host-matrix}.md`.
 - Verify offline: `bash test/run-all.sh --group prompt`, `--group shiploop`, `--group ask-agent`, and `python3 scripts/check-release-boundary.py`.
 
@@ -451,8 +456,36 @@ Record measured versions and outcomes in `host-bindings.json` (only hosts passin
 
 | # | Decision | Status / Options | Recommendation / Outcome |
 |---|---|---|---|
-| **D1** | Review worker context mode and stage scope under `--delegation agents` | **Open (informed by Phase 0 P0-B):** **(a) Forked context where supported, fresh fallback elsewhere** (keeps full conversation context + prompt cache hit while isolating Improve tool calls from parent), **(b) Hybrid** (forked for planning reviews, fresh for code & end-of-work reviews to avoid confirmation bias), or **(c) Fresh context for code & end-of-work only** | Run **Phase 0 P0-B** first to establish which of Cursor, Claude Code, Codex, and Grok actually expose a native fork parameter; then decide between (a) and (b) — and compare forked vs fresh code review in Phase 3 if needed. |
+| **D1** | Review worker context mode and stage scope under `--delegation agents` | **Ready to decide (Phase 0 P0-B complete — 3 of 4 daily hosts support native fork!):** **(a) Forked context where supported (Cursor `resume="self"`, Claude `subagent_type="fork"`, Codex `fork_turns="all"`), fresh brief fallback on Grok** (for every `✦` Improve stage), **(b) Hybrid** (forked for planning reviews; fresh for code & end-of-work reviews to guard against confirmation bias), or **(c) Fresh context for code & end-of-work only** | **(a) Forked where supported (fresh fallback on Grok)** for zero orientation loss + prompt cache hit + parent isolation — OR **(b) Hybrid** if you want independent fresh eyes specifically on `document`/`carry-forward` code reviews (and compare (a) vs (b) in Phase 3). |
 | **D2** | Behavior when `--delegation agents` runs on a host with no usable native subagent tool (or `unknown` host without native spawn)? | **(a) Graceful inline fallback** (run Improve / exploration inline, disclose it, record `review_mode: inline-fallback`) vs **(b) Fail closed** (block until the user switches `--delegation inline`) | **(a) Graceful inline fallback with explicit provenance** — keeps ShipLoop truly portable on any host while staying 100% honest in traces and Run Review. |
 | **D3** | Legacy `--delegation ask-agent` route | **Decided (owner, 2026-11-23):** keep `ask-agent` as a third mode alongside `inline` and `agents` (`DELEGATIONS = ("inline", "agents", "ask-agent")`). | Keep `ask-agent` intact; add `agents` beside it; keep `inline` default until Phase 3 qualifies `agents`. |
 | **D4** | How does the parent learn host-specific quirks? | **(a) Emit-time detection by `shiploop`** (reads `os.environ` at render time, prints a 2-line host hint directly in the packet; zero extra tool call; never persisted in `state.md`) vs **(b) Explicit command** (tell the model to run `shiploop host-binding` once per session) | **(a) Emit-time detection** — eliminates the "model forgot to run the host command" failure mode (`fbfebee74`) and keeps prompts minimal, with a `--host` override for deterministic dry runs and tests. |
-| **D5** | Scope of Phase 0 live probes | **Decided (owner, 2026-11-23):** run Phase 0 on **Cursor + Claude Code + Codex + Grok Build** now (leave OpenCode `unqualified` in `host-bindings.json` until tested). | Execute Phase 0 across Cursor, Claude Code, Codex, and Grok Build. |
+| **D5** | Scope of Phase 0 live probes | **Completed (2026-11-23):** ran Phase 0 across Cursor IDE, Claude Code `2.1.330`, Codex `0.171.0`, and Grok Build `1.0.92` (`cursor-agent` CLI `2026.09.23` unauthenticated; OpenCode `1.19.4` left `unqualified`). | See §8 below. |
+
+---
+
+## 8. Phase 0 live probe results (measured 2026-11-23)
+
+All probes ran against throwaway scratch Git repositories under `/tmp/shiploop-phase0-20261123/` (deleted after recording; zero edits to user profiles or repository checkouts; cross-host env prefixes scrubbed before launching each CLI).
+
+### Summary table
+
+| Host & build | Parent + subagent markers (`F31` depth marker?) | Native fork (`P0-B`: canary inherited vs fresh `null`) | Parallel foreground overlap (`P0-C`) | Surface 1 edit brief (`P0-D`) | Surface 2 F17 read-only (`P0-D`) | Extra checks |
+|---|---|---|---|---|---|---|
+| **Cursor IDE** (live session, 2026-11-23) | `CURSOR_AGENT`, `CURSOR_CONVERSATION_ID`, `CURSOR_REQUEST_ID`, `CURSOR_WORKSPACE_LABEL` (same in parent, fresh, fork; **no depth marker**) | **YES — `resume: "self"`** (`cobalt-7319-ide` vs fresh `null`) | **YES — 5.60 s / 6.00 s (93% overlap)** (`139.062..145.063` vs `139.464..145.464`, `run_in_background: false`) | **PASS** (`M calc.py`, 1 commit, `unittest` rc 0, `pwd == git_root` via `realpath`) | **PASS** (`git status ""`, port `62637`, scratch cleaned) | `shiploop_grants` outside `/tmp`: `runs_probe=null`, `git_probe=null`; `detect_host()` currently returns `"unknown"` |
+| **Claude Code `2.1.330`** (`claude-sonnet-5-5`, medium; `31.9 s`) | `CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_ENTRYPOINT`, `CLAUDE_PID` (same in parent, fresh, fork; **no depth marker**) | **YES — `subagent_type: "fork"`** (`amber-9042-claude` vs fresh `null`; runs on parent model/effort) | **YES — 3 foreground `Agent` calls concurrent in 1 turn** (`321.703..326.706` vs `323.942..328.945`, 2.76 s / 5.00 s overlap) | **PASS** (`M calc.py`, 1 commit, `unittest` rc 0, zero subagents) | **PASS** (`git status ""`, port `64134`, scratch cleaned) | **`PostToolUse(Skill)` FIRED inside BOTH fresh (`general-purpose`, 6.5 s) AND forked (`fork`, 7.1 s) depth-1 subagents** with parent's exact `session_id` + `agent_id` + `agent_type`! |
+| **Codex `0.171.0`** (`gpt-6.2-sol`, medium; `63.8 s`) | `CODEX_THREAD_ID`, `CODEX_SESSION_ID`, `CODEX_HOME`, `CODEX_VERSION` (same in parent, fresh, fork; **no depth marker**) | **YES — `fork_turns: "all"`** *(and `"all"` is now default! `"none"` starts fresh)* (`amber-9042-codex` vs fresh `null`; 4 rollout threads at depth 1) | Async `spawn_agent` + `wait_agent` (no blocking spawn; `wait_agent` blocks inside turn with `timeout_ms=120000`) | **PASS** (`M calc.py`, 1 commit, `unittest` rc 0, zero subagents) | **PASS** (`git status ""`, port `64275`, scratch cleaned) | Live tools: `collaboration.spawn_agent`, `wait_agent`, `interrupt_agent` |
+| **Grok Build `1.0.92`** (`grok-4.6`, medium; `133.9 s`) | `GROK_AGENT`, `GROK_SESSION_ID`, `GROK_CONFIG_DIR` (same in parent and subagents; **no depth marker**) | **NO (`has_fork: false`)** — `resume_from` resumes a child transcript only; clean fallback to fresh brief | **YES — 2 foreground `spawn_subagent(background=false)` calls streamed concurrently in 1 turn** (Worker B hit one `--permission-mode auto` prompt on `mktemp`/socket and succeeded on parent retry) | **PASS** (`M calc.py`, 1 commit, `unittest` rc 0, zero subagents) | **PASS** (`git status ""`, port `64608`, scratch cleaned) | Live params: `prompt`, `description`, `background`, `isolation` (`none\|worktree`, mutually exclusive with `cwd`), `resume_from`, `cwd` (`subagentType` absent in `1.0.92`) |
+| **Cursor CLI `cursor-agent` `2026.09.23-86fc751`** | **Not run** (`cursor-agent -p` exited 1: `Error: Authentication required`) | Unqualified | Unqualified | Unqualified | Unqualified | Needs `cursor-agent login` (or `CURSOR_API_KEY`) before CLI & `--sandbox enabled` qualification |
+
+### Key design implications settled by Phase 0
+
+1. **Forked reviews are natively portable across 3 of 4 daily hosts (Cursor IDE `resume="self"`, Claude Code `subagent_type="fork"`, Codex `fork_turns="all"`), with seamless fresh fallback on Grok Build (`has_fork=false`)** because ShipLoop always writes `CHILD/worker-brief.md` + `CHILD/handoff.md` on disk.
+2. **Foreground parallel tool calls in a single turn work on Cursor IDE, Claude Code, and Grok Build**, and `wait_agent` blocks within the turn on Codex — so **neither Surface 1 nor Surface 2 needs `run_in_background: true` + turn-end notification yielding**, eliminating the keepalive `Stop`-hook deadlock!
+3. **Claude Code's `PostToolUse(Skill)` gate needs zero hook rewrites for `--delegation agents`**: both fresh and forked subagents already fire `PostToolUse(Skill)` under the parent's `session_id` with `agent_id`.
+4. **Two real schema changes caught live before coding:**
+   - Codex `0.171.0` defaults `fork_turns` to `"all"` (not `"none"`), so fresh workers MUST explicitly pass `fork_turns: "none"`.
+   - Grok `1.0.92` added `isolation: "worktree"` to `spawn_subagent` (mutually exclusive with `cwd`), so Grok's binding must forbid `isolation: "worktree"` just like Claude's.
+5. **macOS `/tmp` realpath normalization:** every host resolved `/tmp/...` to `/private/tmp/...` in `pwd` and `git rev-parse --show-toplevel`, so worker briefs should state canonical realpaths (or instruct `realpath` comparison).
+6. **Ready for owner decision on D1 (forked vs hybrid vs fresh for reviews) and Phase 1–2 implementation.**
+
