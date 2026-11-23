@@ -31,3 +31,40 @@ python3 -B -m unittest discover -s test/shiploop_e2e/manual/codybot -p 'test_*.p
 ```
 
 The existing ShipLoop workspace tests also cover two projects with identical prompts and the replay of a workspace start. The audit provides evidence about the prompt and its isolation. Product qualification still requires an installed subscriber package, tested provider and channel combinations, and an actual authorized MCP call. [Workspace checks](../../../shiploop-workspace.test.py) · [Required release scenarios](Codybot-design-prompt.md#required-release-scenarios)
+
+## Follow-up research on tool definitions and provider interchange
+
+The November 22 prompt described authorization, model-selected tools and durable UI recovery. It gave the implementer no complete example of turning a granted tool into either provider’s `tools` definition or turning a provider result back into a Salesforce message. The follow-up adds a self-contained exchange to the build prompt. Both branches use the same visible timer and return the same answer. [Original tool manifest, L303](https://github.com/whichguy/skill-craft/blob/4758480e40c646c0d09eaf394ec6b00feaaf82a1/test/shiploop_e2e/manual/codybot/Codybot-design-prompt.md?plain=1#L303) · [Original adapter table, L471](https://github.com/whichguy/skill-craft/blob/4758480e40c646c0d09eaf394ec6b00feaaf82a1/test/shiploop_e2e/manual/codybot/Codybot-design-prompt.md?plain=1#L471) · [Worked exchange](Codybot-design-prompt.md#model-tool-definitions-and-the-lightning-to-provider-exchange)
+
+```mermaid
+sequenceDiagram
+    participant U as Lightning
+    participant A as Salesforce / Apex
+    participant W as Provider adapter
+    participant M as OpenAI or Claude
+    U->>A: Submit ordered parts and a request key
+    A-->>U: Return committed run receipt
+    A->>W: Dispatch an authorized step
+    W->>M: Send model input and eligible tool schemas
+    M-->>W: Request a tool with a provider call ID
+    W->>A: Deliver the call on its assigned attempt
+    A->>A: Check access, run handler, commit result
+    A-->>W: Return scoped result for that invocation
+    W->>M: Continue with matching tool result
+    M-->>W: Return final answer
+    W->>A: Deliver final answer on that attempt
+    A->>A: Commit message and clear progress
+    U->>A: Read snapshot after wake or reconnect
+    A-->>U: Return final message on original binding
+```
+
+The adapter can be a bounded Apex job or the approved worker. A timeout can occur at any service boundary. Recover committed results by receipt and reconcile an uncertain submission before retrying a paid step. The diagram shows one tool call. [Original rendezvous, L85](https://github.com/whichguy/skill-craft/blob/4758480e40c646c0d09eaf394ec6b00feaaf82a1/test/shiploop_e2e/manual/codybot/Codybot-design-prompt.md?plain=1#L85) · [Salesforce async processing](https://architect.salesforce.com/docs/architect/decision-guides/guide/async-processing)
+
+| Research question and information gain | Finding and design decision |
+|---|---|
+| What should the model see? **0.98** | Publish aliases, reviewed descriptions and typed arguments for the effective actor, bot, provider and destination. Keep handler and credential bindings in Salesforce. When eligibility exceeds the prompt budget, scoped discovery returns candidates and the next request includes the selected declarations. MCP `tools/list` supports authorization-specific results and pagination. The local manifest pins the accepted tool version for dispatch. [MCP tool specification](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) · [OpenAI tool search](https://developers.openai.com/api/docs/guides/tools-tool-search) · [Claude tool changes](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking/change-tools-or-instructions) |
+| Can the same provider request and return envelope serve both models? **0.97** | OpenAI Responses uses a flat function declaration with `parameters`, string `arguments` and a `function_call_output` paired by `call_id`. Claude uses `input_schema`, an object `input` and `tool_result.tool_use_id` in the next user-role message. Replay the complete permitted provider continuation and pair every call. The synthetic user-role result has no authority to approve a Salesforce action. [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling) · [OpenAI stateless reasoning](https://developers.openai.com/api/docs/guides/reasoning) · [Claude definitions](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) · [Claude call/result ordering](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls) |
+| What exactly crosses the UI boundary? **0.94** | The Lightning import receives a named JS object that matches the Apex parameter. A top-level DTO carries the ordered user parts and scoped handles. REST unwraps the equivalent command using its conversation path. The authenticated admission transaction commits before returning. The callback must prove its assigned step and attempt, and the Apex service must enforce the acting principal’s current access. [Lightning imperative Apex](https://developer.salesforce.com/docs/platform/lwc/guide/apex-call-imperative.html) · [Supported Apex types](https://developer.salesforce.com/docs/platform/lwc/guide/apex-expose-method.html) · [Apex security](https://developer.salesforce.com/docs/platform/lwc/guide/apex-security.html) |
+| Can subscriber data safely be embedded in strict schemas? **0.88** | Keep record values out of exported definitions. Claude documents a compiled-schema cache of up to 24 hours from last use. OpenAI documents separate schema caching and Zero Data Retention limitations specifically for fine-tuned models. Use stable schemas with scoped lookup results for dynamic values and qualify the actual configuration. [Claude strict schema retention](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use) · [OpenAI strict-mode limitations](https://developers.openai.com/api/docs/guides/function-calling) |
+
+The case-local offline test reads the worked JSON from the prompt and checks the Lightning/REST inputs, both provider declarations, argument parsing, call/result IDs, the scoped receipt and the final displayed text. The test uses synthetic provider responses. Installed LWC binding, provider schema acceptance, actual tool selection, callback authority and latency require the corresponding release evidence. [Offline fixture checks](test_prompt.py) · [Release evidence map](Codybot-design-prompt.md#release-evidence-map)
