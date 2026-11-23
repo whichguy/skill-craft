@@ -74,12 +74,15 @@ def scan(paths):
 
 
 def self_test_detail(output):
-    """Assertion detail for the bundled self-test: every recorded FAIL line, then the tail.
-
-    The self-test's output is far longer than the 1,500-character tail used before, so a
-    failing check near the start was cut off and the wrapper reported only a summary with
-    no failing line (CI 45134262405 attempt 2, PASS=278 FAIL=1 with the line lost).
-    """
+    """Named FAIL lines / fail-index first, then the last 1500 characters."""
+    indexed = re.search(
+        r"^=== fail-index ===\n(.*?)^=== end fail-index ===$",
+        output,
+        re.M | re.S,
+    )
+    if indexed and indexed.group(1).strip():
+        names = indexed.group(1).strip()
+        return names + "\n--- last 1500 characters ---\n" + output[-1500:]
     failing = [line for line in output.splitlines() if line.startswith("  FAIL  ")]
     tail = output[-1500:]
     if not failing:
@@ -289,6 +292,18 @@ while True:
 
 
 class SelfTest(unittest.TestCase):
+    def test_self_test_detail_prefers_fail_index_block(self):
+        body = (
+            "=== fail-index ===\n"
+            "synthetic early failure\n"
+            "=== end fail-index ===\n"
+            + ("y" * 3000)
+            + "\n=== summary: PASS=10 FAIL=1 ===\n"
+        )
+        detail = self_test_detail(body)
+        self.assertIn("synthetic early failure", detail)
+        self.assertNotIn("y" * 100, detail.split("synthetic early failure", 1)[0])
+
     def test_the_bundled_self_test_passes_in_a_scratch_home(self):
         synthetic = "  FAIL  synthetic early failure\n" + "x" * 3000 + "\n=== summary: PASS=1 FAIL=1 ===\n"
         self.assertIn("  FAIL  synthetic early failure", self_test_detail(synthetic))
