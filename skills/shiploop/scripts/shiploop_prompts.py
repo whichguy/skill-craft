@@ -1128,14 +1128,17 @@ DUTIES = {
    block, never in a Markdown table cell (an escaped `\\|` becomes a literal pipe, matches nothing and can exit 0).
    Per command: inclusion rule, expected cost, environment and fixture prerequisites, the test IDs it may print.
    A passing command names the IDs or cases it ran. This section owns the suite commands; fix any stale copy. Plan
-   durable regression tests, not one-off probes. Smoke is a bounded subset, never evidence for the full suite.
+   durable, deterministic executable test scripts run by the repository's suite runner, not prompt-driven procedures
+   or one-off interactive probes. Smoke is a bounded subset, never evidence for the full suite.
 10. Under KNOWLEDGE/environment.md ## ID convention declare each ID as tests will be titled, with one line as the
     runner prints it; choose IDs legal in the runner's test names (`TC_1` where a hyphen is not). """ + ID_WORD_RULE + """
     Nor does a name such as `test_TC_1_output` show `TC_1`.
 11. A case needing a host tool (browser, device, account, service): automatically discover relevant testing tools
     through the host's exposed catalog, connected browser capabilities and repository testing facilities.
-    Prefer available, suitable Chrome DevTools for browser inspection and interaction; keep an adequate existing
-    regression runner. Read the selected tool's supported invocation before using it; a catalog entry proves
+    Prefer committed, executable test scripts (such as a repo-native browser script, Playwright, or an existing
+    browser runner) for repeatable automated browser checks; use available, suitable Chrome DevTools for
+    interactive browser inspection and probing, or as a fallback when no direct script runner is suitable, and keep an
+    adequate existing regression runner. Read the selected tool's supported invocation before using it; a catalog entry proves
     exposure, not readiness. Name it and probe it now by doing the case's first step, not reading a version,
     or reuse a current probe covering the same capability and setup for cases sharing that route.
     Before the product exists, probe a stand-in in RUN/scratch through a permitted route: read its title, perform
@@ -1371,6 +1374,8 @@ Change no product file in this stage.
      before the last step (none: `minimum_na`).
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
+   - Cover behaviour this item adds or changes with repeatable executable test scripts run by a suite runner—never
+     prompt-only or interactive-only checks—reserving `check` for lint, type, build or trivial text checks.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
    - A focused or regression command that runs on a Test targets row that keeps state names it in `target`.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check"}`;
@@ -1516,8 +1521,10 @@ preparatory commit); a mismatch there is a send-back.
    Use the plan concerns assigned to test that apply to this step. Write no case due at a later stage.
    Decide where each new test belongs: a new suite (a recorded command must run it), the minimum suite
    (it runs at every step) or the full suites (they run at the last step); the summary says
-   which. Test the new code in detail: unit and mock tests first, then any MCP server or skill this host offers
-   where it observes more. Use each skill this packet lists for the stage.
+   which. Test the new code in detail with deterministic, executable test scripts: unit and mock tests first, then
+   any MCP server or skill this host offers where it observes more (capture repeatable checks as scripts in the test
+   suite rather than relying on interactive or prompt-driven tool calls alone). Use each skill this packet lists for
+   the stage.
 2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. Record a
    harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
    KNOWLEDGE/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.
@@ -1668,8 +1675,10 @@ preparatory commit); a mismatch there is a send-back.
 3. Write the catalog in `summary`, one row per case in the System-test catalog guidance shape (case ID, phase,
    requirement, expected outcome, environment and target, prerequisites, executable reference, owner). A post-release
    case is owned by release-verify and never waived.
-4. Write the tests. Reuse the existing harness, frameworks and helpers (Repeatable test-suite guide, Reusable test
-   facilities); build only the smallest missing facility; never assume a named skill or MCP is available. Record each
+4. Write the tests as deterministic, executable test scripts—not prompt-driven procedures or interactive-only
+   probes—whenever the boundary can be automated. Reuse the existing harness, frameworks and helpers (Repeatable
+   test-suite guide, Reusable test facilities); build only the smallest missing facility; never assume a named skill
+   or MCP is available. Record each
    facility's locator, interface, readiness or gap, owner and revalidation condition in KNOWLEDGE/environment.md
    ## Harnesses and suites. Add the system cases and retained INNER cases to the repeatable full-suite entry point,
    keep the smoke selection, and copy no tests into another suite. Each new test file names the requirement or test
@@ -1681,7 +1690,9 @@ preparatory commit); a mismatch there is a send-back.
    validated another way or unachievable (item 7); a case written but not run has no end state.
 6. `system_commands`: one row per runnable command, shaped like test_commands, suite `focused`, `regression` or
    `check`. `focused` and `regression` suit runners whose output ShipLoop can count and carry the case `ids`; a
-   non-runner (shell pipeline, grep, curl probe) is `check`, judged by exit code, no ids or min_tests. A row whose
+   non-runner (shell pipeline, grep, curl probe) is `check`, judged by exit code, no ids or min_tests. Put
+   multi-step API, CLI, UI or integration assertions in committed countable test scripts (`focused`/`regression`,
+   never inline shell pipelines in `focused`), reserving `check` for lint, type, build or trivial checks. A row whose
    cases need a host tool (browser, device, account, service) gets `"host_dependent": true`: ShipLoop then also runs
    the regression commands at system-test and refuses if any of that row's ids appears in their output, as the
    default suite must pass without the host tool. No system test applies: empty list with `system_commands_na` and
@@ -1811,7 +1822,8 @@ preparatory commit); a mismatch there is a send-back.
    outcomes and independent positive and negative controls through an existing authorized isolated route, following
    GUIDES/testing-and-documentation.md#release-entry-and-release-check.
 6. Post-release consumer checks go in `consumer_checks`, shaped like test_commands (a `check` row is judged by exit
-   code, no ids or min_tests). ShipLoop runs every one when release-verify reports done and refuses unless each
+   code, no ids or min_tests; prefer a committed test or check script over a fragile inline shell pipeline for
+   multi-step consumer verification). ShipLoop runs every one when release-verify reports done and refuses unless each
    passes: in an isolated run with a completed return, in a clean copy of the returned result (no Git history,
    nothing the return plan excluded, no ignored or unmanaged file); with none yet, in the work area, and says so.
    In the clean copy ShipLoop also runs each regression command of the last work item that records one, where no

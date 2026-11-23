@@ -2904,7 +2904,10 @@ class SettledFactTests(unittest.TestCase):
         import shiploop_prompts as prompts
         packet = normalized(prompts.prompt("test-strategy", delegation=prompts.INLINE))
         for phrase in (
-            "Prefer available, suitable Chrome DevTools for browser inspection and interaction",
+            "Prefer committed, executable test scripts (such as a repo-native browser script, Playwright, or an existing "
+            "browser runner) for repeatable automated browser checks",
+            "use available, suitable Chrome DevTools for interactive browser inspection and probing, or as a fallback "
+            "when no direct script runner is suitable",
             "keep an adequate existing regression runner",
             "try another discovered supported route before declaring the capability unavailable",
             "fallback reason under KNOWLEDGE/environment.md ## Harnesses and suites",

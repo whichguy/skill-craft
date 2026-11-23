@@ -283,8 +283,9 @@ _ROWS = (
             "unchanged since init, and each preserved behaviour they touch, maps to a check, its surface and the stage "
             "it is due, an empty textual diff does not remove requested scope, and the existing suite "
             "covers the rest",
-            "testing tools are discovered through the host and repository, preferring available, suitable Chrome DevTools "
-            "for browser work, with selected harnesses' setup and isolation stated",
+            "testing tools are discovered through the host and repository, preferring repeatable executable test scripts "
+            "for automated checks and available, suitable Chrome DevTools for interactive browser inspection or when no "
+            "direct script runner is suitable, with selected harnesses' setup and isolation stated",
             "planned checks are marked planned, not passed",
             "each case that needs a host tool (a browser, a device, an account, a service) names its route and cites "
             "a current probe covering the needed capability and setup, against a stand-in while the product does not "

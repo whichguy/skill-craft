@@ -136,8 +136,10 @@ more steps marks a minimum command or gives `minimum_na`, and a step before the
 last that owes nothing runs no command. The test packet names the full
 regression it leaves to the last step and asks where each new test belongs: a
 new suite (a recorded command must run it), the minimum suite or the full
-suites. MCP servers and skills may test the new code in more detail beside the
-unit and mock tests. The step's `document` and its review rerun what its test
+suites. MCP servers and skills may supplement executable tests for extra
+observation beside the unit and mock tests, but any repeatable check belongs in
+a committed, executable test script executed by a recorded test command rather
+than left as a prompt-driven tool call. The step's `document` and its review rerun what its test
 stage ran; the ask-agent route's one test stage runs every recorded command.
 
 ### Floors and their known limits
@@ -302,6 +304,24 @@ not only the current change's spec. Follow the
 to retain the requirement section, test path/selector and actual result location
 as distinct locators; planned cases and source inspection are not passing evidence.
 
+### Executable test scripts, not prompts
+
+Every repeatable test belongs in a committed, deterministic, executable test
+script or test file run by the repository's test runner or a repo-native script
+command—without an LLM or interactive MCP session in the loop.
+
+- Put deterministic setup, fixtures, actions, and assertions in test code or
+  scripts, never in prompt instructions telling an agent to manually check
+  behaviour, nor in ad-hoc interactive tool sessions, nor in fragile inline
+  shell pipelines.
+- Interactive host tools (such as Chrome DevTools MCP or other MCP servers and
+  skills) are valuable for discovery, interactive debugging, and initial
+  probing, or when a genuinely non-deterministic observation cannot be
+  scripted. They supplement executable test scripts and never substitute for
+  repeatable regression tests.
+- When an interactive probe reveals a repeatable check, capture it in a
+  committed executable test script in the repository's suite.
+
 Define expected behavior before implementation when possible. In the spec, name
 observable acceptance lines. Before source code, the step-plan and test-spec
 results contain a compact criteria matrix: each stable case ID maps its
@@ -446,8 +466,12 @@ sufficient, and any setup/session/fixture prerequisites. Carry the selection
 into the step plan and validation; tool availability alone is not coverage.
 Automatically discover exposed testing tools and existing repository facilities
 as described in [harness selection](repeatable-test-suites.md#select-or-revalidate-the-harness).
-Prefer available, suitable Chrome DevTools for browser inspection and interaction;
-retain an adequate existing regression runner. Diagnose a failed route and probe
+For repeatable automated browser checks, prefer committed, executable browser
+test scripts (such as a repo-native headless/CDP script, Playwright, or an
+adequate existing regression runner) runnable directly by command. For
+interactive browser inspection and probing—or as a fallback when no direct
+script runner is suitable—prefer available, suitable Chrome DevTools, and retain
+an adequate existing regression runner. Diagnose a failed route and probe
 supported alternatives before declaring browser capability unavailable. Keep
 runtime readiness separate from session readiness and access to the actual feature.
 When the UI exists, attempt its intended entry in the selected browser context
@@ -482,8 +506,8 @@ rather than inventing a browser requirement.
 | Observation needed | Candidate method | Evidence boundary |
 | --- | --- | --- |
 | HTTP status, headers, response contract or service behavior | `curl` or the repository's HTTP/API client | Does not establish rendered UI or page JavaScript behavior. |
-| Rendered elements, layout, console errors or browser network activity | Chrome DevTools or equivalent browser inspection | Record the action and observed result; inspection alone is not an automated regression test. |
-| Repeatable user interactions and visible state transitions | Playwright or equivalent available browser automation | Assert the expected user-visible outcome after the action, not merely that a click completed. |
+| Interactive browser inspection, probing, layout, console errors or browser network activity | Chrome DevTools or equivalent browser inspection (or fallback when no direct script runner is suitable) | Record the action and observed result; inspection supplements executable tests and is not a substitute for an automated regression test. |
+| Repeatable user interactions and visible state transitions | Committed, executable browser test scripts (repo-native headless/CDP script, Playwright, or an adequate existing regression runner) | Run directly by command without an interactive session in the loop; assert the expected user-visible outcome after the action, not merely that a click completed. |
 
 For browser-based UI acceptance, plan the actual browser sequence: starting state,
 user action, expected visible result and applicable viewport, keyboard/focus or accessibility

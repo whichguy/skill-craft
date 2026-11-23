@@ -1051,8 +1051,9 @@ class RefusalRouteTests(RealCliCase):
         command, path, _ = printed_callback(head)
         done_when = " ".join(head.split("Done when", 1)[1].split("Checked by:", 1)[0].split())
         for part in ("each case that needs a host tool (a browser, a device, an account, a service)",
-                     "testing tools are discovered through the host and repository, preferring available, suitable "
-                     "Chrome DevTools for browser work",
+                     "testing tools are discovered through the host and repository, preferring repeatable executable "
+                     "test scripts for automated checks and available, suitable Chrome DevTools for interactive browser "
+                     "inspection or when no direct script runner is suitable",
                      "names its route and cites a current probe covering the needed capability and setup, against a "
                      "stand-in while the product does not exist",
                      "a failed route is diagnosed before declaring the capability unavailable",

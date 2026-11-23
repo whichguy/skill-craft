@@ -36,21 +36,23 @@ Include host-provided runtimes: a missing executable on shell PATH does not prov
 the host lacks the capability. Read the chosen interface's actual invocation
 contract; do not guess a module export, launch option or private cache path.
 
-For browser behavior, prefer available, suitable Chrome DevTools for inspection
-and supported interaction. Keep an adequate existing regression runner; this
-preference does not require replacing its tests. When DevTools is unavailable or
-cannot make the needed observation, select another discovered, supported route,
-such as the host's browser control or Playwright, and record the reason. Pair
-these with `curl` or existing HTTP/API checks
-when both protocol and rendered behavior matter. Choose
+For repeatable automated browser tests, prefer committed, executable browser
+test scripts (a repo-native headless/CDP script, Playwright, or an adequate
+existing regression runner) runnable directly by command, rather than wrapping
+an interactive MCP server or relying on prompt-driven sessions as the regression
+harness. Keep an adequate existing regression runner; this preference does not
+require replacing its tests. Use available, suitable Chrome DevTools for
+interactive browser inspection and probing, or as a fallback when no direct
+script runner is suitable (and record the reason). Pair these with `curl` or
+existing HTTP/API checks when both protocol and rendered behavior matter. Choose
 the tool by the observation needed, such as rendered DOM/CSS, console errors,
 network behavior, interaction, or performance. Apply the existing
 [lightweight and browser checks](testing-and-documentation.md#lightweight-and-browser-checks)
 policy for surface selection, target/session identity, and access. Interactive
 inspection or a recorded flow alone is not a regression assertion: retain the
-useful finding as a repeatable test with an independent expected outcome and
-suite entry when feasible. Otherwise retain the exact manual procedure and
-evidence limits; do not count it as automated coverage.
+useful finding as a repeatable executable test script with an independent
+expected outcome and suite entry when feasible. Otherwise retain the exact
+manual procedure and evidence limits; do not count it as automated coverage.
 
 Probe the selected route with a harmless rendered action and observed state
 change before calling it ready. Before the product exists, use a disposable
@@ -135,7 +137,10 @@ capabilities that meet a named test need.
 Follow [reuse before a new mechanism](research-loop.md#reuse-before-a-new-mechanism):
 reuse, configure or extend a suitable existing facility before creating another.
 Record the concrete gap if none fits. No MCP server, skill wrapper or testing
-framework is mandatory; a direct stateless check may need none.
+framework is mandatory; a direct stateless check may need none. Multi-step
+API, CLI, UI, or integration assertions belong in committed test scripts run by
+a countable runner (`focused`/`regression`), not in fragile inline shell
+pipelines (`check`) or prompt-only procedures.
 
 For each selected facility, retain a definition locator in existing strategy/plan
 evidence and repository test documentation. Record only the relevant details:
