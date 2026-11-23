@@ -1,0 +1,65 @@
+== g1
+   words: "Do not fill in due times when the service starts." (from ~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g1/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7741-b8db-f2c8c1ffc175.jsonl (632 lines)
+   1. event_msg lines holding the words: 4 (4 are a command's printed output)
+      item_completed/CommandExecution, output 1635 chars: "tes this stage owes (verbatim, oldest first): N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 3638 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 33033 chars: "t first; each is a file in RUN/owner-notes/): N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 32119 chars: "t first; each is a file in RUN/owner-notes/): N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   2. response_item lines holding the words: 4: tool outputs given to the model 4, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 7554 chars: "49e293a1408e9876fd34.md, then run this again. N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      given (tool output) custom_tool_call_output, 3732 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      given (tool output) custom_tool_call_output, 2687 chars: "s, a did outside ' + _did_list(stage) + \\"," N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   3. for each command that printed the words, the output the model was given for it:
+      line 278 (1635 chars printed) -> line 279 custom_tool_call_output (7530 chars given), by position: inside call call_9da62ad3, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 279
+      line 285 (3638 chars printed) -> line 286 custom_tool_call_output (3708 chars given), by position: inside call call_c803e77f, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 286
+      line 304 (33033 chars printed) -> line 305 custom_tool_call_output (2663 chars given), by position: inside call call_9877ce62, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 305
+      line 323 (32119 chars printed) -> line 324 custom_tool_call_output (5112 chars given), by position: inside call call_fd359bb0, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 324
+== g2
+   words: "Nobody prepares the data file by hand." (from ~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g2/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7ae3-9eb5-89cff105b6ee.jsonl (660 lines)
+   1. event_msg lines holding the words: 3 (3 are a command's printed output)
+      item_completed/CommandExecution, output 1528 chars: "he notes this stage owes (verbatim, oldest first): N1 01:46Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 399 chars: "ShipLoop owner note ```shiploop-state { "id": "N1", "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      item_completed/CommandExecution, output 30800 chars: "oldest first; each is a file in RUN/owner-notes/): N1 01:46Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   2. response_item lines holding the words: 3: tool outputs given to the model 3, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1820 chars: "he notes this stage owes (verbatim, oldest first): N1 01:46Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      given (tool output) custom_tool_call_output, 493 chars: "ShipLoop owner note ```shiploop-state { "id": "N1", "text": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+      given (tool output) custom_tool_call_output, 24137 chars: "oldest first; each is a file in RUN/owner-notes/): N1 01:46Z Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives e"
+   3. for each command that printed the words, the output the model was given for it:
+      line 265 (1528 chars printed) -> line 266 custom_tool_call_output (1796 chars given), by position: inside call call_4f19619a, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 266
+      line 271 (399 chars printed) -> line 273 custom_tool_call_output (469 chars given), by position: inside call call_a900cff7, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 273
+      line 307 (30800 chars printed) -> line 308 custom_tool_call_output (24113 chars given), by position: inside call call_622d77c5, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 308
+== g3
+   words: "Do not fill in due times when the service starts." (from ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run/owner-notes/N1.md)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g3/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7ff1-b87c-cdf019fe9d8b.jsonl (669 lines)
+   1. event_msg lines holding the words: 5 (5 are a command's printed output)
+      item_completed/CommandExecution, output 1635 chars: "tes this stage owes (verbatim, oldest first): N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 697 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 28100 chars: "t first; each is a file in RUN/owner-notes/): N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 31258 chars: "t first; each is a file in RUN/owner-notes/): N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      item_completed/CommandExecution, output 22550 chars: "t first; each is a file in RUN/owner-notes/): N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   2. response_item lines holding the words: 4: tool outputs given to the model 4, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 859 chars: "46979e07ad0715a4b484.md, then run this again. N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      given (tool output) custom_tool_call_output, 5108 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+      given (tool output) custom_tool_call_output, 8461 chars: "--action=nav-7338463ce3b44d8fa2a30906c20b2a6c N1 01:45Z Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   3. for each command that printed the words, the output the model was given for it:
+      line 272 (1635 chars printed) -> line 273 custom_tool_call_output (835 chars given), by position: inside call call_996fbdaf, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 273
+      line 280 (697 chars printed) -> line 283 custom_tool_call_output (5084 chars given), by position: inside call call_baf8ed9b, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 283
+      line 282 (28100 chars printed) -> line 283 custom_tool_call_output (5084 chars given), by position: inside call call_baf8ed9b, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 283
+      line 305 (31258 chars printed) -> line 306 custom_tool_call_output (8437 chars given), by position: inside call call_702f1be8, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 306
+      line 484 (22550 chars printed) -> line 485 custom_tool_call_output (7470 chars given), by position: inside call call_44ba1687, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 485
+== k1
+   words: "Do not fill in due times when the service starts." (from ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/owner-notes/N1.md)
+   no Codex session record; read ~/e2e-runs/r-20261122-5d2cbc/k1/events.jsonl (Claude Code stream-json, 1298 lines)
+   1. tool results whose raw result (tool_use_result) holds the words: 1
+      raw result, 500 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   2. given to the model: tool results 1, other user text 0; the model's own: 0
+      given (tool result) tool_result, 499 chars: "oop owner note ```shiploop-state { "id": "N1", "text": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the servi"
+   3. for each raw result that holds the words, the tool result given (same event, by tool_use_id):
+      line 402 toolu_0172tMUQbH (500 chars raw -> 499 chars given): words True, N1 True, "owner note" True
+== summary
+   g1: printed by 4 commands; given to the model in 4 outputs; the model was given the note's words
+   g2: printed by 3 commands; given to the model in 3 outputs; the model was given the note's words
+   g3: printed by 5 commands; given to the model in 4 outputs; the model was given the note's words
+   k1: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words

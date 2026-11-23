@@ -339,3 +339,38 @@ the candidate is not accepted none of it is needed.
 | 11 | `shiploop --help` and the README's "Steer a run in flight" still describe settlement by printing | Waits. Needed for `main` |
 | audit | The change note's parity sentence was too broad | The sentence is corrected with the fix of finding 3; the rest of the audit waits with its findings |
 | fixtures | Tests that would pass on a broken engine (the ledger across a second step, the reconcile, the end of the run) and paths with no test | Wait with the findings they belong to. The tests for what was fixed now were shown failing on the build as committed |
+
+## 7. What the deliveries showed (2026-11-22, 17:40 to 18:41)
+
+Six real deliveries in two rungs, registered before they ran (the journal's section 29 has the table, the readings
+and the findings F80 to F83; the evidence is in `evidence/rungs/`).
+
+- **The note is taken in, 6 of 6.** Sol during the build 3 of 3 (the released engine: the model was given the
+  note's words in 0 of 3), Sonnet during the build 1 of 1, Sol before the plan 2 of 2. M1, M2 and M3 hold in every
+  delivery; a blind reader found each final requirement states the note's wish. The refusal's first line was given
+  to the model in all six.
+- **The route was not the one of 2.3.** During the build all four sessions sent the step back to `step-plan`,
+  rewrote the requirement there and built the wish inside the item in hand. None finished the item as planned and
+  none queued a new item at `carry-forward`. So two sentences of this design are wrong about the engine: 2.3's "the
+  item in hand is finished as planned while a carried note waits" and 2.8's "no way back from a work item's steps
+  to the specification". A send-back to `step-plan` is that way back, and the engine does not guard a rewrite of a
+  requirement there.
+- **Told:** the report and the done packet in 6 of 6; the host's last message on Sonnet, never on Sol (the done
+  packet's lines about notes were given to the Sol model in 0 of 3).
+- **Cost:** about the minutes of a first run alone on Sol (15.4 to 16.8 against 12.6 to 17.2), where a first run
+  and a repair run take 25 to 30; one wasted callback per Sol delivery of the first rung (a row put on a
+  `send-back`).
+
+**The recommendation by the registered rule: accept.** The owner decides. If accepted, before `main`:
+
+1. The findings of section 6 that `main` needs: 1 (an unreadable note file refuses), 2 (a new note's id is above
+   every id in the ledger), 6 (placeholders are not a `detail`), the import half of 7 (its first line names the notes
+   and the folder), 8, 10 (saved runs of the released engine are graded as before), 11, and the rest of the change
+   note's audit. Recorded as limits and not built: 4 (the instant a run ends), 5 (a changed draft on a parked
+   action), the rare notices of 7, and 9 (a hundred notes).
+2. The clause added to `document`'s duty comes back out, so `document` says what the released engine says: a
+   requirement whose intent moved is a send-back. That is the route every delivery took, and the clause was met by
+   none. The clause in `carry-forward`'s duty and loop rule stays: that stage cannot send back, so without it a note
+   that changes a requirement there could only be blocked or declined; it is untested on Sol and says so here.
+3. 2.3 and 2.8 rewritten to the route the deliveries took.
+4. The wide tests once, and one delivery on the final commit.

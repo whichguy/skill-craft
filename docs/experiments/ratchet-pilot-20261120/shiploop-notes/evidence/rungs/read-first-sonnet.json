@@ -1,0 +1,240 @@
+[
+ {
+  "name": "k1",
+  "host": "claude",
+  "model": "claude-sonnet-5-5",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "FAILED",
+  "basis": "engine done; at least one verdict failed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks": [
+   {
+    "check": "base_tests.py suite node-tickets",
+    "pass": true
+   },
+   {
+    "check": "base_tests.py pristine node-tickets",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py migrate",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py restart",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py switch",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py rollback",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py off",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py cli",
+    "pass": false
+   }
+  ],
+  "startup": {
+   "migrate": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": " start: DUE_TIMES is on, but 8 tickets have no due time: stop the service, run \"node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-9gsqs6ws/tickets.json\" and start it again\n(the delivery DUE_TIMES=on server did not start)\nmigrate: 1 expectation(s) failed"
+   },
+   "restart": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "ror cannot start: DUE_TIMES is on, but 8 tickets have no due time: stop the service, run \"node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-nkrsc6an/tickets.json\" and start it again\n(the first start server did not start)\nrestart: 1 expectation(s) failed"
+   },
+   "switch": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "ror cannot start: DUE_TIMES is on, but 8 tickets have no due time: stop the service, run \"node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-618t1mdn/tickets.json\" and start it again\n(the DUE_TIMES=on server did not start)\nswitch: 1 expectation(s) failed"
+   },
+   "rollback": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "t: DUE_TIMES is on, but 8 tickets have no due time: stop the service, run \"node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-wbg5tpgt/on/tickets.json\" and start it again\n(the delivery, DUE_TIMES=on server did not start)\nrollback: 1 expectation(s) failed"
+   },
+   "cli": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "nnot start: DUE_TIMES is on, but 8 tickets have no due time: stop the service, run \"node bin/backfill-due.js --data /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-z5k1t00g/tickets.json\" and start it again\n(the delivery DUE_TIMES=on server did not start)\ncli: 1 expectation(s) failed"
+   }
+  },
+  "started": "2026-11-23 01:40:56Z",
+  "ended_at": "2026-11-23 02:14:46Z",
+  "ended_ts": 1795400086.783,
+  "minutes": 33.8,
+  "turns": 466,
+  "model_calls": 256,
+  "output_tokens": 251286,
+  "cost_usd": 13.2198,
+  "spec_seconds": 121.0,
+  "strategy_seconds": 95.0,
+  "stand_in": {
+   "mode": "note-at",
+   "stage_waited_for": "implement",
+   "stage_seen_at": "2026-11-23T01:50:51Z",
+   "chosen": 3,
+   "row": "3. R-4 When do existing tickets receive their due times in production? Decided: At the first start of the new release on the data file, which rewrites the file once before serving, whatever DUE_TIMES says; operators need not run a separate step. Otherwise: A separate operator command that backfills the file before the switch-on; operators would run an extra step and the service would not write at start.",
+   "requirement": "R-4",
+   "row_class": "start",
+   "row_class_note": null,
+   "note_sent": "command",
+   "note_id": "N1",
+   "note_exit": 0,
+   "note_reply": "Owner note N1 written: ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/owner-notes/N1.md.\nThe run is at W1 implement (action nav-9459a4be222747e2acc31e70945286fa); N1 is accounted for by its done result, which ShipLoop checks for a row when it is next checked or completed (a result already being read leaves it to the next stage's).",
+   "ended": null
+  },
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 50,
+  "defaults": [
+   "1. R-1 How does the help desk change the response hours? Decided: Four environment variables DUE_HOURS_URGENT/HIGH/NORMAL/LOW read at start; unset keeps 4/24/72/168; a value that is not a whole number from 1 to 87600 (ten years) stops the service at start naming the variable; a change needs a restart and only affects tickets created or backfilled afterwards. Otherwise: A hours file or an admin endpoint that changes hours without restart; that adds a new file or API surface to operate.",
+   "2. R-3 Is a ticket due exactly at its due time overdue, and what does overdue= with another value do? Decided: Overdue only strictly after the due time; with DUE_TIMES on, overdue=true filters and any other value is a 400 invalid error; off, the parameter is ignored. Otherwise: Treat overdue=false as the complement list; the help desk could then list non-overdue tickets.",
+   "3. R-4 When do existing tickets receive their due times in production? Decided: At the first start of the new release on the data file, which rewrites the file once before serving, whatever DUE_TIMES says; operators need not run a separate step. Otherwise: A separate operator command that backfills the file before the switch-on; operators would run an extra step and the service would not write at start.",
+   "4. R-6 What happens to due times if operators roll back to 1.4.0 and later upgrade again? Decided: 1.4.0 starts and shows every ticket; its next save drops due; the later upgrade backfills from creation time and the hours then in force, so a ticket's due can differ from before the rollback. Otherwise: Keep due in a separate sidecar file that 1.4.0 never touches; that adds a second file to back up and keep consistent.",
+   "5. R-9 Does the operator command line show due times? Decided: Yes when DUE_TIMES is on in its environment: a DUE column, a due line in show and a fifth raw column; off, output is unchanged. Otherwise: Leave the command line untouched; operators would see due only through the API."
+  ],
+  "end_from": "result.json span",
+  "last_command": {
+   "verb": "complete",
+   "stage": "handoff",
+   "exit": 0,
+   "at": "2026-11-23T02:14:34Z",
+   "gate_refusal": false
+  },
+  "gate": [
+   {
+    "at": "2026-11-23T01:51:28Z",
+    "stage": "implement",
+    "verb": "check",
+    "notes": [
+     "N1"
+    ],
+    "gate": true,
+    "first_line": "owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/inbox/nav-9459a4be222747e2acc31e70945286fa.md, then run this again."
+   },
+   {
+    "at": "2026-11-23T01:58:32Z",
+    "stage": "implement",
+    "verb": "check",
+    "notes": [
+     "N1"
+    ],
+    "gate": true,
+    "first_line": "\"notes\" in ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/inbox/nav-d8a79a420348453e9b91f0f8f3cb31ec.md has a row this stage does not owe (N1): remove it, then run this again."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-23T01:50:52Z",
+    "words": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command.",
+    "sent_by_stand_in": true,
+    "in_trace": "2026-11-23 01:50:52Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-2610ad433aca467aa2846e8c19d71a37",
+     "accepted_at": "2026-11-23 01:50:51Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-9459a4be222747e2acc31e70945286fa",
+     "from": "the trace's note command"
+    },
+    "ledger": [
+     {
+      "did": "carried",
+      "detail": "S1 (due.js, config, persistence, store) is unaffected: store.backfillDue() is the seam an explicit operator command will call. The note changes where backfill happens (no fill at service start; a separate operator command saves the file; DUE_TIMES=on with any ticket lacking due refuses to start and names the command), which is S2's scope (src/server.js) plus a new command and spec R-4/R-5/R-6 and defaults. S2 as planned (its proof asserts start-time backfill) contradicts the note, so S2 goes back to step-plan with the note; spec.md entries R-4, R-5, R-6, the defaults and docs are revised in place there.",
+      "step": 11,
+      "stage": "implement",
+      "workitem": "W1",
+      "action": "nav-9459a4be222747e2acc31e70945286fa"
+     },
+     {
+      "did": "already",
+      "detail": "W1 does it: no due is filled in at start (src/server.js), the separate command bin/backfill-due.js (S3) backfills from each ticket's own created time and priority and saves the file, and DUE_TIMES=on over tickets without due refuses to start naming the command (S2, TC-16, TC-13). Spec R-4 and AD-6 were revised in place at the send-back. W2 documents the rollout order.",
+      "step": 25,
+      "stage": "carry-forward",
+      "workitem": "W1",
+      "action": "nav-033470f698c740b8930bbe0b8ebd7dbb"
+     }
+    ],
+    "standing": "settled",
+    "owed_by": null,
+    "seconds_from_list": 362.4,
+    "minutes_to_end": 23.9,
+    "refusals": 2,
+    "refusals_before_first_row": 1,
+    "refusals_before_settled": 2,
+    "given": {
+     "source": "Claude Code events.jsonl",
+     "words": "Do not fill in due times when the service starts.",
+     "printed_by": 1,
+     "given_in": 1,
+     "summary": "printed by 1 commands; given to the model in 1 outputs; the model was given the note's words",
+     "first_naming_it": {
+      "kind": "tool_result",
+      "start": "ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/inbox/nav-9459"
+     }
+    },
+    "requirement": "R-4",
+    "entry_when_written_from": "commit 2562a88, the newest of docs/shiploop/spec.md at or before the note, unverified",
+    "entry_when_written": "### R-4 Tickets already in the data file get due times\nWhen the service starts on a data file whose tickets lack `due`, each such ticket gets due = its own `created` + hours of its own `priority`, and the file is saved at once (before any request), regardless of `DUE_TIMES`. Tickets that already have `due` keep it. Backfill is not a ticket change: no audit entry, `updated` untouched, no notification. The command line never writes the file.\n- Positive: a v1 file with T-0001 {priority high, created 2026-01-01T08:00:00.000Z, no due}: after `createService` the file on disk holds due 2026-01-02T08:00:00.000Z; a second start with other hours leaves it. Confirmed by a service/persistence test reading the file.\n- Positive: a file already holding due is not rewritten with a different due. Confirmed by a persistence test.\n- Boundary: with no data file or an empty store nothing is written by backfill. Confirmed by a test.\n- Boundary: `updated` and the audit log of the backfilled ticket are byte-equal before and after. Confirmed by a test.",
+    "entry_at_end": "### R-4 Tickets already in the data file get due times, by an explicit operator command\nOwner note N1 (2026-11-23) revised this requirement: the service never fills in due times when it starts. An operator stops the service and runs a separate command, `node bin/backfill-due.js [--data FILE]` (the file is `DATA_FILE` or `--data FILE`; hours from `DUE_HOURS_*`), which gives every ticket that has no due time one, from that ticket's own `created` and `priority`, and saves the file (the usual temporary file and rename), then prints how many tickets it changed. Tickets that already have `due` keep it, so running it again changes nothing. It is not a ticket change: no audit entry, `updated` untouched, no notification. If the service starts with `DUE_TIMES=on` while any ticket has no due time, it refuses to start (exit 2, a log line) and the message names `bin/backfill-due.js`. With `DUE_TIMES` not `on` the service starts on such a file and leaves it as it is. The read-only command line `bin/tickets.js` never writes.\n- Positive: a v1 file with T-0001 {priority high, created 2026-01-01T08:00:00.000Z, no due}: after `node bin/backfill-due.js --data FILE` the file holds due 2026-01-02T08:00:00.000Z, version 1, the command prints `1`, a second run prints `0` and leaves the file byte-equal. Confirmed by a command test (TC-8) with main() and a temp file.\n- Positive: a ticket that already has a due keeps it even when `DUE_HOURS_*` differ; `updated` and the audit log are equal before and after. Confirmed by TC-8.\n- Failure: `createService({dueTimes: true, dataFile: FILE})` over a file with a ticket lacking due throws a ConfigError whose message contains `bin/backfill-due.js`; as a real process `node src/server.js` with DUE_TIMES=on exits 2 and stderr names the command. Confirmed by TC-16 and TC-13.\n- Positive: after the command the same process start succeeds with DUE_TIMES=on and lists the ticket with its due; with DUE_TIMES unset a start over the legacy file succeeds and the file is byte-equal after the start. Confirmed by TC-16 and TC-13.\n- Boundary: a missing file is an error (exit 2) and writes nothing. Confirmed by TC-8.\n\n- Met by bin/backfill-due.js (`main(argv, {env, out, err})`, exit 0 done and 2 for usage, setting or data file problems); cases TC-8 in test/due-backfill.test.js and TC-13 in test/due-process.test.js (real processes). A re-run changes nothing and does not write. Observed: the service saves the file when it stops, as it always did, so after a start with `DUE_TIMES` off the file is not byte-equal but its tickets are unchanged and hold no due time; that is what TC-13 (c) and TC-16 (b) assert (W1/S3).",
+    "entry_at_end_is": "current",
+    "differ": true,
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 13,
+     "same_second": 0,
+     "touching_spec": [
+      "feat(W2/S1): W2 done: CLI shows due when DUE_TIMES=on; README, API, operations docs, changelog, ver…",
+      "feat(W1/S3): S3 done: bin/backfill-due.js backfills due times on request and saves the file",
+      "feat(W1/S2): S2 done: API shows due and overdue only when DUE_TIMES=on; start refuses until the bac…",
+      "feat(W1/S1): S1 re-verified unchanged: proof exits 0 and the 117 existing tests pass",
+      "docs(shiploop): record this-directory-is-an-existing-node-11c11d knowledge after step-plan"
+     ],
+     "touching_src_or_bin": 4,
+     "touching_test": 5
+    },
+    "new_items": {
+     "added": [],
+     "untimed_results": 0
+    }
+   }
+  ],
+  "told": {
+   "done_packet_lines": [
+    "Your notes: 1 owner note. In your last message tell the user what happened to each; the report's section \"Your notes\" has each note's words and every row:",
+    "- N1: already at carry-forward of W1: W1 does it: no due is filled in at start (src/server.js), the separate command bin/backfill-due.js (S3) backfills from each ticket's own created time and prior…"
+   ],
+   "report_has_section": true,
+   "report_section": "Your notes What you wrote to the run while it ran, and what each stage's result said it did with it. ShipLoop checks that each note has a row; it does not check that the work does what the row says. N1, written 2026-11-23T01:50:52Z: settled Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command. Step Stage Work item Did Detail Item 11 implement W1 carried S1 (due.js, config, persistence, store) is unaffected: store.backfillDue() is the seam an explicit operator command will call. The note changes where backfill happens (no fill at service start; a separate operator command saves the file; DUE_TIMES=on with any ticket lacking due refuses to start and names the command), which is S2's scope (src/server.js) plus a new command and spec R-4/R-5/R-6 and defaults. S2 as planned (its proof asserts start-time backfill) contradicts the note, so S2 goes back to step-pla",
+   "last_message_sentences": [
+    "This follows your mid-run note, which changed my original plan to fill them in at start."
+   ]
+  }
+ }
+]

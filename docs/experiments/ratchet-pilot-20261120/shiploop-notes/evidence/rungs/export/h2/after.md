@@ -1,0 +1,3 @@
+### R-3 File migration and rollback
+
+With the service stopped, operators run `npm run backfill:due-times` to fill missing deadlines from each stored ticket's created timestamp and current priority. The command atomically saves the changed snapshot and preserves already assigned values. Startup never fills deadlines. Enabled startup refuses a file containing any ticket without a deadline and names the command. Preserve version 1, identifiers, history, outbox and existing fields. Verify a legacy fixture, a restart with changed hours, and a real 1.4.0 startup on the candidate file with every ticket visible. Before a binary rollback, backup the enriched file because the old writer discards fields it cannot retain.

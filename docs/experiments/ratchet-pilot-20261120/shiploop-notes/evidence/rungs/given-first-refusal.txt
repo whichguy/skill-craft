@@ -1,0 +1,41 @@
+== g1
+   words: "is not accounted for" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g1/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7741-b8db-f2c8c1ffc175.jsonl (632 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 1635 chars: "ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/run/owner-notes"
+   2. response_item lines holding the words: 1: tool outputs given to the model 1, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 7554 chars: " input_text {} input_text {} input_text ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/wor"
+   3. for each command that printed the words, the output the model was given for it:
+      line 278 (1635 chars printed) -> line 279 custom_tool_call_output (7530 chars given), by position: inside call call_9da62ad3, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 279
+== g2
+   words: "is not accounted for" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g2/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7ae3-9eb5-89cff105b6ee.jsonl (660 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 1528 chars: "ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/run/owner-notes"
+   2. response_item lines holding the words: 1: tool outputs given to the model 1, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1820 chars: "ad back T-0001 with due.\n"} input_text ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/wor"
+   3. for each command that printed the words, the output the model was given for it:
+      line 265 (1528 chars printed) -> line 266 custom_tool_call_output (1796 chars given), by position: inside call call_4f19619a, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 266
+== g3
+   words: "is not accounted for" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g3/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7ff1-b87c-cdf019fe9d8b.jsonl (669 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 1635 chars: "ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run/owner-notes"
+   2. response_item lines holding the words: 1: tool outputs given to the model 1, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 859 chars: "0 seconds Output: input_text input_text ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/wor"
+   3. for each command that printed the words, the output the model was given for it:
+      line 272 (1635 chars printed) -> line 273 custom_tool_call_output (835 chars given), by position: inside call call_996fbdaf, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 273
+== k1
+   words: "is not accounted for" (from --words)
+   no Codex session record; read ~/e2e-runs/r-20261122-5d2cbc/k1/events.jsonl (Claude Code stream-json, 1298 lines)
+   1. tool results whose raw result (tool_use_result) holds the words: 1
+      raw result, 791 chars: "ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/owner-notes"
+   2. given to the model: tool results 1, other user text 0; the model's own: 0
+      given (tool result) tool_result, 790 chars: "ShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/k1/.shiploop-runs/work-20261123-014103-deb628/run/owner-notes"
+   3. for each raw result that holds the words, the tool result given (same event, by tool_use_id):
+      line 400 toolu_01AWVJCdf4 (791 chars raw -> 790 chars given): words True, N1 True, "owner note" True
+== summary
+   g1: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words
+   g2: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words
+   g3: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words
+   k1: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words

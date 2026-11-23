@@ -5258,3 +5258,80 @@ that carries the note at `implement` and then, at `carry-forward`, writes `decli
 revising the requirement and queueing the work, and a session that writes a row from the refusal's first line
 without opening the note's file, which the row's `detail` will show. A delivery that takes the note in should cost
 about one more work item than a run with no note (4.4 minutes in m1). Second rung: no loss.
+
+### The two rungs ran: the note is taken in, 6 deliveries of 6 (2026-11-22 17:40 to 18:41; written 18:44)
+
+Launched from `053732c219ae2dbd528ffb6d21428f50ff9b5e31` (a detached build copy of it) into one folder, `~/e2e-runs/r-20261122-5d2cbc`. Evidence:
+`shiploop-notes/evidence/rungs/` (the reader's output for each rung, what each model was given, the export and the
+blind reader's question and answers). No delivery was lost to the stand-in or to a cause outside ShipLoop, and no
+process was left running.
+
+| Delivery | Driver | Note sent when | The list's start-up row, so the note sent | Rows, in the order accepted | The delivered service | Minutes |
+| --- | --- | --- | --- | --- | --- | --- |
+| g1 | Sol 6.2 medium | the first `implement` packet printed | fills at a start, so the opposite wish | `step-plan` applied | refuses to start and names its backfill command | 15.4 |
+| g2 | Sol 6.2 medium | the same | a separate command, so the owner's ruling | `step-plan` applied | fills at start; 5 of 5 start-up checks, 8 of 8 | 16.8 |
+| g3 | Sol 6.2 medium | the same | fills at a start, so the opposite wish | `step-plan` carried, `carry-forward` already | refuses to start and names its command | 16.2 |
+| k1 | Sonnet 5.5 medium | the same | fills at a start, so the opposite wish | `implement` carried, `carry-forward` already | refuses to start and names its command | 33.8 ($13.22) |
+| h1 | Sol 6.2 medium | the list printed (`test-strategy`) | fills at a start, so the opposite wish | `test-strategy` applied | refuses to start and names its command | 24.7 |
+| h2 | Sol 6.2 medium | the same | fills at a start, so the opposite wish | `test-strategy` carried, `plan` applied (item W1) | refuses to start and names its command | 16.4 |
+
+**The registered readings.**
+
+- **M1, accounted: 6 of 6.** Every note ends settled. No delivery stopped at the gate. Each met one refusal for the
+  missing row (a `check` at `implement`, a `complete` at `test-strategy`) and wrote its row at the next try or the
+  next stage.
+- **M2, taken in: 6 of 6.** g2 was sent the owner's ruling and passes the five start-up checks. The other five were
+  sent the opposite wish: in each the five start-up checks fail with the service's own refusal in their output
+  ("cannot start ... tickets are missing due times; stop the service and run ..."), a reader who saw only the
+  requirement before and after and the note found that the final requirement states the note's wish with nothing
+  left against it (5 of 5, and g2 as well), and the delivery's own suite passes. No note was declined.
+- **M3, in step with itself: 6 of 6.** The five verdicts hold in every delivery; requirement, tests and service
+  agree. The report's list "Decided for you" marks the rewritten requirement "changed after the spec stage".
+- **M4, told.** The done packet and the report's section "Your notes" list the note with what was done: 6 of 6.
+  The host's last message names the note on Sonnet (1 of 1: "This follows your mid-run note, which changed my
+  original plan to fill them in at start.") and never on Sol (0 of 5).
+- **M5, described.** Sol with the note during the build: 15.4, 16.8 and 16.2 minutes, 32 to 36 thousand output
+  tokens. A first run alone in round 3 took 12.6 to 17.2 minutes, and a first run followed by a new run to repair
+  it 25 to 30. Sonnet: 33.8 minutes and $13.22; the Sonnet delivery that took such a note in on the released engine
+  (m1) took 39.7 minutes and $12.39 with an extra work item. Sol with the note before the plan: 24.7 and 16.4.
+
+**F80. With a row demanded and the result refused, a plain owner note reaches the model and is taken in.** Sol
+during the build 3 of 3, where the released engine gave the model the note's words in 0 of 3 (n4, n5, d5); Sol
+before the plan 2 of 2; Sonnet during the build 1 of 1. In all six the refusal's first line was given to the model
+and so were the note's words (`given-*.txt`). In g3 the session passed on 835 of the refusal's 1,635 characters:
+the first line was inside them. Small numbers, one case (`ticket-due-times`).
+
+**F81. Nobody used the route the design built for a note during the build.** The design: carry the note at
+`implement`, finish the item as planned, and let `carry-forward` rewrite the requirement and queue a new item. What
+all four sessions did: send the step back to `step-plan` (the inner route that already exists), rewrite the
+requirement there, replan the step and build the wish inside the item in hand. That is cheaper, and it shows two
+things the design had wrong about the engine: a work item's steps do have a way back to the requirement, and a
+rewrite of a requirement at `step-plan` is not guarded (only `implement` and `document` are). g3's and k1's
+`carry-forward` then wrote `already`, truthfully. The clause the fix pass added to `carry-forward`'s duty was met by
+no delivery; the clause added to `document`'s duty ("the note is carried and this step is finished as planned")
+steers away from the route that worked and was met by none.
+
+**F82. Before the plan, the planning stages apply the note themselves.** h1's `test-strategy` rewrote the
+requirement and its test plan and wrote `applied`; h2's carried it one stage and `plan` wrote `applied` naming the
+work item. Neither went back to the specification stage.
+
+**F83. The Sol session's last message does not tell the requester.** The done packet asks the host to say what
+happened to each note. Those lines were printed and given to the model in 0 of 3 deliveries checked (g1 to g3), so
+the last message is silent (0 of 5), as it was about everything else the done packet says to Sol. The report holds
+it. On Sonnet the last message says it.
+
+**What it cost beside the minutes.** Each Sol delivery of the first rung spent one callback putting its row on the
+`send-back` result, which is refused as a done-only key, and sent it again without the row 3 to 9 seconds later
+(3 of 3). The Sonnet delivery tried a second row for the same note at the next step and was told to remove it.
+
+**Where I was wrong beforehand.** I expected Sol to take the note in in two or three of three and named the
+`carry-forward` step as where it would miss. It took it in in three, and never went that way.
+
+**What these six do not show.** A note that arrives at `document`, at `carry-forward`, in a later work item or
+after the build; two notes; a note the run cannot do; a refusal cut before the note's file name; any case but this
+one. The opposite-wish note was sent in five of six, because five specifications chose to fill at a start.
+
+**By the registered rule the recommendation is to accept**, and the owner decides. Before anything is offered for
+`main`: the review findings `main` needs (the design's section 6), the `document` clause taken back out (F81), the
+design's 2.3 and 2.8 corrected to the route the deliveries took, the wide tests once, and one delivery on the final
+commit.

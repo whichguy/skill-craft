@@ -1,0 +1,1 @@
+3. R-3 How are old files prepared before enablement? Decided: The new binary backfills during startup while the switch is off and completes before listening. Otherwise: Run a separate offline migration before starting the new binary.

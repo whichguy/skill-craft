@@ -1,0 +1,1 @@
+3. R-3 How do operators control the data transition? Decided: Run an explicit offline backfill first. Enabled startup refuses incomplete files. Otherwise: Migrate during startup and expose due in the same launch.

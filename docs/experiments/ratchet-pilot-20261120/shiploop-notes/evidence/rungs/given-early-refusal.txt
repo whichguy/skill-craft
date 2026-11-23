@@ -1,0 +1,21 @@
+== h1
+   words: "is not accounted for" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/h1/home/.codex/sessions/2026/11/22/rollout-2026-11-22T18-16-13-01a20630-85e5-7620-83b5-72889054f3df.jsonl (994 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 1733 chars: "ShipLoop navigator: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/h1/.shiploop-runs/work-20261123-021635-66799a/run/owner-n"
+   2. response_item lines holding the words: 1: tool outputs given to the model 1, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1943 chars: "en_count":0,"output":""} input_text ShipLoop navigator: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/h1/.shiploop-runs/wor"
+   3. for each command that printed the words, the output the model was given for it:
+      line 131 (1733 chars printed) -> line 132 custom_tool_call_output (1919 chars given), by position: inside call call_7b262c7e, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 132
+== h2
+   words: "is not accounted for" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/h2/home/.codex/sessions/2026/11/22/rollout-2026-11-22T18-16-13-01a20630-85e5-7fa2-887b-199439b9738e.jsonl (662 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 1733 chars: "ShipLoop navigator: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/h2/.shiploop-runs/work-20261123-021643-fb60fa/run/owner-n"
+   2. response_item lines holding the words: 1: tool outputs given to the model 1, other messages given to it 0, the model's own 0
+      given (tool output) custom_tool_call_output, 1839 chars: "conds Output: input_text input_text ShipLoop navigator: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/h2/.shiploop-runs/wor"
+   3. for each command that printed the words, the output the model was given for it:
+      line 138 (1733 chars printed) -> line 139 custom_tool_call_output (1815 chars given), by position: inside call call_44841ff4, whose output is found by call_id: words True, N1 True, "owner note" True; the first later tool output that holds the words is line 139
+== summary
+   h1: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words
+   h2: printed by 1 commands; given to the model in 1 outputs; the model was given the note's words

@@ -1,0 +1,1 @@
+2. R-3 How does production prepare its data file? Decided: Start the new release with the gate off and the sole writer configured. Otherwise: A separate migration command would require a dedicated operator step.

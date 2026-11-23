@@ -1,0 +1,1 @@
+6. R-3 How is the production file prepared? Decided: Start the new release with the feature off; it saves missing due times before listening. Enable it at the next start. Otherwise: An offline migration would add a separate command and handoff.

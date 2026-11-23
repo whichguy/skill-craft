@@ -1,0 +1,2 @@
+### R-3 Persisted migration
+Acceptance — with the service stopped, run `DATA_FILE=path node scripts/backfill-due-times.js` to save missing due values using each ticket's creation and stored priority. Verify mixed files, preservation of existing values, and a second run with no changes. Verify legacy startup with the gate off does not backfill. With the gate on, an incomplete file must stop startup and name the command.

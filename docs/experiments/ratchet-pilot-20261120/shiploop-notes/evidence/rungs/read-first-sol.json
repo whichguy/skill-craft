@@ -1,0 +1,649 @@
+[
+ {
+  "name": "g1",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "FAILED",
+  "basis": "engine done; at least one verdict failed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks": [
+   {
+    "check": "base_tests.py suite node-tickets",
+    "pass": true
+   },
+   {
+    "check": "base_tests.py pristine node-tickets",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py migrate",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py restart",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py switch",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py rollback",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py off",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py cli",
+    "pass": false
+   }
+  ],
+  "startup": {
+   "migrate": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": " error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-y9z5nw9e/tickets.json: tickets are missing due times; stop the service and run node scripts/backfill-due-times.js with DATA_FILE set\n(the delivery DUE_TIMES=on server did not start)\nmigrate: 1 expectation(s) failed"
+   },
+   "restart": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "56:28.174Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-h_wr0ch6/tickets.json: tickets are missing due times; stop the service and run node scripts/backfill-due-times.js with DATA_FILE set\n(the first start server did not start)\nrestart: 1 expectation(s) failed"
+   },
+   "switch": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "56:28.702Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-j07a6iq8/tickets.json: tickets are missing due times; stop the service and run node scripts/backfill-due-times.js with DATA_FILE set\n(the DUE_TIMES=on server did not start)\nswitch: 1 expectation(s) failed"
+   },
+   "rollback": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "r cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-pggedwh0/on/tickets.json: tickets are missing due times; stop the service and run node scripts/backfill-due-times.js with DATA_FILE set\n(the delivery, DUE_TIMES=on server did not start)\nrollback: 1 expectation(s) failed"
+   },
+   "cli": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "948Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-la8bd7w0/tickets.json: tickets are missing due times; stop the service and run node scripts/backfill-due-times.js with DATA_FILE set\n(the delivery DUE_TIMES=on server did not start)\ncli: 1 expectation(s) failed"
+   }
+  },
+  "started": "2026-11-23 01:40:57Z",
+  "ended_at": "2026-11-23 01:56:22Z",
+  "ended_ts": 1795398982.557,
+  "minutes": 15.4,
+  "turns": 248,
+  "model_calls": 76,
+  "output_tokens": 32244,
+  "cost_usd": null,
+  "spec_seconds": 60.0,
+  "strategy_seconds": 25.0,
+  "stand_in": {
+   "mode": "note-at",
+   "stage_waited_for": "implement",
+   "stage_seen_at": "2026-11-23T01:45:49Z",
+   "chosen": 6,
+   "row": "6. R-3 How is the production file prepared? Decided: Start the new release with the feature off; it saves missing due times before listening. Enable it at the next start. Otherwise: An offline migration would add a separate command and handoff.",
+   "requirement": "R-3",
+   "row_class": "start",
+   "row_class_note": null,
+   "note_sent": "command",
+   "note_id": "N1",
+   "note_exit": 0,
+   "note_reply": "Owner note N1 written: ~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/run/owner-notes/N1.md.\nThe run is at W1 implement (action nav-a733adfb8fcd49e293a1408e9876fd34); N1 is accounted for by its done result, which ShipLoop checks for a row when it is next checked or completed (a result already being read leaves it to the next stage's).",
+   "ended": null
+  },
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 34,
+  "defaults": [
+   "1. R-1 How do operators override hours? Decided: Set a positive whole-hour environment variable per priority and restart; omitted variables use the given defaults. Otherwise: A JSON settings file would require provisioning another file.",
+   "2. R-1 How is due written? Decided: Read an ISO UTC timestamp in due. Otherwise: An epoch number would change how callers parse timestamp fields.",
+   "3. R-2 Does a ticket at the exact deadline qualify? Decided: It qualifies starting after the exact deadline. Otherwise: An inclusive cutoff would list it at equality.",
+   "4. R-2 Which other overdue values affect listing? Decided: Only overdue=true filters; other values leave the list alone. Otherwise: Strict parameter validation could reject a previously ignored query.",
+   "5. R-2 Where does the CLI display due? Decided: It appears in list and show for people with DUE_TIMES=on; raw output keeps its format. Otherwise: API-only exposure would omit it for command-line operators.",
+   "6. R-3 How is the production file prepared? Decided: Start the new release with the feature off; it saves missing due times before listening. Enable it at the next start. Otherwise: An offline migration would add a separate command and handoff."
+  ],
+  "end_from": "result.json span",
+  "last_command": {
+   "verb": "complete",
+   "stage": "handoff",
+   "exit": 0,
+   "at": "2026-11-23T01:56:13Z",
+   "gate_refusal": false
+  },
+  "gate": [
+   {
+    "at": "2026-11-23T01:47:44Z",
+    "stage": "implement",
+    "verb": "check",
+    "notes": [
+     "N1"
+    ],
+    "gate": true,
+    "first_line": "owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/run/inbox/nav-a733adfb8fcd49e293a1408e9876fd34.md, then run this again."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-23T01:45:49Z",
+    "words": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command.",
+    "sent_by_stand_in": true,
+    "in_trace": "2026-11-23 01:45:49Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-1000d277272d4384b650c8586cc9590b",
+     "accepted_at": "2026-11-23 01:45:48Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-a733adfb8fcd49e293a1408e9876fd34",
+     "from": "the trace's note command"
+    },
+    "ledger": [
+     {
+      "did": "applied",
+      "detail": "Replanned S1 and C3 around the separate offline command, startup refusal, and preservation while off.",
+      "step": 12,
+      "stage": "step-plan",
+      "workitem": "W1",
+      "action": "nav-1aa28d124f3144218a3a3b82a9c20486"
+     }
+    ],
+    "standing": "settled",
+    "owed_by": null,
+    "seconds_from_list": 127.1,
+    "minutes_to_end": 10.5,
+    "refusals": 1,
+    "refusals_before_first_row": 1,
+    "refusals_before_settled": 1,
+    "given": {
+     "source": "Codex rollout",
+     "words": "Do not fill in due times when the service starts.",
+     "printed_by": 4,
+     "given_in": 4,
+     "summary": "printed by 4 commands; given to the model in 4 outputs; the model was given the note's words",
+     "first_naming_it": {
+      "kind": "custom_tool_call_output",
+      "start": "Script completed\nWall time 2.4 seconds\nOutput:\n\nShipLoop lint (supporting output; not exit-criteria evidence and not this step's implement result)\nAction nav-a733adfb8fcd49e293a1408e9876fd34 | work item W1 | mode report (run option lint=fix) | record nav-a733adfb8fcd49e293a1408e9876fd34.1\nBase: item"
+     }
+    },
+    "requirement": "R-3",
+    "entry_when_written_from": "commit 8f03802, the newest of docs/shiploop/spec.md at or before the note, unverified",
+    "entry_when_written": "### R-3 Historical data and rollback\n\nBasis: response-time request, 2026-11-22 (S6–S9), and decision 0008. On startup the only writer assigns missing timestamps using stored created and priority, saving all of them before listening. This automatic startup process while visibility is off is the 2026-11-22 default. Existing due, IDs, state, audit and outbox survive restarts. A failed save prevents serving. An unchanged 1.4.0 process must read the current version-1 application snapshot and show all tickets. The old writer strips additive fields from subsequent snapshots. Verify both a synthetic persisted backfill and real legacy boot. The production file and promotion remain with the operator.",
+    "entry_at_end": "### R-3 Historical data and rollback\n\nBasis: response-time request, 2026-11-22 (S6–S9), owner clarification N1 on explicit backfill, and decision 0008. With the service stopped, the operator runs `node scripts/backfill-due-times.js` with DATA_FILE and the desired response hours. It fills missing timestamps using stored created and priority, saving them atomically. Startup never fills missing values. Enabled startup refuses an incomplete file and names the command. Existing due, IDs, state, audit and outbox survive restarts and repeated backfill. An unchanged 1.4.0 process must read the current version-1 application snapshot and show all tickets. The old writer strips additive fields from subsequent snapshots. Verify the explicit command, the startup guard, and real legacy boot. The production file and promotion remain with the operator.",
+    "entry_at_end_is": "current",
+    "differ": true,
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-5d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 4,
+     "same_second": 0,
+     "touching_spec": [
+      "docs(shiploop): record this-directory-is-an-existing-node-59be0f knowledge after step-plan"
+     ],
+     "touching_src_or_bin": 1,
+     "touching_test": 1
+    },
+    "new_items": {
+     "added": [],
+     "untimed_results": 0
+    }
+   }
+  ],
+  "told": {
+   "done_packet_lines": [
+    "Your notes: 1 owner note. In your last message tell the user what happened to each; the report's section \"Your notes\" has each note's words and every row:",
+    "- N1: applied at step-plan of W1: Replanned S1 and C3 around the separate offline command, startup refusal, and preservation while off."
+   ],
+   "report_has_section": true,
+   "report_section": "Your notes What you wrote to the run while it ran, and what each stage's result said it did with it. ShipLoop checks that each note has a row; it does not check that the work does what the row says. N1, written 2026-11-23T01:45:49Z: settled Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command. Step Stage Work item Did Detail Item 12 step-plan W1 applied Replanned S1 and C3 around the separate offline command, startup refusal, and preservation while off. —",
+   "last_message_sentences": []
+  }
+ },
+ {
+  "name": "g2",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "PASS",
+  "basis": "every verdict passed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks": [
+   {
+    "check": "base_tests.py suite node-tickets",
+    "pass": true
+   },
+   {
+    "check": "base_tests.py pristine node-tickets",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py migrate",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py restart",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py switch",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py rollback",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py off",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py cli",
+    "pass": true
+   }
+  ],
+  "startup": {
+   "migrate": {
+    "pass": true,
+    "returncode": 0,
+    "output_end": null
+   },
+   "restart": {
+    "pass": true,
+    "returncode": 0,
+    "output_end": null
+   },
+   "switch": {
+    "pass": true,
+    "returncode": 0,
+    "output_end": null
+   },
+   "rollback": {
+    "pass": true,
+    "returncode": 0,
+    "output_end": null
+   },
+   "cli": {
+    "pass": true,
+    "returncode": 0,
+    "output_end": null
+   }
+  },
+  "started": "2026-11-23 01:40:57Z",
+  "ended_at": "2026-11-23 01:57:45Z",
+  "ended_ts": 1795399065.415,
+  "minutes": 16.8,
+  "turns": 193,
+  "model_calls": 88,
+  "output_tokens": 36244,
+  "cost_usd": null,
+  "spec_seconds": 78.0,
+  "strategy_seconds": 35.0,
+  "stand_in": {
+   "mode": "note-at",
+   "stage_waited_for": "implement",
+   "stage_seen_at": "2026-11-23T01:46:21Z",
+   "chosen": 3,
+   "row": "3. R-3 How do operators control the data transition? Decided: Run an explicit offline backfill first. Enabled startup refuses incomplete files. Otherwise: Migrate during startup and expose due in the same launch.",
+   "requirement": "R-3",
+   "row_class": "command",
+   "row_class_note": null,
+   "note_sent": "start",
+   "note_id": "N1",
+   "note_exit": 0,
+   "note_reply": "Owner note N1 written: ~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/run/owner-notes/N1.md.\nThe run is at W1 implement (action nav-cc5b9563eaeb48b3be405615843afb34); N1 is accounted for by its done result, which ShipLoop checks for a row when it is next checked or completed (a result already being read leaves it to the next stage's).",
+   "ended": null
+  },
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 34,
+  "defaults": [
+   "1. R-1 How are hours configured? Decided: Set one environment variable per priority to a positive whole number. Otherwise: Supply a configuration file and manage its path.",
+   "2. R-2 Which overdue values and displays apply? Decided: Only overdue=true filters, exact due is excluded, and human CLI output includes due when enabled. Otherwise: Treat equality as overdue and limit the field to HTTP.",
+   "3. R-3 How do operators control the data transition? Decided: Run an explicit offline backfill first. Enabled startup refuses incomplete files. Otherwise: Migrate during startup and expose due in the same launch."
+  ],
+  "end_from": "result.json span",
+  "last_command": {
+   "verb": "complete",
+   "stage": "handoff",
+   "exit": 0,
+   "at": "2026-11-23T01:57:33Z",
+   "gate_refusal": false
+  },
+  "gate": [
+   {
+    "at": "2026-11-23T01:48:04Z",
+    "stage": "implement",
+    "verb": "check",
+    "notes": [
+     "N1"
+    ],
+    "gate": true,
+    "first_line": "owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/run/inbox/nav-cc5b9563eaeb48b3be405615843afb34.md, then run this again."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-23T01:46:22Z",
+    "words": "Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing.",
+    "sent_by_stand_in": true,
+    "in_trace": "2026-11-23 01:46:22Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-2172c725636d4e1e90eb6da6bd0d32db",
+     "accepted_at": "2026-11-23 01:46:20Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-cc5b9563eaeb48b3be405615843afb34",
+     "from": "the trace's note command"
+    },
+    "ledger": [
+     {
+      "did": "applied",
+      "detail": "C3 and S1 specify startup backfill before serving. Removed the separate migration path and refusal expectation.",
+      "step": 12,
+      "stage": "step-plan",
+      "workitem": "W1",
+      "action": "nav-f0976e0379984c06a9cc1a2b1fd9aa08"
+     }
+    ],
+    "standing": "settled",
+    "owed_by": null,
+    "seconds_from_list": 146.1,
+    "minutes_to_end": 11.4,
+    "refusals": 1,
+    "refusals_before_first_row": 1,
+    "refusals_before_settled": 1,
+    "given": {
+     "source": "Codex rollout",
+     "words": "Nobody prepares the data file by hand.",
+     "printed_by": 3,
+     "given_in": 3,
+     "summary": "printed by 3 commands; given to the model in 3 outputs; the model was given the note's words",
+     "first_naming_it": {
+      "kind": "custom_tool_call_output",
+      "start": "Script completed\nWall time 1.5 seconds\nOutput:\n\n{\"chunk_id\":\"3f50c3\",\"wall_time_seconds\":0.117186208,\"exit_code\":0,\"original_token_count\":20,\"output\":\"Set due times for 1 ticket(s).\\nEnabled HTTP and CLI read back T-0001 with due.\\n\"}\nShipLoop check: owner note N1 is not accounted for: read /Users/d"
+     }
+    },
+    "requirement": "R-3",
+    "entry_when_written_from": "commit 21546bb, the newest of docs/shiploop/spec.md at or before the note, unverified",
+    "entry_when_written": "### R-3 Backfill and rollback\n\nBasis: existing-data and rollback request, 2026-11-22. The operator pauses writers and runs an offline backfill (default chosen 2026-11-22). The migration uses each ticket's stored created time and priority, preserves any due already present and rewrites the version-1 file atomically. Startup with on and an incomplete existing file fails with migration guidance (default chosen 2026-11-22).\n- Test refusal on incomplete data, run the backfill command on genuine service-written legacy data, compare audit, outbox, sequence and ticket fields after migration, then rerun with changed hours and compare bytes. Start and query via normal server entry points with on.\n- Run version 1.4.0 on recent candidate-written data and compare every ticket. Its next write strips due properties, so the operations procedure saves a copy of candidate due values before rolling back.",
+    "entry_at_end": "### R-3 Backfill and rollback\n\nBasis: existing-data and rollback request and owner clarification, 2026-11-22. Startup with DUE_TIMES on fills every missing due from the stored creation time and current stored priority. It preserves assigned deadlines, saves the version-1 snapshot atomically, and then serves.\n- Start the enabled server on legacy data containing a mix of tickets with and without due. Read the file while the service is live to verify the full data and compare audit, outbox, sequence and ticket fields. Restart with changed hours and confirm the stored deadlines are identical.\n- Run version 1.4.0 on recent candidate-written data and compare every ticket. Its next write strips due properties, so the operations procedure saves a copy of candidate due values before rolling back.",
+    "entry_at_end_is": "current",
+    "differ": true,
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-5d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 6,
+     "same_second": 0,
+     "touching_spec": [
+      "docs(shiploop): record skill-craft-shiploop-this-directory-is-4872dc knowledge after carry-forward",
+      "feat(W1/S1): Completed automatic backfill before the server serves"
+     ],
+     "touching_src_or_bin": 1,
+     "touching_test": 1
+    },
+    "new_items": {
+     "added": [],
+     "untimed_results": 0
+    }
+   }
+  ],
+  "told": {
+   "done_packet_lines": [
+    "Your notes: 1 owner note. In your last message tell the user what happened to each; the report's section \"Your notes\" has each note's words and every row:",
+    "- N1: applied at step-plan of W1: C3 and S1 specify startup backfill before serving. Removed the separate migration path and refusal expectation."
+   ],
+   "report_has_section": true,
+   "report_section": "Your notes What you wrote to the run while it ran, and what each stage's result said it did with it. ShipLoop checks that each note has a row; it does not check that the work does what the row says. N1, written 2026-11-23T01:46:22Z: settled Nobody prepares the data file by hand. When the service starts with DUE_TIMES set to on, it gives every ticket that has no due time one, from that ticket's own creation time and priority, saves the file, and then serves. It never refuses to start because due times are missing. Step Stage Work item Did Detail Item 12 step-plan W1 applied C3 and S1 specify startup backfill before serving. Removed the separate migration path and refusal expectation. —",
+   "last_message_sentences": []
+  }
+ },
+ {
+  "name": "g3",
+  "host": "codex",
+  "model": "gpt-6.2-sol",
+  "effort": "medium",
+  "ended": true,
+  "outcome": "FAILED",
+  "basis": "engine done; at least one verdict failed",
+  "verdicts": {
+   "invoked": true,
+   "plugin": true,
+   "process": true,
+   "shiploop": true,
+   "committed": true
+  },
+  "checks": [
+   {
+    "check": "base_tests.py suite node-tickets",
+    "pass": true
+   },
+   {
+    "check": "base_tests.py pristine node-tickets",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py migrate",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py restart",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py switch",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py rollback",
+    "pass": false
+   },
+   {
+    "check": "due_times_probe.py off",
+    "pass": true
+   },
+   {
+    "check": "due_times_probe.py cli",
+    "pass": false
+   }
+  ],
+  "startup": {
+   "migrate": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "6Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-a1ciwlzx/tickets.json: tickets are missing due times; stop the service and run DATA_FILE=<file> node scripts/backfill-due-times.js\n(the delivery DUE_TIMES=on server did not start)\nmigrate: 1 expectation(s) failed"
+   },
+   "restart": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "1:57:14.835Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-0uvdomsh/tickets.json: tickets are missing due times; stop the service and run DATA_FILE=<file> node scripts/backfill-due-times.js\n(the first start server did not start)\nrestart: 1 expectation(s) failed"
+   },
+   "switch": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "1:57:15.346Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-2fvczpzg/tickets.json: tickets are missing due times; stop the service and run DATA_FILE=<file> node scripts/backfill-due-times.js\n(the DUE_TIMES=on server did not start)\nswitch: 1 expectation(s) failed"
+   },
+   "rollback": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "ror cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-w42oa83_/on/tickets.json: tickets are missing due times; stop the service and run DATA_FILE=<file> node scripts/backfill-due-times.js\n(the delivery, DUE_TIMES=on server did not start)\nrollback: 1 expectation(s) failed"
+   },
+   "cli": {
+    "pass": false,
+    "returncode": 1,
+    "output_end": "7.479Z error cannot start: /var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/due-times-probe-c84h_ejo/tickets.json: tickets are missing due times; stop the service and run DATA_FILE=<file> node scripts/backfill-due-times.js\n(the delivery DUE_TIMES=on server did not start)\ncli: 1 expectation(s) failed"
+   }
+  },
+  "started": "2026-11-23 01:40:57Z",
+  "ended_at": "2026-11-23 01:57:09Z",
+  "ended_ts": 1795399029.345,
+  "minutes": 16.2,
+  "turns": 151,
+  "model_calls": 107,
+  "output_tokens": 31707,
+  "cost_usd": null,
+  "spec_seconds": 46.0,
+  "strategy_seconds": 34.0,
+  "stand_in": {
+   "mode": "note-at",
+   "stage_waited_for": "implement",
+   "stage_seen_at": "2026-11-23T01:45:27Z",
+   "chosen": 2,
+   "row": "2. R-3 How does production prepare its data file? Decided: Start the new release with the gate off and the sole writer configured. Otherwise: A separate migration command would require a dedicated operator step.",
+   "requirement": "R-3",
+   "row_class": "start",
+   "row_class_note": null,
+   "note_sent": "command",
+   "note_id": "N1",
+   "note_exit": 0,
+   "note_reply": "Owner note N1 written: ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run/owner-notes/N1.md.\nThe run is at W1 implement (action nav-648abd662b3a46979e07ad0715a4b484); N1 is accounted for by its done result, which ShipLoop checks for a row when it is next checked or completed (a result already being read leaves it to the next stage's).",
+   "ended": null
+  },
+  "run_folders": 1,
+  "run": "~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run",
+  "status": "done",
+  "stage": "done",
+  "revision": 34,
+  "defaults": [
+   "1. R-1 How do operators change the hours? Decided: Set individual SLA_HOURS_* variables, defaulting when unset. Otherwise: A config file would require distributing a managed file.",
+   "2. R-3 How does production prepare its data file? Decided: Start the new release with the gate off and the sole writer configured. Otherwise: A separate migration command would require a dedicated operator step."
+  ],
+  "end_from": "result.json span",
+  "last_command": {
+   "verb": "complete",
+   "stage": "handoff",
+   "exit": 0,
+   "at": "2026-11-23T01:56:51Z",
+   "gate_refusal": false
+  },
+  "gate": [
+   {
+    "at": "2026-11-23T01:47:14Z",
+    "stage": "implement",
+    "verb": "check",
+    "notes": [
+     "N1"
+    ],
+    "gate": true,
+    "first_line": "owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run/inbox/nav-648abd662b3a46979e07ad0715a4b484.md, then run this again."
+   }
+  ],
+  "notes": [
+   {
+    "id": "N1",
+    "written_at": "2026-11-23T01:45:27Z",
+    "words": "Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command.",
+    "sent_by_stand_in": true,
+    "in_trace": "2026-11-23 01:45:27Z",
+    "last_accepted_before": {
+     "stage": "validate-existing",
+     "workitem": "W1",
+     "outcome": "done",
+     "action": "nav-3c9edd04ee8142958ac16fbf5b16c69e",
+     "accepted_at": "2026-11-23 01:45:26Z"
+    },
+    "open_then": {
+     "stage": "implement",
+     "workitem": "W1",
+     "action": "nav-648abd662b3a46979e07ad0715a4b484",
+     "from": "the trace's note command"
+    },
+    "ledger": [
+     {
+      "did": "carried",
+      "detail": "R-3, AD-1, step paths, test criterion and proof now specify the offline command and startup refusal. Implement and verify in this item.",
+      "step": 12,
+      "stage": "step-plan",
+      "workitem": "W1",
+      "action": "nav-7338463ce3b44d8fa2a30906c20b2a6c"
+     },
+     {
+      "did": "already",
+      "detail": "R-3 was revised by N1. scripts/backfill-due-times.js, src/server.js and TC-1 implement and verify it. Operations records the command and required stopped writer.",
+      "step": 18,
+      "stage": "carry-forward",
+      "workitem": "W1",
+      "action": "nav-e3802c8f562446e4871a8ce5a7107bc1"
+     }
+    ],
+    "standing": "settled",
+    "owed_by": null,
+    "seconds_from_list": 148.4,
+    "minutes_to_end": 11.7,
+    "refusals": 1,
+    "refusals_before_first_row": 1,
+    "refusals_before_settled": 1,
+    "given": {
+     "source": "Codex rollout",
+     "words": "Do not fill in due times when the service starts.",
+     "printed_by": 5,
+     "given_in": 4,
+     "summary": "printed by 5 commands; given to the model in 4 outputs; the model was given the note's words",
+     "first_naming_it": {
+      "kind": "custom_tool_call_output",
+      "start": "Script completed\nWall time 1.0 seconds\nOutput:\n\n\nShipLoop check: owner note N1 is not accounted for: read ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run/owner-notes/N1.md, add its row to \"notes\" in ~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-ru"
+     }
+    },
+    "requirement": "R-3",
+    "entry_when_written_from": "commit 49bc790, the newest of docs/shiploop/spec.md at or before the note, unverified",
+    "entry_when_written": "### R-3 Persisted migration\nAcceptance — start with a legacy file and the feature gate off. Before listening, save missing due values using each ticket's creation and stored priority, preserving all existing values and data. Verify mixed and fully migrated files and that another startup does not rewrite complete data.",
+    "entry_at_end": "### R-3 Persisted migration\nAcceptance — with the service stopped, run `DATA_FILE=path node scripts/backfill-due-times.js` to save missing due values using each ticket's creation and stored priority. Verify mixed files, preservation of existing values, and a second run with no changes. Verify legacy startup with the gate off does not backfill. With the gate on, an incomplete file must stop startup and name the command.",
+    "entry_at_end_is": "current",
+    "differ": true,
+    "commits_after": {
+     "checkout": "~/e2e-runs/r-20261122-5d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/worktree",
+     "spec": "docs/shiploop/spec.md",
+     "after": 6,
+     "same_second": 0,
+     "touching_spec": [
+      "docs(shiploop): record skill-craft-shiploop-this-directory-is-ee8e04 knowledge after step-plan"
+     ],
+     "touching_src_or_bin": 1,
+     "touching_test": 1
+    },
+    "new_items": {
+     "added": [],
+     "untimed_results": 0
+    }
+   }
+  ],
+  "told": {
+   "done_packet_lines": [
+    "Your notes: 1 owner note. In your last message tell the user what happened to each; the report's section \"Your notes\" has each note's words and every row:",
+    "- N1: already at carry-forward of W1: R-3 was revised by N1. scripts/backfill-due-times.js, src/server.js and TC-1 implement and verify it. Operations records the command and required stopped write…"
+   ],
+   "report_has_section": true,
+   "report_section": "Your notes What you wrote to the run while it ran, and what each stage's result said it did with it. ShipLoop checks that each note has a row; it does not check that the work does what the row says. N1, written 2026-11-23T01:45:27Z: settled Do not fill in due times when the service starts. I want that step explicit: an operator stops the service and runs a separate command that gives every ticket that has no due time one, from that ticket's own creation time and priority, and saves the file. If the service is started with DUE_TIMES set to on while any ticket has no due time, it refuses to start and names that command. Step Stage Work item Did Detail Item 12 step-plan W1 carried R-3, AD-1, step paths, test criterion and proof now specify the offline command and startup refusal. Implement and verify in this item. — 18 carry-forward W1 already R-3 was revised by N1. scripts/backfill-due-times.js, src/server.js and TC-1 implement and verify it. Operations records the command and required stopped writer. —",
+   "last_message_sentences": []
+  }
+ }
+]

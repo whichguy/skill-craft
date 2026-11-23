@@ -1,0 +1,35 @@
+== g1
+   words: "Your notes: 1 owner note" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g1/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7741-b8db-f2c8c1ffc175.jsonl (632 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 11138 chars: "d2cbc/g1/.shiploop-runs/work-20261123-014115-168cc7/run/report.html Your notes: 1 owner note. In your last message tell the user what happened to each; the repo"
+   2. response_item lines holding the words: 0: tool outputs given to the model 0, other messages given to it 0, the model's own 0
+   3. for each command that printed the words, the output the model was given for it:
+      line 624 (11138 chars printed) -> line 625 custom_tool_call_output (1554 chars given), by position: inside call call_d602a3fe, whose output is found by call_id: words False, N1 False, "owner note" False; no later tool output holds the words
+== g2
+   words: "Your notes: 1 owner note" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g2/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7ae3-9eb5-89cff105b6ee.jsonl (660 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 10779 chars: "d2cbc/g2/.shiploop-runs/work-20261123-014116-325e3b/run/report.html Your notes: 1 owner note. In your last message tell the user what happened to each; the repo"
+   2. response_item lines holding the words: 0: tool outputs given to the model 0, other messages given to it 0, the model's own 0
+   3. for each command that printed the words, the output the model was given for it:
+      line 647 (10779 chars printed) -> line 648 custom_tool_call_output (6501 chars given), by position: inside call call_bc65fb24, whose output is found by call_id: words False, N1 False, "owner note" False; no later tool output holds the words
+== g3
+   words: "Your notes: 1 owner note" (from --words)
+   rollout ~/e2e-runs/r-20261122-5d2cbc/g3/home/.codex/sessions/2026/11/22/rollout-2026-11-22T17-40-57-01a20610-3b30-7ff1-b87c-cdf019fe9d8b.jsonl (669 lines)
+   1. event_msg lines holding the words: 1 (1 are a command's printed output)
+      item_completed/CommandExecution, output 10657 chars: "d2cbc/g3/.shiploop-runs/work-20261123-014119-fceb52/run/report.html Your notes: 1 owner note. In your last message tell the user what happened to each; the repo"
+   2. response_item lines holding the words: 0: tool outputs given to the model 0, other messages given to it 0, the model's own 0
+   3. for each command that printed the words, the output the model was given for it:
+      line 652 (10657 chars printed) -> line 653 custom_tool_call_output (7216 chars given), by position: inside call call_a8cfffb1, whose output is found by call_id: words False, N1 True, "owner note" False; no later tool output holds the words
+== k1
+   words: "Your notes: 1 owner note" (from --words)
+   no Codex session record; read ~/e2e-runs/r-20261122-5d2cbc/k1/events.jsonl (Claude Code stream-json, 1298 lines)
+   1. tool results whose raw result (tool_use_result) holds the words: 0
+   2. given to the model: tool results 0, other user text 0; the model's own: 0
+   3. for each raw result that holds the words, the tool result given (same event, by tool_use_id):
+== summary
+   g1: printed by 1 commands; given to the model in 0 outputs; the model was not given the note's words
+   g2: printed by 1 commands; given to the model in 0 outputs; the model was not given the note's words
+   g3: printed by 1 commands; given to the model in 0 outputs; the model was not given the note's words
+   k1: printed by 0 commands; given to the model in 0 outputs; the model was not given the note's words
