@@ -15,7 +15,7 @@ import shiploop_store as store
 
 
 class LocalSkillRoutes(unittest.TestCase):
-    def test_cold_carry_forward_skill_decision_points_to_local_contract_and_repo_index(self):
+    def test_cold_reflect_and_revise_skill_decision_points_to_local_contract_and_repo_index(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo, run = root / "repo", root / "run"
@@ -26,14 +26,16 @@ class LocalSkillRoutes(unittest.TestCase):
             while not checked:
                 stage = nav.current_stage(state)
                 action = nav.current_action(state)
-                if stage == "carry-forward":
+                if stage == "reflect-and-revise":
                     nav.save(run, state)
                     before = (run / "state.md").read_bytes()
                     recovered = store.read_record(run / "state.md")
                     packet = nav.render(None, run, recovered)
-                    self.assertIn(str(repo / "SHIPLOOP.md"), packet)
-                    self.assertIn(str(ROOT / "skills/shiploop/references/testing-and-documentation.md")
-                                  + "#reusable-product-skills", packet)
+                    # Live packets name these via WORKTREE/GUIDES symbols (absolute paths expand in References).
+                    self.assertIn("WORKTREE/SHIPLOOP.md", packet)
+                    self.assertIn("GUIDES/testing-and-documentation.md#reusable-product-skills", packet)
+                    self.assertIn("reflect-and-revise", packet)
+                    self.assertNotIn("`carry-forward`", packet)
                     self.assertEqual((run / "state.md").read_bytes(), before)
                     self.assertEqual(nav.current_action(recovered)["id"], action["id"])
                     checked.append(stage)
@@ -43,12 +45,12 @@ class LocalSkillRoutes(unittest.TestCase):
                     result["work_items"] = [{"id": "W1", "title": "Review evidence"}]
                 state = nav.apply(state, action["id"], result)
                 if state["active_improve"] is not None:
-                    # Planning checkpoints, each implement step and the last carry-forward park a child.
+                    # Planning checkpoints, each implement step and the last reflect-and-revise park a child.
                     state = nav.finish_improve(state, action["id"], {
                         "summary": "Synthetic navigation setup, no Improve executed.",
                         "lessons": "No live work claimed.",
                     })
-            self.assertEqual(checked, ["carry-forward"])
+            self.assertEqual(checked, ["reflect-and-revise"])
 
 
 if __name__ == "__main__":

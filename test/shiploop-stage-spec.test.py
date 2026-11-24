@@ -39,6 +39,20 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.OUTER, OUTER)
         self.assertEqual(prompts.STAGES, PRELUDE + INNER + OUTER)
 
+    def test_last_inner_stage_is_reflect_and_revise_not_carry_forward(self) -> None:
+        """Hard rename (2026-11-23): the live id is reflect-and-revise; carry-forward is historical only."""
+        self.assertEqual(INNER[-1], "reflect-and-revise")
+        self.assertEqual(spec.INNER[-1], "reflect-and-revise")
+        self.assertEqual(spec.stage("reflect-and-revise").short_goal,
+                         "reflect on the item and revise knowledge and the queue")
+        self.assertEqual(prompts.INNER_GROUPS[-1], ("Reflect and revise", ("reflect-and-revise",)))
+        self.assertNotIn("carry-forward", spec.STAGES)
+        self.assertNotIn("carry-forward", prompts.STAGES)
+        self.assertNotIn("carry-forward", [stage for _, stages in prompts.INNER_GROUPS for stage in stages])
+        guide = ROOT / "skills" / "shiploop" / "references" / "reflect-and-revise.md"
+        self.assertTrue(guide.is_file(), guide)
+        self.assertFalse((guide.with_name("carry-forward.md")).exists())
+
     def test_every_row_states_a_goal_and_how_it_is_confirmed(self) -> None:
         for name, row in spec.STAGE_SPEC.items():
             with self.subTest(stage=name):

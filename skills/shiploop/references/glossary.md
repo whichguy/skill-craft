@@ -113,6 +113,8 @@ lists, such as the refusal that tells a model it is retired. `pattern` is a regu
  {"retired": "Improve child (for the Improve stage or its review)", "use": "Improve stage; Improve review", "since": "2026-10-24",
   "pattern": "\\b(?:start|starts|starting|started) (?:an|no) (?:actual )?Improve\\s+child|Improve\\s+child(?:'s)? (?:reviews|applies|evaluates)|no Improve\\s+child (?:starts|runs|reviews)|Improve\\s+children", "allow": []},
  {"retired": "suite requirement (TS1's suite_requirements row at the last test-spec)", "use": "a work item's follows (primary coverage is checked at plan)", "since": "2026-10-28",
-  "pattern": "suite_requirements|(?i:suite requirement)", "allow": []}
+  "pattern": "suite_requirements|(?i:suite requirement)", "allow": []},
+ {"retired": "carry-forward (stage id)", "use": "reflect-and-revise", "since": "2026-11-23",
+  "pattern": "\"carry-forward\"|'carry-forward'|`carry-forward`", "allow": []}
 ]
 ```

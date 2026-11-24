@@ -151,7 +151,7 @@ def launch(repo: Path, packet: Path, case: str) -> str:
 Work only in `{repo}`. {task}
 
 Read `README.md`, `SHIPLOOP.md`, `docs/lessons.md`, the applicable contract, and
-`data/bundle.json`. Read the frozen, actually rendered `carry-forward` packet (its skill decision) at
+`data/bundle.json`. Read the frozen, actually rendered `reflect-and-revise` packet (its skill decision) at
 `{packet}` for its current stage guidance. Its transition history is synthetic
 packet setup: do not run any callback, do not claim Improve ran, and do not use its
 paths as a live run.
@@ -174,13 +174,13 @@ def copy_package(out: Path) -> Path:
 
 
 def rendered_packets(package: Path, out: Path, repo: Path, goal: str) -> Path:
-    """Render the carry-forward packet, whose skill decision replaced skill-assess and skill-validate (2026-10-10)."""
+    """Render the reflect-and-revise packet, whose skill decision replaced skill-assess and skill-validate (2026-10-10)."""
     sys.path.insert(0, str(package / "scripts"))
     import shiploop_navigator as nav  # type: ignore
     state = nav.new_state(str(repo), goal)
     for _ in range(64):
         stage = nav.current_stage(state)
-        if stage == "carry-forward":
+        if stage == "reflect-and-revise":
             run = out / "synthetic-packet-state" / stage
             run.mkdir(parents=True, exist_ok=True)
             nav.save(run, state)
@@ -194,9 +194,9 @@ def rendered_packets(package: Path, out: Path, repo: Path, goal: str) -> Path:
             synthetic["work_items"] = [{"id": "W1", "title": "Triage the release-evidence bundle"}]
         state = nav.apply(state, action, synthetic)
         if state["active_improve"] is not None:
-            # Planning checkpoints, each implement step and the last carry-forward park a child.
+            # Planning checkpoints, each implement step and the last reflect-and-revise park a child.
             state = nav.finish_improve(state, action, {"synthetic_packet_setup": True})
-    raise RuntimeError("could not render the carry-forward packet")
+    raise RuntimeError("could not render the reflect-and-revise packet")
 
 
 def seed(repo: Path) -> None:
@@ -220,7 +220,7 @@ def init(out: Path) -> dict:
     before = manifest(out / "control" / "before-manifest.json", repo)
     launch_path = out / "launch-initial.md"
     put(launch_path, launch(repo, packet, "initial"))
-    return {"fixture": str(repo), "package": str(package), "carry_forward_packet": str(packet),
+    return {"fixture": str(repo), "package": str(package), "reflect_and_revise_packet": str(packet),
             "before_manifest": str(before), "launch": str(launch_path)}
 
 

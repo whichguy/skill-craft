@@ -53,7 +53,7 @@ def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[
     the last item's reflect-and-revise.
     """
     path = BEFORE3 + WORK3 * (2 if two else 1) + AFTER3
-    last_carry = len(path) - 1 - path[::-1].index('reflect-and-revise')
+    last_reflect = len(path) - 1 - path[::-1].index('reflect-and-revise')
     rows = []
     for index, (stage, target) in enumerate(zip(path, path[1:] + ['done'])):
         status = 'done' if target == 'done' else 'active'
@@ -73,7 +73,7 @@ def activity(planning_review: str = 'stage', *, two: bool = False) -> list[dict[
         # Rule first-item (2026-10-19): step-plan is reviewed for the first work item only (a sent-back
         # item's redo too; no scenario here sends one back), so the second item's advance without a child.
         later_item = stage in stage_spec.with_improve('first-item') and path[:index + 1].count('step-plan') > 1
-        if (stage not in REVIEWED3[planning_review] or later_item) and index != last_carry:
+        if (stage not in REVIEWED3[planning_review] or later_item) and index != last_reflect:
             rows.append({'at': stage, 'command': 'produce', 'expect': target,
                          'result': producer, 'status': status})
             continue
