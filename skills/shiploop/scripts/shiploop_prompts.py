@@ -1898,8 +1898,8 @@ preparatory commit); a mismatch there is a send-back.
    never authorizes prod or destructive production data changes. A plan authorizes and performs no external operation; a
    required target or authority gap for the active release path is blocked.
 4. Write the rollback and forward-repair procedure in `summary` and KNOWLEDGE/environment.md ## Release and promotion
-   (with exact commands under ## Commands). Isolated run: write the source return rollback for the route the packet
-   states (return route and rollback recipes come from workspace.md), as plain `git` commands with that route's SHAs and
+   (with exact commands under ## Commands). Isolated run: write it for the source return the packet states (return route
+   and rollback recipes come from workspace.md), as plain `git` commands with that route's SHAs and
    branch names, never this run's absolute paths, never for another route (Workspace return guidance). Source return
    happens at release or handoff, not here. Use an authorized delivery route from the execution checkout when available
    (Environment promotion guidance). If the return must precede the consumer checks, record the ordering conflict and

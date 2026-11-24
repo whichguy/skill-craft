@@ -15,6 +15,7 @@ Two things a run after the first needs, which a pair of passes did not show:
 from __future__ import annotations
 
 import contextlib
+import copy
 import importlib.util
 import io
 import json
@@ -936,10 +937,17 @@ class SavedPairsTest(unittest.TestCase):
         cls.tmp.cleanup()
 
     def test_the_living_file_blocks_of_the_saved_ledger_are_what_the_files_give_now(self) -> None:
+        # The 2026-10-31 saved runs predate "Release and promotion" being added to SECTIONS["environment.md"];
+        # keep the archived ledger JSON untouched and account explicitly for that one added named section.
         for prefix in self.PREFIXES:
             was = self.saved[f"{prefix}-ticket-escalation"]["delta"]
-            for part in ("ids", "placement"):
-                self.assertEqual(self.rebuilt[prefix][part], was[part], f"{prefix} {part}")
+            self.assertEqual(self.rebuilt[prefix]["ids"], was["ids"], f"{prefix} ids")
+            expected_placement = copy.deepcopy(was["placement"])
+            expected_placement["environment.md"]["named_missing"] = [
+                *expected_placement["environment.md"]["named_missing"],
+                "Release and promotion",
+            ]
+            self.assertEqual(self.rebuilt[prefix]["placement"], expected_placement, f"{prefix} placement")
 
     def test_no_pass_two_dropped_changed_or_retired_an_earlier_requirement_or_decision(self) -> None:
         for prefix, block in self.rebuilt.items():
