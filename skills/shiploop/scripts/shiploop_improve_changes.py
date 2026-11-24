@@ -189,6 +189,21 @@ def paths_since(run_dir: Path, repo: Path, tree: str) -> Optional[List[str]]:
         return None
 
 
+def paths_between(repo: Path, before: Optional[str], after: Optional[str]) -> Optional[List[str]]:
+    """The paths whose content differs between snapshots ``before`` and ``after``, runtime paths excluded; None when unknown."""
+    if not before or not after:
+        return None
+    if before == after:
+        return []
+    top = lint.git_toplevel(Path(repo))
+    if top is None:
+        return None
+    try:
+        return [path for path in _diff(top, before, after) if not lint._runtime_path(path)]
+    except lint.LintError:
+        return None
+
+
 def uncommitted(changes: Optional[Tuple[List[str], List[str]]], receipt: Mapping[str, Any]) -> List[str]:
     """The files the review changed and left uncommitted ([] when none, when unknown, or when the receipt says not to)."""
     if changes is None or str(receipt.get("no_commit") or "").strip():
@@ -243,6 +258,6 @@ def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return list(seen.values())
 
 
-__all__ = ("bind_path", "bind_result_path", "bind_writes", "changed_lines", "commit_refusal", "paths_since",
-           "rerun_commands",
+__all__ = ("bind_path", "bind_result_path", "bind_writes", "changed_lines", "commit_refusal", "paths_between",
+           "paths_since", "rerun_commands",
            "result_identity", "result_lines", "result_text", "review_changes", "snapshot_tree", "uncommitted")

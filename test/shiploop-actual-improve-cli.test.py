@@ -3219,6 +3219,43 @@ class ImprovePassTests(ImproveCliFixture):
         active = self.run_done(done)
         self.assertEqual(active["status"], "active")  # a pass that changed content never ends the loop
 
+    def test_behavioural_pass_edit_refuses_trivial_and_allows_doc_only_trivial(self):
+        self.begin()
+        app_py = self.repo / "src" / "app.py"
+        app_py.parent.mkdir(parents=True, exist_ok=True)
+        app_py.write_text("VALUE = 1\n", encoding="utf-8")
+        head_before = self.git("rev-parse", "HEAD").strip()
+        self.write_review(1, label="trivial", exit="satisfied", found="nothing", changed="src/app.py", why="small")
+        self.write("fix: tweak src/app.py\n\nKey learnings: none\n")
+        (self.reviews() / "checks.md").write_text("python3 -m pytest: 1 passed\n", encoding="utf-8")
+        refused = self.invoke(*self.pass_args(), status=2).stderr
+        self.assertIn("changed code or test file(s) (src/app.py)", self.line_one(refused))
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), head_before)
+        self.assertFalse((self.reviews() / "report-1.json").exists())
+        self.assertFalse((self.reviews() / "pass-1.json").exists())
+        # Reclassifying pass 1 as non-trivial lets pass 1 commit; pass 2 with zero edits confirms as trivial.
+        self.write_review(1, label="non-trivial", exit="unsatisfied", found="missing constant", changed="src/app.py",
+                          why="behavioural change")
+        done1, _, _ = self.printed(self.invoke(*self.pass_args()).stdout)
+        self.assertEqual(self.run_done(done1)["status"], "active")
+        self.write_review(2, label="trivial", exit="satisfied")
+        done2, complete, _ = self.printed(self.invoke(*self.pass_args()).stdout)
+        self.assertEqual(self.run_done(done2)["status"], "complete")
+        self.run_argv(shlex.split(complete))
+        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+
+    def test_doc_only_pass_edit_allows_trivial(self):
+        # A doc-only edit in pass 1 may still classify trivial.
+        self.begin()
+        doc_md = self.repo / "docs" / "note.md"
+        doc_md.parent.mkdir(parents=True, exist_ok=True)
+        doc_md.write_text("Clarification note.\n", encoding="utf-8")
+        self.write_review(1, label="trivial", exit="satisfied", found="typo", changed="docs/note.md", why="docs only")
+        self.write("docs: clarify note\n\nKey learnings: none\n")
+        (self.reviews() / "checks.md").write_text("docs checked\n", encoding="utf-8")
+        done_doc, _, _ = self.printed(self.invoke(*self.pass_args()).stdout)
+        self.run_done(done_doc)
+
     def edited_pass(self, n, text, **review):
         """Pass ``n`` edits the contract to end with ``text``, commits it and records checks and its review; returns the
         improve-pass result (the caller says which status it expects)."""

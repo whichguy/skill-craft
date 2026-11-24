@@ -9952,6 +9952,21 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
           _small_pass_refusal(number, trend or [], child["stage"], review, command_again))
     repo = Path(state["repo"])
     changes = improve_changes.review_changes(root, repo, child["action_id"])
+    bind = store.read_record(root / improve_changes.bind_path(child["action_id"])) if changes is not None else {}
+    previous = reviews / ("pass-" + str(number - 1) + ".json")
+    if front["classification"] == "trivial":
+        try:
+            before_tree = (json.loads(previous.read_text(encoding="utf-8")).get("tree") if number > 1
+                           else bind.get("tree") if isinstance(bind, Mapping) else None)
+        except (OSError, ValueError, AttributeError):
+            before_tree = None
+        pre_now = improve_changes._snapshot(root, repo)
+        pass_paths = improve_changes.paths_between(repo, before_tree, pre_now["tree"] if pre_now else None)
+        behavioural = item_scope.behavioural_paths(pass_paths or ())
+        _need(not behavioural,
+              "Pass " + str(number) + " changed code or test file(s) (" + ", ".join(behavioural[:5])
+              + "), so it cannot be classified trivial: set `classification: non-trivial` in " + str(review)
+              + " so a confirmation pass verifies the edit, then run: " + command_again)
     committed = ""
     if not no_commit and improve_changes.uncommitted(changes, {}):
         message_path = improve_commit_message_path(child)
