@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
@@ -102,6 +103,80 @@ class ImproveChangesTests(unittest.TestCase):
         git(self.repo, "commit", "-qam", "plan review edit")
         nav._improve_change_gate(None, self.run, self.state(), "A1", {"stage": "step-plan"}, {})
         self.assertFalse((self.run / "tests").exists())
+
+    def test_rerun_commands_merges_added_tests_and_unions_shared_command_ids(self) -> None:
+        state = {
+            "repo": str(self.repo),
+            "completed_work_items": ["W1", "W2"],
+            "work_items": [{"id": "W1", "title": "t1"}, {"id": "W2", "title": "t2"}],
+            "history": [
+                {"stage": "step-plan", "workitem": "W1", "action": "SP1", "outcome": "done"},
+                {"stage": "document", "workitem": "W1", "action": "D1", "outcome": "done"},
+                {"stage": "step-plan", "workitem": "W2", "action": "SP2", "outcome": "done"},
+            ],
+            "accepted": {
+                "SP1": {"outcome": "done", "summary": "s", "paths": ["app.py"], "steps": [{"id": "S1"}],
+                        "test_commands": [{"command": "sh check.sh", "suite": "focused", "ids": ["TC-1"], "min_tests": 1}]},
+                "D1": {"outcome": "done", "summary": "s",
+                       "added_tests": [{"id": "TC-ADDED", "command": "sh check.sh"}]},
+                "SP2": {"outcome": "done", "summary": "s", "paths": ["app.py"],
+                        "test_commands": [{"command": "sh check.sh", "suite": "focused", "ids": ["TC-2"], "min_tests": 3}]},
+            },
+        }
+        rows = changes.rerun_commands(state)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["command"], "sh check.sh")
+        self.assertEqual(rows[0]["ids"], ["TC-1", "TC-ADDED", "TC-2"])
+        self.assertEqual(rows[0]["min_tests"], 3)
+
+    def test_end_review_runs_review_lint_gate_when_it_changed_files(self) -> None:
+        state = dict(self.state(), lint="report",
+                     active_improve={"action_id": "A1", "stage": "reflect-and-revise", "improve_action": "IMP1"})
+        child = {"stage": "reflect-and-revise"}
+        self.bind()
+        (self.repo / "app.py").write_text("x = 2\n")
+        git(self.repo, "commit", "-qam", "review edit")
+        with mock.patch.object(nav.lint, "gate", return_value=(
+                {}, None, "ShipLoop lint gate: end-of-work review is not done while 1 new lint finding stands.")
+                ) as gate_mock:
+            with self.assertRaisesRegex(nav.NavigatorError, "end-of-work review is not done"):
+                nav._improve_change_gate(None, self.run, state, "A1", child, {})
+        self.assertEqual(gate_mock.call_args.kwargs["stage"], "end-of-work review")
+
+    def test_test_stage_evaluate_enforces_step_spec_refusal_and_opens_send_back(self) -> None:
+        """_evaluate must check _step_spec_refusal on `test` done submissions as well as implement/document."""
+        import shiploop_loops as loops
+        state = {
+            "repo": str(self.repo),
+            "prompt": "Synthetic prompt",
+            "lint": "off",
+            "planning_review": "all",
+            "work_index": 0,
+            "work_items": [{"id": "W1", "title": "t"}],
+            "completed_work_items": [],
+            "revisions": {},
+            "history": [
+                {"stage": "step-plan", "workitem": "W1", "action": "SP1", "outcome": "done"},
+            ],
+            "accepted": {
+                "SP1": {"outcome": "done", "summary": "s", "paths": ["app.py"],
+                        "steps": [{"id": "S1", "task": "t", "paths": ["app.py"], "criteria": [], "proof": "true"}],
+                        "test_commands": [{"command": "sh check.sh", "suite": "focused"}]},
+            },
+            "action": {"stage": "test", "id": "T1"},
+        }
+        submitted = {"outcome": "done", "summary": "s", "evidence_refs": []}
+        with mock.patch.object(nav, "current_stage", return_value="test"), \
+                mock.patch.object(nav, "_loop_receipt", return_value={}), \
+                mock.patch.object(nav, "_check_submitted_evidence"), \
+                mock.patch.object(nav, "_handoff_gate"), \
+                mock.patch.object(nav, "_test_loop_gate", return_value=[]), \
+                mock.patch.object(nav, "_step_spec_refusal", return_value="spec rewrite without (W1/S1)") as spec_ref, \
+                mock.patch.object(loops, "open_send_back") as open_sb:
+            with self.assertRaisesRegex(nav.NavigatorError, "spec rewrite without"):
+                nav._evaluate(None, self.run, state, "T1", "test", "W1", submitted, count=True)
+        spec_ref.assert_called_once_with(state, "W1")
+        open_sb.assert_called_once_with(self.run, "T1", "spec rewrite without (W1/S1)")
 
 
 if __name__ == "__main__":

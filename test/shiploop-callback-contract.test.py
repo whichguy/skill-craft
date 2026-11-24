@@ -3076,6 +3076,13 @@ class InnerGateRouteTests(RealCliCase):
                                              "evidence": ["W1 S1"]}})
         self.assertIn("the skill decision names a SKILL.md that does not exist: " + missing,
                       self.submit_until_gate(command, run))
+        outside = Path(self.repo_of(run)).parent / "outside-skill" / "SKILL.md"
+        outside.parent.mkdir(parents=True, exist_ok=True)
+        outside.write_text("---\nname: outside\ndescription: Outside repo\n---\nBody\n", encoding="utf-8")
+        write_block(path, {**good, "skill": {"decision": "create", "reason": "Outside repo.",
+                                             "path": str(outside), "evidence": ["W1 S1"]}})
+        self.assertIn("the skill decision path must be inside the repository",
+                      self.submit_until_gate(command, run))
         write_block(path, {**good, "skill": SKILL_NONE})
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["skill"], SKILL_NONE)

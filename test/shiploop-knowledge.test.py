@@ -496,6 +496,20 @@ class ArchitectureTests(HomeFixture):
         path.write_text(self.DECISIONS)  # AD-4 was committed, so a later version may not lose it
         self.assertIn("no longer mentions AD-4", knowledge.check(self.state, "test-spec"))
 
+    def test_improve_commit_and_improve_pass_retention_refusal_keeps_fix_on_line_1_under_250_cols(self) -> None:
+        path = self.commit_home("".join("AD-" + str(n) + " choice\n" for n in range(1, 13)))
+        path.write_text("# Architecture\n")
+        for command in ("improve-commit", "improve-pass"):
+            lines = knowledge.check(self.state, "step-plan", command=command).split("\n")
+            self.assertEqual(len(lines), 2)
+            self.assertEqual(lines[0], "Restore AD-<n> in " + str(path) + ", then run " + command + " again.")
+            for width in self.REAL_WIDTHS:
+                with self.subTest(command=command, width=width):
+                    line, shown = self.at_width(lines[0], path, width)
+                    kept = line[:250]
+                    self.assertIn("Restore AD-<n> in " + shown + ", then run " + command + " again.", kept)
+                    self.assertNotIn("AD-12", kept)
+
     def test_the_fixture_writer_satisfies_every_close_it_derives_from_the_closes(self) -> None:
         """Drift guard for test/shiploop_knowledge_support.write: a file added to a close is written without editing it."""
         support.write(self.state)

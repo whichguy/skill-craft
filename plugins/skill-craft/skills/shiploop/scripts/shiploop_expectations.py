@@ -637,16 +637,20 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
                  "; ".join(wrong) + "; the criteria are " + (", ".join(criteria) or "none") + "."])
     spec = Path(str(state["repo"])) / knowledge.HOME / "spec.md"
     entries = knowledge.entries(Path(str(state["repo"])), "spec.md")
-    unknown = []
+    unknown, retired = [], []
     for case in cases:
-        absent = [ident for ident in knowledge.requirement_ids(case["requirement"]) if ident not in entries]
+        ids = knowledge.requirement_ids(case["requirement"])
+        absent = [ident for ident in ids if ident not in entries]
+        gone = [ident for ident in ids if ident in entries and entries[ident].retired]
         if absent:
             unknown.append(case["id"] + " names " + ", ".join(absent))
-    if unknown:
+        if gone:
+            retired.append(case["id"] + " names retired " + ", ".join(gone))
+    if unknown or retired:
         return ("Fix case requirements in {result}", "fixes requirements",
-                ["Set each case's requirement to an R-<n> that has an entry in the living spec (a line that starts "
-                 "with the ID). " + requirement_ids_text(Path(str(state["repo"])), str(spec)),
-                 "; ".join(unknown) + "."])
+                ["Set each case's requirement to an active (non-retired) R-<n> that has an entry in the living spec "
+                 "(a line that starts with the ID). " + requirement_ids_text(Path(str(state["repo"])), str(spec)),
+                 "; ".join(unknown + retired) + "."])
     return None
 
 

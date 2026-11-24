@@ -378,12 +378,13 @@ workspace helpers, or `host-owner.md`:
   `test-strategy`, `plan`, `step-plan`, `system-test-author`, `release-plan`)
   use a **forked** native subagent inheriting parent conversation history where
   the host supports native fork (Cursor IDE `resume="self"`, Claude Code
-  `subagent_type="fork"`, Codex `fork_turns="all"`), and fall back cleanly to
+  `subagent_type="fork"`, Codex `fork_turns="all"`), avoiding re-reads of
+  unchanged files already in inherited context, and fall back cleanly to
   a **fresh** worker with a 2-line Conversation context note when native fork
   is absent (Grok Build) or after a cold crash recovery. Code and end-of-work
   reviews (`document` step review and final `reflect-and-revise`) always run in a
   strictly **fresh** coding-capable worker with no inherited conversation
-  history (Codex passes `fork_turns="none"`).
+  history (Codex passes `fork_turns="none"`) and read independently from disk.
 - **Optional read-only failure diagnosis (`implement`, `test`):** Routine
   builds, clean lint passes, and obvious failures stay inline. Only when a lint
   or test failure is ambiguous or noisy and prior conversation decisions matter

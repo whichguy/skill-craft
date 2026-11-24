@@ -1854,6 +1854,34 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.import_the_review()
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
 
+    def test_improve_commit_refuses_dropped_decision_id_and_leaves_head_unchanged(self):
+        """Regression guard: improve-commit must check R-<n>/AD-<n> retention before committing docs/shiploop/ edits
+        so a dropped ID cannot become HEAD and bypass improve_import's retention check."""
+        if not self.inline():
+            self.skipTest("improve-commit is the inline route")
+        architecture = self.commit_architecture()
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        head_before = self.home_git("rev-parse", "HEAD").strip()
+        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n", encoding="utf-8")
+        message_path = bridge.receipt_path(self.bound).with_name("commit-message.md")
+        message_path.parent.mkdir(parents=True, exist_ok=True)
+        message_path.write_text("docs: drop AD-2 accidentally\n\nKey learnings: none.\n", encoding="utf-8")
+        refused = self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve,
+                              "--message", message_path, status=2)
+        lines = refused.stderr.splitlines()
+        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Restore AD-<n> in <file>, then run improve-commit again.")
+        self.assertIn("The architecture no longer mentions AD-2.", "\n".join(lines))
+        self.assertEqual(self.home_git("rev-parse", "HEAD").strip(), head_before)
+        # Restoring AD-2 under ## Superseded allows improve-commit and complete to succeed.
+        architecture.write_text(architecture.read_text(encoding="utf-8") + "\n## Superseded\n\nAD-2: replaced.\n",
+                                encoding="utf-8")
+        self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve, "--message", message_path)
+        self.assertNotEqual(self.home_git("rev-parse", "HEAD").strip(), head_before)
+        self.import_the_review()
+        self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
+
     def test_a_reviewed_stage_whose_summary_looks_like_a_credential_still_starts_its_improve_child(self):
         """CR-1 (owner decision 2026-10-16, no credential-pattern refusal): the Improve opening quotes the reviewed stage's
         summary, and a documentation line such as `Auth: sf login (alias de)` is what a run writes about its login. The
@@ -1940,6 +1968,48 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
         state = store.read_record(self.run / "state.md")
         self.assertEqual(state["accepted"][self.action]["defaults"], [row])
+
+    def test_improve_import_final_result_enforces_concerns_and_inner_gates(self):
+        """Regression guard: improve_import with --final-result must run _check_submitted_concerns (plan/step-plan)
+        and stage-appropriate _inner_gates (step-plan expectations and reflect-and-revise skill decisions)."""
+        # 1. plan: --final-result without concerns is refused.
+        self._start_parent_at_stage("plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        bad_plan = {k: v for k, v in seed.items() if k != "concerns"}
+        completion, _ = self.completion_receipt(final_result=bad_plan)
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("a done plan maps the concerns of every work item", refused.stderr)
+
+        # 2. step-plan: --final-result with invalid expectations / missing expectations_na is refused.
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        bad_step_plan = {k: v for k, v in seed.items() if k != "expectations"}
+        bad_step_plan["expectations"] = []
+        completion, _ = self.completion_receipt(final_result=bad_step_plan)
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("no expectation listing them in paths", refused.stderr)
+
+        # 3. reflect-and-revise: --final-result with out-of-repo skill.path or invalid skill decision is refused, and valid completes.
+        skill_none = {"decision": "none", "reason": "No procedure repeated."}
+        self._start_parent_at_stage("reflect-and-revise", [str(self.product_contract)],
+                                    producer_extra={"skill": skill_none})
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        outside = self.base / "outside-skill" / "SKILL.md"
+        outside.parent.mkdir(parents=True, exist_ok=True)
+        outside.write_text("---\nname: outside\ndescription: Outside repo\n---\nBody\n", encoding="utf-8")
+        bad_skill = dict(seed, skill={"decision": "create", "reason": "Repeated steps.",
+                                      "path": str(outside), "evidence": ["W1 S1"]})
+        completion, _ = self.completion_receipt(final_result=bad_skill)
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("the skill decision path must be inside the repository", refused.stderr)
+        good_skill = dict(seed, skill={"decision": "reuse", "reason": "Reuses local workflow."})
+        completion, _ = self.completion_receipt(final_result=good_skill)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(state["accepted"][self.action]["skill"], good_skill["skill"])
 
     def test_a_revised_final_result_past_the_former_size_limits_imports_whole(self):
         """Plan F2 (2026-10-28): the Improve import ran the producer bounds, so a Grok step-plan review that lengthened

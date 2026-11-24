@@ -1495,7 +1495,7 @@ class NavigatorContractTests(unittest.TestCase):
                 with self.subTest(render_state=render_state):
                     normalized_packet = " ".join(packet.split())
                     self.assertIn("Child workspace: " + str(self.repo), normalized_packet)
-                    self.assertIn("callback imports the last two passes", normalized_packet)
+                    self.assertIn("callback imports the last pass", normalized_packet)
                     # The review files print as the handoff's CHILD symbol, defined once with the child's directory (on
                     # the handoff's top line beside ROUTE, plan U18).
                     self.assertIn("CHILD = " + str(child_dir) + " · ROUTE = ", normalized_packet)

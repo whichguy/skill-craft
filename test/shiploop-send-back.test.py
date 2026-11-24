@@ -560,6 +560,34 @@ class OuterSendBackTests(unittest.TestCase):
             with self.subTest(revisions=bad), self.assertRaisesRegex(nav.NavigatorError, "revisions must map"):
                 nav.validate(broken)
 
+    def test_outer_send_back_and_add_work_clear_stale_outer_actions_in_current_actions(self) -> None:
+        # 1. Outer send-back from system-test clears system-test-author onward while keeping planning and inner items.
+        st_sent = submit(drive_to("system-test"), OUTER_SEND_BACK)
+        st_cur = planning_revision.current_actions(st_sent)
+        self.assertIn((None, "plan"), st_cur)
+        self.assertIn(("W1", "reflect-and-revise"), st_cur)
+        for outer_stage in ("system-test-author", "system-test"):
+            self.assertNotIn((None, outer_stage), st_cur)
+
+        # 2. Outer send-back from release-verify clears release-plan..release-verify while keeping earlier outer stages.
+        rv_sent = submit(drive_to("release-verify"), OUTER_SEND_BACK)
+        rv_cur = planning_revision.current_actions(rv_sent)
+        for kept in ("system-test-author", "system-test", "product-acceptance"):
+            self.assertIn((None, kept), rv_cur)
+        for cleared in ("release-plan", "release-check", "release", "release-verify"):
+            self.assertNotIn((None, cleared), rv_cur)
+
+        # 3. Outer add-work clears every OUTER action while keeping planning and completed inner items.
+        pa_state = drive_to("product-acceptance")
+        self.assertIn((None, "system-test"), planning_revision.current_actions(pa_state))
+        aw_state = submit(pa_state, {"outcome": "add-work", "summary": "Missing item.",
+                                     "work_items": [{"id": "W2", "title": "Corrective item", "context": "Add it."}]})
+        aw_cur = planning_revision.current_actions(aw_state)
+        self.assertIn((None, "plan"), aw_cur)
+        self.assertIn(("W1", "reflect-and-revise"), aw_cur)
+        for outer_stage in spec.OUTER:
+            self.assertNotIn((None, outer_stage), aw_cur)
+
 
 if __name__ == "__main__":
     unittest.main()
