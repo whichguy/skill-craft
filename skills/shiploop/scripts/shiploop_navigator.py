@@ -7214,6 +7214,9 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
     if source.key == "concerns":
         if source.selection == "product-acceptance":
             heading = "Plan security decisions for " + str(source.workitem) + " (current plan; owners retained):"
+        elif source.selection in concerns.CD_FOLLOW_STAGES:
+            heading = ("Plan release decisions for " + str(source.workitem)
+                       + " (current plan; owned by release-plan):")
         else:
             heading = ("Applicable plan concerns for " + str(source.workitem) + " assigned to "
                        + str(source.selection) + " (current plan):")
@@ -10462,6 +10465,9 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_submitted_unverified(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_submitted_assumptions(
+                        state, child["stage"],
+                        child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_concerns(
                         state, child["stage"],
                         child["seed_result"] if final_result is None else final_result)
                     _check_submitted_test_commands(

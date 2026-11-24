@@ -723,9 +723,9 @@ before feature consumers, and any necessary staged-candidate producer before
 its system tests. Each producer traverses the existing INNER graph; there is
 no new outer-before navigator node.
 
-Every packet links the policy and the canonical host-authored
-`notes/environment-lifecycle.md`, including cold paused/blocked and outer
-packets. The note is optional when irrelevant; it may reference adequate
+`RUN/reference.md#policies` links the policy and the canonical host-authored
+`notes/environment-lifecycle.md`, and stage packets print the policy when their
+stage guidance names it. The note is optional when irrelevant; it may reference adequate
 existing repo documentation instead of copying it. Carry useful work-item
 `context` and result `evidence_refs` too, but the canonical locator does not
 depend on the last result retaining them. Inner work updates pending needs there;

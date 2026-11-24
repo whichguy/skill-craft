@@ -61,8 +61,8 @@ must ask whether the plan would actually deliver the original user outcome.
 ## Map authority readiness to existing fields
 
 This opt-in guard records the ordinary current-run assessment; it does not make
-the assessment authentic or add a second authority record. Point ordinary result
-`evidence_refs` to the canonical `notes/environment-lifecycle.md` note, which
+the assessment authentic or add a second authority record. Point ordinary result `evidence_refs` to the canonical
+`notes/environment-lifecycle.md` note (`RUN/reference.md#policies`), which
 records necessity, match inputs, sources/current binding evidence, the grant or
 outstanding question with owner/earliest gate, and required effect, identity, and
 behavior evidence.

@@ -3247,6 +3247,35 @@ class ImproveRouteTests(_improve_cli.ImproveCliFixture):
         after = store.read_record(run / "state.md")
         self.assertEqual(after["accepted"][self.action]["evidence_refs"], [str(child / "reviews" / "review-1.md")])
 
+    def test_improve_final_result_cannot_drop_or_mismatch_plan_concerns(self) -> None:
+        run, seed = self._at_bound_step_plan_review("parent-concerns-gate")
+        state = store.read_record(run / "state.md")
+        plan_action = next(entry["action"] for entry in state["history"] if entry["stage"] == "plan")
+        state["accepted"][plan_action]["concerns"] = inner.no_concerns_map(("W1",))
+        state["accepted"][plan_action]["concerns"]["W1"][0] = {
+            "id": "ui", "applies": "yes", "decision": "Render the counter", "anchor": "R-1", "owner_stage": "step-plan",
+        }
+        store.write_record(run / "state.md", state)
+        self.invoke(_improve_cli.CLI, "next", "--run-dir", run)
+        self.finish_ephemeral()
+        flags, _receipt = self.completion_receipt()
+        final = run / "inbox" / (self.action + "-final-result.md")
+        store.write_record(final, dict(seed, follows=[], evidence_refs=["CHILD/reviews/review-1.md"]), "final result")
+        refused = self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
+                              "--final-result", final, status=2)
+        self.assertIn("concerns no step delivers: ui", refused.stderr)
+        store.write_record(final, dict(seed, follows=[], concerns=[{"id": "ui", "steps": ["S9"]}],
+                                       evidence_refs=["CHILD/reviews/review-1.md"]), "final result")
+        bad_step = self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
+                               "--final-result", final, status=2)
+        self.assertIn("steps the result does not list: S9", bad_step.stderr)
+        store.write_record(final, dict(seed, follows=[], concerns=[{"id": "ui", "steps": ["S1"]}],
+                                       evidence_refs=["CHILD/reviews/review-1.md"]), "final result")
+        self.invoke(_improve_cli.CLI, "complete", "--run-dir", run, "--action", self.improve, *flags,
+                    "--final-result", final)
+        after = store.read_record(run / "state.md")
+        self.assertEqual(after["accepted"][self.action]["concerns"], [{"id": "ui", "steps": ["S1"]}])
+
 
 class ReportTests(RepoCase):
     """Consumer contract 4d (section 6.1): the completion report shows every hand-off a reader of the run needs.
@@ -3905,8 +3934,17 @@ class ConcernHandoffTests(RepoCase):
                     self.assertIn(f"Applicable plan concerns for W2 assigned to {stage}", second)
                     self.assertIn("second item only", second)
                     self.assertNotIn(decision, second)
-        for stage in ("step-plan", "test-spec", "system-test", "release"):
+        for follow_stage in ("release-check", "release", "release-verify"):
+            with self.subTest(follow_stage=follow_stage):
+                packet = self.lines(item_state(self.repo, "W1", results, follow_stage), follow_stage)
+                self.assertIn("Plan release decisions for W1 (current plan; owned by release-plan):", packet)
+                self.assertIn("- state (owner: release-plan; anchor: R-7): Check the release migration", packet)
+                for other in ("Check the reader's access", "Describe the new export contract", "Observe queue delivery",
+                              "Verify the running settings", "second item only", "Map the labels"):
+                    self.assertNotIn(other, packet)
+        for stage in ("step-plan", "test-spec", "system-test", "handoff"):
             self.assertNotIn("Applicable plan concerns", self.lines(state, stage))
+            self.assertNotIn("Plan release decisions", self.lines(state, stage))
 
     def test_only_current_plan_and_queue_supply_rows_including_after_add_work(self) -> None:
         old = {"W1": [self.concern("security", "system-test-author", "superseded access decision")]}
@@ -3969,6 +4007,43 @@ class ConcernHandoffTests(RepoCase):
         self.assertNotEqual(found["system-test-author"][0], found["product-acceptance"][0])
         for spill, content in found.values():
             self.assertEqual(spill.read_text(encoding="utf-8"), content)
+
+    def test_emitted_cd_follow_stages_keep_distinct_release_plan_concern_spills(self) -> None:
+        migration = "Expand column before deploy, backfill in batches, contract after verify. " + "Migration step. " * 60
+        switchover = "Promote dev -> staging -> prod with separate prod approval. " + "Switchover detail. " * 60
+        plan = inner.no_concerns_map(("W1",))
+        replacements = {
+            "migrate-before": self.concern("migrate-before", "release-plan", migration.strip()),
+            "switchover": self.concern("switchover", "release-plan", switchover.strip()),
+            "security": self.concern("security", "system-test-author", "Keep private exports scoped"),
+        }
+        plan["W1"] = [replacements.get(row["id"], row) for row in plan["W1"]]
+        found = {}
+        cd_stages = ("release-plan", "release-check", "release", "release-verify")
+        for key, state in plans.full_walk(plans.CASE, "inline", str(self.repo), self.root):
+            stage = plans.stage_of(key)
+            if stage not in cd_stages:
+                continue
+            action = next(entry["action"] for entry in state["history"] if entry["stage"] == "plan")
+            state["accepted"][action]["concerns"] = plan
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                packet = navigator.emit(None, self.root, state)
+            pointer = f"fields/{action}-{stage}-W1-concerns-handoff.md"
+            self.assertIn("RUN/" + pointer, packet)
+            self.assertIn("- migrate-before (owner: release-plan; anchor: R-7): ", packet)
+            spill = self.root / pointer
+            content = spill.read_text(encoding="utf-8")
+            self.assertIn(migration.strip(), content)
+            self.assertIn(switchover.strip(), content)
+            self.assertNotIn("Keep private exports scoped", packet + content)
+            if stage == "release-plan":
+                self.assertIn("Applicable plan concerns for W1 assigned to release-plan (current plan):", packet)
+            else:
+                self.assertIn("Plan release decisions for W1 (current plan; owned by release-plan):", packet)
+            found[stage] = spill, content
+        self.assertEqual(set(found), set(cd_stages))
+        self.assertEqual(len({spill for spill, _ in found.values()}), len(cd_stages))
 
 
 if __name__ == "__main__":

@@ -136,8 +136,10 @@ a plan/check and record its handoff; it cannot execute or replay a release effec
 
 ## Durable record and responsibility
 
-The packet always supplies the canonical run locator
-`notes/environment-lifecycle.md`. Create this host-authored note when relevant
+`RUN/reference.md#policies` holds the canonical run locator
+`RUN/notes/environment-lifecycle.md` (and stage packets cite the policy when
+needed); standing target, command, access, and release/promotion facts live in
+`KNOWLEDGE/environment.md`. Create this host-authored note when relevant
 environment work exists; it can hold the record or point to an existing
 repository environment/deployment document rather than duplicate it. It records
 knowledge and pending requirements, never another graph cursor. No empty note is

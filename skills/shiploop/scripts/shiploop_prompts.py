@@ -1872,8 +1872,8 @@ preparatory commit); a mismatch there is a send-back.
    outer stages). Use the plan concerns assigned to release-plan when revalidating the target and its checks.
 2. Write the release steps in `summary`: target and candidate identity, permission, prerequisites, user impact,
    monitoring, stop conditions. Keep the standing procedure any release repeats (steps, commands, rollback; no candidate
-   identity, commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already has,
-   updated in place, else in one new section. Every operation the user-visible outcome needs is a
+   identity, commit IDs or dates) in KNOWLEDGE/environment.md ## Release and promotion (updated in place). Every
+   operation the user-visible outcome needs is a
    named step with its exact command and authorization status: the deploy, each access or visibility change (for
    example granting a role or permission, activating an app or menu entry), each browser session a consumer check needs with
    its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact

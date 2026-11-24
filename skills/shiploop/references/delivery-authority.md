@@ -96,9 +96,10 @@ a policy intended to persist.
 
 ## Record this run without a new ledger
 
-Use the packet's existing canonical
-[`notes/environment-lifecycle.md`](environment-lifecycle.md#durable-record-and-responsibility)
-note for the current assessment. Record:
+Use the canonical run locator in `RUN/reference.md#policies`,
+[`notes/environment-lifecycle.md`](environment-lifecycle.md#durable-record-and-responsibility),
+for the current run assessment and `KNOWLEDGE/environment.md` for standing
+target, command, access, and release/promotion facts. Record:
 
 - whether the operation is necessary and the consumer/target/account/operation
   match inputs;

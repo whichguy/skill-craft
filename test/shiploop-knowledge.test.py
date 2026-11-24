@@ -523,11 +523,11 @@ class LivingFilesTests(HomeFixture):
         self.assertEqual(knowledge.SECTIONS, {
             "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
             "environment.md": ("Targets and runtimes", "Commands", "Skills", "Harnesses and suites", "ID convention",
-                               "Access and accounts", "Platform facts"),
+                               "Access and accounts", "Platform facts", "Release and promotion"),
             "architecture.md": ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks",
                                 "Decisions", "Superseded"),
         })
-        # No "Release and rollback" section (X11): the procedure lives in environment.md under the run's own heading.
+        # Still no "Release and rollback" section (X11); "Release and promotion" is the canonical standing home.
         self.assertNotIn("Release and rollback", knowledge.SECTIONS["environment.md"])
 
     def test_test_spec_is_no_close_intake_keeps_no_file_and_no_table_names_the_readme_or_test_strategy(self) -> None:
@@ -811,7 +811,7 @@ class SectionsTests(HomeFixture):
         self.assertEqual(knowledge.SECTIONS, {
             "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
             "environment.md": ("Targets and runtimes", "Commands", "Skills", "Harnesses and suites", "ID convention",
-                               "Access and accounts", "Platform facts"),
+                               "Access and accounts", "Platform facts", "Release and promotion"),
             "architecture.md": ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks",
                                 "Decisions", "Superseded"),
         })
@@ -1005,12 +1005,13 @@ class SectionNoticeTests(HomeFixture):
         path = self.put("environment.md", "# Environment\n\n## Commands\n\nnpm test\n\n## Platform facts\n\nNode 22.\n")
         self.assertEqual(self.notices(), [
             "ShipLoop knowledge notice: " + str(path) + " has no 'Targets and runtimes', 'Skills', 'Harnesses and suites', "
-            "'ID convention', 'Access and accounts' section (this close is accepted); " + self.FIX])
+            "'ID convention', 'Access and accounts', 'Release and promotion' section (this close is accepted); " + self.FIX])
         line = self.notices()[0]
         self.assertTrue(line.startswith(knowledge.NOTICE_PREFIX + str(self.repo)), line)  # the absolute file comes first
         self.assertEqual(line.count(knowledge.NOTICE_PREFIX), 1)
         self.assertEqual(self.said(), [("environment.md", ["Targets and runtimes", "Skills", "Harnesses and suites",
-                                                           "ID convention", "Access and accounts"], [])])
+                                                           "ID convention", "Access and accounts",
+                                                           "Release and promotion"], [])])
 
     def test_one_section_lacking_is_still_one_line_and_every_heading_is_quoted_as_the_table_has_it(self) -> None:
         path = self.put("environment.md", self.full("environment.md").replace("## Commands\n\nSome text.\n\n", ""))
@@ -1436,7 +1437,7 @@ class PlacementNoticeTests(HomeFixture):
     ENV = ("# Environment\n\n## Targets and runtimes\n\nNode 22.\n\n## Commands\n\nnpm test\n\n## Platform facts\n\nLinux.\n")
     ARCH = ("# Architecture\n\n## Stack\n\nNode.\n\n## Decisions\n\n### AD-1 Use Node\n\nWhy.\n\n## Superseded\n\nNone.\n")
     ENV_NAMED = ("'Targets and runtimes', 'Commands', 'Skills', 'Harnesses and suites', 'ID convention', 'Access and accounts', "
-                 "'Platform facts'")
+                 "'Platform facts', 'Release and promotion'")
     ARCH_NAMED = ("'Stack', 'Structure', 'Conventions', 'Interfaces and boundaries', 'Real-boundary checks', 'Decisions', "
                   "'Superseded'")
 
@@ -1503,6 +1504,15 @@ class PlacementNoticeTests(HomeFixture):
         path = self.edit("spec.md", "## Retired\n\nNone.\n", "## Retired\n\n### R-2 Odd\n\nHmm.\n")
         self.assertEqual(self.notices(), ["ShipLoop placement notice: " + str(path) + " gained R-2 under 'Retired' "
                                           "(this stage is accepted); " + self.move("Requirements") + "."])
+
+    def test_release_and_promotion_heading_gives_no_placement_notice_while_stage_report_headings_do(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n## Release and promotion\n\n1. Deploy dev then prod.\n")
+        self.assertEqual(self.notices(), [])
+        path = self.append("environment.md", "\n## Release plan\n\nDone in this run.\n")
+        self.assertEqual(self.notices(), [
+            "ShipLoop placement notice: " + str(path) + " gained new headings 'Release plan' that match no named section "
+            "or repeat one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
 
     def test_a_new_heading_that_matches_no_named_section_is_quoted_with_the_sections_it_could_go_under(self) -> None:
         self.previous()
@@ -1735,8 +1745,7 @@ class PlacementDestinationTests(HomeFixture):
                         "and observed goes in `summary`."),
             "reflect-and-revise": "Update in place under the sections named here, with no new ## heading for this item's results;",
             "release-plan": ("Keep the standing procedure any release repeats (steps, commands, rollback; no candidate identity, "
-                             "commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already "
-                             "has, updated in place, else in one new section."),
+                             "commit IDs or dates) in KNOWLEDGE/environment.md ## Release and promotion (updated in place)."),
             "release-verify": ("Update KNOWLEDGE/environment.md in place with any target, command or access fact the release "
                                "showed that the file lacks or states wrongly (## Targets and runtimes, ## Commands, ## Access "
                                "and accounts); the observations themselves go in `summary`."),

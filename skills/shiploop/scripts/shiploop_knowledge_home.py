@@ -59,12 +59,12 @@ LIVING = ("spec.md", "environment.md", ARCHITECTURE)
 # says what the architecture file holds in prose; a test pins that every heading it names is here.  ``Skills`` is the
 # repository's local skill directory; ``Harnesses and suites`` holds each suite with its files and command, and the system-test
 # catalog; ``ID convention`` holds the ID scheme and the one command that lists the IDs already taken (the test code is the one
-# home of the IDs themselves).  There is no release section: release-plan keeps the standing procedure in environment.md under
-# the run's own heading (X11).
+# home of the IDs themselves).  ``Release and promotion`` holds the standing multi-stage release, migration and rollback
+# procedure (distinct from X11's rejected 'Release and rollback' heading).
 SECTIONS: Dict[str, Tuple[str, ...]] = {
     "spec.md": ("Requirements", "Non-functional requirements", "Retired"),
     "environment.md": ("Targets and runtimes", "Commands", "Skills", "Harnesses and suites", "ID convention",
-                       "Access and accounts", "Platform facts"),
+                       "Access and accounts", "Platform facts", "Release and promotion"),
     ARCHITECTURE: ("Stack", "Structure", "Conventions", "Interfaces and boundaries", "Real-boundary checks", "Decisions",
                    "Superseded"),
 }
