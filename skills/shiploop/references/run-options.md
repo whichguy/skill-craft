@@ -14,7 +14,8 @@ asked for independent review.
 Pass `--delegation agents` at `workspace start` (or direct `init`) for the
 direct native-agents hybrid route: every producer stage stays inline in this
 conversation (with optional F17 read-only fan-out in `discovery`, `research`,
-and `product-acceptance` up to host capacity), while Improve checkpoints run in
+and `product-acceptance`, and optional read-only failure-diagnosis fork in
+`implement`/`test`), while Improve checkpoints run in
 one direct coding-capable native worker from `CHILD/worker-brief.md` with a
 2-line emit-time host hint from `references/host-bindings.json` (forked for
 planning/outer reviews where supported, fresh for `document` and `reflect-and-revise`

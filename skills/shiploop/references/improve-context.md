@@ -384,6 +384,17 @@ workspace helpers, or `host-owner.md`:
   reviews (`document` step review and final `reflect-and-revise`) always run in a
   strictly **fresh** coding-capable worker with no inherited conversation
   history (Codex passes `fork_turns="none"`).
+- **Optional read-only failure diagnosis (`implement`, `test`):** Routine
+  builds, clean lint passes, and obvious failures stay inline. Only when a lint
+  or test failure is ambiguous or noisy and prior conversation decisions matter
+  may the parent fork ONE strictly read-only native investigator inheriting
+  session model, effort, tools, and permissions (prefer blocking/foreground; if
+  async, one observation wait of at least 120 s with same-handle retry; no
+  second worktree or cloud VM). Give it the recorded failure output and relevant
+  diff; ask for the likely cause, exact `path:line` evidence, and one check that
+  could disprove it. If the host cannot inherit conversation, investigate
+  inline. The parent verifies the native return (never from files alone),
+  applies any fix itself, and alone submits `complete`.
 - **Single-hop dispatch:** ShipLoop writes `CHILD/worker-brief.md` beside
   `CHILD/handoff.md` and `CHILD/packet.json`, and prints a 2-line emit-time
   host hint from `references/host-bindings.json` (live tool schema wins). The

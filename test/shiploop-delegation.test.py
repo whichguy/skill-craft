@@ -1385,6 +1385,7 @@ class DelegationCliTests(unittest.TestCase):
         self.assertEqual(agents.returncode, 0, agents.stderr)
         self.assertIn("Delegation: agents: run this producer stage inline", agents.stdout)
         self.assertIn("Optional read-only fan-out (`delegation: agents`)", agents.stdout)
+        self.assertIn("Optional read-only failure diagnosis (`delegation: agents`)", agents.stdout)
         self.assertIn("Host hint (codex):", agents.stdout)
 
 
@@ -1425,12 +1426,26 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             seen[stage] = packet
             if stage in prompts.READ_ONLY_FANOUT_STAGES:
                 self.assertIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
+                self.assertNotIn("Optional read-only failure diagnosis (`delegation: agents`)", packet, stage)
                 self.assertIn("127.0.0.1:0", packet, stage)
                 self.assertIn("pkill -f", packet, stage)
                 self.assertIn("synthesize/reconcile findings", packet, stage)
                 self.assertIn("Host hint (codex):", packet, stage)
+            elif stage in prompts.FAILURE_DIAGNOSIS_FORK_STAGES:
+                self.assertIn("Optional read-only failure diagnosis (`delegation: agents`)", packet, stage)
+                self.assertNotIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
+                self.assertIn("Inherit this session's model, effort, tools and permissions", packet, stage)
+                self.assertIn("one observation wait of at least 120 s", packet, stage)
+                self.assertIn("same handle", packet, stage)
+                self.assertIn("path:line", packet, stage)
+                self.assertIn("one check that could disprove it", packet, stage)
+                self.assertIn("never read files alone", packet, stage)
+                self.assertIn("apply any fix yourself", packet, stage)
+                self.assertIn("If this host cannot inherit this conversation, investigate inline.", packet, stage)
+                self.assertIn("Host hint (codex):", packet, stage)
             else:
                 self.assertNotIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
+                self.assertNotIn("Optional read-only failure diagnosis (`delegation: agents`)", packet, stage)
                 self.assertNotIn("Host hint (codex):", packet, stage)
             for forbidden in DELEGATED_ROUTE_TEXT:
                 self.assertNotIn(forbidden, packet, (stage, forbidden))
@@ -1441,7 +1456,8 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             if state.get("active_improve") is not None:
                 state = nav.finish_improve(state, state["active_improve"]["action_id"], {"summary": "Synthetic."})
         self.assertIn("Delegation: agents: run this producer stage inline", seen["implement"])
-        self.assertIn("Bind no chain and dispatch no worker.", seen["implement"])
+        self.assertIn("Bind no chain and dispatch no writing worker.", seen["implement"])
+        self.assertNotIn("Bind no chain and dispatch no worker.", seen["implement"])
 
     def test_agents_improve_packets_and_worker_brief_follow_hybrid_contract(self):
         selected = standalone.resolve_skill(str(CARD))
@@ -1498,8 +1514,10 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             self.assertIn(f"--review-mode={expected_mode}", pkt)
             self.assertIn("--review-mode=inline-fallback", pkt)
             if expected_mode == "fork":
+                self.assertIn("model, effort, tools and permissions", pkt)
                 self.assertIn("replace `--review-mode=fork` with `--review-mode=fresh`", pkt)
             else:
+                self.assertIn("model, effort, tools and permissions", pkt)
                 self.assertNotIn("replace `--review-mode=fork` with `--review-mode=fresh`", pkt)
             self.assertNotIn("host-owner.md", pkt)
             self.assertNotIn("improve-agent", pkt)
@@ -1559,6 +1577,81 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         self.assertIn("Review mode: fork (delegation: agents).", text_default)
         text_fallback = nav._passes_text(run, state, child, None, review_mode="inline-fallback")
         self.assertIn("Review mode: inline-fallback (delegation: agents).", text_fallback)
+
+    def test_failure_diagnosis_fork_absent_on_inline_and_ask_agent(self):
+        for route in ("inline", "ask-agent"):
+            state = nav.new_state(str(self.repo), "Inline and ask-agent isolation.", delegation=route)
+            run = self.base / f"route-{route}"
+            run.mkdir()
+            seen = {}
+            while state["status"] == "active":
+                stage = nav.current_stage(state)
+                if stage in prompts.FAILURE_DIAGNOSIS_FORK_STAGES:
+                    seen[stage] = nav.render(None, run, state, host="codex")
+                res = {"outcome": "done", "summary": f"Synthetic {stage}."}
+                if stage == "plan":
+                    res["work_items"] = [{"id": "W1", "title": "Item one"}]
+                state = nav.apply(state, nav.current_action(state)["id"], res)
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, state["active_improve"]["action_id"], {"summary": "Synthetic."})
+            for stage in prompts.FAILURE_DIAGNOSIS_FORK_STAGES:
+                self.assertNotIn("Optional read-only failure diagnosis", seen[stage], (route, stage))
+                self.assertNotIn("Host hint (", seen[stage], (route, stage))
+            if route == "inline":
+                self.assertIn("Bind no chain and dispatch no worker.", seen["implement"])
+
+    def test_agents_failure_diagnosis_and_improve_packets_across_all_hosts(self):
+        selected = standalone.resolve_skill(str(CARD))
+        hosts = {
+            "codex": "Host hint (codex):",
+            "claude": "Host hint (claude):",
+            "cursor": "Host hint (cursor, pilot-ide):",
+            "grok": "Host hint (grok):",
+            "opencode": "Host hint (opencode, unqualified):",
+            "unknown": "Host hint (unknown):",
+        }
+        state = nav.new_state(str(self.repo), "All-host agents check.", delegation="agents")
+        run = self.base / "all-hosts-run"
+        run.mkdir()
+        captured_producers = {}
+        captured_improves = {}
+        while state["status"] == "active":
+            stage = nav.current_stage(state)
+            action = nav.current_action(state)["id"]
+            if stage in prompts.FAILURE_DIAGNOSIS_FORK_STAGES:
+                captured_producers[stage] = {h: nav.render(None, run, state, host=h) for h in hosts}
+            res = {"outcome": "done", "summary": f"Synthetic {stage}."}
+            if stage == "plan":
+                res["work_items"] = [{"id": "W1", "title": "Item one"}]
+            state = nav.apply(state, action, res)
+            child = state.get("active_improve")
+            if child is not None:
+                if stage in ("spec", "document"):
+                    state["active_improve"] = standalone.binding(state, action, child["stage"],
+                                                                 child["seed_result"], selected,
+                                                                 improve_action=child["improve_action"])
+                    receipt = standalone.receipt_path(state["active_improve"])
+                    receipt.parent.mkdir(parents=True, exist_ok=True)
+                    receipt.write_text("{}", encoding="utf-8")
+                    captured_improves[stage] = {h: nav.render(None, run, state, host=h) for h in hosts}
+                    state["active_improve"] = child
+                state = nav.finish_improve(state, action, {"summary": "Synthetic."})
+        for stage in prompts.FAILURE_DIAGNOSIS_FORK_STAGES:
+            for h, prefix in hosts.items():
+                pkt = captured_producers[stage][h]
+                self.assertIn(prefix, pkt, (stage, h))
+                self.assertLess(len(pkt), 33_000, f"agents {stage} packet too large on {h}: {len(pkt)}")
+                prose = " ".join(line for line in pkt.splitlines() if not line.startswith("  | "))
+                sentences = [s.strip() for s in re.split(r"(?<=[.;:])\s+", " ".join(prose.split()))
+                             if len(s.strip()) > 80]
+                repeated = sorted({s for s in sentences if sentences.count(s) > 1})
+                self.assertEqual(repeated, [], (stage, h))
+        for stage in ("spec", "document"):
+            for h, prefix in hosts.items():
+                pkt = captured_improves[stage][h]
+                self.assertIn(prefix, pkt, (stage, h))
+                self.assertLess(len(pkt), 3_000, f"agents {stage} improve packet too large on {h}: {len(pkt)}")
+                self.assertIn("model, effort, tools and permissions", pkt, (stage, h))
 
 
 if __name__ == "__main__":
