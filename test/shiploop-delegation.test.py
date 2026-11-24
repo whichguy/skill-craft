@@ -1463,6 +1463,8 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         self.assertNotIn("Bind no chain and dispatch no worker.", seen["implement"])
         self.assertIn("Leave every existing line verbatim (never edit or remove a pending-verification line).",
                       seen["document"])
+        self.assertIn("keep R-<n> entries declarative", seen["spec"])
+        self.assertNotIn("and pending implementation and checks.", seen["spec"])
 
     def test_agents_improve_packets_and_worker_brief_follow_hybrid_contract(self):
         selected = standalone.resolve_skill(str(CARD))
@@ -1534,6 +1536,9 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         # Worker briefs enforce leaf anti-recursion, canonical realpath, and stage-accurate commit rules.
         canon_repo = os.path.realpath(str(self.repo))
         self.assertIn(canon_repo, briefs["spec"])
+        self.assertIn("avoid re-reading unchanged files already in your context", briefs["spec"])
+        self.assertNotIn("avoid re-reading unchanged files already in your context", briefs["document"])
+        self.assertNotIn("avoid re-reading unchanged files already in your context", briefs["reflect-and-revise"])
         self.assertIn("FIRST (before running any `improve-pass` command)", briefs["spec"])
         self.assertIn("FIRST (before running any `improve-pass` command)", briefs["document"])
         self.assertIn("Classify a pass that edits product, test, or knowledge files as `non-trivial`", briefs["spec"])

@@ -3553,9 +3553,9 @@ def _skill_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any
     skill = result.get("skill")
     if not isinstance(skill, Mapping) or skill.get("decision") not in ("update", "create"):
         return
-    repo = Path(after["repo"])
+    repo = Path(after["repo"]).resolve()
     path = Path(str(skill.get("path")))
-    folder = (path if path.is_absolute() else repo / path).parent
+    folder = (path if path.is_absolute() else repo / path).resolve().parent
     paths = [str(folder.relative_to(repo))] + [str(i) for i in skill.get("index", []) if isinstance(i, str)]
     try:
         commit = shiploop_git.commit_paths(repo, paths, "feat(skill): " + skill["decision"] + " " + folder.name
@@ -5006,6 +5006,24 @@ def _check_skill_decision(state: Mapping[str, Any], skill: Any) -> None:
         path = Path(state["repo"]) / path
     _need(path.name == "SKILL.md" and path.is_file(), "the skill decision names a SKILL.md that does not exist: "
           + str(path))
+    repo_root = Path(state["repo"]).resolve()
+    try:
+        path.resolve().relative_to(repo_root)
+    except ValueError as exc:
+        raise NavigatorError("the skill decision path must be inside the repository " + str(repo_root) + ": "
+                             + str(path)) from exc
+    index_paths = skill.get("index")
+    if index_paths is not None:
+        _need(isinstance(index_paths, list) and all(isinstance(i, str) and i.strip() for i in index_paths),
+              "skill.index must be a list of repository-relative paths")
+        for entry in index_paths:
+            entry_path = Path(entry)
+            target = (entry_path if entry_path.is_absolute() else Path(state["repo"]) / entry_path).resolve()
+            try:
+                target.relative_to(repo_root)
+            except ValueError as exc:
+                raise NavigatorError("skill.index entry must be inside the repository " + str(repo_root) + ": "
+                                     + entry) from exc
     head = path.read_text(encoding="utf-8", errors="replace")[:4000]
     _need(head.startswith("---") and re.search(r"(?m)^name:\s*\S", head) and re.search(r"(?m)^description:\s*\S", head),
           str(path) + " needs frontmatter with name and description")
@@ -10469,46 +10487,31 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     effective_result = child["seed_result"] if final_result is None else final_result
                     _import_notes_gate(root, state, child, effective_result, getattr(args, "final_result", None))
                     _check_submitted_evidence(effective_result, None)
-                    _check_submitted_unverified(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_assumptions(
-                        state, child["stage"],
-                        child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_test_commands(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_focused_ids_new(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_focused_guards(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_focused_criteria_ids(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_proof_inputs(
-                        state["repo"], child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_unverified(state, child["stage"], effective_result)
+                    _check_submitted_assumptions(state, child["stage"], effective_result)
+                    _check_submitted_concerns(state, child["stage"], effective_result)
+                    _check_submitted_test_commands(child["stage"], effective_result)
+                    _check_focused_ids_new(state, child["stage"], effective_result)
+                    _check_focused_guards(child["stage"], effective_result)
+                    _check_focused_criteria_ids(child["stage"], effective_result)
+                    _check_proof_inputs(state["repo"], child["stage"], effective_result)
                     _check_added_tests(state, child["stage"], final_result)
-                    _check_submitted_layers(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_primary(
-                        root, state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_defaults(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_consumer_entry(
-                        state["repo"], child["stage"],
-                        child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_recorded_commands(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
-                    _knowledge_gate(state, child["stage"],
-                                    child["seed_result"] if final_result is None else final_result, "improve")
+                    _check_submitted_layers(state, child["stage"], effective_result)
+                    _check_submitted_primary(root, state, child["stage"], effective_result)
+                    _check_submitted_defaults(state, child["stage"], effective_result)
+                    _check_submitted_consumer_entry(state["repo"], child["stage"], effective_result)
+                    _check_submitted_recorded_commands(child["stage"], effective_result)
+                    _check_submitted_awaiting(effective_result)
+                    _knowledge_gate(state, child["stage"], effective_result, "improve")
                     if child["stage"] == "document":    # the review's edits are part of the step's commit
                         refusal = _step_spec_refusal(state, _current_work_item(state))
                         _need(not refusal, refusal)
-                    _handoff_gate(root, state, child["stage"],
-                                  child["seed_result"] if final_result is None else final_result, "improve",
+                    _handoff_gate(root, state, child["stage"], effective_result, "improve",
                                   next_step=_next_step(root, action_id, "improve",
                                                        None if final_result is None
                                                        else getattr(args, "final_result", None)))
-                    _check_submitted_request(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_request(state, child["stage"], effective_result)
+                    _inner_gates(root, state, child["stage"], effective_result, count=True)
                     _improve_change_gate(core, root, state, action_id, child, receipt)
                     _duplicate_review_gate(core, root, state, child)
                     review_mode = getattr(args, "review_mode", None)

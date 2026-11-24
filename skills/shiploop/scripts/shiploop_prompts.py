@@ -1127,7 +1127,9 @@ DUTIES = {
    discoveries through the existing correction routes.
 5. In each R-<n> this run adds or changes, state its basis as a source that stays true in later runs (the request's
    words with the date, or a decision ID; never 'current request'), preserved and changed behaviour, source-section
-   locators, evidence limits, and pending implementation and checks. Title spec.md for the product, not for one request.
+   locators, and evidence limits (keep R-<n> entries declarative—write no mutable "pending implementation/verification"
+   status lines that later steps cannot edit in place; open implementation/check obligations belong in `summary` or
+   `assumptions`). Title spec.md for the product, not for one request.
    ShipLoop derives the added, changed and retired IDs from the spec diff; list none by hand.
 6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
