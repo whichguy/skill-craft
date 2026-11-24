@@ -389,12 +389,13 @@ workspace helpers, or `host-owner.md`:
   or test failure is ambiguous or noisy and prior conversation decisions matter
   may the parent fork ONE strictly read-only native investigator inheriting
   session model, effort, tools, and permissions (prefer blocking/foreground; if
-  async, one observation wait of at least 120 s with same-handle retry; no
-  second worktree or cloud VM). Give it the recorded failure output and relevant
-  diff; ask for the likely cause, exact `path:line` evidence, and one check that
-  could disprove it. If the host cannot inherit conversation, investigate
-  inline. The parent verifies the native return (never from files alone),
-  applies any fix itself, and alone submits `complete`.
+  async, one observation wait of at least 120 s with same-handle retry on timeout
+  or non-terminal wake-up until the terminal result arrives; no second worktree
+  or cloud VM). Give it the recorded failure output and relevant diff; ask for
+  the likely cause, exact `path:line` evidence, and one check that could
+  disprove it. If the host cannot inherit conversation, investigate inline. The
+  parent verifies the native return (never from files alone), applies any fix
+  itself, and alone submits `complete`.
 - **Single-hop dispatch:** ShipLoop writes `CHILD/worker-brief.md` beside
   `CHILD/handoff.md` and `CHILD/packet.json`, and prints a 2-line emit-time
   host hint from `references/host-bindings.json` (live tool schema wins). The
@@ -402,14 +403,16 @@ workspace helpers, or `host-owner.md`:
   `spawn_agent` + `wait_agent(timeout_ms=120000)` on Codex), inheriting full
   model, effort, tools, and permissions, with no second worktree or cloud VM.
   Prefer blocking/foreground; if async, one observation wait of at least 120 s;
-  on timeout wait again on the same handle; never launch a second concurrent
-  writer while the first is alive.
+  on timeout or non-terminal wake-up wait again on the same handle until the
+  terminal result arrives; never launch a second concurrent writer while the
+  first is alive.
 - **Leaf-worker contract:** The worker verifies canonical `pwd` and Git root
-  against `WORKTREE`, invokes the selected `improve/SKILL.md` with
-  `ShipLoop Improve: <CHILD/handoff.md>`, drives `CHILD/packet.json`'s
-  `next_argv` until terminal `complete` (`improve-pass` and `improve-commit`
-  as printed; no commits during a `document` step review), spawns no subagents,
-  and never runs `shiploop complete` or workspace return.
+  against `WORKTREE`, invokes the selected `improve/SKILL.md` FIRST (before
+  running any `improve-pass`) with `ShipLoop Improve: <CHILD/handoff.md>`,
+  drives `CHILD/packet.json`'s `next_argv` until terminal `complete`
+  (`improve-pass` and `improve-commit` as printed; classify substantive file
+  edits as `non-trivial`; no commits during a `document` step review), spawns
+  no subagents, and never runs `shiploop complete` or workspace return.
 - **Verification, fallback and recovery:** After collecting the worker's actual
   native return (never from files alone), the parent reviews returned
   findings/changes/checks, confirms `CHILD/packet.json` is `complete` and the

@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.9.1
+
+- Skills: shiploop 2.11.1
+
+### shiploop 2.11.1
+
+- Harden `--delegation agents` prompts and `document` guidance from live 2.11.0 trials: retry the same worker handle on non-terminal wake-ups until the terminal result arrives, clarify direct native subagent (never Ask Agent) in failure diagnosis, put `Skill(improve)`-first and `non-trivial` edit classification in `CHILD/worker-brief.md`, and clarify leaving existing `spec.md` lines verbatim at `document`.
+
 ### skill-craft 4.9.0
 
 - Skills: shiploop 2.11.0
