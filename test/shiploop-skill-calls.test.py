@@ -29,6 +29,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 FIXTURES = ROOT / "test" / "fixtures" / "shiploop-keepalive"
 CLI = SCRIPTS / "shiploop"
+sys.path.insert(0, str(ROOT / "test"))
+import state_home  # noqa: E402
+
+state_home.isolate()
 
 # A host runs a hook entry as a program, so these tests do too (the entries are shell wrappers around shiploop-hook, not
 # Python files): a PATH whose python3 is the interpreter under test.

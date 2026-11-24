@@ -356,6 +356,8 @@ LIMIT_KINDS = {
     "shiploop_progress_data._MAX_STATE_BYTES": "guard",
     "shiploop_progress_data._MAX_DOCUMENT_BYTES": "guard",
     "shiploop_progress_data._MAX_REPORT_BYTES": "guard",
+    "shiploop_registry._MAX_CONTROL_BYTES": "guard",
+    "shiploop_registry._MAX_STATE_BYTES": "guard",
     "shiploop_story.STREAM_BYTES": "guard",
     "shiploop_story.EVIDENCE_BYTES": "guard",
     "shiploop_story.STORY_ROWS": "display cut",

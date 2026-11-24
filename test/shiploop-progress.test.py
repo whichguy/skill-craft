@@ -40,6 +40,13 @@ class RunCase(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="shiploop-progress-runtime-")
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name).resolve()
+        self.state_home = self.base / "state-home"
+        env_patch = mock.patch.dict(os.environ, {
+            "SHIPLOOP_STATE_HOME": str(self.state_home),
+            "XDG_STATE_HOME": str(self.state_home),
+        })
+        env_patch.start()
+        self.addCleanup(env_patch.stop)
         self.repo = self.base / "repo with spaces"
         self.repo.mkdir()
         subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
@@ -372,7 +379,7 @@ class ViewerTests(RunCase):
         self.addCleanup(stop)
         ready, _, _ = select.select([process.stdout], [], [], 10)
         line = process.stdout.readline() if ready else ""
-        match = re.search(r"^ShipLoop viewer: http://127\.0\.0\.1:(\d+)/ ", line)
+        match = re.search(r"^ShipLoop (?:viewer|hub): http://127\.0\.0\.1:(\d+)/ ", line)
         self.assertIsNotNone(match, f"announcement {line!r}; exit {process.poll()}")
         return process, int(match.group(1))
 
@@ -506,13 +513,117 @@ class ViewerTests(RunCase):
         self.assertEqual((status, body), (404, b"progress.html is not published yet\n"))
         self.assertFalse((self.run / progress.LOCK).exists())
 
+    def test_hub_serves_multiple_concurrent_runs_and_shared_repo_warnings(self):
+        import shiploop_registry as registry
+        repo_a = self.base / "repo-a"
+        repo_b = self.base / "repo-b"
+        for repo in (repo_a, repo_b):
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
+        run_a1, run_a2, run_b1 = self.base / "run-a1", self.base / "run-a2", self.base / "run-b1"
+        runs_meta = []
+        for idx, (rdir, repo, prompt) in enumerate((
+            (run_a1, repo_a, "First feature on repo A"),
+            (run_a2, repo_a, "Second feature on repo A"),
+            (run_b1, repo_b, "Feature on repo B"),
+        ), start=1):
+            rdir.mkdir()
+            (rdir / ".lock").touch()
+            st = navigator.new_state(str(repo), prompt, improve_skill="")
+            st["run_id"] = f"run-multi-{idx}"
+            navigator.save(rdir, st)
+            progress.observe(rdir, watch=False)
+            registry.register_run(rdir, st)
+            runs_meta.append((registry.safe_run_key(st["run_id"], rdir), prompt))
+        argv = [sys.executable, "-B", str(CLI), "view", "--serve", "--port", "0", "--interval", ".1"]
+        _, port = self.serve(command=argv)
+        status, _, api_body = self.get(port, "/api/runs")
+        self.assertEqual(status, 200)
+        payload = json.loads(api_body)
+        self.assertEqual(payload["counts"]["total"], 3)
+        by_key = {item["run_key"]: item for item in payload["runs"]}
+        for key, prompt in runs_meta:
+            self.assertIn(key, by_key)
+            s_html, _, body_html = self.get(port, f"/runs/{key}/progress.html")
+            self.assertEqual(s_html, 200)
+            self.assertIn(prompt.encode(), body_html)
+            self.assertEqual(self.get(port, f"/runs/{key}/trace.html")[0], 200)
+            self.assertEqual(self.get(port, f"/runs/{key}/progress-version.js")[0], 200)
+        self.assertTrue(by_key[runs_meta[0][0]]["shared_repo_peers"])
+        self.assertTrue(by_key[runs_meta[1][0]]["shared_repo_peers"])
+        self.assertEqual(by_key[runs_meta[2][0]]["shared_repo_peers"], [])
+        self.assertIn(str(repo_a), payload["shared_repo_conflicts"])
+        hub_status, _, hub_html = self.get(port, "/")
+        self.assertEqual(hub_status, 200)
+        self.assertIn(b"ShipLoop Hub", hub_html)
+        self.assertIn(b"/api/runs", hub_html)
+        self.assertEqual(self.get(port, "/runs/does-not-exist/progress.html")[0], 404)
+        self.assertEqual(self.get(port, f"/runs/{runs_meta[0][0]}/state.md")[0], 404)
+        self.assertEqual(self.get(port, "/runs/../../etc/passwd")[0], 404)
+        self.assertEqual(self.get(port, "/", host="evil.example")[0], 403)
+        self.assertEqual(self.get(port, "/api/runs", method="POST")[0], 405)
+
+    def test_background_serve_stop_server_and_live_hub_recommendation(self):
+        import shiploop_registry as registry
+        started = self.cli_ok("view", "--serve", "--background", "--port", "0", "--interval", ".1")
+        match = re.search(r"http://127\.0\.0\.1:(\d+)/", started.stdout)
+        self.assertIsNotNone(match, started.stdout)
+        port = int(match.group(1))
+        self.wait_for(lambda: registry.active_viewer() is not None)
+        info = registry.active_viewer()
+        self.assertEqual(info["mode"], "hub")
+        self.assertEqual(info["url"].rstrip("/"), f"http://127.0.0.1:{port}")
+        run2 = self.base / "run2"
+        run2.mkdir()
+        (run2 / ".lock").touch()
+        state2 = navigator.new_state(str(self.repo), "Concurrent second run", improve_skill="")
+        state2["run_id"] = "run-concurrent-2"
+        navigator.save(run2, state2)
+        line = navigator._progress_view_line(None, run2, state2)
+        self.assertIn(f"http://127.0.0.1:{port}/runs/run-concurrent-2/", line)
+        self.assertIn(f"all runs http://127.0.0.1:{port}/", line)
+        self.assertIn("share both URLs with the user", line)
+        stopped = self.cli_ok("view", "--stop-server")
+        self.assertIn("stopped", stopped.stdout.lower())
+        self.wait_for(lambda: registry.active_viewer() is None)
+        with self.assertRaises(OSError):
+            socket.create_connection(("127.0.0.1", port), timeout=1).close()
+
+    def test_runs_list_and_status_watch_cli(self):
+        import shiploop_registry as registry
+        halted_dir = self.base / "halted-run"
+        halted_dir.mkdir()
+        (halted_dir / ".lock").touch()
+        halted_state = navigator.control(
+            navigator.new_state(str(self.repo), "Halted CLI run", improve_skill=""),
+            "halt", "Done here.",
+        )
+        halted_state["run_id"] = "run-halted-cli"
+        navigator.save(halted_dir, halted_state)
+        registry.register_run(self.run, self.state)
+        registry.register_run(halted_dir, halted_state)
+        all_res = self.cli_ok("runs", "--json")
+        rows = json.loads(all_res.stdout)["runs"]
+        self.assertEqual({r["run_id"] for r in rows}, {self.state["run_id"], "run-halted-cli"})
+        active_res = self.cli_ok("runs", "--active", "--json")
+        active_rows = json.loads(active_res.stdout)["runs"]
+        self.assertEqual([r["run_id"] for r in active_rows], [self.state["run_id"]])
+        text_res = self.cli_ok("runs")
+        self.assertIn("Add a progress view", text_res.stdout)
+        watch_res = self.cli_ok("status", "--run-dir", str(halted_dir), "--watch", "--interval", ".1")
+        self.assertIn("=== ShipLoop status ===", watch_res.stdout)
+        self.assertIn("halted at intake", watch_res.stdout)
+
     def test_first_packet_suggests_a_command_that_serves_the_run(self):
         self.run = self.base / "suggested run"
         result = self.cli("init", "--repo", str(self.repo), "--run-dir", str(self.run), "--prompt", "Serve this run")
         self.assertEqual(result.returncode, 0, result.stderr)
         line = next(line for line in result.stdout.splitlines() if line.startswith("Progress view: "))
-        self.assertIn("do not run it yourself", line)
-        argv = shlex.split(line.split("it serves until stopped): ", 1)[1])
+        self.assertIn("do not run foreground --serve yourself", line)
+        hub_match = re.search(r"(python3 \S+ view --serve)\b", line)
+        self.assertIsNotNone(hub_match, line)
+        single_part = line.split(" or ", 1)[1].split(" (this run only)", 1)[0]
+        argv = shlex.split(single_part)
         self.assertEqual((argv[0], argv[2], argv[-1]), ("python3", "view", "--serve"))
         self.assertEqual(argv[3], f"--run-dir={self.run}")
         _, port = self.serve(command=[sys.executable, "-B", *argv[1:], "--port", "0", "--interval", ".1"])
@@ -521,12 +632,13 @@ class ViewerTests(RunCase):
 
     def test_later_packets_do_not_repeat_the_command(self):
         first = navigator._progress_view_line(None, self.run, self.state)
+        self.assertIn("view --serve", first)
         self.assertIn("view --run-dir=", first)
         self.assertTrue(first.startswith("Progress view: [HTML file](<"))
         accepted = navigator.apply(self.state, navigator.current_action(self.state)["id"],
                                    {"outcome": "done", "summary": "Scope accepted for the viewer."})
         later = navigator._progress_view_line(None, self.run, accepted)
-        self.assertEqual(first.split(" To follow it in a browser", 1)[0], later)
+        self.assertEqual(first.split(" Recommend to the user", 1)[0], later)
         self.assertNotIn("--serve", later)
 
 
@@ -791,6 +903,60 @@ class ObservationGenerationTests(unittest.TestCase):
         status = json.loads((self.root / progress.STATUS).read_text())
         self.assertEqual(status["trace_publication"]["status"], "unavailable")
         self.assertIn("Trace publication failed", (self.root / progress.PAGE).read_text())
+
+    def test_stat_gate_skips_projection_when_idle_and_invalidates_on_doc_or_loop_change(self):
+        import shiploop_progress_data as data
+        clock = [100.0]
+        calls = [0]
+        real_build = data.build_snapshot
+        def counting_build(*args, **kwargs):
+            calls[0] += 1
+            return real_build(*args, **kwargs)
+        heartbeats = []
+        def sleep(interval):
+            clock[0] += interval
+            ver = (self.root / progress.VERSION).read_text()
+            heartbeats.append(ver)
+            if len(heartbeats) >= 3:
+                (self.root / progress.DISABLED).write_text("stop after idle ticks")
+        with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
+                mock.patch.object(progress.time, "sleep", side_effect=sleep), \
+                mock.patch.object(data, "build_snapshot", side_effect=counting_build):
+            self.assertEqual(progress.observe(self.root, watch=True, interval=1, idle_timeout=30), 0)
+        # First sample builds snapshot; idle sleep ticks reuse stat signature without calling build_snapshot.
+        self.assertEqual(calls[0], 1)
+        self.assertGreaterEqual(len(heartbeats), 3)
+        snap = progress.sample(self.root)
+        sig_before = snap.watch_sig
+        (self.repo / "docs" / "shiploop").mkdir(parents=True)
+        (self.repo / "docs" / "shiploop" / "spec.md").write_text("# Spec\n")
+        self.assertNotEqual(progress._watch_signature(self.root, snap), sig_before)
+        snap2 = progress.sample(self.root)
+        sig_before_loop = snap2.watch_sig
+        (self.root / "loops").mkdir(exist_ok=True)
+        (self.root / "loops" / "step.md").write_text("# Loop contract\n")
+        self.assertNotEqual(progress._watch_signature(self.root, snap2), sig_before_loop)
+
+    def test_idle_timeout_marks_page_revivable_while_snapshot_omits_it(self):
+        clock = [100.0]
+        def sleep(interval):
+            clock[0] += interval
+        with mock.patch.object(progress.time, "monotonic", side_effect=lambda: clock[0]), \
+                mock.patch.object(progress.time, "sleep", side_effect=sleep):
+            self.assertEqual(progress.observe(self.root, watch=True, interval=1, idle_timeout=1.5), 0)
+        page_text = (self.root / progress.PAGE).read_text()
+        self.assertIn('data-revivable="true"', page_text)
+        self.assertEqual(progress.observe(self.root, watch=False), 0)
+        snap_page = (self.root / progress.PAGE).read_text()
+        self.assertIn('data-revivable="false"', snap_page)
+
+    def test_registry_is_resilient_to_read_only_state_home(self):
+        import shiploop_registry as registry
+        blocking_file = self.root / "not-a-directory"
+        blocking_file.write_text("file")
+        with mock.patch.dict(os.environ, {"SHIPLOOP_STATE_HOME": str(blocking_file)}):
+            self.assertFalse(registry.register_run(self.root, self.state))
+            self.assertIsNone(registry.active_viewer())
 
 
 if __name__ == "__main__":

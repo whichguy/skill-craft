@@ -390,8 +390,12 @@ class StatusBlockTests(unittest.TestCase):
                         self.assertNotIn(BEGIN, packet)
                         if f"ShipLoop navigator | {navigator.IMPROVE_STAGE} |" in packet:
                             seen["improve"] += 1
-                            self.assertEqual(blocks, 0)
-                            self.assertIsNone(hook.packet_progress(packet))
+                            self.assertEqual(blocks, 1)
+                            found = hook.packet_progress(packet)
+                            self.assertIsNotNone(found)
+                            self.assertRegex(found, hook.LINE)
+                            self.assertIn(f" > {navigator.IMPROVE_STAGE} · Next: ", found)
+                            self.assertNotIn(navigator.narrative.BEGIN, packet)
                             continue
                         self.assertEqual(blocks, 1)
                         found = hook.packet_progress(packet)  # it reads the first WINDOW characters only
@@ -580,6 +584,74 @@ class StatusHookTests(unittest.TestCase):
             with self.subTest(label):
                 completed = self.run_hook(stdin)
                 self.assertEqual((completed.returncode, completed.stdout), (0, ""))
+
+    def test_hook_emits_compact_line_for_improve_packet(self) -> None:
+        """Improve packets emit only the single-line compact progress summary in hooks."""
+        temp_run = Path(self.temp.name) / "improve-hook-run"
+        temp_run.mkdir()
+        state = navigator.store.loads((self.run_dir / "state.md").read_text(encoding="utf-8"))
+        while navigator.current_stage(state) != "spec":
+            action_id = navigator.current_action(state)["id"]
+            state = navigator.apply(state, action_id, result())
+            if state.get("active_improve") is not None:
+                state = navigator.finish_improve(state, action_id, receipt(navigator.current_stage(state)), result())
+        parked = navigator.apply(state, navigator.current_action(state)["id"], result(summary="Spec drafted."))
+        navigator.save(temp_run, parked)
+        improve_packet = navigator.render(None, temp_run, parked)
+        improve_cmd = f"python3 {self.cli} next --run-dir={temp_run}"
+        raw_line = navigator.status_line(parked)
+        expected = hook.compact(raw_line)
+        self.assertIn(raw_line, improve_packet)
+        self.assertEqual(hook.progress(self.payload(improve_cmd, improve_packet)), ("claude-or-codex", raw_line))
+        completed = self.run_hook(json.dumps(self.payload(improve_cmd, improve_packet)))
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout), {"systemMessage": expected})
+
+
+class DisplayStateAndStepProgressTests(StatusBlockTests):
+    """Canonical 8-state labels and inner-loop step counters in status outputs."""
+
+    def test_display_status_covers_all_eight_states(self) -> None:
+        base = self.state()
+        self.assertEqual(navigator.display_status(base), ("active", "Active"))
+        spec_with_improve = navigator.new_state(str(self.repo), "Add a --version flag.")
+        spec_with_improve = self.advance_to(spec_with_improve, "spec")
+        reviewing = navigator.apply(spec_with_improve, navigator.current_action(spec_with_improve)["id"],
+                                    result(summary="Spec drafted."))
+        self.assertEqual(navigator.display_status(reviewing), ("reviewing", "Reviewing"))
+        awaiting_user = self.act(base, outcome="blocked", summary="Need token.",
+                                 awaiting={"kind": "answer", "question": "Approve secret?",
+                                           "no_default": "User secret required."})
+        self.assertEqual(navigator.display_status(awaiting_user), ("awaiting", "Waiting on you"))
+        awaiting_service = self.act(base, outcome="blocked", summary="CI busy.",
+                                    awaiting={"kind": "service", "service": "CI", "check": "Wait for CI check.",
+                                              "no_default": "External CI required."})
+        self.assertEqual(navigator.display_status(awaiting_service), ("service", "Waiting on service"))
+        paused = navigator.control(base, "pause", "Taking a break.")
+        self.assertEqual(navigator.display_status(paused), ("paused", "Paused"))
+        blocked_plain = {**base, "status": "blocked", "status_reason": "External lock"}
+        self.assertEqual(navigator.display_status(blocked_plain), ("blocked", "Blocked"))
+        halted = navigator.control(base, "halt", "Stopping run.")
+        self.assertEqual(navigator.display_status(halted), ("halted", "Halted"))
+        self.assertEqual(navigator.display_status({**base, "status": "done"}), ("done", "Done"))
+
+    def test_step_progress_appears_in_implement_test_and_document(self) -> None:
+        state = self.planned([{"id": "W1", "title": "Wire status display", "context": "Step test"}])
+        state = self.advance_to(state, "step-plan")
+        state = self.produce(state, steps=[{"id": "S1", "task": "First step."}, {"id": "S2", "task": "Second step."}])
+        observed_wheres: dict[str, str] = {}
+        for _ in range(30):
+            stage = navigator.current_stage(state)
+            if stage in ("implement", "test", "document") and stage not in observed_wheres:
+                where = navigator._status_where(state)
+                facts = navigator.narrative_facts(state)
+                observed_wheres[stage] = where
+                self.assertIn("(Step S1 1/2)", where)
+                self.assertIn("(Step S1 1/2)", facts["now"]["label"])
+            if len(observed_wheres) == 3:
+                break
+            state = self.produce(state)
+        self.assertEqual(set(observed_wheres), {"implement", "test", "document"}, observed_wheres)
 
 
 if __name__ == "__main__":

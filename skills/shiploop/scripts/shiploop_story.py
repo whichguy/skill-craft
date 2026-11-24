@@ -577,9 +577,16 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
     changed = latest["summary"] if latest else "No reliably timestamped event recorded; source order alone does not establish latest activity."
     knowledge_times = [row.get("logged_at") for row in observations if _timestamp(row.get("logged_at")) is not None]
     last_knowledge_at = max(knowledge_times, key=_timestamp) if knowledge_times else None
-    story = {"schema": "shiploop-progress-story/v1", "summary": {"now": str(stage or state.get("status")),
+    try:
+        next_label, next_text = navigator._status_next(state)
+        now_where = navigator._status_where(state)
+        summary_next = f"{next_label}: {next_text}"
+    except (KeyError, ValueError, TypeError, StopIteration, IndexError):
+        now_where = str(stage or state.get("status"))
+        summary_next = "Await the recorded current action." if current else "No current action."
+    story = {"schema": "shiploop-progress-story/v1", "summary": {"now": now_where,
              "changed": changed,
-             "waiting": state.get("status_reason") or "", "next": "Await the recorded current action." if current else "No current action."},
+             "waiting": state.get("status_reason") or "", "next": summary_next},
              "run_root": str(root), "visits": visits, "events": events, "evidence": evidence, "sources": sources,
              "lifecycle": lifecycle, "observations": observations,
              "last_event_at": latest["at"] if latest else None,

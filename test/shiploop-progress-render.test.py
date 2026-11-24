@@ -1000,6 +1000,54 @@ assert.deepEqual(changed, []); assert.strictEqual(live.children[1], a); assert.s
         self.assertIn("@media(max-width:600px)", page)
         self.assertIn('aria-labelledby="story-heading"', page)
 
+    def test_reviewing_badge_inflight_chips_and_revivable_polling(self):
+        data = story_snapshot()
+        data["run"]["display_status"] = "reviewing"
+        data["run"]["display_label"] = "Reviewing"
+        data["run"]["inflight"] = {
+            "step_id": "S1", "step_number": 1, "step_total": 3,
+            "loop_iteration": 2, "improve_active": True,
+            "improve_stage": "implement", "improve_review_mode": "standard", "improve_passes": 1,
+            "last_check_yes": False, "open_notes": 2, "carried_notes": 1,
+        }
+        data["observer"].update(mode="snapshot", final=False, revivable=True)
+        page = progress_render.render(data)
+        self.assertIn('class="status-badge status-reviewing">Reviewing</span>', page)
+        for chip in ("Step <b>S1 (1/3)</b>", "Loop pass <b>2</b>",
+                     "Improve <b>implement (standard) · pass 1</b>",
+                     "Check <b>not passed</b>", "Owner notes <b>2 open, 1 carried</b>"):
+            self.assertIn(chip, page)
+        self.assertIn('data-revivable="true"', page)
+        self.assertIn("Observer idle · auto-revive on", page)
+        if shutil.which("node"):
+            source = progress_render._SCRIPT
+            live = source[source.index("  let tick = 0, timer = null"):source.index("  // Fragments are stable evidence identities")]
+            script = """
+const assert = require('assert');
+function page(dataset, opts = {}) {
+  const loads = []; let callback = null, wait = null;
+  const root = {dataset}; const window = {};
+  const document = {head: {appendChild: (n) => loads.push(n)}, createElement: () => ({remove() {}})};
+  const setTimeout = (fn, ms) => { callback = fn; wait = ms; return 1; }, clearTimeout = () => { callback = null; };
+  let paused = !!opts.paused, observedAt = dataset.observedAt;
+  const parseDate = (v) => v ? new Date(v) : null;
+  const setting = (n, d) => d;
+  const mode = () => root.dataset.mode, isFinal = () => root.dataset.final === 'true';
+  const autoAllowed = () => mode() === 'watch' && !isFinal();
+  const hasSelection = () => false, announce = () => {}, updateFreshness = () => {}, apply = () => {};
+""" + live + """
+  return {schedule, scheduled: () => callback !== null, wait: () => wait};
+}
+let r = page({mode: 'snapshot', final: 'false', revivable: 'true', version: 'v1', observedAt: '2026-11-19T00:00:00Z'});
+r.schedule(); assert(r.scheduled()); assert.equal(r.wait(), 15000);
+let f = page({mode: 'snapshot', final: 'true', revivable: 'true', version: 'v1', observedAt: '2026-11-19T00:00:00Z'});
+f.schedule(); assert(!f.scheduled());
+let q = page({mode: 'snapshot', final: 'false', revivable: 'true', version: 'v1', observedAt: '2026-11-19T00:00:00Z'}, {paused: true});
+q.schedule(); assert(!q.scheduled());
+"""
+            res = subprocess.run([shutil.which("node"), "-e", script], capture_output=True, text=True, timeout=5)
+            self.assertEqual(res.returncode, 0, res.stderr)
+
 
 
 if __name__ == "__main__":

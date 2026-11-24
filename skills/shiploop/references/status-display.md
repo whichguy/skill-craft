@@ -23,13 +23,15 @@ Completed: 1 item; W1 "Config loader refactor": loader split, 12 tests added
 
 | Line | Content |
 |---|---|
-| Where | Phase, then item (N of M) and its stage group, then the stage. `> improve` follows it while the Improve stage owns the step. |
+| Where | Phase, then item (N of M) and its stage group, then the stage (`(Step S<k> n/m)` in `implement`/`test`/`document`, and `> improve` while the Improve stage owns the step). |
 | Run | Preparation, work items (completed/total) and Release. |
 | Item / Stages | During a work item, its 7 stages in four phases: Plan, Validate existing, Build, Reflect and revise. In preparation and release, each stage. |
 | Done | The latest accepted result's first sentence, marked when Improve reviewed it or the outcome was blocked, send-back, add-work or reconcile. While a child is parked, the result it is reviewing. |
 | Next / Stopped | The current stage and its one-line purpose, or, at the Improve stage, `improve: run the improve skill on the <stage> result`. A paused, blocked or halted run shows its reason; the packet prints the resume command. |
 | Item plan | The first sentence of the item's accepted `step-plan` summary, or of the item's `context` before that. Omitted when neither exists. |
 | Completed | Completed items, the three most recent with the first sentence of their `reflect-and-revise` summary. |
+
+Canonical display states shared across `status`, HTML progress/trace pages, and the multi-run hub: `Active`, `Reviewing` (active Improve pass), `Waiting on you` (`awaiting: answer|present`), `Waiting on service` (`awaiting: service`), `Paused`, `Blocked`, `Done`, and `Halted`.
 
 ## Live HTML progress view
 
@@ -145,23 +147,32 @@ guarantee.
 Use the same selected package's CLI and exact run directory:
 
 ```sh
-python3 "$CLI" view --run-dir "$RUN_DIR"            # write one offline snapshot
-python3 "$CLI" view --run-dir "$RUN_DIR" --start    # start or reuse background observer
-python3 "$CLI" view --run-dir "$RUN_DIR" --watch    # watch in this foreground process
-python3 "$CLI" view --run-dir "$RUN_DIR" --status   # process status, read-only
-python3 "$CLI" view --run-dir "$RUN_DIR" --stop     # stop; disable automatic restarts
-python3 "$CLI" view --run-dir "$RUN_DIR" --serve    # the same pages in a browser, read-only, until Ctrl-C
+python3 "$CLI" view --serve                                      # multi-run browser hub at 127.0.0.1:41730 (all runs)
+python3 "$CLI" view --serve --background                         # detached hub server; prints URL and stop command
+python3 "$CLI" view --stop-server                                # stop the active browser hub/viewer server
+python3 "$CLI" view --run-dir "$RUN_DIR"                         # write one offline snapshot
+python3 "$CLI" view --run-dir "$RUN_DIR" --start                 # start or reuse background observer
+python3 "$CLI" view --run-dir "$RUN_DIR" --watch                 # watch in this foreground process
+python3 "$CLI" view --run-dir "$RUN_DIR" --status                # observer + viewer status, read-only
+python3 "$CLI" view --run-dir "$RUN_DIR" --stop                  # stop; disable automatic restarts
+python3 "$CLI" view --run-dir "$RUN_DIR" --serve                 # serve this single run on 127.0.0.1 until Ctrl-C
+python3 "$CLI" runs [--active] [--watch] [--json]                # list or watch all discovered concurrent runs
+python3 "$CLI" status --run-dir "$RUN_DIR" [--watch]             # print status block (or watch transitions)
 ```
 
 `--start`, `--watch` or `--serve` reenables observation after `--stop`. A one-shot
 snapshot refuses to compete with an existing observer. `--interval` selects the
 sampling interval (default two seconds); `--idle-timeout` defaults to 1800 seconds
-without recorded activity. A sample that finds nothing new rewrites only the
-version script and does not reset that clock.
-An idle observer exits and a later packet can restart
-it. Set `SHIPLOOP_PROGRESS=off` in a command's environment to suppress automatic
-startup, for example in a hermetic harness. It does not stop an existing observer
-or disable explicit `view` commands.
+without recorded activity. The observer stat-gates its inputs (`state.md`,
+`trace.jsonl`, watched repo docs, loops, checks, owner notes) so an idle sample
+that finds nothing changed rewrites only the 277-byte `progress-version.js`
+heartbeat without rebuilding or rescreening pages, and does not reset the idle
+clock. An observer that exits on idle timeout marks the page revivable so an
+open non-terminal tab polls quietly every 15 seconds and resumes live updates
+when a later ShipLoop packet restarts observation. Set `SHIPLOOP_PROGRESS=off`
+in a command's environment to suppress automatic startup, for example in a
+hermetic harness. It does not stop an existing observer or disable explicit
+`view` commands.
 
 Only the observer writes `progress.html`, `trace.html` and their three scripts
 (`progress-version.js`, `progress-content.js`, `trace-content.js`). It holds a separate singleton lock and
@@ -228,34 +239,36 @@ state or make evidence satisfy a gate.
 
 ### Browser viewer
 
-`view --serve` is the opt-in alternative to opening the file (owner, 2026-10-29). It makes
-sure the observer is running, as `--start` does, and then serves `progress.html` (also at
-`/`), `trace.html` and `report.html` from the run directory on `127.0.0.1` until the user
-stops it with Ctrl-C. A done or halted run keeps the pages it froze; nothing restarts for
-it. The command prints its address. The default port comes from the run directory, so a run
-keeps its address across restarts; a taken port moves on to the next free one, `--port N`
-sets one and `--port 0` lets the system pick. Use it when the file is awkward: a browser that
-blocks local files, or a run on another machine reached through an SSH port forward. On the
-same machine the file works as before.
+`view --serve` is the opt-in browser dashboard (owner, 2026-10-29). Without
+`--run-dir`, it starts the **Multi-Run Hub** on `127.0.0.1:41730` (probing
+subsequent ports if taken, `--port N`, `--port 0`), discovering runs from the
+best-effort XDG state registry, keepalive records, and `.shiploop-runs` roots
+while surfacing attention priorities (`Waiting on you`, dead owner processes)
+and shared-source-repo warnings across concurrent runs. With `--run-dir`, it
+ensures that run's observer is running and serves `progress.html` (also at
+`/`), `trace.html` and `report.html` from that directory (default port derived
+from the run directory). Add `--background` to launch the server detached and
+print its URL and `--stop-server` command; `view --stop-server` stops it cleanly.
 
-The first packet of a run carries the command in its `Progress view:` line, and the host
-gives it to the user once, beside the link. The user runs it in their own terminal. A model
-that ran it would block on a server that never exits, and a server ShipLoop started itself
-would be a command the host's hooks never saw. Later packets do not repeat it.
+The first packet of a run checks whether a live hub server is already running:
+if so, its `Progress view:` line gives the direct `/runs/<key>/` and `/` URLs;
+otherwise it prints the recommended `view --serve` command for the user to run
+in their own terminal (never auto-started by the agent). Later packets do not
+repeat it.
 
-The viewer only reads; the observer still owns every page. It answers GET and HEAD for the
-three pages above and the three scripts an open page loads to update in place
-(`progress-version.js`, `progress-content.js`, `trace-content.js`), and nothing else: 405 for
-any write method, 404 for any other path, 403 for
-a file that is a symbolic link or has a second hard link. It refuses a request whose `Host` is
-not its own address, so a page on another site cannot read the run through a name it points
-at 127.0.0.1. It listens on the loopback address only and sets `no-store` and a content
-security policy that allows only the page's own inline script and style and those three
-scripts. While it runs, any
-process on this machine can read the pages. It adds no push: a served page checks the version
-script on its timer and updates in place, exactly as a page opened as a file does. Primary evidence navigation opens embedded previews, including over HTTP;
-disk paths remain selectable for manual inspection. Progress and trace use
-relative page links, and the saved-report link points at the viewer's own `/report.html`.
+The viewer only reads; each run's observer still owns its pages. It answers GET
+and HEAD for the hub (`/`, `/api/runs`, and `/runs/<key>/...`) or single-run
+pages and sibling live-update scripts (`progress-version.js`,
+`progress-content.js`, `trace-content.js`), and nothing else: 405 for any write
+method, 404 for any unknown run or path, 403 for a file that is a symbolic link
+or has a second hard link. It refuses a request whose `Host` is not its own
+address, listens on loopback only, and sets `no-store` and a strict content
+security policy (`connect-src 'self'` on the hub for `/api/runs`, `connect-src
+'none'` on per-run pages). While it runs, any process on this machine can read
+the pages. Primary evidence navigation opens embedded previews, including over
+HTTP; disk paths remain selectable for manual inspection. Progress and trace use
+relative page links, and the saved-report link points at the viewer's own
+`report.html`.
 
 ## Run trace
 
@@ -382,27 +395,29 @@ imply the builder is running or resume the run. Done and halted pages remain fin
    before the duties (owner, 2026-10-17: the block and the narrative said the
    same; a live run printed both in 28 of 36 packets). A milestone packet,
    which every paused, blocked, halted and done packet is, carries the
-   [narrative](#run-narrative) only. Any other producer packet carries the
-   status line, the block's `Where` and `Next` rows on one line:
+   [narrative](#run-narrative) only. Any other producer packet and every Improve
+   packet carries the compact status line, the block's `Where` and `Next` rows
+   on one line (including `Step S<k> n/m` in `implement`/`test`/`document` and
+   `> improve` when an Improve review is active):
 
    ```text
-   Where: Work items > W2 "Add --version flag" (2 of 4) > Build > test · Next: test: write the specified tests and make every recorded command pass · Goal: Add a --version flag to cli.py
+   Where: Work items > W2 "Add --version flag" (2 of 4) > Build > test (Step S1 1/2) · Next: test: write the specified tests and make every recorded command pass · Goal: Add a --version flag to cli.py
    ```
 
-   An Improve packet carries neither: the packet before it showed the step under
-   review, and the next producer packet shows the result. The progress orients
-   the owner, which does not reprint it: it composes no progress sentence of its
-   own, shows the narrative at a milestone as that narrative's first line says,
-   and leaves the status line to the host status hook. When the user asks for the
-   full status, it shows the block that `status` prints, unchanged. Measured
-   2026-11-03 over 116 recorded runs, no run pasted a status line into its own
-   text, and none needed to: the block reaches the user from the packet and the
-   hook, or from the next narrative.
+   At start or recovery, the host shares the packet's `Progress view:` link and
+   live hub URLs (if running) or recommended launch command once per run. At a
+   milestone, the host follows the narrative's first line. Between milestones
+   (including entering Improve and advancing steps), the Claude Code terminal CLI
+   status hook shows a two-line summary so the host does not repeat it there; on
+   every other host or surface, the host tells the user at most one concise line
+   naming the item/step, what finished, and what is starting. When the user asks
+   for the full status, it shows the block that `status` prints, unchanged.
 2. **`<run>/status.md`**, rewritten by every saved transition in the same
-   journaled transaction as `state.md`, and **`shiploop status --run-dir=…`**,
-   which prints the full block read-only. `status` takes the run lock like `next`,
-   so it first finishes any interrupted save. Only a direct read of
-   `status.md` during an interrupted save can show the previous step.
+   journaled transaction as `state.md`, and **`shiploop status --run-dir=…`**
+   (with optional `--watch`), which prints the full block read-only. `status`
+   takes the run lock like `next`, so it first finishes any interrupted save.
+   Only a direct read of `status.md` during an interrupted save can show the
+   previous step.
 3. **Host status hook**: `scripts/shiploop-status-hook` reads the progress from a
    ShipLoop command's own stdout and puts it in the hook's `systemMessage`: the
    narrative at a milestone, with terminal bold in place of the Markdown, and
@@ -413,14 +428,14 @@ imply the builder is running or resume the run. Done and halted pages remain fin
    model never sees it:
 
    ```text
-   ShipLoop ▶ Work items > W2 "Add --version flag" (2 of 4) > Build > test
+   ShipLoop ▶ Work items > W2 "Add --version flag" (2 of 4) > Build > test (Step S1 1/2)
    Next: test: write the specified tests and make every recorded command pass
    ```
 
    From the block `status` prints, the second line also names what finished
-   (`Done: … | Next: …`) and takes `Waiting on you` or `Stopped` in place of
-   `Next` when the run waits or stops. An Improve packet shows nothing. A
-   marketplace install sets it up; see [host hooks](#host-hooks).
+   (`Done: … | Next: …`) and takes `Waiting on you`, `Waiting on a service` or
+   `Stopped` in place of `Next` when the run waits or stops. A marketplace
+   install sets it up; see [host hooks](#host-hooks).
 
 ## Run narrative
 

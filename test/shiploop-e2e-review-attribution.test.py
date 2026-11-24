@@ -14,6 +14,11 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = ROOT / "test" / "shiploop_e2e"
+sys.path.insert(0, str(ROOT / "test"))
+import state_home  # noqa: E402
+
+state_home.isolate()
+
 sys.path.insert(0, str(HARNESS / "evaluators"))
 sys.path.insert(0, str(HARNESS))
 sys.path.insert(0, str(ROOT / "skills" / "shiploop" / "scripts"))

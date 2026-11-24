@@ -20,7 +20,7 @@ import tempfile
 
 
 # The stores' own overrides, which would send the suite's state to the developer's directories (as in run_suites).
-STATE_OVERRIDES = ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME")
+STATE_OVERRIDES = ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME", "SHIPLOOP_STATE_HOME")
 
 
 def isolate() -> Path:
