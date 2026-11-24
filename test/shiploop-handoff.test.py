@@ -1746,6 +1746,10 @@ class HandoffGateTests(GateCase):
         message = self.refusal(state, "test-spec", dict(done, test_cases=[dict(case, requirement="R-1 and R-12")]))
         self.assertTrue(message.startswith("Fix case requirements in "), message)
         self.assertEqual(message.splitlines()[-1], "TC-3 names R-12.")
+        message = self.refusal(state, "test-spec", dict(done, test_cases=[dict(case, requirement="R-4")]))
+        self.assertTrue(message.startswith("Fix case requirements in "), message)
+        self.assertIn("active (non-retired) R-<n>", message)
+        self.assertEqual(message.splitlines()[-1], "TC-3 names retired R-4.")
 
     def test_an_item_with_no_focused_ids_needs_no_cases(self) -> None:
         state = item_state(self.repo, "W1", [plan_row("sp1", "W1", [], [])], "test-spec")

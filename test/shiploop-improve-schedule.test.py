@@ -200,8 +200,8 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("- every request outcome maps to at least one acceptance line", handoff)
         self.assertNotIn("Capture separate durable review files", handoff)
         text = " ".join(handoff.split())
-        # P12: the child writes review-<n>.md per pass; the callback picks the passes itself.
-        self.assertIn("The callback imports the last two passes", text)
+        # P12: the child writes review-<n>.md per pass; the callback picks the pass itself.
+        self.assertIn("The callback imports the last pass", text)
         self.assertIn("review-<n>.md", text)
         self.assertNotIn("review_refs length is exactly 2", text)
 
