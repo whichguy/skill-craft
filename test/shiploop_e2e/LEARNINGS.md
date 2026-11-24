@@ -9908,3 +9908,20 @@ Validated all Tier 2 ShipLoop hardening commits (`863a86736`, `0596ca604`, `9332
 4. **Open plan assumption queue guard (`863a86736`):** Replacing `work_items` (`[W1, W2]` -> `[W3]`) at `reflect-and-revise` without retaining `W2` or carrying `A1` was refused naming both `W2` and `A1`, and accepted once `A1` was explicitly carried as `evidenced`.
 
 Note: Synthetic CLI driver inputs (non-model JSON submissions and review artifacts) exercised only the deterministic script CLI gates, state transitions, and packets rather than live LLM host inference. Quick CI sweep passed across all 56 suites (`run-all.sh --group quick --changed-from origin/main --jobs 4`, `580.1s` wall), and `scripts/check-release-boundary.py --base origin/main` passed (`OK`).
+
+## 2026-11-24 — Live Codex brownfield (`user-listing`), Claude `hello` spot check, and automated `fork_completeness` verifier (`d6e30f76b`)
+
+Validated the pre-rebase checkout (`b4b13d17e`, equivalent to rebased `bb6940d12..d6e30f76b`) live under `--delegation agents` with two paired runs under `/tmp/shiploop-exp-2.12.1-20261124/` (external `--baseline` files so `baselines.jsonl` stayed untouched):
+
+- **Codex Brownfield (`user-listing`, `gpt-6.2-sol` medium, `/tmp/shiploop-exp-2.12.1-20261124/codex-user-listing`):**
+  - **All verdicts `PASS`** (`invoked`, `plugin`, `process` `rc=0` in `1666.5 s`, `shiploop` `done`, `committed` `HEAD b2d72ca9`, `15` files in `HEAD`, `0` uncommitted product paths), `checks` `3/3 PASS` (`base_tests.py suite`, `base_tests.py pristine`, `serve.py`), and **`held-out 11 of 11 pass` (`held-out names in host's events: 0`)**.
+  - **`0` refusals / `0` non-zero trace exits across all 88 `trace.jsonl` entries**, `0` ShipLoop command failures, `5/5` script verifications passed, `0` test-quality dodges, `0` compactions, `188` turns, `4` requirement IDs in `docs/shiploop/spec.md`. No organic failures occurred at `implement`/`test`, so `FAILURE_DIAGNOSIS_FORK_NOTE` stayed naturally quiet.
+  - **Automated `fork_completeness` metric (`metrics.summary_lines`):** `fork completeness: 8/8 completed (8/8 order_ok, 0 interrupted, 0 abandoned), waits 17 (4 timeouts), nested_spawns 0, child_completes 0, packets 8/8 complete` (`8` Improve children, `13` review passes; `release-plan` completed cleanly in `6` post-fork `exec` calls / `1` wait / `0` timeouts; `worker-brief.md` matched `delta=True` on all `6/6` forked stages and `delta=False` on both `2/2` fresh stages).
+- **Claude Spot Check (`hello`, `claude-sonnet-5-5` medium, `/tmp/shiploop-exp-2.12.1-20261124/claude-hello`):**
+  - **All verdicts `PASS`** (`1019.3 s`, `$4.6752`, `232` turns, `HEAD 98c559db`, `2/2` checks PASS, `8/8` blocking `Agent` calls, `13` review passes, `4/4` script verifications).
+  - **`0` `spec_writeback` refusals at `document`**, and total refusals dropped from `9` (`2.11.0`) to `5` (`improve-pass` at `test-strategy`, missing result file at `plan`, `--check` criterion `C3` at `step-plan`, and `2` missing `evidence_refs` file paths at `handoff`).
+- **Retired-term audit (`terminal packet` 6 hits):** Confirmed read-only that the 6 hits come from vendored `skills/improve/runtime/until-loop/scripts/until_loop_session.py` (`test/until-loop-vendor.test.py` pins its upstream SHA-256 hash), while `test/shiploop-retired-terms.test.py` passes cleanly (`6/6 OK`).
+
+Standing harness questions: (1) continue passing external `--baseline` for side validation runs; (2) live multi-item/brownfield `FAILURE_DIAGNOSIS_FORK_NOTE` trigger rate remains naturally dormant when `implement`/`test` pass on first pass (`codex-user-listing` passed cleanly with `0` failures); (3) automated causal `fork_completeness` verification is now built into `test/shiploop_e2e/metrics.py` (`fork_completeness.py`).
+
+Limits: Post-rebase integration (`d6e30f76b` rebased onto `1c84a0c48` / `4.12.0` + `9a9b369ef`) verified hermetically via CI sweep on the exact rebased `HEAD` after live runs completed on pre-rebase `b4b13d17e`. Evidence roots (ephemeral under `/tmp`): `/tmp/shiploop-exp-2.12.1-20261124/`.
