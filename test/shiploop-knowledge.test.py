@@ -633,7 +633,7 @@ class RemovalTests(HomeFixture):
             for names in table.values():
                 self.assertTrue(set(names) <= set(knowledge.LIVING), names)
 
-    def test_carry_forward_keeps_the_spec_as_written_and_routes_a_gap_in_both_forms_of_its_duty(self) -> None:
+    def test_reflect_and_revise_keeps_the_spec_as_written_and_routes_a_gap_in_both_forms_of_its_duty(self) -> None:
         """Its duty agrees with STAGE_FILES, which gives it architecture.md and environment.md only: whole, and in the one-step
         one-item form, it keeps spec.md as the steps wrote it, except a requirement an owed owner note asks to change, and
         sends an unmet clause to its work item or an open item.
@@ -666,7 +666,7 @@ class RemovalTests(HomeFixture):
                 for gone in ("each R-<n> this item satisfied", "Test IDs live only in test code"):
                     self.assertNotIn(gone, " ".join(text.split()))
 
-    def test_carry_forward_takes_a_step_plans_revision_to_later_items_and_is_not_blocked_by_it(self) -> None:
+    def test_reflect_and_revise_takes_a_step_plans_revision_to_later_items_and_is_not_blocked_by_it(self) -> None:
         """Design of 2026-11-22: a pending item's step plan sees the spec as a table of contents, so a requirement this
         item's step plan revised reaches it through its `context`; and the revision, accepted at step-plan, is not the
         changed requirement that blocks reflect-and-revise, in the full duty and in the one-step form (whose loop rule holds

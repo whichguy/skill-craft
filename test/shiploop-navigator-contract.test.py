@@ -429,7 +429,7 @@ class NavigatorContractTests(unittest.TestCase):
             result(work_items=rows),
         )
 
-    def _advance_to_carry_forward(self, state: dict) -> dict:
+    def _advance_to_reflect_and_revise(self, state: dict) -> dict:
         while navigator.current_stage(state) != "reflect-and-revise":
             state = self._produce(state, navigator.current_stage(state))
         return state
@@ -658,7 +658,7 @@ class NavigatorContractTests(unittest.TestCase):
         with self.assertRaises(navigator.NavigatorError):
             navigator.apply(waiting, action["id"], result(summary="Conflicting producer report."))
 
-    def test_carry_forward_rejects_legacy_skill_result_carriers_without_mutation(self) -> None:
+    def test_reflect_and_revise_rejects_legacy_skill_result_carriers_without_mutation(self) -> None:
         """ShipLoop retains reusable-skill evidence in its generic envelope only.
 
         skill-assess's skill decision is reflect-and-revise's `skill` field since the 8-stage inner loop; the legacy
@@ -1612,14 +1612,14 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual((root / "state.md").read_bytes(), before)
         self.assertIn("Work items planned: 3", cold)
 
-    def test_carry_forward_omission_retains_all_pending_items(self) -> None:
+    def test_reflect_and_revise_omission_retains_all_pending_items(self) -> None:
         """Omitting work_items at reflect-and-revise completes only the current item."""
         rows = [
             {"id": "W1", "title": "Feature item"},
             {"id": "W2", "title": "Integration item"},
             {"id": "W3", "title": "Audit item"},
         ]
-        state = self._advance_to_carry_forward(self._planned_queue(rows))
+        state = self._advance_to_reflect_and_revise(self._planned_queue(rows))
         action = self._action(state)
         # W2/W3 remain queued, so this is not the run's last-item review; it
         # advances directly, with no Improve child.
@@ -1631,7 +1631,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertNotIn("work_items", completed["accepted"][action["id"]])
         self.assertEqual(navigator.current_stage(completed), "step-plan")
 
-    def test_carry_forward_replaces_only_future_queue_and_rejects_prior_ids(self) -> None:
+    def test_reflect_and_revise_replaces_only_future_queue_and_rejects_prior_ids(self) -> None:
         """An explicit reflect-and-revise array replaces future work; it cannot reuse prior IDs."""
         rows = [
             {"id": "W1", "title": "Feature item"},
@@ -1639,7 +1639,7 @@ class NavigatorContractTests(unittest.TestCase):
             {"id": "W3", "title": "Detached audit item"},
         ]
         replacement = [{"id": "NEW", "title": "New audit finding"}]
-        state = self._advance_to_carry_forward(self._planned_queue(rows))
+        state = self._advance_to_reflect_and_revise(self._planned_queue(rows))
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
         action = self._action(state)
         # The replacement queue is not empty, so this reflect-and-revise is not the
@@ -1654,7 +1654,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(revised["completed_work_items"], ["W1"])
         self.assertEqual(navigator.current_stage(revised), "step-plan")
 
-        empty_state = self._advance_to_carry_forward(self._planned_queue(rows))
+        empty_state = self._advance_to_reflect_and_revise(self._planned_queue(rows))
         empty_action = self._action(empty_state)
         empty_waiting = navigator.apply(
             empty_state, empty_action["id"], result(work_items=[])
@@ -1669,7 +1669,7 @@ class NavigatorContractTests(unittest.TestCase):
         # These two rejections exercise finish_improve's own work_items
         # validation. A seed that clears the future queue makes the
         # reflect-and-revise the run's last-item review, so a real child parks.
-        current_state = self._advance_to_carry_forward(self._planned_queue(rows))
+        current_state = self._advance_to_reflect_and_revise(self._planned_queue(rows))
         current_action = self._action(current_state)
         current_waiting = self._pending(current_state, work_items=[])
         before_current = copy.deepcopy(current_waiting)
@@ -1684,10 +1684,10 @@ class NavigatorContractTests(unittest.TestCase):
             )
         self.assertEqual(current_waiting, before_current)
 
-        completed_state = self._advance_to_carry_forward(self._planned_queue(rows))
+        completed_state = self._advance_to_reflect_and_revise(self._planned_queue(rows))
         completed_action = self._action(completed_state)
         completed_state = navigator.apply(completed_state, completed_action["id"], result())
-        completed_state = self._advance_to_carry_forward(completed_state)
+        completed_state = self._advance_to_reflect_and_revise(completed_state)
         self.assertEqual(completed_state["completed_work_items"], ["W1"])
         self.assertEqual(completed_state["work_items"][completed_state["work_index"]]["id"], "W2")
         prior_action = self._action(completed_state)
@@ -1839,7 +1839,7 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertIn("**Recheck the item.** Reopen its `context` and recheck each condition",
                       " ".join(select_packet.split()))
         self.assertNotIn("Select the next ready work item", select_packet)
-        state = self._advance_to_carry_forward(state)
+        state = self._advance_to_reflect_and_revise(state)
         carry_packet = navigator.render(None, root, state)
         self.assertIn(queue_locator, carry_packet)
         # One item with one step and none pending (loops.one_step_run, efficiency plan U16 row VR-2): the queue rule prints
@@ -2123,7 +2123,7 @@ class NavigatorContractTests(unittest.TestCase):
         """The projection reports graph facts only; reports escape host text."""
         rows = [{"id": "W1", "title": "Create the first small capability"},
                 {"id": "W2", "title": "Finish the second small capability"}]
-        state = self._advance_to_carry_forward(self._planned_queue(rows))
+        state = self._advance_to_reflect_and_revise(self._planned_queue(rows))
         state = self._produce(state, "reflect-and-revise")
         self.assertEqual(navigator._current_work_item(state), "W2")
         # W2's test stage: an inner stage between two others (verify was this probe until it retired, design T 2b-4c).
@@ -2247,7 +2247,7 @@ class NavigatorContractTests(unittest.TestCase):
                            for index in range(1, 6)]
         finished = self._planned_queue(completed_items)
         for _ in range(4):
-            finished = self._produce(self._advance_to_carry_forward(finished), "reflect-and-revise")
+            finished = self._produce(self._advance_to_reflect_and_revise(finished), "reflect-and-revise")
         completed_line = next(line for line in self._progress(finished).splitlines()
                               if line.startswith("Completed work items:"))
         self.assertEqual(completed_line.count(marker), 3)

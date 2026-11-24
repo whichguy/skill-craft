@@ -342,7 +342,7 @@ class RefusalTests(NoteRun):
                                concerns=contract.inner_fixture.no_concerns_map(["W1", "W2"]),
                                notes=[row(did="applied", detail="W2 reuses src/dates.py", item="W2")]))
 
-    def test_carry_forward_settles_with_a_pending_item_and_may_not_carry(self) -> None:
+    def test_reflect_and_revise_settles_with_a_pending_item_and_may_not_carry(self) -> None:
         run, _head = self.new_run("prepare", results=THREE_ITEMS)
         self.walk(run, self.at("reflect-and-revise", "W2"), results=THREE_ITEMS)
         self.note(run)
@@ -404,7 +404,7 @@ class LedgerTests(NoteRun):
         self.assertEqual(self.owes(packet), [])
         self.assertIn("Owner notes accounted for: N1 already at implement of W1 (step ", packet)
 
-    def test_a_note_carried_at_implement_is_owed_by_the_items_carry_forward_and_by_no_step_before_it(self) -> None:
+    def test_a_note_carried_at_implement_is_owed_by_the_items_reflect_and_revise_and_by_no_step_before_it(self) -> None:
         run, head = self.new_run("implement")
         (self.repo_of(run) / "built.txt").write_text("hello\n")
         self.note(run)
@@ -1099,7 +1099,7 @@ class StandingTextTests(unittest.TestCase):
     duty says no word of a note, so a stage of a work item whose step a note changes may send it back; and step-plan's
     knowledge duty lets it rewrite the requirement such a note changes, which is where every such delivery did it."""
 
-    def test_carry_forward_carries_the_exception_and_document_its_own_sentence(self) -> None:
+    def test_reflect_and_revise_carries_the_exception_and_document_its_own_sentence(self) -> None:
         import shiploop_loops as loops
         import shiploop_prompts as prompts
         for route in (prompts.INLINE, prompts.ASK_AGENT):
@@ -1504,7 +1504,7 @@ class RouteTests(RouteRun):
         ledger = owner_notes.ledger(self.state(run))
         self.assertEqual([(entry["stage"], entry["did"]) for entry in ledger["N1"]], [("step-plan", "applied")])
 
-    def test_a_note_carried_at_step_plan_is_settled_at_that_items_carry_forward(self) -> None:
+    def test_a_note_carried_at_step_plan_is_settled_at_that_items_reflect_and_revise(self) -> None:
         run, _head = self.new_run("step-plan")
         self.note(run)
         head = self.next(run)

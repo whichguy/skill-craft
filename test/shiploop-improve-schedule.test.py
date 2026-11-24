@@ -205,7 +205,7 @@ class ImproveScheduleTests(unittest.TestCase):
         self.assertIn("review-<n>.md", text)
         self.assertNotIn("review_refs length is exactly 2", text)
 
-    def test_unsuccessful_last_carry_forward_advances_without_improve(self):
+    def test_unsuccessful_last_reflect_and_revise_advances_without_improve(self):
         state = advance_to(self.new(), "reflect-and-revise")
         self.assertEqual(len(state["work_items"]), 1)
         action = nav.current_action(state)["id"]

@@ -2485,7 +2485,7 @@ class PrimaryRequirementRouteTests(RealCliCase):
                 RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
                 self.assertEqual(self.recorded(run, action)["work_items"], fixed["work_items"])
 
-    def test_a_carry_forward_whose_queue_drops_the_work_item_serving_a_primary_requirement_is_refused(self) -> None:
+    def test_a_reflect_and_revise_whose_queue_drops_the_work_item_serving_a_primary_requirement_is_refused(self) -> None:
         queue = [{"id": "W1", "title": "Build it", "context": "All of it."},
                  {"id": "W2", "title": "Serve R-1", "follows": ["R-1"], "context": "R-1's change."}]
         run, head = self.new_run("reflect-and-revise", results={"spec": {"primary": ["R-1"]}, "plan": {"work_items": queue}})
@@ -3064,7 +3064,7 @@ class InnerGateRouteTests(RealCliCase):
         self.accepted(command)
         self.assertEqual(self.recorded(run, action)["test_cases"], TEST_CASES)
 
-    def test_carry_forward_needs_a_skill_decision_and_an_update_names_an_existing_skill(self) -> None:
+    def test_reflect_and_revise_needs_a_skill_decision_and_an_update_names_an_existing_skill(self) -> None:
         run, head = self.new_run("reflect-and-revise")
         command, path, action = printed_callback(head)
         good = self.fill_done(head)

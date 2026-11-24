@@ -317,7 +317,7 @@ class StopTests(SliceCase):
         self.assertFalse(result["verdicts"]["no_overshoot"])
         self.assertFalse(result["pass"])
 
-    def test_a_carry_forward_that_adds_work_stops_after_the_first_item(self):
+    def test_a_reflect_and_revise_that_adds_work_stops_after_the_first_item(self):
         seeded = self.seed()
         process = self.fake(seeded, "grow")
         self.assertEqual(process["status"], "slice-complete")

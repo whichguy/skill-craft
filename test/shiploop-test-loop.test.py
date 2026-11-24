@@ -813,7 +813,7 @@ class TestLoopTests(unittest.TestCase):
         self.drive_to("reflect-and-revise")
         self.assertNotIn("item commit", self.packet())
 
-    def test_a_one_step_one_item_carry_forward_prints_the_short_queue_and_skill_duties(self):
+    def test_a_one_step_one_item_reflect_and_revise_prints_the_short_queue_and_skill_duties(self):
         """VR-2: one step in one item and no pending item, proved from state: the short duties, the path-only queue
         line and a Work line without the trial clause (the short duty 3 names the trial file)."""
         self.start()
@@ -833,7 +833,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(work, loops.WORK_ONE_STEP.replace("{items}", "1-4").replace("{run}", str(self.run_dir))
                          .replace("{action}", self.action()))
 
-    def test_carry_forward_names_the_passed_commands_environment_md_lacks_and_its_notice_never_refuses(self):
+    def test_reflect_and_revise_names_the_passed_commands_environment_md_lacks_and_its_notice_never_refuses(self):
         """VR-3: the commands that passed at the item's test stage (its last step runs every command) and
         KNOWLEDGE/environment.md does not name, in the packet, and one counted notice when reflect-and-revise is accepted."""
         self.start()
@@ -858,7 +858,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(len(notices), 1)
         self.assertTrue(notices[0].endswith("`test -f retained.txt`"))
 
-    def test_the_carry_forward_duty_is_unchanged_without_the_one_step_item(self):
+    def test_the_reflect_and_revise_duty_is_unchanged_without_the_one_step_item(self):
         """VR-2: multi-step, multi-item and pending-item runs keep today's text byte for byte."""
         for route in prompts.DELEGATIONS:
             self.assertEqual(prompts.duty("reflect-and-revise", delegation=route),
@@ -1001,7 +1001,7 @@ class TestLoopTests(unittest.TestCase):
         path.write_text(text)
         return ".claude/skills/review/SKILL.md"
 
-    def test_carry_forward_needs_a_skill_decision_with_its_reason(self):
+    def test_reflect_and_revise_needs_a_skill_decision_with_its_reason(self):
         self.start()
         self.drive_to("reflect-and-revise")
         refused = lambda result, message: self.assert_refused(result, message, loop=True, fill=False)  # noqa: E731

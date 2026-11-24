@@ -87,7 +87,7 @@ class IndexTests(unittest.TestCase):
         text = context_index.render(state, Path("/tmp/run"), nav.current_stage(state))
         self.assertIn("W1 has gone back to step-plan 1 time", text)
 
-    def test_document_carry_forward_and_handoff_read_the_evidence_they_judge(self) -> None:
+    def test_document_reflect_and_revise_and_handoff_read_the_evidence_they_judge(self) -> None:
         # Verify is retired (design T §9.1 2b-4c): each step's document stage closes the step on the step's plan, cases,
         # build and tests, and reflect-and-revise closes the item on the last test result and every step's reflection.
         self.assertTrue({"item:step-plan", "item:test-spec", "item:implement", "item:test"}
