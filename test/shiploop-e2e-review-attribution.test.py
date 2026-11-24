@@ -194,10 +194,30 @@ class ImproveReviewAttributionTests(unittest.TestCase):
         status = ACTUAL.ImprovePassTests.run_done(helper, done)["status"]
         if edit != "none":
             self.assertEqual(status, "active", out)
+            next_n = 2
             if intermediate_test_failure:
                 (helper.repo / "test/basket-intermediate.test.js").unlink()
+                res2 = subprocess.run(command, cwd=helper.repo, capture_output=True, text=True)
+                checks.write_text("$ node --test\n" + res2.stdout + res2.stderr, encoding="utf-8")
+                if commit:
+                    helper.message.write_text(
+                        "test: remove temporary failing intermediate test\n\n"
+                        "Key learnings: clean up intermediate probe before confirmation pass.\n",
+                        encoding="utf-8",
+                    )
+                ACTUAL.ImprovePassTests.write_review(
+                    helper, n=2, label="non-trivial", exit="unsatisfied",
+                    found="removed temporary failing test/basket-intermediate.test.js",
+                    changed="removed test/basket-intermediate.test.js",
+                    why="deleting a test file changes test paths and requires a confirmation pass",
+                )
+                out = helper.invoke(*ACTUAL.ImprovePassTests.pass_args(helper)).stdout
+                done, complete, _again = ACTUAL.ImprovePassTests.printed(helper, out)
+                status = ACTUAL.ImprovePassTests.run_done(helper, done)["status"]
+                self.assertEqual(status, "active", out)
+                next_n = 3
             ACTUAL.ImprovePassTests.write_review(
-                helper, n=2, label="trivial", exit="satisfied", found="nothing else material.",
+                helper, n=next_n, label="trivial", exit="satisfied", found="nothing else material.",
                 changed="none.", why="no further edit is needed.")
             out = helper.invoke(*ACTUAL.ImprovePassTests.pass_args(helper)).stdout
             done, complete, _again = ACTUAL.ImprovePassTests.printed(helper, out)
