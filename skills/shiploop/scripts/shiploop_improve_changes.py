@@ -215,13 +215,31 @@ def commit_refusal(paths: List[str], message_path: str, command: str, complete_c
 
 
 def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
-    """Every completed item's recorded test commands, once each, in item order."""
-    seen: Dict[str, Dict[str, Any]] = {}
+    """Every completed item's recorded test commands (plus registered added_tests), once each, in item order."""
+    items: List[str] = []
     for item in list(state.get("completed_work_items") or ()) + [
-            row["id"] for row in state.get("work_items", ())]:
+            row["id"] for row in state.get("work_items", ()) if isinstance(row, Mapping) and "id" in row]:
+        if item not in items:
+            items.append(item)
+    seen: Dict[str, Dict[str, Any]] = {}
+    for item in items:
         _action, result = test_loop._step_plan(state, item)
-        for row in result.get("test_commands") or ():
-            seen.setdefault(row["command"], dict(row))
+        rows = test_loop._with_registered(list(result.get("test_commands") or ()), test_loop.registered(state, item))
+        for row in rows:
+            command = row["command"]
+            if command not in seen:
+                copy_row = dict(row)
+                if "ids" in copy_row:
+                    copy_row["ids"] = list(copy_row["ids"])
+                seen[command] = copy_row
+            else:
+                existing = seen[command]
+                extra_ids = [ident for ident in (row.get("ids") or ()) if ident not in (existing.get("ids") or ())]
+                if extra_ids:
+                    existing["ids"] = [*(existing.get("ids") or ()), *extra_ids]
+                if isinstance(row.get("min_tests"), int):
+                    prior_min = existing.get("min_tests")
+                    existing["min_tests"] = max(prior_min, row["min_tests"]) if isinstance(prior_min, int) else row["min_tests"]
     return list(seen.values())
 
 

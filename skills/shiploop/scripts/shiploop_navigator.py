@@ -3205,8 +3205,8 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
 
 def _step_spec_refusal(state: Mapping[str, Any], item: str | None) -> str:
     """The spec write-back refusal of the inline step ``item`` is on ('' outside one): what its spec.md edit may add
-    (``knowledge.step_spec_refusal``, build plan S3.3).  Implement and document check it at their complete and the step's
-    review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3, option C)."""
+    (``knowledge.step_spec_refusal``, build plan S3.3).  Implement, test and document check it at their complete and the
+    step's review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3, option C)."""
     view = step_view(state, item) if item else None
     if view is None:
         return ""
@@ -5257,6 +5257,8 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
         return
     if child.get("stage") != "reflect-and-revise" or (changes is not None and not changes[0]):
         return
+    if changes is not None and changes[0]:
+        _review_lint_gate(core, root, state, action_id, "", receipt, stage_label="end-of-work review")
     commands = improve_changes.rerun_commands(state)
     writes, refusal = test_loop.verify(root, state, "", action_id, "end-of-work review", commands=commands)
     for relative, text in writes.items():
@@ -5265,10 +5267,10 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
 
 
 def _review_lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, item: str,
-                      receipt: Any) -> None:
-    """Refuse a step review's import while a line the review changed (since its bind snapshot) has a new unwaived lint
+                      receipt: Any, *, stage_label: str = "step review") -> None:
+    """Refuse a review's import while a line the review changed (since its bind snapshot) has a new unwaived lint
     finding (design T §8.2a, 2b-4b); the waivers are its final result's, else the reviewed result's."""
-    mode = lint_mode(state)
+    mode = state.get("lint", "off")
     try:
         bound = store.read_record(root / improve_changes.bind_path(action_id))
     except (OSError, store.StorageError):
@@ -5282,7 +5284,7 @@ def _review_lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id
             + str(bound["tree"])[:12]}
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=item, run_option=mode, base=base, waivers=waivers,
-        command=_command(core), stage="step review", reference_dir=_reference_dir(core),
+        command=_command(core), stage=stage_label, reference_dir=_reference_dir(core),
         execution_mode=str(state.get("execution_mode", "navigator")), changed_by="this review")
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
@@ -10338,7 +10340,7 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     if stage in test_loop.STEP_PROOF_STAGES:
         gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, workitem, submitted,
                                                    count=count)
-    if (stage in ("implement", "document") and workitem and isinstance(submitted, Mapping)
+    if (stage in ("implement", "test", "document") and workitem and isinstance(submitted, Mapping)
             and submitted.get("outcome") == "done"):
         refusal = item_scope.scope_refusal(root, state, workitem) if stage == "implement" else ""
         refusal = refusal or _step_spec_refusal(state, workitem)
