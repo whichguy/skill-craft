@@ -1555,11 +1555,11 @@ class PlacementNoticeTests(HomeFixture):
 
     def test_transient_run_paths_in_living_files_emit_placement_notice(self) -> None:
         self.previous()
-        self.append("environment.md", "\n- Helper: `/tmp/repo/.shiploop-runs/abc/worktree/app.py`\n")
+        self.append("environment.md", "\n- Helper: `/tmp/repo/.shiploop-runs/abc/worktree/app.py` and `.shiploop-improve/x/y`\n")
         found = self.notices()
         self.assertEqual(len(found), 1)
         self.assertIn("gained transient run path(s)", found[0])
-        self.assertIn(".shiploop-runs/abc/worktree/app.py", found[0])
+        self.assertIn("'/tmp/repo/.shiploop-runs/abc/worktree/app.py', '.shiploop-improve/x/y'", found[0])
         # Clearing the transient path clears the notice.
         self.put("environment.md", self.ENV + "\n- Helper: `app.py`\n")
         self.assertEqual(self.notices(), [])

@@ -831,11 +831,13 @@ def _added_headings(name: str, before: str, now: str) -> List[str]:
 
 def _added_transient_paths(before: str, now: str) -> List[str]:
     """Distinct transient runtime/sandbox path tokens added in ``now`` that were not in ``before``."""
-    strip_chars = ".,;:'\"()[]`*"
-    old = {match.strip(strip_chars) for match in _TRANSIENT_PATH_TOKEN.findall(before)}
+    def _clean(raw: str) -> str:
+        return raw.lstrip("'\":[(`*,").rstrip(".,;:'\"()[]`*")
+
+    old = {_clean(match) for match in _TRANSIENT_PATH_TOKEN.findall(before)}
     seen: List[str] = []
     for raw in _TRANSIENT_PATH_TOKEN.findall(now):
-        token = raw.strip(strip_chars)
+        token = _clean(raw)
         if token and token not in old and token not in seen:
             seen.append(token)
     return seen
