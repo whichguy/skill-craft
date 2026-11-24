@@ -88,7 +88,7 @@ READ_ONLY_FANOUT_NOTE = (
 )
 
 # Improve runs after every result of a planning/contract stage and once after
-# the carry-forward that leaves no work item pending (the navigator's pending-queue
+# the reflect-and-revise that leaves no work item pending (the navigator's pending-queue
 # check).  Planning stages write the contracts later work is built on: a sentence,
 # example or expected result there can look done and still be wrong.  Each accepted
 # work item's implement steps have their own rule ("item": one review after the last), whatever the planning review
@@ -127,7 +127,7 @@ Keep the invoking parent alive and run this Improve invocation in one native rev
 Delegation: agents (hybrid reviews). Run planning and outer reviews in one forked
 coding-capable native subagent where the host supports native forking (fresh worker
 plus a 2-line Conversation context note when fork is absent or after cold recovery),
-and run code and end-of-work reviews (`document`, `carry-forward`) in one strictly
+and run code and end-of-work reviews (`document`, `reflect-and-revise`) in one strictly
 fresh coding-capable native subagent with no inherited conversation history. Point
 the worker at CHILD/worker-brief.md (do not copy the full handoff into its prompt),
 inherit full model, tools and permissions, prefer blocking/foreground execution, and
@@ -216,7 +216,7 @@ INNER_GROUPS = (
     ("Plan", ("step-plan", "test-spec")),
     ("Validate existing", ("validate-existing",)),
     ("Build", ("implement", "test", "document")),
-    ("Carry forward", ("carry-forward",)),
+    ("Reflect and revise", ("reflect-and-revise",)),
 )
 
 if set(STAGE_PURPOSE) != set(STAGES):
@@ -332,12 +332,12 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Documentation guidance", "testing-and-documentation.md#documentation"),
         ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
     ),
-    "carry-forward": (
+    "reflect-and-revise": (
         ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
         ("House-style guidance", "house-style.md#retain-the-house-style"),
         ("Persistent project-knowledge guidance", "project-knowledge.md#retain-learnings-for-the-next-invocation"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
-        ("Carry-forward mapping guidance", "carry-forward.md#mandatory-post-inner-mapping"),
+        ("Reflect-and-revise mapping guidance", "reflect-and-revise.md#mandatory-post-inner-mapping"),
         ("Reuse-before-build guidance", "research-loop.md#reuse-before-a-new-mechanism"),
         ("Repository-local skill guidance", "testing-and-documentation.md#reusable-product-skills"),
     ),
@@ -391,13 +391,13 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
 
 
 # Every OUTER duty names the plans it relies on (the OUTER test-planning handshake), and every stage that reuses or
-# defines a test facility cites the facility guide; carry-forward records facility locators but defines none.
+# defines a test facility cites the facility guide; reflect-and-revise records facility locators but defines none.
 for _outer_stage in OUTER:
     STAGE_REFERENCES[_outer_stage] += (
         ("OUTER test-planning handshake", "repeatable-test-suites.md#outer-test-planning-handshake"),
     )
 
-for _facility_stage in sorted(TEST_FACILITY_STAGES - {"carry-forward"}):
+for _facility_stage in sorted(TEST_FACILITY_STAGES - {"reflect-and-revise"}):
     STAGE_REFERENCES[_facility_stage] += (
         ("Reusable test facilities", "repeatable-test-suites.md#reuse-and-define-test-facilities"),
     )
@@ -540,7 +540,7 @@ after planning results (spec, test-strategy, plan, step-plan,
 system-test-author, release-plan; step-plan only for the first work item and
 after a send-back), after each step's document stage (the step's code, tests
 and docs, reviewed together before the step is committed), and after
-the carry-forward that leaves no work item pending. Run only the checks this step's change needs. When this step changes no
+the reflect-and-revise that leaves no work item pending. Run only the checks this step's change needs. When this step changes no
 product file, its check is the named command, its exit code and its required output
 substrings: record them, cite the earlier accepted stage that ran the same command,
 and do not reread history to repeat it.
@@ -575,11 +575,11 @@ to stop or pause runs Pause. Long form: reference#progress.
 """
 
 
-# An inline step-plan or carry-forward builds no execution graph (owner, 2026-10-11), and product-acceptance edits
+# An inline step-plan or reflect-and-revise builds no execution graph (owner, 2026-10-11), and product-acceptance edits
 # nothing (0 of 60 archived results used the route paragraph; stage-prompt review, 2026-10-31), so none of them prints
 # the Backchain route paragraph; the guide and the graph check print with the packet's locators.  Each once printed an
 # optional line requesting a read-only Backchain audit, gone with Backchain (owner decision, 2026-11-16).
-INLINE_AUDIT_STAGES = ("step-plan", "carry-forward")
+INLINE_AUDIT_STAGES = ("step-plan", "reflect-and-revise")
 AUDIT_LINE_STAGES = ("product-acceptance",)
 
 
@@ -820,10 +820,10 @@ ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed nam
                 "does not show `TC-4`: title it `TC-4 (a)`).")
 
 # A run of one work item with one step and no pending item (``shiploop_loops.one_step_run``) repeated no procedure and has no
-# future queue to map, so carry-forward prints these for duties 2 and 3 (plan row VR-2, measured 4,356 -> 802 characters).
+# future queue to map, so reflect-and-revise prints these for duties 2 and 3 (plan row VR-2, measured 4,356 -> 802 characters).
 # ``<<item>>`` is the item's ID.  Every other run prints the duties above, byte for byte.
-_CARRY_FORWARD_ONE_STEP = """\
-2. **Queue** (Carry-forward mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
+_REFLECT_AND_REVISE_ONE_STEP = """\
+2. **Queue** (Reflect-and-revise mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
    queue, rows `{"id", "title", "follows", "context"}`, and say why in the summary. A requirement this item's step plan
    revised is accepted work, not the changed requirement that stops the loop blocked.
@@ -1625,7 +1625,7 @@ preparatory commit); a mismatch there is a send-back.
    - KNOWLEDGE/environment.md: a command that worked under ## Commands; a harness or platform fact not yet recorded.
    - Work the step showed: a defect in its change, fix now; work this item's step plan lacks, report send-back; work a
      later step already holds: leave it to that step; work outside this item: an open item in `assumptions` due at
-     carry-forward. A system, release or real-boundary check the criteria need is an open item due at the stage that
+     reflect-and-revise. A system, release or real-boundary check the criteria need is an open item due at the stage that
      makes it, with its owner.
    In `knowledge` give `spec`, `architecture` and `environment`: for each of those living files, what you changed in
    it or why it needed no change.
@@ -1637,7 +1637,7 @@ preparatory commit); a mismatch there is a send-back.
 7. Plan or criterion wrong as observed: report send-back naming it. Report blocked only when a behaviour cannot be
    observed here, naming it.
 """,
-    "carry-forward": """\
+    "reflect-and-revise": """\
 1. **Knowledge home.** Update in place under the sections named here, with no new ## heading for this item's results;
    keep completed evidence apart from future plans, never rewriting it:
    - KNOWLEDGE/environment.md ## Commands: every command that worked.
@@ -1657,7 +1657,7 @@ preparatory commit); a mismatch there is a send-back.
      (Current-system baseline guide); retain the house style (House-style guidance) and the learnings the next run
      needs (Persistent project-knowledge guidance).
    - Expand no scope; adopt no tentative idea as policy.
-2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and context;
+2. **Queue** (Reflect-and-revise mapping guidance). Read RUN/state.md `work_items` with every pending title and context;
    give every observation that affects later work an owner:
    - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
      revalidation, ahead of its consumers;
@@ -2057,7 +2057,7 @@ IMPROVE_SCOPES = {
     "implement": "one implementation step's diff: its task and criteria, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use",
     "test": "the item's executable tests, their oracles and suite registration, and the passing command evidence",
     "document": "one implementation step, built, tested and documented: its task and criteria, its tests and their oracles, its docs, scope, code contracts, diagnostics, error behaviour, architecture fit and skill use",
-    "carry-forward": "durable learning, the revised queue, the skill decision, pending obligations and revalidation conditions",
+    "reflect-and-revise": "durable learning, the revised queue, the skill decision, pending obligations and revalidation conditions",
     "system-test-author": "whole-product/system test cases and fixtures",
     "system-test": "executed system-boundary evidence and its prerequisites",
     "product-acceptance": "whole-product acceptance assessment and correction needs",
@@ -2217,13 +2217,13 @@ def _item_commit_rule(execution_mode: str | None) -> str:
     return stage_spec.ITEM_COMMITS + " " + left
 
 
-def _one_step_carry_forward(text: str, item: str) -> str:
-    """The carry-forward duty with items 2 and 3 in their one-step one-item form (``_CARRY_FORWARD_ONE_STEP``)."""
-    start = text.index("2. **Queue** (Carry-forward mapping guidance).")
+def _one_step_reflect_and_revise(text: str, item: str) -> str:
+    """The reflect-and-revise duty with items 2 and 3 in their one-step one-item form (``_REFLECT_AND_REVISE_ONE_STEP``)."""
+    start = text.index("2. **Queue** (Reflect-and-revise mapping guidance).")
     end = text.index("4. **Commit nothing.**")
     # Item 4 names item 3.7, which the short form folds into item 3.
     tail = text[end:].replace("(and the skill, item 3.7)", "(and a created or updated skill, item 3)")
-    return text[:start] + _CARRY_FORWARD_ONE_STEP.replace("<<item>>", item) + tail
+    return text[:start] + _REFLECT_AND_REVISE_ONE_STEP.replace("<<item>>", item) + tail
 
 
 def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "stage",
@@ -2236,7 +2236,7 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     default.  ``execution_mode`` (state key ``execution_mode``) picks what the commit rule says about a file the
     item commit leaves.  ``one_step_item`` is the
     item's ID when the run has one work item with one step and no pending item (``shiploop_loops.one_step_run``): the
-    carry-forward duty then prints items 2 and 3 short; every other stage ignores it.  ``interactions`` False (the
+    reflect-and-revise duty then prints items 2 and 3 short; every other stage ignores it.  ``interactions`` False (the
     navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves duty 9's interaction
     bullet out. Duty 3's UI criterion rule remains conditional on the step changing visible UI, not on the cue.
     """
@@ -2244,8 +2244,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     _require_delegation(delegation)
     _require_planning_review(planning_review)
     text = DUTIES[stage]
-    if stage == "carry-forward" and one_step_item:
-        text = _one_step_carry_forward(text, one_step_item)
+    if stage == "reflect-and-revise" and one_step_item:
+        text = _one_step_reflect_and_revise(text, one_step_item)
     if not interactions:
         text = text.replace(_PLAN_RECORD_INTERACTIONS, "")
     if _BACKCHAIN_ITEM in text:

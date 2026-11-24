@@ -57,7 +57,7 @@ Improve review. Even authorized setup waits for its script-assigned work item.
 Use the existing ordered `work_items` from `plan`. Put an explicit preparation producer before every dependent
 feature item when setup is needed. The producer traverses the same INNER graph:
 its implementation is authorized setup, its tests are readiness/baseline checks,
-and its documentation/Improve/carry-forward concern that setup, not invented
+and its documentation/Improve/reflect-and-revise concern that setup, not invented
 feature code. No new stage, preparation flag, counter, or second scheduler is
 needed. Do not demand the producer's own output before allowing it to run.
 
@@ -75,7 +75,7 @@ and bindings. A plan or directory name is not proof that setup succeeded. A
 failed current prerequisite blocks dependent work; it cannot become N/A. An
 existing ready environment needs no make-work setup item. A late requirement
 within the current item's scope may update its plan/checks; otherwise block for
-replanning direction. `carry-forward` can reorder only future work, not jump
+replanning direction. `reflect-and-revise` can reorder only future work, not jump
 backward or silently change the active item.
 
 ## Carry the route into final delivery
@@ -87,7 +87,7 @@ producer after the feature work and before `system-test`; waiting until final
 `release` would be too late. A multi-hop route is a set of real dependencies,
 not a reason to bypass a prerequisite or invent a fixed number of environments.
 
-`carry-forward` and the affected Improve reviews reconcile new
+`reflect-and-revise` and the affected Improve reviews reconcile new
 environment/deployment needs with the existing plan. `release-plan` reads that
 record, revalidates current targets and readiness, and plans only the remaining
 authorized consumer update or promotion. Keep intermediate test deployments

@@ -46,7 +46,7 @@ not test evidence.
 
 Likewise, a prerequisite repo-local skill is an earlier work item with its own
 validation before a consumer relies on it. A reusable procedure discovered
-during product work is decided at `carry-forward` (its skill decision). That
+during product work is decided at `reflect-and-revise` (its skill decision). That
 decision never authorizes global installation or lets a late skill edit bypass final product
 or outer test evidence.
 
@@ -71,7 +71,7 @@ do not copy this table into every work item or create a second acceptance ledger
 | test, system-test-author | Independent cases, the current candidate and permitted test scope | Executable checks bound to clauses; at `test` each new test fails on the item's base (unless `red_na` names it) and every recorded command passes on the candidate at its floor; removed or narrowed cases are declared with an independent basis (`retired_tests`); required coverage cannot disappear |
 | document | Current artifacts and relevant documentation criteria | Documentation recorded from observed behaviour, or the stage recorded not applicable on proof; it does not substitute for product verification; due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
 | system-test | Candidate at the assigned boundary and cases due there | Due clauses reconciled to current observations; invalidated checks rerun and later-phase cases explicitly retained |
-| carry-forward | Verified, committed item and next-consumer requirements | Remaining obligations retained with owner, phase and locators; the skill decision recorded; the item commit is not deployment |
+| reflect-and-revise | Verified, committed item and next-consumer requirements | Remaining obligations retained with owner, phase and locators; the skill decision recorded; the item commit is not deployment |
 | product-acceptance | Original outcome and whole-product evidence | All due criteria may establish pre-release readiness; distinguish corrective or blocked work from release-only behaviors that remain pending and are not yet observed |
 | release-plan, release-check | Current candidate, authority and pending delivery cases | Release route and readiness established with post-release checks and recovery; no implied external operation |
 | release | Current authorized operation and target | Actual effect and candidate/target identity recorded separately from behavior |
@@ -718,7 +718,7 @@ and research do not create product files. Plan documentation outputs and checks 
 ## Iteration documentation and reuse
 
 `document` records the documentation disposition for the current item; it is
-issued only when the item's diff touches a code or test path. `carry-forward`
+issued only when the item's diff touches a code or test path. `reflect-and-revise`
 records the reusable-skill decision (`none`, `reuse`, `update` or `create`) with
 its reason and repeat evidence, and runs a created or updated skill once on the
 run's real procedure. A decision is required; needless edits or skill creation
@@ -745,9 +745,9 @@ Two stages own skill decisions. `step-plan` lists each step's helper `skills`
 those prints it: implement's Step block, the "Skills for this stage" line of the
 test and document packets, and the step review's "Skills for this review" line
 (design T §8.2c, F9). Each stage reports whether it used each skill it lists.
-`carry-forward` records the reusable-skill decision in its result's `skill`
+`reflect-and-revise` records the reusable-skill decision in its result's `skill`
 (`none`, `reuse`, `update` or `create`, with its reason and repeat evidence; see
-the [carry-forward contract](carry-forward.md)). For `update` and `create`
+the [reflect-and-revise contract](reflect-and-revise.md)). For `update` and `create`
 ShipLoop checks only that the named `SKILL.md` exists with `name` and
 `description` frontmatter and that repeat evidence is listed, then commits the
 skill. It does not validate index links, meaningful execution or compatibility;
@@ -761,7 +761,7 @@ have created or evolved a skill since the plan was written. Record fit or no fit
 and revalidate any earlier selection against this item's requirements. Discovery
 inspects skill packages without editing them and records findings under the
 existing project-knowledge notes/index policy. Create or evolve skill packages
-at `carry-forward`, the stage that records the skill decision.
+at `reflect-and-revise`, the stage that records the skill decision.
 
 Ask whether a reusable repo-local skill would materially help later steps or
 maintenance. Check existing skills first. Record a decision and rationale even
@@ -844,7 +844,7 @@ plan/evidence note, not the script-owned queue. Before Improve's first review,
 carry relevant locators into its host-authored contract/review notes; a parent
 packet alone does not populate the child contract.
 
-At `carry-forward`, maintain the existing repo index/README link and link that
+At `reflect-and-revise`, maintain the existing repo index/README link and link that
 entrypoint from `SHIPLOOP.md` so another item or run can discover the current
 local skills. Retain stable procedures/default sources outside disposable run
 storage. Keep task-specific values and raw checks in evidence; a prior selection
@@ -925,7 +925,7 @@ material. This is host judgment, not a new field, score or proof of quality.
 Cross-item system tests have separate prerequisite-owned activities; they never
 replace this item's required tests. Use the
 [system-test contract](system-tests.md#reassessment-change-and-closure) at
-`carry-forward` and for pre/post-deployment test sequencing.
+`reflect-and-revise` and for pre/post-deployment test sequencing.
 
 Use [Test cases](#test-cases), [Surface selection](#surface-selection), or
 [Documentation](#documentation) only when the current stage needs their record
@@ -942,7 +942,7 @@ second scheduler.
 | `test` | Author executable tests from the independent cases; ShipLoop's base run requires each new test to fail without the item's change, then every recorded command must pass. Refine cases from the code actually written only with an independent basis. Required failed, blocked or unrun checks remain unfinished. |
 | `document` | Required docs/README, with safe paths, reasons and intended readers; record what the step showed in the knowledge home. On done, lint the lines it changed and rerun what those edits could affect. Make documentation edits before the step's commit ([Step commits](navigator.md#step-commits)), not after it. |
 | step's Improve review (after `document`) | Run required lint/tests and relevant examples/links; trace each changed entry point with a valid, a boundary and an invalid input; review the whole diff; diagnose failures. A source edit after documentation needs its affected checks rerun. A test-oracle change needs independent justification. ShipLoop commits the step on accept ([Step commits](navigator.md#step-commits)); that commit is not deployment. |
-| `carry-forward` | Use the [carry-forward contract](carry-forward.md) for scoped observations, the future queue and the skill decision. The last carry-forward's Improve review covers every executed step together. |
+| `reflect-and-revise` | Use the [reflect-and-revise contract](reflect-and-revise.md) for scoped observations, the future queue and the skill decision. The last reflect-and-revise's Improve review covers every executed step together. |
 
 Keep case IDs, independent sources, environment, observed outcomes and evidence
 references compact in the result summary and its linked notes. Results are

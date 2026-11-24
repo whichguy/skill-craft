@@ -105,7 +105,7 @@ into the item's accepted step plan: the plan note its result registers in
 checks the item (implementation, test authoring, documentation,
 verification) lists that step-plan result under **Results this stage builds on**, so a fresh
 context finds the contract without this conversation. Work-item `context` is
-written only at plan and carry-forward; a plan that already knows an item's
+written only at plan and reflect-and-revise; a plan that already knows an item's
 exemplars may name them there, and step planning confirms or replaces them.
 
 1. **Name the artifacts.** List the kinds of file the item adds or changes:
@@ -158,7 +158,7 @@ names, layering or idioms match; read the diff for those.
 
 ## Retain the house style
 
-At carry-forward, update the repository's house-style record when this work
+At reflect-and-revise, update the repository's house-style record when this work
 found a convention the record lacked, showed a recorded rule to be wrong or
 legacy, or deliberately introduced a new pattern that later work should
 follow. Add the citations and move the recorded commit forward only for the

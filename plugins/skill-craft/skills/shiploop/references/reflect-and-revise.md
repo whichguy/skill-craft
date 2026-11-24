@@ -1,6 +1,6 @@
-# Carry-forward checkpoint
+# Reflect-and-revise checkpoint
 
-`carry-forward` is the last INNER stage of each work item, after the last step's
+`reflect-and-revise` is the last INNER stage of each work item, after the last step's
 `document` stage (whose acceptance, together with its review, commits the step).
 Like every inner stage, its work runs inside one
 Until Loop started by the packet's command, with a ShipLoop-written contract. It records what the
@@ -11,7 +11,7 @@ and callback; there is no separate ledger or command.
 
 ```mermaid
 flowchart TD
-    V[Last step documented, reviewed and committed] --> C[carry-forward result with skill decision]
+    V[Last step documented, reviewed and committed] --> C[reflect-and-revise result with skill decision]
     C --> Q{Future queue}
     Q -->|omitted| K[Every future item kept]
     Q -->|work_items supplied| R[Entire future queue replaced]
@@ -21,10 +21,10 @@ flowchart TD
     N -->|no| I[End-of-work Improve stage, then system-test-author]
 ```
 
-Only the successful `carry-forward` that leaves no work item pending starts an
+Only the successful `reflect-and-revise` that leaves no work item pending starts an
 Improve stage. That end-of-work review covers every executed item together
 (code, tests, documentation and the queue) before the OUTER stages. If it adds
-work items, the review moves to the new last item's carry-forward.
+work items, the review moves to the new last item's reflect-and-revise.
 
 Local checks and this checkpoint do not prove remote publication, a deployed
 effect, or an external system's current state.
@@ -75,7 +75,7 @@ future queue:
 
 - **Current item.** A defect found in the item just completed is corrective
   work: add a corrective item ahead of its consumers, or report `blocked` when
-  it cannot wait. The stage's Until Loop repeats only this carry-forward's work;
+  it cannot wait. The stage's Until Loop repeats only this reflect-and-revise's work;
   it does not reopen an earlier stage.
 - **Future items.** Revise the queue so each affected future item carries the
   compact decision/convention locator, rationale and revalidation condition in

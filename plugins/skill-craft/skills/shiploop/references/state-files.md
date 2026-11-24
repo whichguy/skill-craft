@@ -161,7 +161,7 @@ with the fresh-run hint.
 Every run records the run-level `planning_review` key: `stage` or `none` (`stage` is the
 default for new runs). `stage` starts an Improve stage after each of `spec`, `test-strategy`,
 `plan`, `step-plan` and `test-spec`; `none` starts none, so a `none` run's `improve_results` holds
-only the records of each step's `document` stage, `system-test-author`, `release-plan` and the last `carry-forward`. It is
+only the records of each step's `document` stage, `system-test-author`, `release-plan` and the last `reflect-and-revise`. It is
 set once, by `--planning-review` on `init`
 or `workspace start`, and no verb changes it: an `init` or `workspace start` retry that
 names another value is refused, and a saved run without the key is refused with the

@@ -632,7 +632,7 @@ Each review distinguishes **new discoveries** from **unchanged blockers**.
 Open/blocked questions still reset the current convergence streak even if this
 pass found nothing new. Two quiet reviews with a missing owner decision are not
 two successful trivial passes. Use the existing gates, result records and
-carry-forward route; do not add a nested investigation engine.
+reflect-and-revise route; do not add a nested investigation engine.
 
 ## Evidence and freshness
 
@@ -676,9 +676,9 @@ when that is the decision.
 | Discovery location | Required route |
 |---|---|
 | Within the current item's approved scope | Investigate under this policy during the current stage or its Improve review; unresolved required research keeps the stage incomplete. |
-| Required by future pending items | Revise the future queue at `carry-forward` so a research item precedes every affected consumer. Scheduling it is not answering it. |
+| Required by future pending items | Revise the future queue at `reflect-and-revise` so a research item precedes every affected consumer. Scheduling it is not answering it. |
 | Requirement that must change, found in a step (`test-spec` through `document`) | Report `send-back` with its `R-<n>`, what it must say instead and the evidence: step-plan revises it and re-plans. |
-| Requirement that must change, found elsewhere; changed permission or invocation contract | Pause for direction, or report `blocked` (`carry-forward` cannot send back; an owner note it owes is that direction). Research evidence is not authority to rewrite the approved baseline. |
+| Requirement that must change, found elsewhere; changed permission or invocation contract | Pause for direction, or report `blocked` (`reflect-and-revise` cannot send back; an owner note it owes is that direction). Research evidence is not authority to rewrite the approved baseline. |
 | Completed-work assumption that new evidence invalidates | Corrective work with revalidation, ahead of its consumers. |
 
 Retain the answer, evidence and revalidation policy in the run note and link it

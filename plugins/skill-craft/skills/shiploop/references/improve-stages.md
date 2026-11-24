@@ -43,7 +43,7 @@ Three kinds of result start an Improve stage:
   document's complete; once the review is accepted ShipLoop commits the step. A step that changed no file starts no review. (2026-10-27:
   Sonnet makes one finding pass per review, so one review of a three-part item
   missed the defects three step reviews had fixed.)
-- The successful `carry-forward` that leaves no work item pending. This
+- The successful `reflect-and-revise` that leaves no work item pending. This
   end-of-work Improve review covers every executed step together (code, tests,
   documentation and the queue) before OUTER system tests and release.
 
@@ -69,7 +69,7 @@ Every other producer result, and a planning result the option does not review, i
 accepted on its own checks and the graph advances directly. The stage names stay in
 the graph, so an auditor still sees
 each stage happen. If the end review adds work items, the review moves to the
-new last item's carry-forward. An isolated run's workspace return happens at
+new last item's reflect-and-revise. An isolated run's workspace return happens at
 `release` or `handoff` once no child is active.
 
 Every Improve review runs at Improve's own stop rule (`required_trivial_reviews: 1`, the

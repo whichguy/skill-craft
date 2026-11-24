@@ -31,7 +31,7 @@ when the review changed a decision, and `--no-commit` for a user's or
 repository's instruction not to commit. Every result at a planning stage the run's
 `planning_review` option reviews (all seven under `stage`, the default; only `system-test-author`
 and `release-plan` under `none`), including `blocked`,
-and a `done` at the last `carry-forward` that leaves no work item pending, parks
+and a `done` at the last `reflect-and-revise` that leaves no work item pending, parks
 the action for its Improve stage instead of advancing. The Improve stage has its own action id
 (`$IMPROVE_ID`, printed in its packet); ShipLoop binds the recorded card, writes the opening and
 starts the child at the transition, and the model runs the improve skill, then `complete` with

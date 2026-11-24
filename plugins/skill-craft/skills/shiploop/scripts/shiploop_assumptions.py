@@ -6,9 +6,9 @@ with a disposition.  The model chooses which probes to run; these
 checks make a skipped probe visible instead of silent.  They verify shape,
 links and existence, never whether a list is complete or a locator true.
 
-Open items (consumer contract X10, 2026-10-11): test-spec, document, carry-forward, system-test-author, system-test,
+Open items (consumer contract X10, 2026-10-11): test-spec, document, reflect-and-revise, system-test-author, system-test,
 release-plan and release-verify record what they leave unproven in the same list.  There an open row's ``due_stage`` is
-a later OUTER stage, or the same item's carry-forward when the producer is test-spec or document, and it may name an
+a later OUTER stage, or the same item's reflect-and-revise when the producer is test-spec or document, and it may name an
 ``owner`` (a person).  The plan's open rows name instead, in ``due_item``, the work item that settles them (run-5 batch R3,
 2026-10-24: ``consumer`` named both, and also meant the product's user elsewhere).  ``open_items`` is the one reader of
 the rows still open.
@@ -26,11 +26,11 @@ import shiploop_stage_spec as stage_spec
 
 # The plan (whose open rows name a work item) and the open-item stages after it (whose open rows name a stage).  Document
 # records the work a step found outside its item (design T §9.1 2b-3, option C, owner 2026-10-28).
-OPEN_ITEM_STAGES = frozenset(("test-spec", "document", "carry-forward", "system-test-author", "system-test",
+OPEN_ITEM_STAGES = frozenset(("test-spec", "document", "reflect-and-revise", "system-test-author", "system-test",
                               "release-plan", "release-verify"))
 STAGES = frozenset(("plan",)) | OPEN_ITEM_STAGES
-# The producers whose open item may name their own item's carry-forward as its due stage.
-CARRY_FORWARD_PRODUCERS = ("test-spec", "document")
+# The producers whose open item may name their own item's reflect-and-revise as its due stage.
+REFLECT_AND_REVISE_PRODUCERS = ("test-spec", "document")
 # The open-item stages an inline item runs once per step (design T §8): every step's result keeps its open rows, where
 # ``planning_revision.current_actions`` keeps only the latest result per (work item, stage).
 PER_STEP_STAGES = frozenset(("document",))
@@ -156,12 +156,12 @@ def check_files(rows: list[Mapping[str, Any]]) -> None:
 def allowed_due_stages(stage: str) -> Tuple[str, ...]:
     """The due stages an open item at an open-item ``stage`` may name, in graph order.
 
-    A later OUTER stage, or ``carry-forward`` (the same item's) when the producer is test-spec or document.  Work
-    for a later work item goes through carry-forward's work_items, as before (K12).
+    A later OUTER stage, or ``reflect-and-revise`` (the same item's) when the producer is test-spec or document.  Work
+    for a later work item goes through reflect-and-revise's work_items, as before (K12).
     """
     order = stage_spec.STAGES
     later = [name for name in stage_spec.OUTER if order.index(name) > order.index(stage)]
-    return tuple((["carry-forward"] if stage in CARRY_FORWARD_PRODUCERS else []) + later)
+    return tuple((["reflect-and-revise"] if stage in REFLECT_AND_REVISE_PRODUCERS else []) + later)
 
 
 def wrong_due_stages(rows: List[Mapping[str, Any]], stage: str) -> List[Tuple[str, str]]:
@@ -190,7 +190,7 @@ def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
     Current means ``planning_revision.current_actions``, and for a ``PER_STEP_STAGES`` stage every step's result under
     the item's current step plan (``planning_revision.step_actions``).  The plan's rows (due_item: a work item) stay
     open, as the ledger never updates a disposition.  A later stage's row is settled once a done result of its due
-    stage (for carry-forward, the same item's) is current and was accepted after the row's result; a row that result
+    stage (for reflect-and-revise, the same item's) is current and was accepted after the row's result; a row that result
     carries forward (the same ID, open again) is its own row from then on.  A due stage with no assumptions field
     settles by its done result.
     """
@@ -221,7 +221,7 @@ def open_items(state: Mapping[str, Any]) -> List[OpenItem]:
 def _settled(row: Mapping[str, Any], produced: int, workitem: Any, current: Mapping[Tuple[Any, str], str],
              accepted: Mapping[str, Any], order: Mapping[str, int]) -> bool:
     due_stage = row.get("due_stage")
-    key = (workitem, "carry-forward") if due_stage == "carry-forward" else (None, due_stage)
+    key = (workitem, "reflect-and-revise") if due_stage == "reflect-and-revise" else (None, due_stage)
     action = current.get(key)
     # The due stage's later done result settles the row.  A row it carries forward (the same ID, open again) is that
     # result's own open row, listed from there with its new due stage; keeping this one would list the item twice and

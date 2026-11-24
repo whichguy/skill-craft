@@ -12,7 +12,7 @@ and map each required outcome to its own expected observation/test locator.
 At `spec`, check outcomes and missing prerequisites without authoring future
 receipts. At `plan`, apply [the dependency audit](#dependency-audit) to order
 producers before consumers. At `step-plan`, apply it to the scoped local
-microplan and its suppliers. At `carry-forward` and `product-acceptance`, use it
+microplan and its suppliers. At `reflect-and-revise` and `product-acceptance`, use it
 only for affected pending/corrective work and newly exposed dependencies. The
 ordinary Improve handoff, where the stage has one, is the separate broader review.
 
@@ -203,13 +203,13 @@ per-row callbacks.
 
 ## Replanning
 
-`carry-forward` and the outer stages reconcile newly observed facts with the original
+`reflect-and-revise` and the outer stages reconcile newly observed facts with the original
 outcomes and every affected pending consumer. Reuse known suppliers rather
 than duplicating work, but do not erase unfulfilled outcomes when documenting
 an external blocker. A local constructible fixture may have an authorized
 producer; an unavailable external approval cannot be manufactured by one.
 
-Use the current `carry-forward` or outer `add-work` result for permitted future or
+Use the current `reflect-and-revise` or outer `add-work` result for permitted future or
 corrective work; do not edit accepted state or declare a missing prerequisite
 satisfied. A prerequisite that blocks the active step needs resolution or a
 pause now, not a journal entry that permits premature completion. Preserve

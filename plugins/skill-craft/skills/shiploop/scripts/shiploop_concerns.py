@@ -17,7 +17,7 @@ Step-plan result::
 
     "concerns": [{"id": "ui", "steps": ["S1", "S2"]}]
 
-Items added after the plan (carry-forward or add-work) have no rows. Their step plans map none, and later stages
+Items added after the plan (reflect-and-revise or add-work) have no rows. Their step plans map none, and later stages
 use the current work and evidence to assess them.
 """
 

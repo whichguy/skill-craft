@@ -30,15 +30,15 @@ same names; the Improve completions the trace pairs with those five producers ar
 `--list` prints the scenarios: delivery, two
 work items, blocked/resume, a repeat returned through Improve, pause/resume and
 halt. The planning stages the selected option reviews, each step's `document` stage and the last
-carry-forward are followed by a synthetic Improve completion; other producers advance directly. An unknown scenario
+reflect-and-revise are followed by a synthetic Improve completion; other producers advance directly. An unknown scenario
 name is an input error (exit 2) that lists the available names. Expectations are authored independently of the routing tables. Each trace
 contains the effective packet before its synthetic declaration and the resulting
 stage, status, owner, and completed-instance IDs. The packet contains the current
 action's callback. No entire prompt snapshot is a pass condition.
 
 The two-work-item trace must distinguish W1 from W2: W1 owns its
-`carry-forward` callback, then the returned packet is owned by W2 at
-`step-plan`. The synthetic carry-forward result records W1 as done and causes
+`reflect-and-revise` callback, then the returned packet is owned by W2 at
+`step-plan`. The synthetic reflect-and-revise result records W1 as done and causes
 W2's execution record to be created in the same simulated transition. In a
 persisted run, `next` reports W2's pending effective action; it does not advance
 W2 or expose an actionable root `inner-loop` container. Future work items have
@@ -51,7 +51,7 @@ Improve child owns those under the normal parent binding.
 Custom JSON has only `steps` (any other top-level field is refused), each with an effective `at`, `expect`, optional
 `status` (default `active`), and either a generic `result` or
 `command: pause|resume|halt`. Each reviewed planning producer, each step's `document` stage and the
-last carry-forward (`command: produce`, optional `result`; the stages `--planning-review`
+last reflect-and-revise (`command: produce`, optional `result`; the stages `--planning-review`
 reviews) is paired with `command: finish-improve`
 carrying a synthetic `receipt` and optional `final_result`. The last completion
 expects stage/status `done`. Run it with `--script PATH`. The packaged

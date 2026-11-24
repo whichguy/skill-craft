@@ -2,6 +2,24 @@
 
 Written by scripts/release.py.
 
+## 2026-11-24
+
+### skill-craft 4.8.0
+
+- Skills: improve 0.7.4, shiploop 2.10.0, shiploop-run-review 0.6.0
+
+### improve 0.7.4
+
+- Follow ShipLoop's rename of the last INNER stage: ShipLoop route cases now name `reflect-and-revise` (not `carry-forward`) when a done plan or end-of-item result may carry `work_items`.
+
+### shiploop 2.10.0
+
+- Rename the last INNER stage from `carry-forward` to `reflect-and-revise` so the stage id and phase label cue reflection plus revising knowledge and the future queue (and the skill decision). Clean cut: no compatibility alias for the old stage id; the glossary retires the old id.
+
+### shiploop-run-review 0.6.0
+
+- Follow ShipLoop's rename of the last INNER stage from `carry-forward` to `reflect-and-revise` in the live (v6) phase table, stage catalog, expectations, and page: keep frozen v4/v5 models unchanged, and treat `carry-forward` only as a historical alias of the new canonical name when reading older saved runs.
+
 ## 2026-11-23
 
 ### skill-craft 4.7.1

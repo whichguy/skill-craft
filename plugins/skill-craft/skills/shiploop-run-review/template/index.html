@@ -786,16 +786,16 @@ function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").repl
 var STAGE_FLOW=[["Understand",["intake","discovery","research"]],["Specify",["spec","test-strategy"]],
   ["Plan",["plan","prepare","step-plan","test-spec"]],
   ["Build",["validate-existing","implement","test","document"]],
-  ["Carry forward",["carry-forward"]],
+  ["Reflect and revise",["reflect-and-revise"]],
   ["System test",["system-test-author","system-test","product-acceptance"]],
   ["Release",["release-plan","release-check","release","release-verify","operations","handoff"]]];
 /* Which 7-stage stage replaced each removed name: the common bucket for comparing an older run's visit with a 7-stage one. An
    older run never reads through it (it has its own flow and aliases below), and the engine refuses a saved run with a removed
    name, so a 7-stage run never needs it either. static-checks, integrate and integration-verify (the 8-stage table put them
    under verify) have no 7-stage bucket: each is its own name. The first name is canonical; a test keeps it equal to the
-   exporter's STAGE_ALIASES. */
+   exporter's STAGE_ALIASES. carry-forward is the pre-rename engine id for this stage (historical visits only). */
 var STAGE_ALIASES=[["step-plan","get-next-work-item","select-work"],["validate-existing","baseline"],
-  ["test","test-author","test-red","test-green","test-refine","regression"],["carry-forward","skill-assess","skill-validate"]];
+  ["test","test-author","test-red","test-green","test-refine","regression"],["reflect-and-revise","skill-assess","skill-validate","carry-forward"]];
 /* The 8-stage inner loop, the one with verify (ShipLoop state version 5 to 9), as 3e4c3e0e's page had it: its phases and
    aliases. An 8-stage run reads with these, its catalog (config/stages-v5) and its phase texts. A test keeps them equal to
    defaults/stages-v5.json. */
@@ -1543,9 +1543,9 @@ function exitCheckOf(info,run){
 function exitCheckWhy(info,run){
   var kind=exitCheckOf(info,run);
   if(kind==="script-run")return "ShipLoop runs "+(Array.isArray(info.completeRuns)&&info.completeRuns.length?info.completeRuns.join(", "):"a check")+" before it accepts done"+
-    (info.improve==="item"?", and one Improve child reviews each step's code, tests and docs after this stage, before ShipLoop commits the step.":info.improve==="first-item"?", and an Improve child reviews the first work item's result and a sent-back item's redo; a later item's advances directly.":info.improve==="last-item"?". An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
+    (info.improve==="item"?", and one Improve child reviews each step's code, tests and docs after this stage, before ShipLoop commits the step.":info.improve==="first-item"?", and an Improve child reviews the first work item's result and a sent-back item's redo; a later item's advances directly.":info.improve==="last-item"?". An Improve review of the whole run follows only the last work item's "+(info.stage||"reflect-and-revise")+"; an earlier item's advances directly."
      :info.improve==="always"&&!improveByDesignInfo(info,run)?", and an Improve child reviews the result before the graph advances.":".");
-  if(kind==="review loop")return info.improve==="last-item"?"An Improve review of the whole run follows only the last work item's carry-forward; an earlier item's advances directly."
+  if(kind==="review loop")return info.improve==="last-item"?"An Improve review of the whole run follows only the last work item's "+(info.stage||"reflect-and-revise")+"; an earlier item's advances directly."
     :"An Improve child reviews this result before the graph advances.";
   if(kind==="model judgement")return improveByDesignInfo(info,run)?"planning_review none: no Improve child starts after this stage, so the model's own judgement against its done-when list ends it."
     :"The model judges the stage against its done-when list; no script run or Improve review follows.";
@@ -1725,10 +1725,10 @@ function planModel(run){
         state:!paired?"unknown":(ran?"executed":"never"),visit:ran?visitOf(s.action):null};
     });
     if(isCount(it.loops))loops+=it.loops;else loopsKnown=false;
-    var added=it.origin==="add-work"||it.origin==="carry-forward";
+    var added=it.origin==="add-work"||it.origin==="reflect-and-revise"||it.origin==="carry-forward";
     items.push({id:it.id,label:it.id+(typeof it.title==="string"&&it.title?": "+it.title:""),
       badge:loopsBadge(it.loops),counts:itemCounts(it),cells:cells,
-      added:added?(it.origin==="add-work"?"added by add-work":"revised at carry-forward"):"",
+      added:added?(it.origin==="add-work"?"added by add-work":"revised at reflect-and-revise"):"",
       stepsText:!steps?"Steps not recorded for this item.":paired?it.stepsExecuted+" of "+it.stepsPlanned+" planned steps executed":
         plural(steps.length,"step")+" planned; which visit ran each is not recorded for this run"});
   });
