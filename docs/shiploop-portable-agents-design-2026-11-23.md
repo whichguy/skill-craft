@@ -552,5 +552,59 @@ All prompts were generated from a single template module asserting **zero** host
 - **Efficiency & isolation:** wall-clock seconds, review seconds, parent vs. child token counts (Claude `usage` vs. `modelUsage`; Codex parent vs. child rollout JSONL), Claude dollar cost, and Surface 2 read-only fan-out count.
 - **Decision rule:** Passing all verdicts, case checks, held-out checks, and Hybrid fidelity checks qualifies `--delegation agents` as an opt-in route and satisfies ShipLoop's release preflight (recorded in `test/shiploop_e2e/LEARNINGS.md`). Whether to flip `DEFAULT_DELEGATION` from `"inline"` to `"agents"` stays an explicit owner decision after reading the paired quality, token, cost, and time table.
 
+---
+
+## 11. Phase 3 results (measured 2026-11-23, serial re-run after parallel/port-lease failure)
+
+### Tree & apparatus (decision arms)
+
+- Branch `cursor/shiploop-always-agents-df4c` at `c74495bfe` (Phase 1–2 + E2E `--delegation`); plugin build reused from `~/e2e-runs/phase3-agents-20261123/plugin-build/` (checkout skill-craft 4.6.0 / ShipLoop 2.8.0).
+- Decision outputs under `~/e2e-runs/phase3-agents-serial-20261123/` (serial launcher `launch_serial.py`). Combined summary: `phase3_summary.json`.
+- First parallel attempt (`~/e2e-runs/phase3-agents-20261123/`) is **forensic only** — see salvage footnote below; not used as a decision cell.
+
+### Paired brownfield (`ticket-assignment`, Codex Sol 6.2 medium + Claude Sonnet 5.5 medium)
+
+| Arm | Pass | Case checks | Held-out | Committed | Process s | Turns | Cost USD | Hybrid fidelity |
+|---|---|---|---|---|---|---|---|---|
+| Codex `inline` | PASS | 3/3 | 18/18 | yes | 681.6 | 195 | n/a | n/a (`review_mode` inline×8) |
+| Codex `agents` | PASS | 3/3 | 18/18 | yes | 2127.5 | 277 | n/a | yes — 9 `worker-brief.md`; fork×6 / fresh×3 |
+| Claude `inline` | PASS | 3/3 | 18/18 | yes | 928.4 | 273 | 5.62 | n/a (`review_mode` inline×9) |
+| Claude `agents` | PASS | 3/3 | 18/18 | yes | 1075.8 | 278 | 6.45 | yes — 9 briefs; fork×6 / fresh×3; Skill `agent_id` 9/9; Agent×9 |
+
+Launcher wall-clock (includes harness wrap): inline Codex 720.1 s, agents Codex 2162.6 s, inline Claude 954.0 s, agents Claude 1099.8 s. Serial total ~82 min. Zero port-lease refusals.
+
+### Live Cursor IDE (`csv-report`, `--delegation agents`, model `grok-4.7-high-fast`)
+
+- Parent Task [Cursor IDE csv-report agents](e12d75d9-89ad-402b-a4d0-9ee33170c0e9) completed successfully (Gemini weekly quota blocked the earlier default model; Grok was used explicitly).
+- ShipLoop `status=done`, `report.html` present, workspace return on `main` at `f365645…`.
+- Independent checks: **5/5** `csv_report.py` (`unit`, `totals`, `invalid`, `missing`, `empty`).
+- Hybrid: 8 Improve `worker-brief.md`; `review_mode` fork×6 / fresh×2; `any_fallback=false`; stages delegated: spec, test-strategy, plan, step-plan, document, carry-forward, system-test-author, release-plan.
+
+### Efficiency read (quality first)
+
+- Correctness bar met on every decision arm (verdicts + case checks + held-out 18/18 + Cursor 5/5).
+- Claude cost: agents **+$0.83** vs inline (~15%); turns nearly flat (278 vs 273).
+- Codex wall time: agents **~3.1×** inline process seconds (2127 vs 682) at equal correctness — review fan-out cost, not a quality miss.
+- Claude wall time: agents ~1.16× inline — much smaller penalty than Codex on this sample.
+
+### Qualification & default
+
+- **`--delegation agents` qualifies as an opt-in route** under the §10 decision rule (paired evidence + Hybrid fidelity + Cursor live delivery).
+- **`DEFAULT_DELEGATION` stays `inline` until an explicit owner flip** after reading this table (quality > tokens/cost > time). No flip in this pickup.
+
+### Salvage footnote (parallel batch `phase3-agents-20261123`, not a decision cell)
+
+- Parallel `launch_cli.py` held `port-4180` on the first `ticket-assignment` harness; three siblings refused in ~16 s.
+- Sole completer `claude-tickets-agents`: engine `done`, case checks 3/3, Hybrid already live (10 briefs, fork×7/fresh×3, Skill `agent_id` 10/10, $9.22) but **`committed` failed** (product on `shiploop/run-*`, `master` stuck at base). Re-run above cleared that miss.
+- Cursor IDE attempt in that batch never started: Task defaulted to Gemini 4 Neon → weekly usage refusal.
+
+### Apparatus lessons
+
+1. Cases with `refuse_ports` must launch **serially** (or with distinct ports); parallel same-case batches are structurally refused.
+2. Cursor IDE Task must pass an **explicit allowed model** when Gemini weekly quota is exhausted; omitting `model` pulled Neon and aborted before ShipLoop.
+3. `passes.md` provenance was absent on both agents arms; Hybrid mode is evidenced by state `review_mode` + `worker-brief.md` + Claude `skill-calls.jsonl` `agent_id` (LEARNINGS notes the gap; not a release blocker for this round).
+
+Journal: `test/shiploop_e2e/LEARNINGS.md` entry 2026-11-23 Phase 3 portable native agents.
+
 
 

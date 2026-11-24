@@ -9798,3 +9798,34 @@ The harness, asked the standing three questions.
 
 Limits: Codex `gpt-6.2-sol` medium only (no Claude Sonnet or Grok delivery); two whole deliveries ran overlapping each other; `ui-devtools-mcp-available` declared Chrome DevTools MCP in `environment.md` (with its stdio binary installed) rather than as a callable host catalog tool; no marketplace install run. Evidence roots (outside the repository, may be pruned): `~/e2e-runs/script-first-20261123/{ticket-assignment,battleship}` and `/tmp/shiploop-side-exp-20261123/{baseline-sol-6.2-medium,baseline-round2,baseline-step-plan-mcp,baseline-cf-note,candidate-ab-sol-6.2-medium,candidate-cf-note,ab3-baseline,ab3-candidate,board3-baseline,board3-candidate}`.
 
+## 2026-11-23 — Phase 3 portable native agents: `--delegation agents` vs `inline` (Codex Sol 6.2 medium, Claude Sonnet 5.5 medium, Cursor IDE Grok 4.7 high-fast)
+
+Registered before any decision sample in `c74495bfe` (`docs/shiploop-portable-agents-design-2026-11-23.md` §10). First live batch under `~/e2e-runs/phase3-agents-20261123/` failed apparatus (parallel `port-4180` lease + Cursor Gemini weekly quota); decision samples are the serial re-run under `~/e2e-runs/phase3-agents-serial-20261123/` on checkout plugin skill-craft 4.6.0 / ShipLoop 2.8.0 (`c74495bfe`).
+
+### Decision table (serial)
+
+| Arm | Host / model | Delegation | Verdict | Case | Held-out | Process s | Turns | Cost | Hybrid |
+|---|---|---|---|---|---|---|---|---|---|
+| codex-tickets-inline | Codex gpt-6.2-sol medium | inline | PASS | 3/3 | 18/18 | 681.6 | 195 | n/a | inline×8 |
+| codex-tickets-agents | Codex gpt-6.2-sol medium | agents | PASS | 3/3 | 18/18 | 2127.5 | 277 | n/a | 9 briefs; fork×6 / fresh×3 |
+| claude-tickets-inline | Claude claude-sonnet-5-5 medium | inline | PASS | 3/3 | 18/18 | 928.4 | 273 | $5.62 | inline×9 |
+| claude-tickets-agents | Claude claude-sonnet-5-5 medium | agents | PASS | 3/3 | 18/18 | 1075.8 | 278 | $6.45 | 9 briefs; fork×6 / fresh×3; Skill agent_id 9/9; Agent×9 |
+| cursor-ide-csv-agents | Cursor IDE grok-4.7-high-fast | agents | PASS | 5/5 csv_report | n/a | (Task) | — | — | 8 briefs; fork×6 / fresh×2; return `f365645` |
+
+Evidence roots: `~/e2e-runs/phase3-agents-serial-20261123/{arm}/result.json`, `phase3_summary.json`, Cursor work at `cursor-ide-csv-agents/work` (graded independently with `test/shiploop_e2e/checks/csv_report.py`). Design write-up: `docs/shiploop-portable-agents-design-2026-11-23.md` §11.
+
+### Apparatus mismatches (first batch) — environment, not product
+
+1. **Expected:** four parallel `ticket-assignment` harnesses. **Observed:** three refused with `port-4180 is leased by the harness of another run`. **Triage:** environment / harness lease design (`refuse_ports` + `lifecycle.take`). **Decision:** environment — launch serially (done). **Verified by:** serial launcher zero lease refusals; all four `result.json` present.
+2. **Expected:** Cursor IDE Task delivers `csv-report` with `--delegation agents`. **Observed:** `Gemini 4 Neon is not included in your weekly usage`. **Triage:** environment / account quota. **Decision:** environment — pass explicit `grok-4.7-high-fast` (done; 5/5 checks). **Verified by:** Task [e12d75d9](e12d75d9-89ad-402b-a4d0-9ee33170c0e9) JSON `pass: true` plus independent check rerun.
+3. **Salvage (not a decision cell):** parallel `claude-tickets-agents` reached engine `done` with Hybrid live (10 briefs, fork×7/fresh×3, Skill agent_id 10/10, $9.22) but `committed` failed (product on `shiploop/run-*`, master at base). Serial Claude agents arm committed cleanly — treat as run-quality miss on the first sample, not a Hybrid design failure.
+
+### Reading
+
+Quality bar met on every decision arm. Claude agents cost +~$0.83 (~15%) vs inline at nearly equal turns; Codex agents wall time ~3.1× inline at equal correctness. Hybrid fork/fresh split matched the registered plan on Codex, Claude, and Cursor. Claude Skill-call gate recorded `agent_id` for every Improve Skill call under `agents`.
+
+**Qualification:** `--delegation agents` is an **opt-in** route under §10. **`DEFAULT_DELEGATION` remains `inline`** until an explicit owner flip after this table (quality > cost > time). No default flip in this round.
+
+Known gap (not a blocker): Improve `passes.md` files were absent; provenance lived in state `review_mode` and `worker-brief.md`. Note for a later provenance polish if owners want the registered `passes.md` string exactly.
+
+Harness questions: retain serial launcher pattern for fixed-port cases; more to learn on parent vs child token split (Codex child rollout not broken out here) and Surface 2 fan-out counts; no new evaluation criteria required for the opt-in qualification.
