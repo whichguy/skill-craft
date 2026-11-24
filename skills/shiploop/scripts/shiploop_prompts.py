@@ -1279,7 +1279,7 @@ DUTIES = {
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
    platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
    `{id, applies: "no", reason}`; one clause each; capture promotion, migration and settings choices in switchover,
-   migrate-before/after and config. In multi-item plans, `W1` maps all 15 rows; `W2+` may map all or set `"deferred"`.
+   migrate-before/after and config. In multi-item plans, `W1` maps all 15 rows; `W2+` may map all 15 rows or set `"deferred"`.
    Carry each acceptance line's required surface and completion condition into the owning item's context. For a
    later or unavailable observation, retain its owner, due phase and unresolved status under the existing
    completion and unverified policies. Opt-in execution or a lower-layer pass does not close a stronger explicit
