@@ -54,13 +54,38 @@ and child receipt locators for interruption recovery.
 
 
 # Run-level delegation (state key ``delegation``).  ``inline`` is the default
-# for new CLI-created runs; ``ask-agent`` is the opt-in delegated route
-# rendered by SERIAL_INNER_CONTEXT/IMPROVE_INNER_CONTEXT above and by the
-# unmodified DUTIES text.  A run without the key keeps its recorded ask-agent
-# behaviour, so catalog calls default to it.
+# for new CLI-created runs; ``agents`` keeps the core build loop inline while
+# running reviews via direct native workers (hybrid: forked planning reviews,
+# fresh code/end-of-work reviews) and optional in-stage read-only fan-out;
+# ``ask-agent`` is the legacy opt-in delegated route rendered by
+# SERIAL_INNER_CONTEXT/IMPROVE_INNER_CONTEXT above and by the unmodified DUTIES
+# text.  A run without the key keeps its recorded ask-agent behaviour, so
+# catalog calls default to it.
 INLINE = "inline"
+AGENTS = "agents"
 ASK_AGENT = "ask-agent"
-DELEGATIONS = (INLINE, ASK_AGENT)
+DELEGATIONS = (INLINE, AGENTS, ASK_AGENT)
+
+
+def is_inline_producer(delegation: str) -> bool:
+    """True when producer stages run inline in the parent conversation (inline and agents)."""
+    return delegation in (INLINE, AGENTS)
+
+
+# Surface 2: stages whose producer work may optionally fan out read-only questions
+# to fresh parallel native subagents under ``delegation: agents``.
+READ_ONLY_FANOUT_STAGES = frozenset({"discovery", "research", "product-acceptance"})
+READ_ONLY_FANOUT_NOTE = (
+    "**Optional read-only fan-out (`delegation: agents`).** When 2 or more independent read-only questions each need "
+    "substantial investigation (at least ~20-30 s of model work), you may launch up to host capacity fresh "
+    "general-purpose read-only native subagents in one turn (prefer blocking/foreground calls; if async, wait with a "
+    "120 s timeout; never create a second git worktree or cloud VM; fall back inline if unavailable). Give every reader "
+    "five isolation rules: (1) write nothing inside WORKTREE or RUN (`PYTHONDONTWRITEBYTECODE=1`); (2) put any scratch "
+    "or writable probe copy in a private `mktemp -d` `TMPDIR` and delete it before returning; (3) bind local probe "
+    "servers to `127.0.0.1:0` only; (4) stop only exact PIDs you started (never `pkill -f` or `killall`); (5) leaf "
+    "worker only (spawn no subagents, run no ShipLoop callbacks) and return concise factual findings with `path:line` "
+    "locators."
+)
 
 # Improve runs after every result of a planning/contract stage and once after
 # the carry-forward that leaves no work item pending (the navigator's pending-queue
@@ -73,6 +98,11 @@ PLANNING_REVIEW_STAGES = stage_spec.with_improve("always") | stage_spec.with_imp
 INLINE_STAGE_CONTEXT = """\
 Continue in this context and execute the prompt. Delegation: inline: do this stage here and submit its callback
 yourself; never clear or hand it off. After lost context, run the Recovery command.
+"""
+
+AGENTS_STAGE_CONTEXT = """\
+Continue in this context and execute the prompt. Delegation: agents: run this producer stage inline and submit its
+callback yourself; never clear or hand it off. After lost context, run the Recovery command.
 """
 
 INLINE_IMPROVE_CONTEXT = """\
@@ -91,12 +121,29 @@ runtime only through the packet's stopped-child restart route. Retain the exact
 Recovery command and child receipt locator for interruption recovery.
 """
 
+AGENTS_IMPROVE_CONTEXT = """\
+Keep the invoking parent alive and run this Improve invocation in one native review worker.
+
+Delegation: agents (hybrid reviews). Run planning and outer reviews in one forked
+coding-capable native subagent where the host supports native forking (fresh worker
+plus a 2-line Conversation context note when fork is absent or after cold recovery),
+and run code and end-of-work reviews (`document`, `carry-forward`) in one strictly
+fresh coding-capable native subagent with no inherited conversation history. Point
+the worker at CHILD/worker-brief.md (do not copy the full handoff into its prompt),
+inherit full model, tools and permissions, prefer blocking/foreground execution, and
+never create a second worktree or cloud VM. The parent verifies CHILD/packet.json is
+complete and alone submits the parent ShipLoop callback. If no native subagent tool
+is available on this host, run the review inline and pass `--review-mode inline-fallback`.
+"""
+
 
 def inner_context(delegation: str, *, improve: bool) -> str:
     """Return the context prefix for an active INNER producer or Improve packet."""
     _require_delegation(delegation)
     if delegation == ASK_AGENT:
         return IMPROVE_INNER_CONTEXT if improve else SERIAL_INNER_CONTEXT
+    if delegation == AGENTS:
+        return AGENTS_IMPROVE_CONTEXT if improve else AGENTS_STAGE_CONTEXT
     return INLINE_IMPROVE_CONTEXT if improve else INLINE_STAGE_CONTEXT
 
 
@@ -2203,9 +2250,11 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
         text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage))
     if _ITEM_COMMIT in text:
         text = text.replace(_ITEM_COMMIT, _item_commit_rule(execution_mode))
-    if delegation == INLINE and stage in _INLINE_DUTY_PARAGRAPHS:
+    if is_inline_producer(delegation) and stage in _INLINE_DUTY_PARAGRAPHS:
         for delegated, inline in _INLINE_DUTY_PARAGRAPHS[stage]:
             text = text.replace(delegated, inline)
+    if delegation == AGENTS and stage in READ_ONLY_FANOUT_STAGES:
+        text = text.rstrip("\n") + "\n\n" + READ_ONLY_FANOUT_NOTE + "\n"
     return _swapped(text, stage, planning_review)
 
 
@@ -2296,7 +2345,7 @@ def _prompt_parts(stage: str, *, delegation: str, planning_review: str,
     # The shared blocks (interaction design, planning hand-off, work-item context, test facilities, test decisions,
     # OUTER test plans, selected-case reconciliation) are folded into the duties of the stages they applied to
     # (packet re-cut, 2026-10-11, R2/R3), so none prints here.  The constants stay as the one worded copy.
-    if stage in INLINE_AUDIT_STAGES and delegation == INLINE or stage in AUDIT_LINE_STAGES:
+    if stage in INLINE_AUDIT_STAGES and is_inline_producer(delegation) or stage in AUDIT_LINE_STAGES:
         pass  # no route paragraph: the guide and the graph check print with the packet's locators
     elif stage in BACKCHAIN_FOLDED_STAGES:
         pass  # the Backchain item is folded into the duty
@@ -2628,7 +2677,7 @@ def improve_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     """Return the actual Improve-skill handoff for a completed producer stage."""
     _require_delegation(delegation)
     text = _improve_prompt(stage)
-    if delegation == INLINE:
+    if is_inline_producer(delegation):
         for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
             text = text.replace(delegated, inline)
     return text
@@ -2722,7 +2771,7 @@ def improve_stage_prompt(stage: str, *, delegation: str = ASK_AGENT) -> str:
     paragraphs = [f"Invoke the selected actual Improve skill for {IMPROVE_SCOPES[stage]}."]
     paragraphs += [guard.rstrip("\n") for guard in _improve_guards(stage) if guard]
     text = "\n\n".join(paragraphs) + "\n"
-    if delegation == INLINE:
+    if is_inline_producer(delegation):
         for delegated, inline in _INLINE_IMPROVE_REPLACEMENTS:
             text = text.replace(delegated, inline)
     return text
@@ -2754,6 +2803,7 @@ for _delegated, _inline in _INLINE_IMPROVE_REPLACEMENTS:
 
 
 __all__ = (
+    "AGENTS",
     "ASK_AGENT",
     "COMMON",
     "common_text",
@@ -2781,6 +2831,8 @@ __all__ = (
     "PRELUDE",
     "PROGRESS_REPORTING",
     "PROMPTS",
+    "READ_ONLY_FANOUT_NOTE",
+    "READ_ONLY_FANOUT_STAGES",
     "STAGE_PURPOSE",
     "STAGE_REFERENCES",
     "STAGES",
@@ -2789,5 +2841,6 @@ __all__ = (
     "improve_prompt",
     "improve_stage_prompt",
     "inner_context",
+    "is_inline_producer",
     "prompt",
 )

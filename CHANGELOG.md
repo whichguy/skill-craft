@@ -4,6 +4,19 @@ Written by scripts/release.py.
 
 ## 2026-11-23
 
+### skill-craft 4.7.0
+
+- Skills: ask-agent 0.12.0, shiploop 2.9.0
+
+### ask-agent 0.12.0
+
+- Upgrade host bindings to `skill-craft/host-bindings/v2`: add Cursor IDE (`CURSOR_AGENT`, `CURSOR_CONVERSATION_ID`, `Task` fresh and `resume="self"` fork, foreground parallel) and OpenCode (`OPENCODE`, unqualified) detection and bindings, update Claude Code `2.1.330` (`subagent_type="fork"`, foreground parallel), Codex `0.171.0` (`fork_turns="all"` vs `"none"`, `interrupt_agent`), and Grok Build `1.0.92` (`isolation="worktree"` forbidden, foreground parallel, no native fork), and pin byte-identical parity with ShipLoop's packaged bindings.
+
+### shiploop 2.9.0
+
+- Add `--delegation agents` hybrid portable-agents mode alongside `inline` (default) and legacy `ask-agent`: keeps the core SDLC build loop inline, dispatches Improve reviews directly via ShipLoop-written `CHILD/worker-brief.md` (forked for planning/outer reviews where supported with fresh fallback, fresh for `document` and `carry-forward` code reviews), adds optional F17 read-only fan-out in `discovery`, `research`, and `product-acceptance` with emit-time 2-line host hints from `host-bindings/v2`, keeps Claude Code's `PostToolUse(Skill)` gate active on `agents`, adds `--review-mode` provenance to `complete` and `passes.md`, and exposes read-only `shiploop host-binding`.
+- Add packaged `skill-craft/host-bindings/v2` data and `shiploop_host_bindings.py` (parity-pinned with `ask-agent`), wire `shiploop_grants.detect_host()` to it with Cursor and OpenCode detection and Cursor write-grant guidance, and prepare emit-time host hints for portable native agents.
+
 ### skill-craft 4.6.1
 
 - Skills: shiploop 2.8.1, test-harness 0.1.2

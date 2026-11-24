@@ -225,7 +225,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
     start.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
     start.add_argument("--bound-plan", default="")
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
-                       help="new run: inline (default) or ask-agent delegation")
+                       help="new run: inline (default), agents (hybrid reviews + read-only fan-out), or ask-agent")
     start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                        help="new run: script-owned advisory lint fix (default), report or off")
     start.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
@@ -692,6 +692,9 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                                       "without this item's change? (never counted, never gates)")
     subs.add_parser("backchain-check", help="record-only Backchain graph check of a candidate plan file (never gates)")
     subs.add_parser("hook-status", help="read-only JSON: can this run still move (for keepalive hooks and the driver)")
+    hb = subs.add_parser("host-binding", help="read-only JSON: detected native host and its host-bindings/v2 entry")
+    hb.add_argument("--host", default="auto",
+                    help="auto (default: detect from environment) or an explicit host name")
     navigator_dry_run.add_arguments(subs.add_parser(
         "graph-dry-run", help="inspect navigator routes and prompts without project work"))
     for name in (
@@ -728,7 +731,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             # and would pass the flag in advance, so the refusal that asks "did the user ask for this?" would never be seen.
             sub.add_argument("--in-place", action="store_true", help=argparse.SUPPRESS)
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
-                             help="new run: inline (default) or ask-agent delegation")
+                             help="new run: inline (default), agents (hybrid reviews + read-only fan-out), or ask-agent")
             sub.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
                              help="new run: script-owned advisory lint fix (default), report or off")
             sub.add_argument("--planning-review", choices=navigator.PLANNING_REVIEW_MODES, default=None,
@@ -771,6 +774,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                              help="optional step-result record, only when the review changed a decision")
             sub.add_argument("--no-commit", dest="no_commit",
                              help="the user's or repository's instruction not to commit the review's edits")
+            sub.add_argument("--review-mode", dest="review_mode", choices=navigator.CLI_REVIEW_MODES, default=None,
+                             help="optional (Improve stage only): record how the review ran (fork, fresh, inline, or inline-fallback)")
         if name == "context":
             sub.add_argument("--section", default="navigator")
         if name in ("halt", "pause"):
@@ -781,6 +786,16 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             reply.add_argument("--observed", help="what the person reported after the steps the run waits on, or what an "
                                "outside service's check printed once it exits 0")
     args = parser.parse_args(argv)
+    if args.command == "host-binding":
+        import shiploop_host_bindings as host_bindings
+        try:
+            value = host_bindings.report(os.environ, host_override=args.host)
+        except (OSError, ValueError, KeyError) as exc:
+            print(json.dumps({"code": "bindings_error", "observed": str(exc)}, sort_keys=True, separators=(",", ":")),
+                  file=sys.stderr)
+            return 2
+        print(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True))
+        return 0
     if args.command == "graph-dry-run":
         # Deliberately before run-directory discovery, locking or state access.
         return navigator_dry_run.run(args)

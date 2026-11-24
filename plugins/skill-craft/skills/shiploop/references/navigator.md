@@ -216,7 +216,8 @@ python3 "$CLI" workspace start --repo="$REPO" --prompt='requested outcome'
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
-# Opt a new run in to Ask-Agent delegation (the default is inline):
+# Opt a new run in to direct native agents (hybrid reviews + read-only fan-out) or legacy Ask-Agent delegation:
+python3 "$CLI" workspace start --repo="$REPO" --delegation=agents --prompt='requested outcome'
 python3 "$CLI" workspace start --repo="$REPO" --delegation=ask-agent --prompt='requested outcome'
 # Change an existing run's delegation for its future assignments:
 python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
@@ -247,9 +248,16 @@ An explicit relative `--improve-skill` locator is made absolute at initializatio
 so a later shell cwd cannot change which card the checkpoint selects.
 
 Every run records its execution `delegation`. `workspace start` and direct
-`init` record `inline` for a new run unless `--delegation=ask-agent` is passed.
+`init` record `inline` for a new run unless `--delegation=agents` or
+`--delegation=ask-agent` is passed.
 Under `inline`, this conversation executes every producer and the whole Improve
-invocation itself, and `implement` runs each step directly. Under the opt-in
+invocation itself, and `implement` runs each step directly. Under `agents`,
+every producer stage still runs inline (with optional F17 read-only fan-out in
+`discovery`, `research`, and `product-acceptance`), while Improve reviews run
+in one direct coding-capable native worker from `CHILD/worker-brief.md`
+(hybrid: forked for planning/outer reviews where supported, fresh for `document`
+and `carry-forward` code reviews), with a 2-line emit-time host hint from
+`references/host-bindings.json`. Under the legacy opt-in
 `ask-agent` route, INNER producers and Improve prefer native fresh workers, and `implement` is
 issued once per step, built by one fresh worker in the shared checkout.
 A saved run without the setting is refused with an error naming the

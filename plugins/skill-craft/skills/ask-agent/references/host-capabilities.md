@@ -10,13 +10,13 @@ Run `scripts/ask_agent_host.py` from this selected skill package once before the
 first native launch of a session. It names the host from exact environment
 variable names, innermost host first (a nested host inherits its launcher's
 variables; never match a prefix such as `CODEX_`, because Codex plugin variables
-are set in Claude Code and Grok sessions), and prints that host's measured binding
-from [host-bindings.json](host-bindings.json): tool names, spawn arguments, the
-concurrency the host allows and the observation timeout for waiting. Read the
-`section` it names. `unknown` means no measured binding exists (Cursor and
-OpenCode are described below without one): use the live schema and the sections
-below as before. The binding is data; the live schema wins where they differ, and
-the difference is disclosed. The script launches nothing.
+are set in Claude Code and Grok sessions), and prints that host's binding
+from [host-bindings.json](host-bindings.json): tool names, spawn, fresh and
+fork arguments, concurrency capacity, observation timeout, and qualification
+status (`qualified`, `pilot-ide`, or `unqualified`). Read the
+`section` it names. `unknown` means no binding matched: use the live schema and
+the sections below. The binding is data; the live schema wins where they differ,
+and the difference is disclosed. The script launches nothing.
 
 ## Consumer-owned workspace: Codex pilot
 
@@ -74,20 +74,29 @@ change or unexpected tool routing. Native permissions still apply.
 
 ## Grok Build / coding CLI
 
-Use the broadest available general-purpose native `spawn_subagent`, with
-`background=true` and the prepared path in `cwd` where the schema exposes it.
-Omit `resume_from`. Do not substitute Grok Bot, a chat model API, or a restricted
-`explore`/`plan` worker for coding work.
+Use general-purpose native `spawn_subagent` with the prepared path in `cwd`
+where the schema exposes it. Omit `resume_from` and omit `isolation="worktree"`
+(`isolation` is `none|worktree` in 1.0.92 and mutually exclusive with `cwd`).
+Grok Build has no native parent-history fork mode (`resume_from` continues a
+completed child subagent by ID only); when a caller requests a forked review,
+fall back to a fresh worker carrying essential conversation context inline.
+Do not substitute Grok Bot, a chat model API, or a restricted `explore`/`plan`
+worker for coding work.
 
-In headless mode, after useful parent work, collect with native
-`get_command_or_subagent_output` using returned handles and an available positive
-wait timeout. Incorporate the retrieved result before exit. A notification in
-history or forwarded child text alone is not parent collection. Describe this
-route as a native join when that is how results were obtained. Native stop is
-`kill_command_or_subagent` where exposed; confirm stop before cleanup.
+Multiple foreground `spawn_subagent(background=false)` calls issued in one turn
+execute concurrently and block up to 10 minutes without yielding the turn
+(verified on 1.0.92). For `background=true`, after useful parent work, collect
+with native `get_command_or_subagent_output` using all returned handles and a
+positive `timeout_ms: 120000`. Incorporate the retrieved result before exit. A
+notification in history or forwarded child text alone is not parent collection.
+Describe this route as a native join when that is how results were obtained.
+Native stop is `kill_command_or_subagent` where exposed; confirm stop before
+cleanup.
 
 Grok Build 1.0.34 passed the earlier managed snapshot/operation/delivery lifecycle
-with native cwd and join. Keep checking the live schema on other versions.
+with native cwd and join; 1.0.77 and 1.0.92 passed neutral fresh spawn,
+foreground parallel streaming, and ShipLoop review brief probes. Keep checking
+the live schema on other versions.
 [Official subagent guide](https://docs.x.ai/build/features/subagents).
 
 ## Codex
@@ -96,11 +105,14 @@ with native cwd and join. Keep checking the live schema on other versions.
 checked live for a consumer-owned pilot, but they do not themselves qualify its
 fresh-context, owner-record, recovery, or final-delivery contract.
 
-Use native asynchronous spawn and `fork_turns="none"` where exposed. Do not
-substitute an inherited fork for a fresh task. If spawn has no cwd field, give
-an explicit `workdir` on every shell call and absolute paths for file operations.
-Run the context check from that workdir. Continue parent work before native
-wait/completion collection; keep required collection inside the live invocation.
+Use native asynchronous `spawn_agent` with `fork_turns="none"` for fresh tasks
+(`fork_turns="all"` is the default on 0.171.0 and inherits full parent
+conversation turns, which may be selected deliberately when a consumer requests
+a forked review). Do not substitute an inherited fork for a fresh task. Spawn
+has no `cwd` field: pass an explicit `workdir` on every shell call and absolute
+paths for file operations. Run the context check from that workdir. Continue
+parent work before native wait/completion collection; keep required collection
+inside the live invocation.
 
 Codex allows four concurrent agents including the parent, as the `spawn_agent`
 description says: launch at most three workers at once and the rest as slots free.
@@ -108,24 +120,34 @@ Wait with `wait_agent` and the
 observation timeout from [Native lifecycle](native-lifecycle.md) (`timeout_ms:
 120000`), not short polls: every poll is a model call (measured on 0.169.0 with 30 s
 tasks: 12 polls against 3 for the same work, finishing within 5 s of each other).
+Native stop is `interrupt_agent` where exposed; retain unaccepted work.
 
-The tested CLI 0.155.1 route passed with explicit operations and native join.
-App worktree creation does not change the calling agent's cwd. A separate
-user-visible app task or App Server thread is not automatically a native subagent
-that returns to this parent; do not create one as a silent replacement.
-Use native interruption when exposed and retain unaccepted work.
+The tested CLI 0.155.1 route passed with explicit operations and native join;
+0.169.0 and 0.171.0 passed fresh (`fork_turns="none"`) and forked
+(`fork_turns="all"`) probes. App worktree creation does not change the calling
+agent's cwd. A separate user-visible app task or App Server thread is not
+automatically a native subagent that returns to this parent; do not create one
+as a silent replacement.
 [Official subagent guide](https://developers.openai.com/codex/subagents).
 
 ## Claude Code
 
-Use a fresh general-purpose `Agent` or `Task`, whichever is actually exposed,
-with native background mode. Do not use a fork type that inherits parent history.
-For the helper-prepared route, **omit `isolation: worktree`**: that option creates
-another checkout, not a binding to the supplied helper path. Do not invent a
-`cwd` argument. Use native cwd only if the actual schema supports it.
+Use `Agent` or `Task`, whichever is actually exposed. For fresh workers use
+`subagent_type="general-purpose"` (or omit) and omit `resume`; for a deliberate
+forked review that inherits parent conversation history, `subagent_type="fork"`
+is verified on 2.1.330 (runs on the parent's model and effort, ignoring model or
+effort overrides). Do not use a fork type when a fresh context is required.
+For the helper-prepared or consumer-owned route, **omit `isolation: worktree`**
+(and `isolation: remote`): that option creates another checkout, not a binding
+to the supplied path. Do not invent a `cwd` argument. Use native cwd only if the
+actual schema supports it.
 
-Launch checklist for the observed Agent schema: general-purpose; fresh/no resume;
-`run_in_background=true`; no `isolation`; no invented `cwd`.
+Launch checklist for the observed Agent schema: `subagent_type="general-purpose"`
+for fresh (`subagent_type="fork"` only when forked history is requested); no
+`resume`; `run_in_background=false` for blocking serial or single-turn parallel
+foreground calls (2.1.330 verified 3 foreground `Agent` calls running concurrently
+in one turn without yielding), or `run_in_background=true` for async background
+work; no `isolation`; no invented `cwd`.
 
 Otherwise give the worker this concrete operation rule: **every Bash command
 begins with `cd "/actual/helper/worktree" &&`**. Run the context check in that
@@ -134,16 +156,16 @@ Put that exact rule in the worker-facing delivery clause; do not leave a choice
 of an unavailable Bash workdir argument. Report writes use absolute worktree paths too.
 Do not treat Git's `-C` option as moving tests, builds or relative file writes.
 
-Native completion notifications are the primary return route in the tested
-2.1.278 session. Use TaskOutput only if exposed; it was absent in the routing
-probes. Keep a headless parent alive for the native follow-up result. Use
-`SendMessage` to the returned agent handle, where exposed, for same-worker
-follow-up and for forwarding an approval, decline or revocation to a running
-worker; a new `Agent` call starts a fresh context instead. Completion
-notifications re-invoke the parent, so do not poll or schedule wakeups merely to
-wait for them. Follow the
+Native completion notifications are the primary return route for backgrounded
+workers in the tested 2.1.278–2.1.330 sessions. Use TaskOutput only if exposed;
+it was absent in the routing probes. Keep a headless parent alive for the native
+follow-up result. Use `SendMessage` to the returned agent handle, where exposed,
+for same-worker follow-up and for forwarding an approval, decline or revocation
+to a running worker; a new `Agent` call starts a fresh context instead.
+Completion notifications re-invoke the parent, so do not poll or schedule wakeups
+merely to wait for them. Follow the
 [shared lifecycle](native-lifecycle.md) for visible status and cancellation;
-a promptless ScheduleWakeup or arbitrary timer is not collection. TaskStop
+a promptless ScheduleWakeup or arbitrary timer is not collection. `TaskStop`
 signaling was observed previously; interruption of a running shell command was
 not qualified by that cancellation fixture.
 
@@ -163,19 +185,30 @@ and [creation hooks](https://code.claude.com/docs/en/hooks#worktreecreate).
 
 ## Cursor IDE / CLI
 
-Use fresh native background `Task` where exposed. Bind prepared cwd if the
-schema actually accepts it; otherwise require explicit operation directories
-and absolute file paths. The tested 2026.09.18 CLI delivered automatic task
-notifications and passed the managed lifecycle. Its operation paths were
-reported by workers; stronger tool-level context checks are now required.
+Use native `Task` with `subagent_type="generalPurpose"` (camelCase). For fresh
+workers omit `resume` and omit `environment="cloud"` (which runs on a remote VM
+and separate worktree); for a deliberate forked review inheriting parent
+conversation history, pass `resume="self"` (verified live in Cursor IDE
+2026-11-23). `Task` has no `cwd` parameter: require explicit `working_directory`
+on every shell command and absolute paths for file tools, verifying canonical
+`pwd` and Git root on entry.
+
+In Cursor IDE (2026-11-23 probes), multiple foreground `Task` calls with
+`run_in_background=false` issued in one turn executed concurrently (93% overlap)
+without yielding to turn-end notifications; `run_in_background=true` delivers
+completion notifications after the parent ends its turn (do not poll). Cursor
+IDE passed fresh, forked (`resume="self"`), foreground parallel, and ShipLoop
+Improve review probes; `cursor-agent` CLI (2026.09.23) remains separately
+unqualified (the earlier 2026.09.18 CLI passed the old managed lifecycle only).
 Qualify IDE and CLI separately rather than extending one surface's evidence.
 
 Whole-session `--worktree` or IDE `/worktree` is not a selectable prepared child
 path and does not establish dirty-input inheritance. Keep the helper-owned
 store outside Cursor's managed cleanup root: Cursor can discover and clean up
 externally created worktrees there. Do not change global cleanup settings.
-No native task-stop tool was exposed in the tested CLI capability probe;
-report an unconfirmed stop and retain work if the current schema lacks one.
+No dedicated task-stop-only tool is exposed (`Task` supports `resume` +
+`interrupt=true` to steer/interrupt); report an unconfirmed stop and retain work
+if the current schema lacks one.
 [Subagents](https://cursor.com/docs/subagents) and
 [worktree cleanup](https://cursor.com/docs/configuration/worktrees).
 

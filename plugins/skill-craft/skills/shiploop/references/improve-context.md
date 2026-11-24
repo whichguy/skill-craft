@@ -37,14 +37,21 @@ invocation:
 - `delegation: inline` is the default that `init` and `workspace start` record
   for new runs. The invoking parent conversation runs the whole
   invocation itself; follow the default route below.
-- `delegation: ask-agent` is the opt-in route, chosen by passing
+- `delegation: agents` is the direct native-agents hybrid route, chosen by
+  passing `--delegation agents` or switching with `delegation --set agents`.
+  One native coding-capable review worker runs the bound Improve child directly
+  from `CHILD/worker-brief.md` (forked for planning/outer reviews where
+  supported, fresh for code and end-of-work reviews), without Ask Agent's
+  workspace helpers or `host-owner.md`; follow
+  [Direct review workers](#direct-review-workers-delegation-agents) below.
+- `delegation: ask-agent` is the legacy opt-in route, chosen by passing
   `--delegation ask-agent` to `init` or `workspace start`, or by switching an
   existing run with `delegation --set ask-agent`. One fresh native worker runs the invocation through Ask Agent; follow the
   delegated route at the end of this guide.
 
 The setting is run configuration, not an owner record. Change it for an
 existing run only with
-`python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline|ask-agent`; a
+`python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline|agents|ask-agent`; a
 retried `init` or `workspace start` cannot change it. The change applies from the next issued action: the action pending when you switch, including its Improve checkpoint, keeps the route it was issued with,
 so a bound child keeps the route it started under; the CLI refuses it only on
 halted or done runs. If a `host-owner.md` launch-intent,
@@ -360,6 +367,45 @@ This host instruction does not add machine enforcement of agent identity,
 collection, exclusive writers or semantic review quality. The existing importer
 continues to validate binding, workspace and receipt structure. A durable Until
 Loop runtime is not supported and is refused at bind and import.
+
+## Direct review workers (`delegation: agents`)
+
+This route runs the bound Improve child in one coding-capable native subagent
+directly from `CHILD/worker-brief.md`, without `improve-agent`, Ask Agent's
+workspace helpers, or `host-owner.md`:
+
+- **Hybrid context selection:** Planning and outer reviews (`spec`,
+  `test-strategy`, `plan`, `step-plan`, `system-test-author`, `release-plan`)
+  use a **forked** native subagent inheriting parent conversation history where
+  the host supports native fork (Cursor IDE `resume="self"`, Claude Code
+  `subagent_type="fork"`, Codex `fork_turns="all"`), and fall back cleanly to
+  a **fresh** worker with a 2-line Conversation context note when native fork
+  is absent (Grok Build) or after a cold crash recovery. Code and end-of-work
+  reviews (`document` step review and final `carry-forward`) always run in a
+  strictly **fresh** coding-capable worker with no inherited conversation
+  history (Codex passes `fork_turns="none"`).
+- **Single-hop dispatch:** ShipLoop writes `CHILD/worker-brief.md` beside
+  `CHILD/handoff.md` and `CHILD/packet.json`, and prints a 2-line emit-time
+  host hint from `references/host-bindings.json` (live tool schema wins). The
+  parent launches one blocking/foreground worker where supported (or
+  `spawn_agent` + `wait_agent(timeout_ms=120000)` on Codex), inheriting full
+  model, effort, tools, and permissions, with no second worktree or cloud VM.
+- **Leaf-worker contract:** The worker verifies canonical `pwd` and Git root
+  against `WORKTREE`, invokes the selected `improve/SKILL.md` with
+  `ShipLoop Improve: <CHILD/handoff.md>`, drives `CHILD/packet.json`'s
+  `next_argv` until terminal `complete` (`improve-pass` and `improve-commit`
+  as printed; no commits during a `document` step review), spawns no subagents,
+  and never runs `shiploop complete` or workspace return.
+- **Verification, fallback and recovery:** After collecting the native return,
+  the parent verifies `CHILD/packet.json` is `complete`, reviews the changes,
+  and runs `complete --action=<improve id>` (Claude Code's `PostToolUse(Skill)`
+  gate stays enforced because subagent `Skill` calls record under the parent's
+  `session_id` with `agent_id`). If no native subagent tool is available on
+  this host, run the review inline and pass `--review-mode inline-fallback`. On
+  crash recovery, `next` reprints the packet and refreshes `CHILD/worker-brief.md`;
+  if `CHILD/packet.json` is already `complete`, verify and import without
+  spawning another worker; if still `active`, launch one fresh worker to
+  continue from `next_argv`.
 
 ## Opt-in delegated route: Ask Agent executor (`delegation: ask-agent`)
 

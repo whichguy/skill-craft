@@ -148,7 +148,8 @@ def _completed_instances(state: Mapping[str, Any]) -> list[Any]:
 
 
 def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAULT_DELEGATION,
-                 planning_review: str = navigator.DEFAULT_PLANNING_REVIEW) -> dict[str, Any]:
+                 planning_review: str = navigator.DEFAULT_PLANNING_REVIEW,
+                 host: str | None = 'unknown') -> dict[str, Any]:
     """Simulate one scenario (no work is executed) and return its report: events, stages reached and ``ok``."""
     report = {'name': name, 'simulation_only': True, 'ok': False, 'events': []}
     try:
@@ -181,7 +182,7 @@ def run_scenario(name: str, scenario: Any, *, delegation: str = navigator.DEFAUL
                 'from': current_stage,
                 'owner': _owner(state),
                 'expected': step['expect'],
-                'prompt': navigator.render(CORE, RUN, state),
+                'prompt': navigator.render(CORE, RUN, state, host=host),
             }
             report['events'].append(row)
             command = step.get('command', 'done')
@@ -230,6 +231,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='execution delegation to simulate; default follows new runs (inline)')
     parser.add_argument('--planning-review', choices=navigator.PLANNING_REVIEW_MODES, default=None,
                         help='planning review option to simulate; default follows new runs (stage)')
+    parser.add_argument('--host', default='unknown',
+                        help='host binding to simulate for emit-time hints (unknown by default; or auto/claude/codex/grok/cursor/opencode)')
     parser.add_argument('--list', action='store_true')
 
 
@@ -246,7 +249,8 @@ def run(args: argparse.Namespace) -> int:
             selected = choices if args.scenario == 'all' else {args.scenario: choices[args.scenario]}
         delegation = args.delegation or navigator.DEFAULT_DELEGATION
         planning_review = args.planning_review or navigator.DEFAULT_PLANNING_REVIEW
-        reports = [run_scenario(name, value, delegation=delegation, planning_review=planning_review)
+        host = getattr(args, 'host', 'unknown')
+        reports = [run_scenario(name, value, delegation=delegation, planning_review=planning_review, host=host)
                    for name, value in selected.items()]
     except (OSError, ValueError) as exc:
         print(f'Graph dry-run input error: {exc}')

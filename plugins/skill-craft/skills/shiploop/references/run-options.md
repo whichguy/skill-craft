@@ -6,27 +6,38 @@ Split from the ShipLoop skill card (`../SKILL.md`). Read before choosing `--dele
 
 A new run from `workspace start` or `init` records `delegation:
 inline`: this conversation is the only writer and executes every assignment,
-including Improve and implementation steps, without Ask Agent or native workers.
+including Improve and implementation steps, without native workers.
 Inline Improve checkpoints run the `improve` skill here, reviews and checks
 included, and start no reviewer, test-runner or executor agent unless the user
-asked for independent review. Pass `--delegation ask-agent` at `workspace start`
-(or direct `init`) to opt in to the delegated route: each Improve checkpoint runs
-the `improve-agent` skill, which starts one fresh native worker that runs
-`/improve`, and each implement step is built by one fresh worker. Every run records the
+asked for independent review.
+
+Pass `--delegation agents` at `workspace start` (or direct `init`) for the
+direct native-agents hybrid route: every producer stage stays inline in this
+conversation (with optional F17 read-only fan-out in `discovery`, `research`,
+and `product-acceptance` up to host capacity), while Improve checkpoints run in
+one direct coding-capable native worker from `CHILD/worker-brief.md` with a
+2-line emit-time host hint from `references/host-bindings.json` (forked for
+planning/outer reviews where supported, fresh for `document` and `carry-forward`
+code reviews; `--review-mode inline-fallback` when a host has no subagent tool;
+see [direct review workers](improve-context.md#direct-review-workers-delegation-agents)).
+
+Pass `--delegation ask-agent` at `workspace start` (or direct `init`) to opt in
+to the legacy Ask Agent route (`improve-agent` + fresh INNER workers). Every run records the
 setting; a saved run without it is refused with an error naming the missing
 `delegation` key. An `init` or `workspace start` retry cannot change it. For an
 existing run, use:
 
 ```sh
-python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline   # or ask-agent
+python3 "$CLI" delegation --run-dir "$RUN_DIR" --set inline   # or agents, ask-agent
 ```
 
 The setting applies from the next issued action: the action pending when you
 switch, including its Improve checkpoint, keeps the route it was issued with
 (the packet says so), so a worker or bound child that may already own it
 is never re-routed. It is refused on a halted or done run; setting the recorded
-value is a no-op. `graph-dry-run --delegation
-inline|ask-agent` previews either route (inline by default).
+value is a no-op. `graph-dry-run --delegation inline|agents|ask-agent` previews
+any route (inline by default); `shiploop host-binding` prints the detected host
+and its `host-bindings/v2` data read-only.
 
 ## Script-owned lint
 

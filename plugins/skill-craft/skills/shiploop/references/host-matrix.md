@@ -70,6 +70,7 @@ Observed on 2026-09-27 (evidence: `docs/shiploop-grant-preflight-journal.md`):
 | Grok `--sandbox workspace` | refused | writable | restart with a `~/.grok/sandbox.toml` profile adding both; no mid-session change |
 
 Grant the stable `.shiploop-runs` parent, not a single run's root, so one grant
-covers later runs. The script names the host from `CODEX_SANDBOX`/`CODEX_THREAD_ID`,
-then `GROK_AGENT`, then `CLAUDECODE`, innermost first, because a nested host
-inherits its launcher's variables. Granting is the user's decision.
+covers later runs. The script names the host from [host-bindings.json](host-bindings.json)
+(`CODEX_SANDBOX`/`CODEX_THREAD_ID`, then `GROK_AGENT`/`GROK_SESSION_ID`/`GROK_SANDBOX`,
+then `OPENCODE`, then `CLAUDECODE`, then `CURSOR_AGENT`/`CURSOR_CONVERSATION_ID`,
+innermost first, because a nested host inherits its launcher's variables). Granting is the user's decision.
