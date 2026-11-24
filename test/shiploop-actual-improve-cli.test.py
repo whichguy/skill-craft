@@ -1969,6 +1969,48 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         state = store.read_record(self.run / "state.md")
         self.assertEqual(state["accepted"][self.action]["defaults"], [row])
 
+    def test_improve_import_final_result_enforces_concerns_and_inner_gates(self):
+        """Regression guard: improve_import with --final-result must run _check_submitted_concerns (plan/step-plan)
+        and stage-appropriate _inner_gates (step-plan expectations and reflect-and-revise skill decisions)."""
+        # 1. plan: --final-result without concerns is refused.
+        self._start_parent_at_stage("plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        bad_plan = {k: v for k, v in seed.items() if k != "concerns"}
+        completion, _ = self.completion_receipt(final_result=bad_plan)
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("a done plan maps the concerns of every work item", refused.stderr)
+
+        # 2. step-plan: --final-result with invalid expectations / missing expectations_na is refused.
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        bad_step_plan = {k: v for k, v in seed.items() if k != "expectations"}
+        bad_step_plan["expectations"] = []
+        completion, _ = self.completion_receipt(final_result=bad_step_plan)
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("no expectation listing them in paths", refused.stderr)
+
+        # 3. reflect-and-revise: --final-result with out-of-repo skill.path or invalid skill decision is refused, and valid completes.
+        skill_none = {"decision": "none", "reason": "No procedure repeated."}
+        self._start_parent_at_stage("reflect-and-revise", [str(self.product_contract)],
+                                    producer_extra={"skill": skill_none})
+        self.finish_ephemeral()
+        seed = store.read_record(self.run / "state.md")["active_improve"]["seed_result"]
+        outside = self.base / "outside-skill" / "SKILL.md"
+        outside.parent.mkdir(parents=True, exist_ok=True)
+        outside.write_text("---\nname: outside\ndescription: Outside repo\n---\nBody\n", encoding="utf-8")
+        bad_skill = dict(seed, skill={"decision": "create", "reason": "Repeated steps.",
+                                      "path": str(outside), "evidence": ["W1 S1"]})
+        completion, _ = self.completion_receipt(final_result=bad_skill)
+        refused = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion, status=2)
+        self.assertIn("the skill decision path must be inside the repository", refused.stderr)
+        good_skill = dict(seed, skill={"decision": "reuse", "reason": "Reuses local workflow."})
+        completion, _ = self.completion_receipt(final_result=good_skill)
+        self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve, *completion)
+        state = store.read_record(self.run / "state.md")
+        self.assertEqual(state["accepted"][self.action]["skill"], good_skill["skill"])
+
     def test_a_revised_final_result_past_the_former_size_limits_imports_whole(self):
         """Plan F2 (2026-10-28): the Improve import ran the producer bounds, so a Grok step-plan review that lengthened
         step S1's task past 700 characters was refused (E6 plan sizing F32, 2026-10-25).  No size limit refuses model text
