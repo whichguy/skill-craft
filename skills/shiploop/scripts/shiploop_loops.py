@@ -75,12 +75,15 @@ WORK_STEP = ("Implement all of step {step} of this item's plan, anchored in the 
 
 WORK: Mapping[str, str] = {
     "plan": (
-        "Do duty items {items} of {run}/packets/{action}.md: draft or refine the provisional plan, identify every "
-        "load-bearing assumption and intake experiment question whose outcome could materially change the plan, run "
-        "worthwhile experiments in isolated sandboxes under {run}/experiments/<exp-id>/ (or a disposable temp copy "
-        "outside {repo} when code must change; change no product file in {repo}), fold the observed evidence back "
-        "into {run}/inbox/{action}.md and KNOWLEDGE/architecture.md, and iterate until no material experiment "
-        "remains; then " + _CHECK + "."),
+        "Do duty items {items} of {run}/packets/{action}.md: draft or refine the provisional plan in "
+        "{run}/inbox/{action}.md, identify every load-bearing assumption and intake experiment question whose outcome "
+        "could materially change the plan, run worthwhile experiments in isolated sandboxes under "
+        "{run}/experiments/<exp-id>/ with a short decision.md note (or a disposable temp copy outside {repo} when code "
+        "must change; change no product file in {repo}), fold the observed evidence back into {run}/inbox/{action}.md "
+        "and KNOWLEDGE/architecture.md, and when experiments ran close that iteration's Until Loop report with "
+        'classification "non-trivial", exit_assessment "unsatisfied", and a 1-line finding in handoff so the next '
+        "iteration checks whether secondary unknowns remain until clean and no material experiment remains; then "
+        + _CHECK + "."),
     "step-plan": (
         "Do duty items {items} of {run}/packets/{action}.md, writing the result at {run}/inbox/{action}.md; then "
         + _CHECK + "."),
@@ -119,11 +122,12 @@ REPEAT_STEP = (
 
 REPEAT: Mapping[str, str] = {
     "plan": (
-        "Repeat while a feasible isolated experiment remains that could materially change the plan, an assumption or "
-        "intake experiment question lacks a sound disposition, the check says no, or an exit condition above does not "
-        "hold; " + _NO_LIMIT + " Complete on iteration 1 when no experiment is needed and every exit condition holds. "
-        "Stop blocked only when a person or an outside service must act (access, authority, or a decision) before "
-        "planning can proceed. " + _NEVER_CANCEL),
+        "Repeat while a feasible isolated experiment ran or remains that could materially change the plan, an "
+        "assumption or intake experiment question lacks a sound disposition, the check says no, or an exit condition "
+        "above does not hold; " + _NO_LIMIT + " Complete on iteration 1 only when no experiment is needed and every "
+        "exit condition holds; when experiments ran, finish the probe iteration unsatisfied so a clean verification "
+        "pass confirms no secondary unknown remains before closing satisfied. Stop blocked only when a person or an "
+        "outside service must act (access, authority, or a decision) before planning can proceed. " + _NEVER_CANCEL),
     "step-plan": (
         "Repeat while the check says no or an exit condition above does not hold; " + _NO_LIMIT
         + " Stop blocked only when the plan no longer requires the item, or when a done step's accepted case proves a "

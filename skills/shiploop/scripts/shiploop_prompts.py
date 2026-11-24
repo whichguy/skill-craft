@@ -1267,10 +1267,11 @@ DUTIES = {
        materially change a decision, interface, dependency order, or feasibility;
    (c) run each worthwhile experiment in an isolated sandbox under `RUN/experiments/<exp-id>/` (or a disposable temp
        copy of the repository outside `WORKTREE` when code must change — never mutate product files in `WORKTREE`).
-       Before running, state the decision, alternatives, and distinguishing observation; save the exact command, setup
-       identity, and raw output under `RUN/experiments/<exp-id>/`;
-   (d) fold observed evidence back into `RUN/inbox/<action>.md` and `KNOWLEDGE/architecture.md`, then re-check whether
-       another material experiment remains before marking the loop exit satisfied.
+       State the decision, alternatives, and distinguishing observation in `RUN/experiments/<exp-id>/decision.md`
+       and save the command and raw output there (`shiploop check`/`complete` snapshots `plan-iter-<n>.md`);
+   (d) fold observed evidence back into `RUN/inbox/<action>.md` and `KNOWLEDGE/architecture.md`; when experiments ran
+       close that pass with `classification: "non-trivial"`, `exit_assessment: "unsatisfied"`, and a 1-line finding
+       in `handoff` so the next pass checks whether secondary unknowns emerged before closing satisfied.
    Reuse sufficient current evidence; zero experiments is valid when no consequential uncertainty remains (complete on
    iteration 1). Follow `research-loop.md#recursive-discovery-and-experiments` for authorization, bounds accounting,
    and scratch cleanup. Keep unresolved dependencies conditional and independent work eligible.

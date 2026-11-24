@@ -370,6 +370,26 @@ class StatusBlockTests(unittest.TestCase):
         self.assertEqual(written.count(status_line), 1)
         self.assertNotIn(BEGIN, written)
 
+    def test_status_block_shows_live_plan_loop_and_experiments_when_root_given(self) -> None:
+        state = self.advance_to(self.state(), "plan")
+        root = (Path(self.temp.name) / "plan-live-run").resolve()
+        root.mkdir()
+        action = navigator.current_action(state)["id"]
+        (root / "loops").mkdir(parents=True)
+        (root / "loops" / f"{action}-terminal.json").write_text(
+            json.dumps({"status": "active", "action_number": 2, "summary": "Probed cap"}), encoding="utf-8"
+        )
+        (root / "experiments" / "probe-batch").mkdir(parents=True)
+        (root / "experiments" / "probe-batch" / "decision.md").write_text("Cap is 25\n", encoding="utf-8")
+        (root / "experiments" / "plan-iter-1.md").write_text("Draft 1\n", encoding="utf-8")
+        block = navigator.status_block(state, root)
+        plan_row = line(block, "Plan loop")
+        self.assertIn("iter 2 (active)", plan_row)
+        self.assertIn("1 sandbox: probe-batch", plan_row)
+        self.assertIn("1 draft snapshot", plan_row)
+        self.assertNotIn(str(root), block)
+        self.assertNotIn(str(self.repo), block)
+
     def test_every_dry_run_packet_carries_one_progress_block_and_an_improve_packet_none(self) -> None:
         """Packet review F6 (2026-10-17): 28 of 36 packets of a live run carried the status block and the narrative,
         and 8 of 11 Improve packets the narrative of the stage they reviewed.  Now a milestone packet carries the

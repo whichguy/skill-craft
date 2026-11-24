@@ -1048,6 +1048,31 @@ q.schedule(); assert(!q.scheduled());
             res = subprocess.run([shutil.which("node"), "-e", script], capture_output=True, text=True, timeout=5)
             self.assertEqual(res.returncode, 0, res.stderr)
 
+    def test_planning_panel_and_vertical_slice_pills_render_safely_escaped(self) -> None:
+        data = snapshot()
+        data["plan_accepted"] = True
+        data["work_items"] = [
+            {"id": "W1", "title": "Core spine", "status": "current", "slice": "spine", "concerns_mode": "mapped"},
+            {"id": "W2", "title": "Enrich search", "status": "queued", "slice": "enrich", "concerns_mode": "deferred"},
+        ]
+        data["planning"] = {
+            "active": True,
+            "plan_accepted": True,
+            "loop": {"status": "active", "action_number": 2, "summary": "Iter 1 probed <script>x</script>"},
+            "experiment_questions": [{"id": "Q1", "question": "Check cap?", "status": "probed", "effect": "Chunk <= 25"}],
+            "experiments": [{"id": "exp-cap", "origin": "plan", "file_count": 2, "status": "recorded",
+                             "question": "Q1", "summary": "Confirmed cap"}],
+            "probed_rows": [{"id": "A1", "question": "Q1", "effect": "Chunk <= 25"}],
+            "snapshots": [{"iteration": 1, "name": "plan-iter-1.md"}],
+        }
+        page = progress_render.render(data)
+        self.assertIn("Planning &amp; experiments", page)
+        self.assertIn("Until Loop iter 2 · active", page)
+        self.assertIn("&lt;script&gt;x&lt;/script&gt;", page)
+        self.assertNotIn("<script>x</script>", page)
+        self.assertIn("Plan draft snapshots: Iter 1 (plan-iter-1.md)", page)
+        self.assertIn('class="pill pill-slice">spine</span>', page)
+        self.assertIn('class="pill pill-deferred">rolling-wave · concerns deferred</span>', page)
 
 
 if __name__ == "__main__":

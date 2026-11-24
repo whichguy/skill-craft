@@ -440,6 +440,22 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
                       if action + suffix in listed[directory]]
         names = ["tests/" + name for name in test_names if name.startswith(action + "-") and name.endswith(".md")]
         candidates += names
+        if visit["stage"] == "plan":
+            import shiploop_planning_status as planning_status
+            plan_exps, plan_snaps = planning_status.scan_experiments(root, state)
+            for exp in plan_exps[:4]:
+                rel = exp.get("relative")
+                if exp.get("origin") == "plan" and isinstance(rel, str) and rel.endswith("decision.md"):
+                    eid = add_evidence(rel, "Experiment finding (" + str(exp.get("id")) + ")", priority=(2, recency))
+                    if eid:
+                        visit["evidence"].append(eid)
+            for snap in plan_snaps[:4]:
+                rel = snap.get("relative")
+                if isinstance(rel, str):
+                    eid = add_evidence(rel, "Plan draft snapshot (iter " + str(snap.get("iteration")) + ")",
+                                       priority=(2, recency))
+                    if eid:
+                        visit["evidence"].append(eid)
         for relative in candidates:
             is_current = action == current
             tier = (0 if is_current and not relative.startswith("tests/") else 1 if relative.startswith("loops/")
@@ -535,17 +551,28 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
             warnings.append(provenance + " " + relative)
         status = _record_status(record) if isinstance(record, dict) and not mismatch else "mismatched" if mismatch else entry["status"]
         reused = isinstance(record, dict) and bool(record.get("reused"))
+        progress = record.get("progress") if isinstance(record, dict) and isinstance(record.get("progress"), dict) else {}
+        last_report = record.get("last_report") if isinstance(record, dict) and isinstance(record.get("last_report"), dict) else {}
+        raw_iter = progress.get("action_number", record.get("action_number") if isinstance(record, dict) else None)
+        iter_num = raw_iter if isinstance(raw_iter, int) and not isinstance(raw_iter, bool) else None
         if isinstance(record, dict) and not mismatch:
-            summary = ("Reused result; not a new execution. " if reused else entry["title"] + ": " + str(status if status is not None else "no status recorded") + ". ")
-            summary += str(record.get("reason") or record.get("summary") or "") + " " + provenance
+            iter_note = f"iter {iter_num} · " if relative.startswith("loops/") and iter_num is not None else ""
+            summary = ("Reused result; not a new execution. " if reused
+                       else entry["title"] + ": " + iter_note + str(status if status is not None else "no status recorded") + ". ")
+            detail = (record.get("reason") or record.get("summary")
+                      or last_report.get("handoff") or last_report.get("evidence") or "")
+            summary += str(detail) + " " + provenance
         else:
             summary = provenance if mismatch else message
         summary += " " + relative
         at = record.get("at", record.get("created_at")) if isinstance(record, dict) and not mismatch else None
-        events.append({"id": "record:" + digest(relative)[:20], "kind": "until" if relative.startswith("loops/") else "test" if relative.startswith("tests/") else "expectation" if relative.startswith("expectations/") else "check",
-                       "at": at, "action": visit["action"], "stage": visit["stage"], "summary": summary, "status": status,
-                       "duration_ms": None, "binding": binding, "source": {"path": relative, "line": 1,
-                       "sha256": entry["sha256"]}, "evidence": [eid]})
+        event_row = {"id": "record:" + digest(relative)[:20], "kind": "until" if relative.startswith("loops/") else "test" if relative.startswith("tests/") else "expectation" if relative.startswith("expectations/") else "check",
+                     "at": at, "action": visit["action"], "stage": visit["stage"], "summary": summary, "status": status,
+                     "duration_ms": None, "binding": binding, "source": {"path": relative, "line": 1,
+                     "sha256": entry["sha256"]}, "evidence": [eid]}
+        if relative.startswith("loops/") and iter_num is not None:
+            event_row["iteration"] = iter_num
+        events.append(event_row)
         entry["summary"] = summary + (" " + left_out if relative in not_embedded and left_out not in summary else "")
     # An Improve pass is not a history row: its events belong to the visit it reviewed.
     visit_by_action = {v["action"]: v for v in visits if v["action"]}

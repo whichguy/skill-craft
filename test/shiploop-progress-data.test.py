@@ -300,6 +300,37 @@ class ProgressDataTests(unittest.TestCase):
         self.assertFalse([row for row in snapshot["documents"] if row.get("status") == "retired"])
         self.assertFalse([warning for warning in snapshot["warnings"] if "feature" in warning or "test-strategy" in warning])
 
+    def test_planning_observability_fingerprint_tracks_experiments_and_slice_metadata(self) -> None:
+        state = self.accept(self.state(), work_items=None) if False else self.state()
+        while navigator.current_stage(state) != "plan":
+            state = self.accept(state)
+        self.save_state(state)
+        exp = self.run_root / "experiments" / "sandbox-one"
+        exp.mkdir(parents=True)
+        (exp / "decision.md").write_text("# Probe\nConfirmed 25-row limit.\n", encoding="utf-8")
+        before = progress_data.build_snapshot(self.run_root)
+        self.assertTrue(before["planning"]["active"])
+        self.assertEqual(before["planning"]["experiments"][0]["id"], "sandbox-one")
+
+        (self.run_root / "experiments" / "plan-iter-1.md").write_text("Iter 1\n", encoding="utf-8")
+        after_snap = progress_data.build_snapshot(self.run_root)
+        self.assertNotEqual(before["source_fingerprint"], after_snap["source_fingerprint"])
+        self.assertEqual(len(after_snap["planning"]["snapshots"]), 1)
+
+        # Slicing + deferred concerns appear once plan is accepted.
+        import shiploop_concerns as concerns
+        w1_rows = [{"id": cid, "applies": "no", "reason": "n/a"} for cid in concerns.CONCERN_IDS]
+        accepted = self.accept(state, summary="Vertical plan.",
+                               work_items=[{"id": "W1", "title": "Spine", "slice": "spine"},
+                                           {"id": "W2", "title": "Enrich", "slice": "enrich"}],
+                               concerns={"W1": w1_rows, "W2": "deferred"})
+        self.save_state(accepted)
+        final_snap = progress_data.build_snapshot(self.run_root)
+        self.assertEqual(final_snap["work_items"][0]["slice"], "spine")
+        self.assertEqual(final_snap["work_items"][0]["concerns_mode"], "mapped")
+        self.assertEqual(final_snap["work_items"][1]["slice"], "enrich")
+        self.assertEqual(final_snap["work_items"][1]["concerns_mode"], "deferred")
+
 
 class StoryObservationTests(unittest.TestCase):
     """Coherent synthetic generations; never reads a real run or launches a process."""

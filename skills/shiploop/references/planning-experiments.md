@@ -3,14 +3,19 @@
 Planning experiments happen in two complementary places:
 
 1. **Inside the `plan` producer's own Until Loop** (in every run, both `planning_review: stage` and `planning_review: none`).
-   `plan` runs inside a ShipLoop-authored Until Loop contract (`loops/<action>-contract.json`) that iterates:
-   draft provisional plan → identify load-bearing assumptions and `intake` `route: "experiment"` questions → run
-   worthwhile experiments in isolated sandboxes under `RUN/experiments/<exp-id>/` (or a disposable temp copy of the
-   repository outside `WORKTREE` when code must change; never mutating product files in `WORKTREE`) → fold observed
-   evidence back into the plan and `KNOWLEDGE/architecture.md` → repeat until no material experiment remains (0
-   experiments finishes on iteration 1). Each `probed` assumption cites its saved output under `RUN/experiments/` and
-   may record `"effect"` stating how the result changed or confirmed the plan; every `intake` `route: "experiment"`
-   question must be accounted for in `assumptions` with `"question": "<Qid>"`.
+   `plan` runs inside a ShipLoop-authored Until Loop contract (`loops/<action>-contract.json`) with a prompt-guided
+   iterative cadence: draft provisional plan in `RUN/inbox/<action>.md` → identify load-bearing assumptions and
+   `intake` `route: "experiment"` questions → run worthwhile experiments in isolated sandboxes under
+   `RUN/experiments/<exp-id>/` with a brief `decision.md` note (or a disposable temp copy outside `WORKTREE` when code
+   must change; never mutating product files in `WORKTREE`) → when experiments ran, fold evidence into the plan and
+   close that pass in the Until Loop report with `classification: "non-trivial"`, `exit_assessment: "unsatisfied"`, and
+   a 1-line finding in `handoff` so the next iteration verifies whether any secondary unknown surfaced before closing
+   `satisfied` cleanly (0 experiments still completes on iteration 1). ShipLoop automatically snapshots each
+   checked/completed plan draft to
+   `RUN/experiments/plan-iter-<n>.md` and projects live loop iterations, experiment sandboxes, and `spine`/`enrich`
+   slices into `shiploop status` and `shiploop progress`. Each `probed` assumption cites its saved output under
+   `RUN/experiments/` and may record `"effect"` stating how the result changed or confirmed the plan; every `intake`
+   `route: "experiment"` question must be accounted for in `assumptions` with `"question": "<Qid>"`.
 2. **During the `Plan Improve` review** (in `planning_review: stage` runs; `planning_review: none` skips `Plan Improve`
    and its `improve-reconcile` route while keeping `plan`'s own Until Loop and assumption gates).
 

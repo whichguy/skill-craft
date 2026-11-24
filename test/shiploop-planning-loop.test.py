@@ -40,7 +40,10 @@ import shiploop_concerns as concerns  # noqa: E402
 import shiploop_inner_fixture as fx  # noqa: E402
 import shiploop_loop_support as loop_support  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
+import shiploop_narrative as narrative  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
+import shiploop_progress_data as progress_data  # noqa: E402
+import shiploop_progress_render as progress_render  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 
@@ -471,6 +474,152 @@ class VerticalSlicingAndRollingWaveTests(unittest.TestCase):
             self.assertIn("Work item slice: enrich", sp_w2)
             self.assertIn("deferred at plan (rolling-wave enrichment)", sp_w2)
             self.assertIn("Carry W1 E2E smoke as regression baseline.", sp_w2)
+
+
+class PlanningLoopStatusAndObservabilityTests(PlanningLoopCliBase):
+    """Iterative plan-loop cadence, automatic draft snapshots, live progress/status/story/report, and redaction."""
+
+    def test_snapshots_live_status_progress_story_and_report_across_iterations(self) -> None:
+        repo = self.init_repo()
+        run_dir = self.init_run(repo, planning_review="none")
+        questions = [{
+            "id": "Q1", "category": "K1", "question": "Does v1 cap batches at 25?",
+            "changes": "Batch size or v2 fallback", "route": "experiment",
+            "default": "Single batch", "blocks": "plan",
+        }]
+        state = self.saved(run_dir)
+        intake_res = fx.fixture_intake(state, {"outcome": "done", "summary": "Mapped request."})
+        intake_res["question_categories"] = [
+            {"id": "K1", "applies": "yes"},
+            *[{"id": f"K{n}", "applies": "no", "reason": "n/a"} for n in range(2, 13)],
+        ]
+        intake_res["questions"] = questions
+        self.complete_stage(run_dir, intake_res)
+        (repo / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (repo / "docs" / "shiploop" / "environment.md").write_text("# Env\n\n## Commands\n- true\n", encoding="utf-8")
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Discovered repo."})
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Researched."})
+        spec_path = repo / "docs" / "shiploop" / "spec.md"
+        spec_path.write_text("# Spec\n\n## R-1\nExport records.\n", encoding="utf-8")
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Spec.", "primary": ["R-1"],
+                                      "defaults": [], "evidence_refs": [str(spec_path)]})
+        (repo / "docs" / "shiploop" / "architecture.md").write_text("# Arch\n\n## Decisions\n", encoding="utf-8")
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Strategy.", **fx.fixture_test_layers(),
+                                      "evidence_refs": [str(repo / "docs" / "shiploop" / "environment.md")]})
+
+        pkt = self.cli("next", "--run-dir", run_dir).stdout
+        self.assertIn('exit_assessment: "unsatisfied"', pkt)
+
+        state = self.saved(run_dir)
+        action = nav.current_action(state)["id"]
+        contract = run_dir / loops.contract_path(action)
+        receipt = run_dir / loops.terminal_path(action)
+        bound = loops.runtime(state)
+        started = subprocess.run(
+            [sys.executable, bound["runtime_cli"], "start", "--receipt", str(receipt), "--directory", str(receipt.parent)],
+            input=contract.read_text(encoding="utf-8"), text=True, capture_output=True, check=True,
+        )
+        packet1 = json.loads(started.stdout)
+
+        # Iteration 1: write provisional plan draft + sandbox experiment with api_key secret to test redaction.
+        exp_dir = run_dir / "experiments" / "probe-v1"
+        exp_dir.mkdir(parents=True, exist_ok=True)
+        (exp_dir / "decision.md").write_text(
+            "# Probe v1\nv1 failed above 25 records api_key=sk_secret_token_987654\n", encoding="utf-8"
+        )
+        (exp_dir / "meta.json").write_text(json.dumps({
+            "question": "Q1", "hypothesis": "v1 fails >25", "outcome": "confirmed cap=25", "plan_changed": True,
+        }), encoding="utf-8")
+        action, draft = self.write_result(run_dir, {
+            "outcome": "done", "headline": "Provisional plan.", "summary": "Draft 1.",
+            "evidence_refs": [str(receipt), str(exp_dir / "decision.md")],
+            "work_items": [{"id": "W1", "title": "Spine", "slice": "spine", "follows": ["R-1"]},
+                           {"id": "W2", "title": "Enrich", "slice": "enrich", "follows": ["R-1"]}],
+            "concerns": {"W1": fx.no_concerns_map(["W1"])["W1"], "W2": "deferred"},
+            "assumptions": [{"id": "A1", "question": "Q1", "assumption": "v1 caps at 25",
+                             "disposition": "probed", "check": "node probe.js",
+                             "evidence": [str(exp_dir / "decision.md")], "effect": "Use 25-record chunks."}],
+        })
+        self.cli("check", "--run-dir", run_dir, "--action", action, "--result", draft)
+        self.assertTrue((run_dir / "experiments" / "plan-iter-1.md").is_file())
+        snap1_bytes = (run_dir / "experiments" / "plan-iter-1.md").read_text(encoding="utf-8")
+
+        # Close iteration 1 as unsatisfied using real stdin JSON report so iteration 2 begins.
+        iter1_done = subprocess.run(
+            list(packet1["done_argv"]),
+            input=json.dumps({
+                "classification": "non-trivial", "exit_assessment": "unsatisfied",
+                "continuation_assessment": "allowed",
+                "evidence": f"Ran probe-v1 at {exp_dir}",
+                "handoff": "Iteration 1 proved v1 cap=25; checking v2 next.",
+            }),
+            text=True, capture_output=True, check=True,
+        )
+        packet2 = json.loads(iter1_done.stdout)
+        live_snap = progress_data.build_snapshot(run_dir)
+        self.assertEqual(live_snap["planning"]["loop"]["action_number"], 2)
+        self.assertEqual(live_snap["planning"]["loop"]["summary"], "Iteration 1 proved v1 cap=25; checking v2 next.")
+        self.assertEqual(live_snap["planning"]["experiments"][0]["id"], "probe-v1")
+        self.assertNotIn("sk_secret_token_987654", json.dumps(live_snap))
+        status_text = self.cli("status", "--run-dir", str(run_dir)).stdout
+        self.assertIn("Plan loop: iter 2 (active)", status_text)
+        self.assertIn("probe-v1", status_text)
+        self.assertNotIn(str(run_dir), status_text)
+        live_html = progress_render.render(live_snap)
+        self.assertIn("Planning &amp; experiments", live_html)
+        self.assertIn("Until Loop iter 2 · active", live_html)
+        self.assertIn("probe-v1", live_html)
+        self.assertNotIn("sk_secret_token_987654", live_html)
+        story_ev = next(e for e in live_snap["story"]["events"] if e.get("kind") == "until")
+        self.assertEqual(story_ev.get("iteration"), 2)
+        self.assertIn("iter 2 ·", story_ev["summary"])
+        narr_md = narrative.markdown(nav.narrative_facts(self.saved(run_dir), None, root=run_dir))
+        self.assertIn("Until Loop iter 2", narr_md)
+        self.assertIn("1 sandbox", narr_md)
+
+        # Iteration 2: revise plan draft and complete loop cleanly.
+        action, draft = self.write_result(run_dir, {
+            "outcome": "done", "headline": "Vertical plan after probe.", "summary": "Draft 2 with spine+enrich.",
+            "evidence_refs": [str(receipt), str(exp_dir / "decision.md")],
+            "work_items": [{"id": "W1", "title": "Spine", "slice": "spine", "follows": ["R-1"]},
+                           {"id": "W2", "title": "Enrich", "slice": "enrich", "follows": ["R-1"]}],
+            "concerns": {"W1": fx.no_concerns_map(["W1"])["W1"], "W2": "deferred"},
+            "assumptions": [{"id": "A1", "question": "Q1", "assumption": "v1 caps at 25",
+                             "disposition": "probed", "check": "node probe.js",
+                             "evidence": [str(exp_dir / "decision.md")], "effect": "Use 25-record chunks."}],
+        })
+        subprocess.run(
+            list(packet2["done_argv"]),
+            input=json.dumps({
+                "classification": "trivial", "exit_assessment": "satisfied",
+                "continuation_assessment": "allowed",
+                "evidence": "All checks passed cleanly.",
+                "handoff": "Confirmed plan after iteration 2 check.",
+            }),
+            text=True, capture_output=True, check=True,
+        )
+        self.cli("complete", "--run-dir", run_dir, "--action", action, "--result", draft)
+
+        self.assertEqual((run_dir / "experiments" / "plan-iter-1.md").read_text(encoding="utf-8"), snap1_bytes)
+        self.assertTrue((run_dir / "experiments" / "plan-iter-2.md").is_file())
+        self.assertIn("Draft 2 with spine+enrich.", (run_dir / "experiments" / "plan-iter-2.md").read_text(encoding="utf-8"))
+
+        post_snap = progress_data.build_snapshot(run_dir)
+        self.assertTrue(post_snap["plan_accepted"])
+        self.assertEqual(post_snap["work_items"][0]["slice"], "spine")
+        self.assertEqual(post_snap["work_items"][0]["concerns_mode"], "mapped")
+        self.assertEqual(post_snap["work_items"][1]["slice"], "enrich")
+        self.assertEqual(post_snap["work_items"][1]["concerns_mode"], "deferred")
+        post_html = progress_render.render(post_snap)
+        self.assertIn("pill-slice", post_html)
+        self.assertIn("rolling-wave · concerns deferred", post_html)
+        post_status = self.cli("status", "--run-dir", str(run_dir)).stdout
+        self.assertIn("Plan:      2 loop iters · 1 experiment probed · slices spine->enrich", post_status)
+
+        report_html = nav._render_report(self.saved(run_dir), run_dir)
+        self.assertIn("<h2>Planning experiments &amp; slicing</h2>", report_html)
+        self.assertIn("Plan Until Loop iterations: 2; sandboxes: 1; draft snapshots: 2; probed assumptions: 1.", report_html)
+        self.assertIn("Use 25-record chunks.", report_html)
 
 
 if __name__ == "__main__":
