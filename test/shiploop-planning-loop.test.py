@@ -457,12 +457,15 @@ class VerticalSlicingAndRollingWaveTests(unittest.TestCase):
             rr_pkt = nav.render(None, run_dir, state)
             self.assertIn("progressive enrichment: when pending enrichment items (`W2+`) remain", rr_pkt)
 
-            # Replace future queue with sharpened W2 context and enter W2's step-plan.
-            state = nav.apply(state, nav.current_action(state)["id"], {
+            # Replace future queue with sharpened W2 context; non-final reflect-and-revise queue edit starts mid-run Improve.
+            rr_action = nav.current_action(state)["id"]
+            state = nav.apply(state, rr_action, {
                 **done,
                 "work_items": [{"id": "W2", "title": "Enrich filters", "slice": "enrich",
                                 "context": "Carry W1 E2E smoke as regression baseline."}],
             })
+            self.assertIsNotNone(state.get("active_improve"))
+            state = nav.finish_improve(state, rr_action, {"summary": "Synthetic mid-run reflection review."})
             self.assertEqual((nav.current_stage(state), nav._current_work_item(state)), ("step-plan", "W2"))
             sp_w2 = nav.render(None, run_dir, state)
             self.assertIn("Work item slice: enrich", sp_w2)
