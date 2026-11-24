@@ -2944,7 +2944,7 @@ def _check_added_tests(state: Mapping[str, Any], stage: str, result: Any) -> Non
     the item's step plan did not record as focused or regression: only a recorded command reruns, so only it can run
     the test."""
     if stage not in ("test", item_scope.DOCUMENT_STAGE) or not isinstance(result, Mapping) \
-            or result.get("outcome") != "done":
+            or result.get("outcome") != "done" or not (result.get(test_loop.ADDED_TESTS) or ()):
         return
     _action, plan = test_loop._step_plan(state, _current_work_item(state))
     recorded = [str(row.get("command")) for row in plan.get("test_commands") or ()
@@ -5021,6 +5021,8 @@ def _test_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) ->
 
 def _test_edited_product_code(root: Path, state: Mapping[str, Any], workitem: Any) -> bool:
     """True when the active test action edited non-test behavioural code since entering the test stage."""
+    if "stage" not in state or "repo" not in state:
+        return False
     stage, action, _item = _active_cursor(state)
     if stage != "test" or not isinstance(action, Mapping) or not action.get("entry") or not workitem:
         return False
