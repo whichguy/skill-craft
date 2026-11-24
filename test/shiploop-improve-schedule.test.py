@@ -24,6 +24,7 @@ import shiploop_standalone_improve as standalone  # noqa: E402
 import shiploop_stage_spec as spec_table  # noqa: E402
 import shiploop_store as store  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_loop_support as loop_support  # noqa: E402
 from shiploop_inner_fixture import fixture_follows, fixture_intake, fixture_primary, no_concerns_map, fixture_test_layers  # noqa: E402,E501
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
@@ -133,11 +134,14 @@ class ImproveScheduleTests(unittest.TestCase):
     def test_template_placeholder_is_refused(self):
         state = self.new()
         run = Path("/simulation-only/run")
-        # Every rendered template carries the placeholder, never an empty list.
-        for stage, at in (("intake", state), ("plan", advance_to(state, "plan"))):
+        # Non-looped rendered templates carry the placeholder; looped stages (plan and INNER) prefill their receipt.
+        for stage, at in (("intake", state), ("discovery", advance_to(state, "discovery"))):
             with self.subTest(stage=stage):
                 self.assertEqual(template(nav.render(None, run, at))["evidence_refs"],
                                  [nav.EVIDENCE_PLACEHOLDER])
+        plan_state = advance_to(state, "plan")
+        self.assertEqual(template(nav.render(None, run, plan_state))["evidence_refs"],
+                         [str(run / "loops" / (nav.current_action(plan_state)["id"] + "-terminal.json"))])
         action = nav.current_action(state)["id"]
         for refs in ([nav.EVIDENCE_PLACEHOLDER], ["/simulation-only/repo/notes.md", nav.EVIDENCE_PLACEHOLDER]):
             with self.subTest(refs=refs):
@@ -540,6 +544,8 @@ class CliRunCase(unittest.TestCase):
             merged["concerns"] = no_concerns_map(row["id"] for row in queue if isinstance(row, dict))
         if state["stage"] == "plan":
             merged = fixture_follows(state, merged)                            # F3: a work item for each primary one
+            if merged.get("outcome") == "done":
+                merged = loop_support.with_receipt(merged, loop_support.finish_loop(run))
         if state["stage"] == "intake":
             merged = fixture_intake(state, merged)                             # IN1
         if state["stage"] == "spec" and merged.get("outcome") == "done":
@@ -682,7 +688,8 @@ class PlanningReviewNoneCliTests(CliRunCase):
                        "settle": "import it", "reason": "not run", "due_item": "W9"}]
         action = self.saved(run)["action"]["id"]
         path = run / "inbox" / (action + ".md")
-        store.write_record(path, dict(DONE, assumptions=open_entry))
+        store.write_record(path, loop_support.with_receipt(
+            dict(DONE, assumptions=open_entry), loop_support.finish_loop(run)))
         refused = self.cli("complete", "--run-dir", run, "--action", action, "--result", path, status=2)
         self.assertIn("W9", refused.stdout + refused.stderr)
         self.assertEqual(self.saved(run)["stage"], "plan")

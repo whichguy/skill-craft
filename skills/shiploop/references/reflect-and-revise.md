@@ -77,10 +77,15 @@ future queue:
   work: add a corrective item ahead of its consumers, or report `blocked` when
   it cannot wait. The stage's Until Loop repeats only this reflect-and-revise's work;
   it does not reopen an earlier stage.
-- **Future items.** Revise the queue so each affected future item carries the
+- **Future items and progressive enrichment.** Revise the queue so each affected future item carries the
   compact decision/convention locator, rationale and revalidation condition in
-  its existing `context`, with supporting sources in `evidence_refs`. An item
-  that follows a requirement this item's step plan revised is affected: its
+  its existing `context`, with supporting sources in `evidence_refs`. When pending
+  enrichment items (`W2+`) remain after a vertical spine or earlier slice lands,
+  sharpen their `context`, interfaces, deferred concerns and `follows` from what
+  the completed slice revealed, carrying the working E2E smoke check forward as
+  the next item's regression baseline; if a new consequential unknown surfaced,
+  settle it with a small isolated probe in `RUN/experiments/` before revising the
+  queue. An item that follows a requirement this item's step plan revised is affected: its
   `context` also carries the changed behaviour and its `R-<n>` in
   `KNOWLEDGE/spec.md`. A needed
   research or preparation prerequisite becomes its own item that precedes every

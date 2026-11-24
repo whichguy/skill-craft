@@ -3531,7 +3531,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         state = self.state()
         stage = navigator.current_stage(state)
         action = navigator.current_action(state)["id"]
-        if loop and not check and stage in EXPECTED_INNER and result.get("outcome") != "blocked":
+        if loop and not check and stage in ("plan", *EXPECTED_INNER) and result.get("outcome") != "blocked":
             receipt = self.loop_support.finish_loop(
                 self.run_dir, outcome="done" if result.get("outcome") == "done" else "blocked")
             result = self.loop_support.with_receipt(result, receipt)

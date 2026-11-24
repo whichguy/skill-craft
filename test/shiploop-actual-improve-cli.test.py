@@ -189,7 +189,7 @@ class ImproveCliFixture(unittest.TestCase):
                 self.producer = {**inner_fixture.fixture_primary(self.state), **self.producer}   # run-5 batch F6
             if stage == "test-strategy":
                 self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
-        if stage in stage_spec.INNER:
+        if stage in ("plan", *stage_spec.INNER):
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
         self.input = self.run / "inbox" / (self.action + ".md")
@@ -2299,7 +2299,7 @@ class ImproveCommitContractTests(ImproveCliFixture):
                 self.producer = {**inner_fixture.fixture_primary(self.state), **self.producer}   # run-5 batch F6
             if stage == "test-strategy":
                 self.producer = {**inner_fixture.fixture_test_layers(), **self.producer}    # run-5 batch F1, F3
-        if stage in stage_spec.INNER:
+        if stage in ("plan", *stage_spec.INNER):
             self.producer = with_receipt(self.producer, finish_loop(self.run))
             self.parent_evidence_refs = list(self.producer["evidence_refs"])
         self.input = self.run / "inbox" / (self.action + ".md")

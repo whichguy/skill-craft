@@ -57,9 +57,9 @@ item that was sent back), each step's accepted `document` stage and the successf
 `reflect-and-revise` that leaves no work item pending are then followed by the actual
 Improve skill; every other result is accepted on its own checks and the script
 selects the next producer directly.
-Every inner stage does its work inside one bound Until Loop started by the
+`plan` and every inner stage do their work inside one bound Until Loop started by the
 packet's literal command, with a ShipLoop-authored contract and receipt under `loops/`
-([stage Until Loops](inner-loop.md#stage-until-loops)). ShipLoop accepts an inner
+([stage Until Loops](inner-loop.md#stage-until-loops)). ShipLoop accepts `plan` or an inner
 `done` only with a receipt that matches the contract rebuilt from state,
 and only after the stage's script gates pass: the expectation checks at
 `validate-existing`, the [lint gate](run-options.md#script-owned-lint) at
@@ -492,7 +492,7 @@ The semantic result contract is small:
 | `summary` | Concise statement of the current action’s real result. |
 | `headline` | One line, for the user, saying what this step established; the [run narrative](status-display.md#run-narrative) lists it under Achieved, showing its first 100 characters (the result file keeps it whole). The template's placeholder is refused. Without it the narrative uses the summary's first sentence. |
 | `evidence_refs` | Absolute paths of the files this stage wrote or of the check output it recorded, or other safe references to source, test, note, or external-operation evidence. A path may lead with `RUN/`, `KNOWLEDGE/`, `WORKTREE/` or `GUIDES/` (the packet's symbols): ShipLoop expands it before any check and stores the absolute path; another all-capital word and a slash is refused as an unknown root. An inner stage's Until Loop receipt is listed by ShipLoop when the result leaves it out. The template's placeholder is refused. |
-| `work_items` | Ordered `{id,title,follows?,context?}` items at `plan` before execution, at `reflect-and-revise` for future-only work, or required new IDs for an outer `add-work`. |
+| `work_items` | Ordered `{id,title,follows?,slice?,context?}` items at `plan` before execution (optional `slice`: `spine`, `enrich`, `prerequisite`, or `corrective`), at `reflect-and-revise` for future-only work, or required new IDs for an outer `add-work`. |
 | `delivery_assessment` | Only for runs initialized with `--delivery-contract`: a full consumer-delivery contract/correction or bound observations, using the packet template. See [consumer delivery](consumer-delivery.md). |
 | `notes` | On a `done` result of any stage that owes rows for the run owner's notes: one `{"note", "did", "detail"}` per owed note, `did` one of `applied`, `already`, `carried` (not at `reflect-and-revise` or `handoff`) and `declined`; an applied row at `plan` or `reflect-and-revise` also names its `item`. The packet's owner-notes block and template say which notes are owed. See [owner notes](status-display.md#owner-notes). |
 

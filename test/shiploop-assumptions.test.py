@@ -21,6 +21,7 @@ sys.path.insert(0, str(PACKAGE / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_inner_fixture as inner_fixture  # noqa: E402
+import shiploop_loop_support as loop_support  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -146,6 +147,8 @@ class GateTests(unittest.TestCase):
                 row["id"] for row in queue if isinstance(row, dict)))
         if nav.current_stage(state) == "plan":
             result = inner_fixture.fixture_follows(state, result)   # F3: every primary requirement has a work item
+            if result.get("outcome") == "done":
+                result = loop_support.with_receipt(result, loop_support.finish_loop(self.run_dir))
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         store.write_record(path, result)

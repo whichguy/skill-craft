@@ -183,6 +183,7 @@
     "test/shiploop-packet-obligations.test.py": 6.746,
     "test/shiploop-packet-recut.test.py": 10.196,
     "test/shiploop-planning-handoff.test.py": 4.027,
+    "test/shiploop-planning-loop.test.py": 6.0,
     "test/shiploop-privacy.test.py": 0.127,
     "test/shiploop-probe-decisions.test.py": 1.747,
     "test/shiploop-progress-data.test.py": 0.889,

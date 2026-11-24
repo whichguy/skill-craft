@@ -849,7 +849,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
     @staticmethod
     def _with_loop(run: Path, stage: str, result: dict) -> dict:
         """An INNER result runs its Until Loop through the real runtime and carries the receipt."""
-        if stage not in EXPECTED_INNER:
+        if stage not in ("plan", *EXPECTED_INNER):
             return result
         return with_receipt(result, finish_loop(run))
 

@@ -147,6 +147,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-trace.test.py",
     "test/shiploop-owner-notes.test.py",
     "test/shiploop-planning-handoff.test.py",
+    "test/shiploop-planning-loop.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-python-floor.test.py",
     "test/shiploop-clean-consumer.test.py",
@@ -223,6 +224,7 @@ _QUICK_PATHS = frozenset({
     "test/shiploop-status-display.test.py",
     "test/shiploop-narrative.test.py",
     "test/shiploop-planning-handoff.test.py",
+    "test/shiploop-planning-loop.test.py",
 })
 
 # Current Ask-Agent checks.  The adapter rows exercise the ShipLoop consumers

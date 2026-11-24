@@ -134,8 +134,8 @@ class TestGroupTests(unittest.TestCase):
         # Roundtable adds one opt-in calibration suite (2026-11-07).
         # Nonblocking recovery adds one real-worktree suite (2026-11-12).
         # Retiring the Closed Loop adapter (3 suites) and all Salesforce/hosted suites (12 ShipLoop + 2 apparatus) brings SHIPLOOP_SUITES to 127.
-        # The defaults list's suite adds one (2026-11-21).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 128)
+        # The defaults list's suite adds one (2026-11-21); the planning-loop suite adds one (2026-11-24).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 129)
         # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
@@ -149,8 +149,8 @@ class TestGroupTests(unittest.TestCase):
         # The pushpress skill and its suite left skill-craft for a private repository (2026-11-22), so core is one fewer, 60, and all suites 190.
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 60)
         # Bundled Grok/GAS harness (2 suites), Closed Loop ShipLoop adapter (3 suites), and Salesforce/hosted cases (14 suites) retired (2026-11-19).
-        # The pushpress suite left with its skill (2026-11-22): 190.
-        self.assertEqual(len(suite_catalog.SUITES), 190)
+        # The pushpress suite left with its skill (2026-11-22): 190; shiploop-planning-loop adds one (2026-11-24): 191.
+        self.assertEqual(len(suite_catalog.SUITES), 191)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -172,7 +172,7 @@ class TestGroupTests(unittest.TestCase):
         self.assertIn("shiploop-python-floor", {suite.id for suite in selected})
         self.assertIn("shiploop-clean-consumer", {suite.id for suite in selected})
         self.assertNotIn("python-floor", ci_policy.FULL_GROUPS)
-        self.assertEqual(len(selected), 77)
+        self.assertEqual(len(selected), 78)
         covered = Counter(suite.id for group in ci_policy.FULL_GROUPS
                           for suite in suite_catalog.select((group,)))
         self.assertTrue({suite.id for suite in selected} <= set(covered))
@@ -393,11 +393,12 @@ class TestGroupTests(unittest.TestCase):
         # and the defaults list's suite (2026-11-21): 191.
         # The pushpress suite's row left the catalog with the skill (2026-11-22; it moved to a private repository), so the digest
         # below is that of the 190 rows that remain: it changed by the removal of that one row and by nothing else.
+        # The planning-loop suite joined the catalog (2026-11-24): 191 rows.
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "54ec6ac8c0ac865e59e16362118ffe89d8dcc8ad1b3702835625db1b03fcf248")
+        self.assertEqual(digest, "f70395f468ee0763bee580e63bad49f7844cf8673999d70c3845278e118e9dc7")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])
@@ -409,7 +410,7 @@ class TestGroupTests(unittest.TestCase):
             self.assertEqual(suite_catalog.select(["smoke", "affected"], changed), suite_catalog.quick(changed))
             self.assertEqual(suite_catalog.select(["all"], changed), full)
             self.assertEqual(suite_catalog.select(["affected"], changed), suite_catalog.affected(changed))
-        self.assertEqual(len(suite_catalog.select(["python-floor"])), 77)
+        self.assertEqual(len(suite_catalog.select(["python-floor"])), 78)
 
     def test_full_only_membership_is_explicit_and_independent_of_timings(self) -> None:
         self.assertEqual(suite_catalog._FULL_ONLY_IDS, {
@@ -555,7 +556,7 @@ class TestGroupTests(unittest.TestCase):
             loads[owner] += suite_catalog._DURATION_SECONDS[suite.path]
         old = tuple(tuple(s for s in canonical if s.id in ids) for ids in members)
         self.assertEqual(suite_catalog.SHIPLOOP_SHARDS, old)
-        self.assertEqual(len(suite_catalog.select(["python-floor"])), 77)
+        self.assertEqual(len(suite_catalog.select(["python-floor"])), 78)
 
     def test_lpt_shards_are_disjoint_exhaustive_and_catalog_ordered(self) -> None:
         canonical = suite_catalog.SHIPLOOP_SUITES

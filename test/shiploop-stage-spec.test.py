@@ -156,13 +156,13 @@ class StageTableTest(unittest.TestCase):
         self.assertEqual(spec.with_complete_run("expectation-check"), ("validate-existing",))
         self.assertEqual(spec.ENTRY_RUNS, frozenset({"lint-base", "loop-contract", "expectation-check"}))
         self.assertEqual(spec.with_entry_run("lint-base"), ("step-plan",))
-        # Every inner stage is an Until Loop: its contract is written on entry and its receipt checked at complete.
-        self.assertEqual(spec.with_entry_run("loop-contract"), spec.INNER)
-        self.assertEqual(spec.with_complete_run("loop-terminal"), spec.INNER)
-        self.assertEqual(loops.STAGES, spec.INNER)
+        # plan and every inner stage run an Until Loop: contract written on entry, receipt checked at complete.
+        self.assertEqual(spec.with_entry_run("loop-contract"), loops.STAGES)
+        self.assertEqual(spec.with_complete_run("loop-terminal"), loops.STAGES)
+        self.assertEqual(loops.STAGES, (*loops.PRELUDE_STAGES, *spec.INNER))
         # ShipLoop loops are unbounded (owner decision 2026-09-26): no stage carries a limit.
         self.assertFalse(any(hasattr(spec.stage(name), "loop_limit") for name in spec.STAGES))
-        for name in spec.INNER:
+        for name in loops.STAGES:
             with self.subTest(stage=name):
                 self.assertIn("no iteration limit", loops.REPEAT[name])
                 self.assertNotIn("Stop cancelled when", loops.REPEAT[name])

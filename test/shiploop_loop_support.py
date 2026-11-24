@@ -51,7 +51,7 @@ def finish_loop(run_dir: Path, *, outcome: str = "done", note: str = "fixture") 
     state = store.read_record(run_dir / "state.md")
     cursor = loops.cursor(state)
     if cursor is None:
-        raise RuntimeError("no current inner action to run a loop for")
+        raise RuntimeError("no current looped action to run a loop for")
     action_id = cursor[1]
     contract_file = run_dir / loops.contract_path(action_id)
     if not contract_file.is_file():

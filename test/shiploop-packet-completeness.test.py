@@ -74,11 +74,10 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None, not
             stage = navigator.current_stage(state)
             action = navigator.current_action(state)
             found.setdefault((stage, "producer"), cold(state))
-            # Decision 20 (owner 2026-10-18): step-plan and test-spec are the only reviewed stages that are also
-            # inner loop stages outside loops.ARGUMENT_STAGES, so only their Done-when conditions moved out of the
-            # packet text into the loop's Contract (built here, while the run still exists on disk; a test reads it
-            # back from ``found`` instead of the packet text).
-            if stage in ("step-plan", "test-spec"):
+            # Decision 20 (owner 2026-10-18): plan, step-plan and test-spec are looped stages outside
+            # loops.ARGUMENT_STAGES, so their Done-when conditions live in the loop Contract (captured here while
+            # the run still exists on disk; a test reads it back from ``found`` instead of the packet text).
+            if stage in ("plan", "step-plan", "test-spec"):
                 found.setdefault((stage, "exit_condition"), loops.contract(run, state, action["id"])["exit_condition"])
             extra = {}
             if stage == "plan":
@@ -289,7 +288,7 @@ class PacketCompletenessTests(unittest.TestCase):
         # test-spec's close requires the item's test-spec.md under docs/shiploop, and its row now runs the loop
         # receipt check too, so its line belongs to this group (8-stage inner loop, 2026-10-10).
         # document: its spec write-back gate on KNOWLEDGE/spec.md (design T §9.1 2b-3).
-        closes = {"release-verify", "test-spec", "step-plan", "document"}  # step-plan: the ID-retention line (L4)
+        closes = {"plan", "release-verify", "test-spec", "step-plan", "document"}  # plan/step-plan: the ID-retention line (L4)
         for (stage, kind), packet in sorted(self.found.items()):
             row = stage_spec.stage(stage)
             if kind != "producer" or not row.complete_runs:
@@ -373,8 +372,8 @@ class ObservedHarmPacketTests(unittest.TestCase):
                       "behaviours share a step and its proof shows each of them.", text)
         self.assertIn("Size: at most 12 criteria and 6 product files a step (a file that only describes another changed "
                       "file counts with it; tests, docs and its proof script do not).", text)
-        self.assertIn("Cut a larger item at a module or layer boundary (interface first, then each side) into the fewest "
-                      "steps of that size.", text)
+        self.assertIn("Cut a larger item vertically (end-to-end slice first — with an E2E smoke check on a spine — then "
+                      "enrich) into the fewest steps of that size.", text)
         self.assertNotIn("at most 4 criteria", text)
         self.assertNotIn("make another step", text)
         self.assertIn("Its `paths` (inside the item's) name every file it changes.", text)

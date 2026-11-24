@@ -199,11 +199,13 @@ the core build loop inline while delegating reviews via direct native workers an
 `--lint fix|report|off` and `--planning-review stage|none` (default `stage`; pass `none` only when the user asks
 to run without planning reviews) ([run options](references/run-options.md)).
 
-## Inner stages
+## Stage Until Loops and inner stages
 
-Each work item runs `step-plan`, `test-spec`, `validate-existing`, `implement`, `test` and `document` (once per step)
-and `reflect-and-revise`, each inside one Until Loop started with the packet's literal command; the packet prints
-its rule. The rules behind it: [the inner loop](references/inner-loop.md) and
+`plan` and every inner stage (`step-plan`, `test-spec`, `validate-existing`, `implement`, `test`, `document`, once per
+step, and `reflect-and-revise`) run inside one Until Loop started with the packet's literal command; `plan` uses its
+loop to iterate on isolated planning experiments under `RUN/experiments/` (0 experiments = 1 pass) and organize
+multi-surface work vertically (`W1` spine → `W2+` enrichments). The rules behind it:
+[the inner loop](references/inner-loop.md), [planning experiments](references/planning-experiments.md) and
 [test loop and confirmation](references/test-loop.md).
 
 ## Durable handoff

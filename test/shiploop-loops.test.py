@@ -76,6 +76,13 @@ class Synthetic(unittest.TestCase):
         self.cli = loops.runtime(self.state_for("document"))["runtime_cli"]
 
     def state_for(self, stage: str, title: str = "Add parser") -> dict:
+        if stage in loops.PRELUDE_STAGES:
+            return {
+                "repo": str(self.repo), "prompt": "Build a parser for the thing", "run_id": "run-abc123",
+                "stage": stage, "action": {"id": "A-" + stage}, "improve_skill": "", "delegation": "inline",
+                "work_items": [{"id": "W1", "title": title}], "work_index": 0, "inner_loops": {},
+                "history": [], "accepted": {},
+            }
         return {
             "repo": str(self.repo), "prompt": "Build a parser for the thing", "run_id": "run-abc123",
             "stage": "inner-loop", "work_index": 0, "improve_skill": "", "delegation": "inline",
@@ -146,8 +153,8 @@ class ContractTests(Synthetic):
 
     def test_every_inner_stage_contract_is_in_the_runtime_schema_and_the_runtime_starts_from_it(self):
         validate = _runtime_module()._validate_contract
-        self.assertEqual(set(loops.STAGES), set(stage_spec.INNER))
-        for stage in stage_spec.INNER:
+        self.assertEqual(set(loops.STAGES), set(loops.PRELUDE_STAGES) | set(stage_spec.INNER))
+        for stage in loops.STAGES:
             with self.subTest(stage=stage):
                 state, action = self.state_for(stage), "A-" + stage
                 writes = self.write(state)
@@ -1391,8 +1398,8 @@ class WorkTextTests(Synthetic):
     # The pin: how many numbered duty items each inner stage's duty prints (the highest number).  A duty edit that adds,
     # drops or renumbers an item fails here, and the range its Work cites (counted from the same text) moves with it.
     # Every stage's loop does its whole duty: verify, whose last three items followed its review loop, is retired.
-    DUTY_ITEMS = {"step-plan": 12, "test-spec": 8, "validate-existing": 4, "implement": 7, "test": 8, "document": 7,
-                  "reflect-and-revise": 4}
+    DUTY_ITEMS = {"plan": 19, "step-plan": 12, "test-spec": 8, "validate-existing": 4, "implement": 7, "test": 8,
+                  "document": 7, "reflect-and-revise": 4}
 
     def numbers(self, stage: str, route: str) -> list:
         return [int(n) for n in re.findall(r"(?m)^(\d+)\. ", prompts.duty(stage, delegation=route))]
@@ -1412,7 +1419,7 @@ class WorkTextTests(Synthetic):
         return items
 
     def test_the_pinned_duty_counts_are_the_counts_the_packet_prints(self):
-        for stage in stage_spec.INNER:
+        for stage in loops.STAGES:
             for route in prompts.DELEGATIONS:
                 with self.subTest(stage=stage, route=route):
                     found = self.numbers(stage, route)
@@ -1420,13 +1427,14 @@ class WorkTextTests(Synthetic):
                     self.assertEqual(found, sorted(found))
 
     def test_each_work_cites_the_duty_items_the_packet_prints_and_the_loop_does_and_no_other(self):
-        for stage in stage_spec.INNER:
+        for stage in loops.STAGES:
             for route in prompts.DELEGATIONS:
                 with self.subTest(stage=stage, route=route):
                     printed = self.numbers(stage, route)
                     self.assertEqual(self.cited(self.work(stage, route)), printed)
 
     def test_the_ranges_read_as_ranges(self):
+        self.assertIn("duty items 1-19 of ", self.work("plan"))
         self.assertIn("duty items 1-12 of ", self.work("step-plan"))
         self.assertIn("duty items 1-4 of ", self.work("reflect-and-revise", "ask-agent"))
         self.assertIn("duty items 1-7 of ", self.work("document", "inline"))
@@ -1444,7 +1452,7 @@ class WorkTextTests(Synthetic):
     def test_the_check_is_named_in_the_work_as_the_callback_with_a_new_verb_not_as_a_command(self):
         """The contract names no install path, so the Work names the callback with `check` in place of `complete`
         (``prompts.CHECK_HOW``), not a command."""
-        for stage in ("step-plan", "test-spec", "test"):
+        for stage in ("plan", "step-plan", "test-spec", "test"):
             with self.subTest(stage=stage):
                 work = " ".join(self.work(stage).split())
                 self.assertIn("then run the callback with `check` in place of `complete` and fix each refusal until the "
