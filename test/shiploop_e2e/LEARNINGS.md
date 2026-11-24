@@ -9829,3 +9829,28 @@ Quality bar met on every decision arm. Claude agents cost +~$0.83 (~15%) vs inli
 Corrected gap (was misstated as “`passes.md` absent”): serial agents arms *did* write `passes.md` with `Review mode: fork|fresh (delegation: agents)` from `default_review_mode`, and state JSON carried the same defaults. Trace `complete` commands never passed `--review-mode` (0 hits), so recorded mode was Hybrid stage intent, not observed spawn (fork→fresh / inline-fallback cannot be distinguished). Follow-up polish: agents Improve packets print `complete --review-mode=<fork|fresh>` and instruct replacing it on fresh / inline-fallback.
 
 Harness questions: retain serial launcher pattern for fixed-port cases; more to learn on parent vs child token split (Codex child rollout not broken out here) and Surface 2 fan-out counts; no new evaluation criteria required for the opt-in qualification.
+
+
+## 2026-11-24 — Coordinated wait, failure-diagnosis fork pilot, and `non-trivial` review hardening (`--delegation agents`, Codex Sol 6.2 medium & Claude Sonnet 5.5 medium)
+
+Two live validation batches in isolated empty repositories using `--source checkout --delegation agents`:
+
+### 1. ShipLoop 2.11.0 (`91cab63e1`, `skill-craft 4.9.0`)
+
+| Run | Host / model | Verdict | Checks | Time / Turns / Cost | Hybrid & Waits | Refusals (repeated) |
+|---|---|---|---|---|---|---|
+| `exp-a-hello-codex` | Codex 0.172.0 `gpt-6.2-sol` medium | PASS | 2/2 | 1110.1 s · 119 t · n/a | 8/8 (`fork`×6, `fresh`×2), 8 passes; **9/9 `wait_agent(120000)` (0 timeouts)**; 8/8 `order_OK=True` | 2 (0) |
+| `exp-a-hello-claude` | Claude 2.1.331 `claude-sonnet-5-5` medium | PASS | 2/2 | 767.8 s · 235 t · \$4.39 | 8/8 blocking `Agent` (`fork`×6, `general-purpose`×2), 11 passes; 0 spurious producer forks | 9 (1) |
+| `exp-b-diag` (`pricing.py` `test` excerpt) | Codex 0.172.0 `gpt-6.2-sol` medium | PASS | 4/4 unittest | ~1.3 min | 1× `fork_turns="all"`, 1× `wait_agent(120000)` (0 timeouts), `CANARY_DIAG_2110` inherited cleanly, read-only `exec`, `causal_order_ok=True` | n/a |
+
+Audit findings from `2.11.0` drove commit `112051dd3`: (a) Codex `/root/reflect` woke early on an intermediate `MESSAGE` before `FINAL_ANSWER` (handled cleanly by waiting again, now explicitly required for non-terminal wake-ups); (b) `exp-b-diag` briefly mentioned `ask-agent` in prose before launching a native fork (added `(never Ask Agent)` to `FAILURE_DIAGNOSIS_FORK_NOTE`); (c) Claude had 3 `improve-pass` retries before `Skill(improve)` and Codex `/root/document` edited 4 lines of `spec.md` while marking pass 1 `trivial` (`worker-brief.md` now puts `Skill`-first and `non-trivial` edit classification up front); (d) both hosts tripped `document` `spec_writeback` once (`DUTIES["document"]` now states leaving existing lines verbatim).
+
+### 2. ShipLoop 2.11.1 candidate (`112051dd3`, Codex-only `gpt-6.2-sol` medium)
+
+- **`codex-hello`** (`/tmp/shiploop-exp-2.11.1-20261124/codex-hello`, external baseline file, `HEAD 03fb30ac`): PASS all verdicts (`invoked`, `plugin`, `process`, `shiploop`, `committed`), 2/2 checks PASS, 1215.7 s, 211 turns, 0 compactions, 8/8 Improve children (6 `fork_turns="all"`, 2 `fork_turns="none"`), **0 fork refusals**, **0 spurious producer forks**, **12/12 `wait_agent(120000)`** (2 timeouts cleanly re-waited on the same handle; 0 duplicate spawns), **8/8 causal completeness `order_OK=True`** (`spawn < child_done <= parent_FINAL_ANSWER < shiploop_complete`) with all 8 `packet.json` terminal `complete`. Both editing Improve reviews (`document` 8 lines, `test-strategy` 9 lines) classified pass 1 as `non-trivial` and ran confirmation pass 2 (10 passes total). 4 refusals (`0` repeated; `document` `spec_writeback` caught at `--check` before `complete`).
+- **`exp-b2-diag`** (`pricing.py` 4-line fixture): intentionally stayed inline as an obvious failure, fixed `pricing.py`, 4/4 unittest OK, `CANARY_DIAG_2111` intact.
+- **`exp-b2b-diag`** (`checkout.py`/`tax.py`/`discounts.py` multi-module failure): 1× `fork_turns="all"`, **0 `ask-agent` prose mentions**, 1× `wait_agent(120000)`, `causal_order_ok=True`, `CANARY_DIAG_2111` inherited without prompt leak, child strictly read-only (`exec`), parent fixed `checkout.py` & `tax.py` + updated tests (5/5 unittest OK).
+
+The harness, asked the standing three questions: (1) retain external `--baseline` for side validation runs so `baselines.jsonl` stays decoupled unless intentionally updated; (2) live multi-item/brownfield `FAILURE_DIAGNOSIS_FORK_NOTE` rate and Claude interactive async fork remain open for future rounds; (3) no new evaluation criteria needed here.
+
+Limits: `hello` smoke case + targeted `test`-stage diagnostic fixtures only; `codex-hello` (`112051dd3`) ran Codex-only (`gpt-6.2-sol` medium) without a paired Claude `2.11.1` arm. Evidence roots (ephemeral under `/tmp`): `/tmp/shiploop-exp-2.11.0-20261124/` and `/tmp/shiploop-exp-2.11.1-20261124/`.
