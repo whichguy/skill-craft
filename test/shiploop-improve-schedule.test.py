@@ -983,7 +983,7 @@ class MidRunReflectReviewTests(unittest.TestCase):
         self.assertFalse(nav._is_end_of_work_review(waiting, child))
         self.assertIn("Mid-run reflection and queue-revision review focus", nav._focus_text(waiting, child))
         self.assertNotIn("Code craft", nav._focus_text(waiting, child))
-        self.assertEqual(nav._regression_clause(waiting, child), "")
+        self.assertEqual(nav._regression_clause(child["stage"], state=waiting, child=child), "")
         rendered: list[str] = []
         nav._render_improve(None, Path("/simulation-only/run"), waiting, rendered)
         self.assertIn("Mid-run reflection review:", "\n".join(rendered))

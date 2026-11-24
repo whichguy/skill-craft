@@ -8875,9 +8875,13 @@ def _improve_lint_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list
             "this Improve stage): " + _callback(core, root, "lint", action=child["action_id"])]
 
 
-def _regression_clause(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
+def _regression_clause(stage: str, *, state: Mapping[str, Any] | None = None,
+                       child: Mapping[str, Any] | None = None) -> str:
     """The commit-message rule for a fix that changes code (F5), at the end-of-work review that owes it; '' elsewhere."""
-    if not _is_end_of_work_review(state, child):
+    if state is not None and child is not None:
+        if not _is_end_of_work_review(state, child):
+            return ""
+    elif stage != "reflect-and-revise":
         return ""
     return (" A commit that changes code, not only tests, adds `Regression test: <the ID of the test in this commit "
             "that fails without the fix>` or `Regression test: none: <why no test can show it>`.")
@@ -9335,7 +9339,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "writes the full one). For a change to a remote system that left no file change, add `Remote change: <system "
             "alias>, <what changed>, <where its evidence is>` and append `--remote-change` to the command. Do not write "
             "the message with a shell heredoc or run git commit yourself: a hand-typed commit skips these checks. More: "
-            "ROUTE#record-commit-and-learning." + _regression_clause(state, child)]),
+            "ROUTE#record-commit-and-learning." + _regression_clause(child["stage"], state=state, child=child)]),
         "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
         + ("#default-route-the-parent-runs-improve-delegation-inline" if inline
            else "#direct-review-workers-delegation-agents" if route == guidance.AGENTS else ""),
@@ -10097,8 +10101,9 @@ def _lessons_and_citations_refusal(repo: Path, message: str, message_path: Path,
 REGRESSION_LINE = re.compile(r"(?m)^Regression test:[ \t]*(.*?)[ \t]*$")
 
 
-def _regression_refusal(state: Mapping[str, Any], repo: Path, child: Mapping[str, Any], message: str,
-                        pending: Sequence[str], message_path: Path, command: str) -> str:
+def _regression_refusal(repo: Path, child: Mapping[str, Any], message: str,
+                        pending: Sequence[str], message_path: Path, command: str, *,
+                        state: Mapping[str, Any] | None = None) -> str:
     """The refusal for a missing or unproven ``Regression test:`` line, '' when none is owed or the line holds.
 
     Owed only at the end-of-work review (final reflect-and-revise), when this commit changes code that is not a test:
@@ -10106,7 +10111,10 @@ def _regression_refusal(state: Mapping[str, Any], repo: Path, child: Mapping[str
     or ``none: <reason>`` when no test can show the fix.  Step reviews and mid-run reflection reviews owe no line; the
     item's or remaining work items' tests come after them.
     """
-    if not _is_end_of_work_review(state, child):
+    if state is not None:
+        if not _is_end_of_work_review(state, child):
+            return ""
+    elif child["stage"] != "reflect-and-revise":
         return ""
     code = [path for path in item_scope.behavioural_paths(pending) if item_scope.classify(path) != "test"]
     if not code:
@@ -10186,7 +10194,7 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
         return 0
     refusal, message = _lessons_and_citations_refusal(repo, message, message_path, command)
     _need(not refusal, refusal)
-    refusal = _regression_refusal(state, repo, child, message, pending, message_path, command)
+    refusal = _regression_refusal(repo, child, message, pending, message_path, command, state=state)
     _need(not refusal, refusal)
     if any(p == knowledge.HOME or p.startswith(knowledge.HOME + "/") for p in pending):
         verb = "improve-pass" if rerun and "improve-pass" in rerun else "improve-commit"
