@@ -109,7 +109,7 @@ EXPECTED_READS = {
     "intake": (_S, _E, _A), "discovery": (), "research": (), "spec": (), "test-strategy": (_S,),
     "plan": (_S, _E, _A), "prepare": (_E,), "step-plan": (_S, _E, _A), "test-spec": (_S, _E, _A),
     "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A),
-    "reflect-and-revise": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
+    "reflect-and-revise": (_S, _E, _A), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
     "handoff": (),
 }
@@ -1064,6 +1064,31 @@ class HandoffShapeTests(unittest.TestCase):
         self.assertIn("owner", self.refused({"outcome": "done", "summary": "s",
                                              "assumptions": [dict(row, owner=" ")], "knowledge": KNOWLEDGE}, "document"))
         self.assertIn("assumptions", self.refused({"outcome": "done", "summary": "s", "assumptions": []}, "test"))
+
+    def test_reflect_and_revise_work_items_cannot_silently_drop_pending_open_assumption_due_item(self) -> None:
+        state = {
+            "repo": ".",
+            "work_items": [{"id": "W1", "title": "one"}, {"id": "W2", "title": "two"}],
+            "work_index": 0,
+            "history": [{"action": "p1", "stage": "plan", "workitem": None, "outcome": "done"}],
+            "accepted": {"p1": {"outcome": "done", "assumptions": [
+                {"id": "A1", "assumption": "W2 handles the export.", "disposition": "open",
+                 "settle": "check W2", "reason": "built in W2", "due_item": "W2"}
+            ]}},
+        }
+        with self.assertRaisesRegex(navigator.NavigatorError, r"A1 \(due_item W2\)"):
+            navigator._check_submitted_assumptions(
+                state, "reflect-and-revise",
+                {"outcome": "done", "summary": "s", "work_items": [{"id": "W3", "title": "three", "context": "c"}]})
+        # Keeping W2 or carrying A1 forward in assumptions is accepted.
+        navigator._check_submitted_assumptions(
+            state, "reflect-and-revise",
+            {"outcome": "done", "summary": "s", "work_items": [{"id": "W2", "title": "two", "context": "c"}]})
+        navigator._check_submitted_assumptions(
+            state, "reflect-and-revise",
+            {"outcome": "done", "summary": "s", "work_items": [{"id": "W3", "title": "three", "context": "c"}],
+             "assumptions": [{"id": "A1", "assumption": "carried", "disposition": "open",
+                              "settle": "check", "reason": "moved", "due_stage": "system-test"}]})
 
 
 # ----------------------------------------------------------------------------------- hand-off gates (_handoff_gate)
