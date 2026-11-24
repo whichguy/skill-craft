@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.8.1
+
+- Skills: rubric-eval 0.1.1, shiploop 2.10.1
+
+### rubric-eval 0.1.1
+
+- Match ShipLoop's renamed plan-packet label: architecture-v4 review frame cites "Decision carry-context guidance".
+
+### shiploop 2.10.1
+
+- Rename the plan-packet label "Decision carry-forward guidance" to "Decision carry-context guidance" so it no longer shares wording with the retired INNER stage id `carry-forward` (now `reflect-and-revise`). The guide target stays `project-knowledge.md#carry-context-into-the-new-plan`.
+
 ### skill-craft 4.8.0
 
 - Skills: improve 0.7.4, shiploop 2.10.0, shiploop-run-review 0.6.0

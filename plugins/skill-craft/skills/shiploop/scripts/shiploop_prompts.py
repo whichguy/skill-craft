@@ -286,7 +286,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
         ("Namespace and placement guidance", "coding-practices.md#namespaces-and-placement"),
         ("Schema and storage guidance", "coding-practices.md#schema-and-storage"),
-        ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
+        ("Decision carry-context guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
         ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
@@ -1291,7 +1291,7 @@ DUTIES = {
    ## Decisions; a decision that no longer holds under ## Superseded; update ## Stack, ## Structure, ## Conventions
    and ## Interfaces and boundaries where this plan changes them.
 10. Give each work item a compact `context` a fresh reader can act on, full locators in
-    `evidence_refs`, longer notes in `summary` (Decision carry-forward guidance). Per applicable entry: locator, decision, rationale, scope,
+    `evidence_refs`, longer notes in `summary` (Decision carry-context guidance). Per applicable entry: locator, decision, rationale, scope,
     revalidation condition:
     - each convention, canonical test or example, verified skill, MCP or library contract, environment or delivery
       decision, approved exception;
