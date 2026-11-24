@@ -15,10 +15,8 @@ from __future__ import annotations
 
 import contextlib
 import io
-import re
 import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 
@@ -239,7 +237,7 @@ class PrintedPacketTests(unittest.TestCase):
                     with self.subTest(route=delegation, run_dir=length, packet=key):
                         self.assertEqual(text, row["whole"] + navigator.HEAD_END + "\n")
                         self.assertTrue(seen.endswith(navigator.HEAD_END + "\n"))
-                        missing_middle = [line for line in text[GROK_PART:-GROK_PART].splitlines()
+                        missing_middle = [line for line in text.splitlines()
                                           if line and line not in seen]
                         self.assertTrue(missing_middle, "the simulated host view must demonstrate actual middle loss")
                         path = packet_view.packet_file_named(text)
