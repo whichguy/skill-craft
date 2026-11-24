@@ -1411,7 +1411,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
     def test_hybrid_review_context_splits_planning_fork_and_code_fresh(self):
         for stage in ("spec", "test-strategy", "plan", "step-plan", "system-test-author", "release-plan"):
             self.assertEqual(nav.improve_review_context(stage), "fork", stage)
-        for stage in ("document", "carry-forward"):
+        for stage in ("document", "reflect-and-revise"):
             self.assertEqual(nav.improve_review_context(stage), "fresh", stage)
 
     def test_agents_producers_stay_inline_and_fanout_only_on_read_only_stages(self):
@@ -1474,12 +1474,12 @@ class AgentsHybridDelegationTests(unittest.TestCase):
                 self.assertFalse(any(loc.endswith("host-owner.md") for loc in resource_locs), stage)
                 state["active_improve"] = child
                 state = nav.finish_improve(state, action, {"summary": "Synthetic."})
-        # Planning review (`spec`) requests a forked worker; code reviews (`document`, `carry-forward`) request fresh.
+        # Planning review (`spec`) requests a forked worker; code reviews (`document`, `reflect-and-revise`) request fresh.
         self.assertIn("Launch ONE forked coding-capable native subagent", improve_packets["spec"])
         self.assertIn("Launch ONE fresh coding-capable native subagent with STRICTLY NO inherited parent conversation history",
                       improve_packets["document"])
         self.assertIn("Launch ONE fresh coding-capable native subagent with STRICTLY NO inherited parent conversation history",
-                      improve_packets["carry-forward"])
+                      improve_packets["reflect-and-revise"])
         for stage, pkt in improve_packets.items():
             self.assertLess(len(pkt), 3_000, f"agents Improve packet too large at {stage}: {len(pkt)}")
             self.assertIn("worker-brief.md", pkt)

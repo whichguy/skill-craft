@@ -256,7 +256,7 @@ every producer stage still runs inline (with optional F17 read-only fan-out in
 `discovery`, `research`, and `product-acceptance`), while Improve reviews run
 in one direct coding-capable native worker from `CHILD/worker-brief.md`
 (hybrid: forked for planning/outer reviews where supported, fresh for `document`
-and `carry-forward` code reviews), with a 2-line emit-time host hint from
+and `reflect-and-revise` code reviews), with a 2-line emit-time host hint from
 `references/host-bindings.json`. Under the legacy opt-in
 `ask-agent` route, INNER producers and Improve prefer native fresh workers, and `implement` is
 issued once per step, built by one fresh worker in the shared checkout.

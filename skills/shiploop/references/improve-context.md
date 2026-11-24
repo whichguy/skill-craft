@@ -381,7 +381,7 @@ workspace helpers, or `host-owner.md`:
   `subagent_type="fork"`, Codex `fork_turns="all"`), and fall back cleanly to
   a **fresh** worker with a 2-line Conversation context note when native fork
   is absent (Grok Build) or after a cold crash recovery. Code and end-of-work
-  reviews (`document` step review and final `carry-forward`) always run in a
+  reviews (`document` step review and final `reflect-and-revise`) always run in a
   strictly **fresh** coding-capable worker with no inherited conversation
   history (Codex passes `fork_turns="none"`).
 - **Single-hop dispatch:** ShipLoop writes `CHILD/worker-brief.md` beside

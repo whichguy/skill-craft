@@ -127,7 +127,7 @@ Keep the invoking parent alive and run this Improve invocation in one native rev
 Delegation: agents (hybrid reviews). Run planning and outer reviews in one forked
 coding-capable native subagent where the host supports native forking (fresh worker
 plus a 2-line Conversation context note when fork is absent or after cold recovery),
-and run code and end-of-work reviews (`document`, `carry-forward`) in one strictly
+and run code and end-of-work reviews (`document`, `reflect-and-revise`) in one strictly
 fresh coding-capable native subagent with no inherited conversation history. Point
 the worker at CHILD/worker-brief.md (do not copy the full handoff into its prompt),
 inherit full model, tools and permissions, prefer blocking/foreground execution, and
