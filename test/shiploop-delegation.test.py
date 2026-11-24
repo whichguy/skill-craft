@@ -1484,7 +1484,13 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             self.assertLess(len(pkt), 3_000, f"agents Improve packet too large at {stage}: {len(pkt)}")
             self.assertIn("worker-brief.md", pkt)
             self.assertIn("Host hint (cursor, pilot-ide):", pkt)
-            self.assertIn("--review-mode inline-fallback", pkt)
+            expected_mode = "fresh" if stage in ("document", "carry-forward") else "fork"
+            self.assertIn(f"--review-mode={expected_mode}", pkt)
+            self.assertIn("--review-mode=inline-fallback", pkt)
+            if expected_mode == "fork":
+                self.assertIn("replace `--review-mode=fork` with `--review-mode=fresh`", pkt)
+            else:
+                self.assertNotIn("replace `--review-mode=fork` with `--review-mode=fresh`", pkt)
             self.assertNotIn("host-owner.md", pkt)
             self.assertNotIn("improve-agent", pkt)
             self.assertIn(" · Route: agents", handoffs[stage])

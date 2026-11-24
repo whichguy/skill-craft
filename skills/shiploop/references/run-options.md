@@ -18,7 +18,9 @@ and `product-acceptance` up to host capacity), while Improve checkpoints run in
 one direct coding-capable native worker from `CHILD/worker-brief.md` with a
 2-line emit-time host hint from `references/host-bindings.json` (forked for
 planning/outer reviews where supported, fresh for `document` and `carry-forward`
-code reviews; `--review-mode inline-fallback` when a host has no subagent tool;
+code reviews; packet `complete` carries `--review-mode=fork|fresh`, replaced with
+`--review-mode=fresh` on fork→fresh fallback or `--review-mode=inline-fallback`
+when a host has no subagent tool;
 see [direct review workers](improve-context.md#direct-review-workers-delegation-agents)).
 
 Pass `--delegation ask-agent` at `workspace start` (or direct `init`) to opt in

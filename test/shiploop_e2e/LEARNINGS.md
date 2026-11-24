@@ -9826,6 +9826,6 @@ Quality bar met on every decision arm. Claude agents cost +~$0.83 (~15%) vs inli
 
 **Qualification:** `--delegation agents` is an **opt-in** route under §10. **`DEFAULT_DELEGATION` remains `inline`** until an explicit owner flip after this table (quality > cost > time). No default flip in this round.
 
-Known gap (not a blocker): Improve `passes.md` files were absent; provenance lived in state `review_mode` and `worker-brief.md`. Note for a later provenance polish if owners want the registered `passes.md` string exactly.
+Corrected gap (was misstated as “`passes.md` absent”): serial agents arms *did* write `passes.md` with `Review mode: fork|fresh (delegation: agents)` from `default_review_mode`, and state JSON carried the same defaults. Trace `complete` commands never passed `--review-mode` (0 hits), so recorded mode was Hybrid stage intent, not observed spawn (fork→fresh / inline-fallback cannot be distinguished). Follow-up polish: agents Improve packets print `complete --review-mode=<fork|fresh>` and instruct replacing it on fresh / inline-fallback.
 
 Harness questions: retain serial launcher pattern for fixed-port cases; more to learn on parent vs child token split (Codex child rollout not broken out here) and Surface 2 fan-out counts; no new evaluation criteria required for the opt-in qualification.

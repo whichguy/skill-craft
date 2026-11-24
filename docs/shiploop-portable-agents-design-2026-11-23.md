@@ -602,7 +602,7 @@ Launcher wall-clock (includes harness wrap): inline Codex 720.1 s, agents Codex 
 
 1. Cases with `refuse_ports` must launch **serially** (or with distinct ports); parallel same-case batches are structurally refused.
 2. Cursor IDE Task must pass an **explicit allowed model** when Gemini weekly quota is exhausted; omitting `model` pulled Neon and aborted before ShipLoop.
-3. `passes.md` provenance was absent on both agents arms; Hybrid mode is evidenced by state `review_mode` + `worker-brief.md` + Claude `skill-calls.jsonl` `agent_id` (LEARNINGS notes the gap; not a release blocker for this round).
+3. Parents never passed `--review-mode` on `complete` (trace counts 0); `passes.md` and state still recorded Hybrid defaults via `default_review_mode` (fork/fresh by stage). That labels *intent*, not observed fork→fresh or inline fallback. Provenance polish: packet `complete` now carries `--review-mode=<mode>` with explicit replace instructions for fresh / inline-fallback.
 
 Journal: `test/shiploop_e2e/LEARNINGS.md` entry 2026-11-23 Phase 3 portable native agents.
 

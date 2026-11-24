@@ -398,14 +398,15 @@ workspace helpers, or `host-owner.md`:
   and never runs `shiploop complete` or workspace return.
 - **Verification, fallback and recovery:** After collecting the native return,
   the parent verifies `CHILD/packet.json` is `complete`, reviews the changes,
-  and runs `complete --action=<improve id>` (Claude Code's `PostToolUse(Skill)`
-  gate stays enforced because subagent `Skill` calls record under the parent's
-  `session_id` with `agent_id`). If no native subagent tool is available on
-  this host, run the review inline and pass `--review-mode inline-fallback`. On
-  crash recovery, `next` reprints the packet and refreshes `CHILD/worker-brief.md`;
-  if `CHILD/packet.json` is already `complete`, verify and import without
-  spawning another worker; if still `active`, launch one fresh worker to
-  continue from `next_argv`.
+  and runs the packet's `complete --action=<improve id> --review-mode=<fork|fresh>`
+  (Claude Code's `PostToolUse(Skill)` gate stays enforced because subagent
+  `Skill` calls record under the parent's `session_id` with `agent_id`). Replace
+  that mode with `--review-mode=fresh` when a fork stage had to launch a fresh
+  worker, or `--review-mode=inline-fallback` when no native subagent tool is
+  available and the review ran inline. On crash recovery, `next` reprints the
+  packet and refreshes `CHILD/worker-brief.md`; if `CHILD/packet.json` is already
+  `complete`, verify and import without spawning another worker; if still
+  `active`, launch one fresh worker to continue from `next_argv`.
 
 ## Opt-in delegated route: Ask Agent executor (`delegation: ask-agent`)
 

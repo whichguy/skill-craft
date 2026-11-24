@@ -132,8 +132,10 @@ fresh coding-capable native subagent with no inherited conversation history. Poi
 the worker at CHILD/worker-brief.md (do not copy the full handoff into its prompt),
 inherit full model, tools and permissions, prefer blocking/foreground execution, and
 never create a second worktree or cloud VM. The parent verifies CHILD/packet.json is
-complete and alone submits the parent ShipLoop callback. If no native subagent tool
-is available on this host, run the review inline and pass `--review-mode inline-fallback`.
+complete and alone submits the parent ShipLoop callback with the packet's
+`--review-mode` (fork or fresh). If the host forced a fresh fallback on a fork stage,
+pass `--review-mode=fresh`; if no native subagent tool is available, run the review
+inline and pass `--review-mode=inline-fallback`.
 """
 
 
