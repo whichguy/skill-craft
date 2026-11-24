@@ -8495,6 +8495,8 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
             fallback_lines = [
                 "   - Tell the worker to read and follow " + str(brief) + " completely (Improve argument: " + argument + ").",
                 "   - Include a short Conversation context note only for chat-only approvals, declines or decisions not on disk.",
+                "   - Prefer blocking/foreground execution; if async, one observation wait of at least 120 s; on timeout "
+                "wait again on the same handle; never launch a second concurrent writer while the first is alive.",
                 "   - " + host_bindings.host_hint(host_override=host, worktree=worktree),
             ]
             if mode == "fork":
@@ -8507,8 +8509,9 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
             lines += [
                 launch_line,
                 *fallback_lines,
-                "2. After collecting the worker's return and verifying " + str(receipt)
-                + " reports status `complete` (the worker never runs this), run: "
+                "2. After collecting the worker's actual native return (never from files alone), confirm "
+                + str(receipt) + " reports status `complete`, review the returned findings/changes/checks, "
+                "confirm the worker finished writing, then run (the worker never runs this): "
                 + complete,
                 *_improve_recovery_lines(core, root, state, child),
             ]

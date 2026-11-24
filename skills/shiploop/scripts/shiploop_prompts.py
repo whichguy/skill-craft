@@ -79,12 +79,13 @@ READ_ONLY_FANOUT_NOTE = (
     "**Optional read-only fan-out (`delegation: agents`).** When 2 or more independent read-only questions each need "
     "substantial investigation (at least ~20-30 s of model work), you may launch up to host capacity fresh "
     "general-purpose read-only native subagents in one turn (prefer blocking/foreground calls; if async, wait with a "
-    "120 s timeout; never create a second git worktree or cloud VM; fall back inline if unavailable). Give every reader "
-    "five isolation rules: (1) write nothing inside WORKTREE or RUN (`PYTHONDONTWRITEBYTECODE=1`); (2) put any scratch "
-    "or writable probe copy in a private `mktemp -d` `TMPDIR` and delete it before returning; (3) bind local probe "
-    "servers to `127.0.0.1:0` only; (4) stop only exact PIDs you started (never `pkill -f` or `killall`); (5) leaf "
-    "worker only (spawn no subagents, run no ShipLoop callbacks) and return concise factual findings with `path:line` "
-    "locators."
+    "120 s timeout and retry the same handle on timeout; never create a second git worktree or cloud VM; fall back "
+    "inline if unavailable). Give every reader five isolation rules: (1) write nothing inside WORKTREE or RUN "
+    "(`PYTHONDONTWRITEBYTECODE=1`); (2) put any scratch or writable probe copy in a private `mktemp -d` `TMPDIR` and "
+    "delete it before returning; (3) bind local probe servers to `127.0.0.1:0` only; (4) stop only exact PIDs you "
+    "started (never `pkill -f` or `killall`); (5) leaf worker only (spawn no subagents, run no ShipLoop callbacks) and "
+    "return concise factual findings with `path:line` locators. After all workers return, collect every native return, "
+    "synthesize/reconcile findings, then write the stage result and run `complete`."
 )
 
 # Improve runs after every result of a planning/contract stage and once after
@@ -130,12 +131,16 @@ plus a 2-line Conversation context note when fork is absent or after cold recove
 and run code and end-of-work reviews (`document`, `reflect-and-revise`) in one strictly
 fresh coding-capable native subagent with no inherited conversation history. Point
 the worker at CHILD/worker-brief.md (do not copy the full handoff into its prompt),
-inherit full model, tools and permissions, prefer blocking/foreground execution, and
-never create a second worktree or cloud VM. The parent verifies CHILD/packet.json is
-complete and alone submits the parent ShipLoop callback with the packet's
-`--review-mode` (fork or fresh). If the host forced a fresh fallback on a fork stage,
-pass `--review-mode=fresh`; if no native subagent tool is available, run the review
-inline and pass `--review-mode=inline-fallback`.
+inherit full model, tools and permissions, prefer blocking/foreground execution (if
+async, one observation wait of at least 120 s; on timeout wait again on the same
+handle; never launch a second concurrent writer while the first is alive), and never
+create a second worktree or cloud VM. After collecting the worker's actual native
+return (never from files alone), review returned findings/changes/checks, confirm
+CHILD/packet.json is complete and the worker finished writing, then alone submit the
+parent ShipLoop callback with the packet's `--review-mode` (fork or fresh). If the
+host forced a fresh fallback on a fork stage, pass `--review-mode=fresh`; if no
+native subagent tool is available, run the review inline and pass
+`--review-mode=inline-fallback`.
 """
 
 

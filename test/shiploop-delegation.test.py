@@ -1427,6 +1427,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
                 self.assertIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
                 self.assertIn("127.0.0.1:0", packet, stage)
                 self.assertIn("pkill -f", packet, stage)
+                self.assertIn("synthesize/reconcile findings", packet, stage)
                 self.assertIn("Host hint (codex):", packet, stage)
             else:
                 self.assertNotIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
@@ -1448,6 +1449,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         run = self.base / "imp-run"
         run.mkdir()
         improve_packets = {}
+        improve_packets_codex = {}
         briefs = {}
         handoffs = {}
         while state["status"] == "active":
@@ -1466,6 +1468,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
                 receipt.parent.mkdir(parents=True, exist_ok=True)
                 receipt.write_text("{}", encoding="utf-8")
                 improve_packets[stage] = nav.render(None, run, state, host="cursor")
+                improve_packets_codex[stage] = nav.render(None, run, state, host="codex")
                 briefs[stage] = nav.improve_worker_brief_text(None, run, state)
                 handoffs[stage] = nav.improve_handoff_text(None, run, state)
                 contract = nav.improve_start_contract(None, run, state, nav.improve_opening_text(None, run, state))
@@ -1482,8 +1485,15 @@ class AgentsHybridDelegationTests(unittest.TestCase):
                       improve_packets["reflect-and-revise"])
         for stage, pkt in improve_packets.items():
             self.assertLess(len(pkt), 3_000, f"agents Improve packet too large at {stage}: {len(pkt)}")
+            self.assertLess(len(improve_packets_codex[stage]), 3_000,
+                            f"agents Improve packet (codex) too large at {stage}: {len(improve_packets_codex[stage])}")
             self.assertIn("worker-brief.md", pkt)
             self.assertIn("Host hint (cursor, pilot-ide):", pkt)
+            self.assertIn("never from files alone", pkt)
+            self.assertIn("review the returned findings/changes/checks", pkt)
+            self.assertIn("one observation wait of at least 120 s", pkt)
+            self.assertIn("same handle", pkt)
+            self.assertIn("never launch a second concurrent writer", pkt)
             expected_mode = "fresh" if stage in ("document", "reflect-and-revise") else "fork"
             self.assertIn(f"--review-mode={expected_mode}", pkt)
             self.assertIn("--review-mode=inline-fallback", pkt)
