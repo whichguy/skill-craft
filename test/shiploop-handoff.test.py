@@ -1643,7 +1643,7 @@ class PlanCoverageTests(RepoCase):
         # for current entries at the spec stage.
         primary.check_queue(state, "plan", self.done([{"id": "W1", "title": "one", "follows": ["R-1", "R-4", "AD-1"]}]))
 
-    def test_a_carry_forward_that_replaces_the_queue_keeps_each_primary_requirement_followed(self) -> None:
+    def test_a_reflect_and_revise_that_replaces_the_queue_keeps_each_primary_requirement_followed(self) -> None:
         queue = [{"id": "W1", "title": "one", "follows": ["R-1"]}, {"id": "W2", "title": "two", "follows": ["R-2"]}]
         state = self.state_at("reflect-and-revise", primary_ids=["R-1", "R-2"], work_items=queue, work_index=0)
         message = self.refused(lambda: primary.check_queue(state, "reflect-and-revise", self.done(
@@ -1665,7 +1665,7 @@ class PlanCoverageTests(RepoCase):
         primary.check_queue(self.state_at("plan", primary_ids=["R-1"]), "plan",
                             {"outcome": "blocked", "summary": "s", "work_items": bare})
 
-    def test_the_plan_and_carry_forward_packets_name_the_work_items_following_each(self) -> None:
+    def test_the_plan_and_reflect_and_revise_packets_name_the_work_items_following_each(self) -> None:
         state = self.state_at("plan", primary_ids=["R-1", "R-2"])
         # The plan head has the least room, so the plan gets one short line, and no item exists yet to follow anything.
         self.assertEqual(primary.packet_lines(self.root, state, "plan"),
@@ -1788,7 +1788,7 @@ class HandoffGateTests(GateCase):
                                                     "test_cases": [dict(CASE, id="TC-3", criterion="C3", oracle=oracle)]})
         self.assertEqual(message.splitlines()[-1], "Still a template placeholder: test_cases[0].oracle.")
 
-    def test_open_items_at_the_new_stages_name_a_later_outer_stage_or_the_items_carry_forward(self) -> None:
+    def test_open_items_at_the_new_stages_name_a_later_outer_stage_or_the_items_reflect_and_revise(self) -> None:
         row = {"id": "A1", "assumption": "The tab renders.", "disposition": "open", "settle": "open it",
                "reason": "no browser", "due_stage": "release-verify"}
         done = {"outcome": "done", "summary": "s"}
@@ -2170,7 +2170,7 @@ class ConsumesTests(RepoCase):
                      accepted=dict(state["accepted"], ts9=product[1], pa1=accepted[1]))
         self.assertNotIn("D1", [i.row["id"] for i in assumptions.open_items(later)])
 
-    def test_each_steps_document_keeps_its_open_items_until_its_items_carry_forward(self) -> None:
+    def test_each_steps_document_keeps_its_open_items_until_its_items_reflect_and_revise(self) -> None:
         # Design T §9.1 2b-3 (option C, owner 2026-10-28): a step's document records the follow-up work it found outside
         # the item as an open item due at the item's reflect-and-revise.  An item runs document once per step, and the latest
         # result per (item, stage) is the current one, so the earlier steps' rows must not drop out when a later step's

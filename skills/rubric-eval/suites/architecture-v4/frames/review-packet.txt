@@ -24,7 +24,7 @@ Dependency-planning guidance: references/backchain-planning.md#dependency-audit
 Namespace and placement guidance: references/coding-practices.md#namespaces-and-placement
 Schema and storage guidance: references/coding-practices.md#schema-and-storage
 Git-history investigation guide: references/project-knowledge.md#investigate-git-history-for-planning
-Decision carry-forward guidance: references/project-knowledge.md#carry-context-into-the-new-plan
+Decision carry-context guidance: references/project-knowledge.md#carry-context-into-the-new-plan
 State and data assessment: references/requirements-definition.md#state-and-data-change-assessment
 Initial-plan reconciliation: references/requirements-definition.md#initial-plan-reconciliation
 UI planning ownership when applicable: references/behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner

@@ -784,7 +784,7 @@ class PrimaryRequirementPacketTests(unittest.TestCase):
         return {plans.stage_of(key): row["printed"] for key, row in rows.items()
                 if plans.stage_of(key) in ("plan", "reflect-and-revise") and plans.is_producer(key, row["state"])}
 
-    def test_the_plan_and_carry_forward_prints_keep_one_six_and_thirty_primary_requirements(self) -> None:
+    def test_the_plan_and_reflect_and_revise_prints_keep_one_six_and_thirty_primary_requirements(self) -> None:
         for route in ("inline", "ask-agent"):
             for count in (1, 6, 30):
                 with self.subTest(route=route, primary=count):

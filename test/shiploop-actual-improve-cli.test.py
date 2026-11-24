@@ -3420,7 +3420,7 @@ class ImproveLintCommandTests(ImproveCliFixture):
             predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": [step], "test_commands": [],
                                              "test_commands_na": "The fixture has no test suite."}})
 
-    def test_a_carry_forward_reviews_printed_lint_command_runs_through_shiploop_lint(self):
+    def test_a_reflect_and_revise_reviews_printed_lint_command_runs_through_shiploop_lint(self):
         self.assert_the_printed_lint_command_runs(
             "reflect-and-revise", producer_extra={"skill": {"decision": "none", "reason": "No procedure repeated."}})
 
