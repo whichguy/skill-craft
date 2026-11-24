@@ -169,9 +169,11 @@ class NarrativeTests(unittest.TestCase):
         navigator.save(root, parked)
         packet = navigator.render(None, root, parked)
         self.assertTrue(packet.startswith(f"ShipLoop navigator | {navigator.IMPROVE_STAGE} |"))
-        for absent in (narrative.BEGIN, navigator.STATUS_BEGIN, navigator.status_line(parked), "Host-recorded labels"):
+        for absent in (narrative.BEGIN, navigator.STATUS_BEGIN, "Host-recorded labels"):
             self.assertNotIn(absent, packet)
-        self.assertIsNone(hook.packet_progress(packet))
+        line = navigator.status_line(parked)
+        self.assertIn(line, packet)
+        self.assertEqual(hook.packet_progress(packet), line)
         self.assertIn("Keepalive marker: SHIPLOOP-RUN run=", packet)  # the keepalive hooks still bind from it
         # A stopped run is a milestone even while a child is parked: its packet tells the user why it stopped.
         self.assertTrue(navigator.narrative_facts(navigator.control(parked, "pause", "Asked to stop."))["milestone"])

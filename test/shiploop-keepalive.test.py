@@ -23,6 +23,11 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 FIXTURES = ROOT / "test" / "fixtures" / "shiploop-keepalive"
+sys.path.insert(0, str(ROOT / "test"))
+import state_home  # noqa: E402
+
+state_home.isolate()
+
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_keepalive as keepalive  # noqa: E402

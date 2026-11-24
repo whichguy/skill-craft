@@ -17,6 +17,11 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "test"))
+import state_home  # noqa: E402
+
+state_home.isolate()
+
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402

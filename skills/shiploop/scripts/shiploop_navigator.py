@@ -2511,10 +2511,22 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     item_steps = sum((owner, node) in done for node in inner) if owner is not None else 0
     outer_done = sum((None, node) in done for node in outer)
     planned = any(key[1] == "plan" for key in done)
+    inner_fraction = 0.0
+    if phase == "inner":
+        done_steps, plan_steps = implement_progress(state, owner)
+        if plan_steps:
+            # Blend completed steps across the Build portion (3 of 7 inner stages) so multi-step items move the bar.
+            non_build_done = sum((owner, node) in done for node in inner if node not in AFTER_BUILD and node != "implement")
+            build_done = 3.0 * (done_steps / len(plan_steps))
+            if stage in AFTER_BUILD:
+                build_done = 3.0 * ((max(0, done_steps - 1) + (0.4 if stage == "test" else 0.7)) / len(plan_steps))
+            inner_fraction = min(1.0, (non_build_done + build_done) / len(inner))
+        else:
+            inner_fraction = item_steps / len(inner)
     phases = [
         {"name": "Preparation", "done": prep_done, "done_label": prep_done, "total": len(prelude),
          "state": phase_state("preparation")},
-        {"name": "Work items", "done": len(completed) + (item_steps / len(inner) if phase == "inner" else 0),
+        {"name": "Work items", "done": len(completed) + inner_fraction,
          "done_label": len(completed), "total": len(items) if planned else 0, "state": phase_state("inner")},
         {"name": "Release", "done": outer_done, "done_label": outer_done, "total": len(outer),
          "state": phase_state("outer")},
@@ -2542,7 +2554,13 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     now_label = stage
     if phase == "inner" and owner is not None:
         group = next(name for name, stages in guidance.INNER_GROUPS if stage in stages)
-        now_label = f"{title(items[index])} ({index + 1} of {len(items)}) \u203a {group} \u203a {stage}"
+        step_suffix = ""
+        if stage in ("implement", "test", "document"):
+            view = step_view(state, owner)
+            if view is not None:
+                step_id = _status_text(view.step.get("id") or f"S{view.number}", 24)
+                step_suffix = f" (Step {step_id} {view.number}/{len(view.steps)})"
+        now_label = f"{title(items[index])} ({index + 1} of {len(items)}) \u203a {group} \u203a {stage}{step_suffix}"
     now_text = (f"{IMPROVE_STAGE}: the improve skill is reviewing the {state['active_improve']['stage']} result"
                 if state.get("active_improve") else guidance.STAGE_PURPOSE.get(stage, ""))
 
@@ -5966,6 +5984,25 @@ def _status_item_name(item: Mapping[str, str], title_limit: int = 60) -> str:
     return _status_text(item["id"], 32) + ' "' + _status_text(item["title"], title_limit) + '"'
 
 
+def display_status(state: Mapping[str, Any]) -> tuple[str, str]:
+    """Canonical ``(status_key, human_label)`` across status blocks, hooks, HTML pages, and the multi-run hub."""
+    status = state.get("status")
+    if status == "done":
+        return "done", "Done"
+    if status == "halted":
+        return "halted", "Halted"
+    if status == "paused":
+        return "paused", "Paused"
+    wait = awaiting(state)
+    if wait is not None:
+        return ("service", "Waiting on service") if wait[1]["kind"] == "service" else ("awaiting", "Waiting on you")
+    if status == "blocked":
+        return "blocked", "Blocked"
+    if state.get("active_improve") is not None:
+        return "reviewing", "Reviewing"
+    return "active", "Active"
+
+
 def _status_where(state: Mapping[str, Any]) -> str:
     """Where the run is: the phase, then the item (N of M) and its stage group, then the stage (and `> improve`)."""
     prelude, _, outer = graph(state)
@@ -5977,8 +6014,14 @@ def _status_where(state: Mapping[str, Any]) -> str:
         return "Run complete"
     if phase == "inner":
         group = next(name for name, stages in guidance.INNER_GROUPS if stage in stages)
+        step_suffix = ""
+        if stage in ("implement", "test", "document") and index < len(items):
+            view = step_view(state, items[index]["id"])
+            if view is not None:
+                step_id = _status_text(view.step.get("id") or f"S{view.number}", 24)
+                step_suffix = f" (Step {step_id} {view.number}/{len(view.steps)})"
         return (f"Work items > {_status_item_name(items[index])} ({index + 1} of {len(items)})"
-                f" > {group} > {stage}" + (f" > {IMPROVE_STAGE}" if child else ""))
+                f" > {group} > {stage}{step_suffix}" + (f" > {IMPROVE_STAGE}" if child else ""))
     stages = prelude if phase == "preparation" else outer
     return (f"{'Preparation' if phase == 'preparation' else 'Release'} > {stage}"
             f" ({stages.index(stage) + 1} of {len(stages)}" + (f") > {IMPROVE_STAGE}" if child else ")"))
@@ -6557,16 +6600,31 @@ def _recovery_pointer_line(core: Any, root: Path) -> str:
 
 
 def _progress_view_line(core: Any, root: Path, state: Mapping[str, Any]) -> str:
-    """The progress view line.  A run's first packet (no accepted step yet) also names the command that starts the
-    read-only browser viewer, for the user to run in their own terminal: later packets would only repeat it, and a
-    model that ran it would block on a server that never exits (owner, 2026-10-29)."""
+    """The progress view line.  A run's first packet (no accepted step yet) checks whether a live ShipLoop hub server is
+    already running and either shares its live URLs or recommends to the LM what command to recommend to the user
+    (foreground ``--serve`` or ``--serve --background``); later packets keep the concise file link only."""
     line = (f"Progress view: [HTML file](<{quote(str(root / 'progress.html'), safe='/ ')}>) — use this file to track "
             "changes during this ShipLoop run.")
     if state["history"]:
         return line
-    serve = " ".join(shlex.quote(part) for part in ["python3", _command(core), "view", f"--run-dir={root}", "--serve"])
-    return (f"{line} To follow it in a browser at a local address instead, the user can run this in their own "
-            f"terminal (do not run it yourself; it serves until stopped): {serve}")
+    single = " ".join(shlex.quote(part) for part in ["python3", _command(core), "view", f"--run-dir={root}", "--serve"])
+    hub = " ".join(shlex.quote(part) for part in ["python3", _command(core), "view", "--serve"])
+    viewer = None
+    try:
+        import shiploop_registry as registry
+        viewer = registry.active_viewer()
+    except Exception:  # noqa: BLE001 - discovery is strictly best-effort
+        viewer = None
+    if isinstance(viewer, Mapping) and viewer.get("mode") == "hub" and isinstance(viewer.get("url"), str):
+        import shiploop_registry as registry
+        run_key = registry.safe_run_key(state.get("run_id"), root)
+        url = viewer["url"].rstrip("/")
+        return (f"{line} A live ShipLoop status server is already running — share both URLs with the user in your "
+                f"startup message: this run {url}/runs/{run_key}/ and all runs {url}/ "
+                f"(single-run command if needed: {single}).")
+    return (f"{line} Recommend to the user in your startup message to launch the live browser dashboard in their "
+            f"terminal (do not run foreground --serve yourself; it serves until stopped; for a detached server use "
+            f"--background): {hub} (all concurrent runs, default http://127.0.0.1:41730/) or {single} (this run only).")
 
 
 def _context_index_lines(root: Path, state: Mapping[str, Any], stage: str,
@@ -8555,9 +8613,9 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
                       "2. When the improve skill has completed, run: "
                       + _callback(core, root, "complete", action=improve_id(state)),
                       *_improve_recovery_lines(core, root, state, child)]
-    # Keepalive hooks bind a host session to this run from this exact line.  No progress block: the packet before it
-    # showed the step under review, and the next producer packet shows the result (packet review F6, 2026-10-17).
-    lines += [f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}"]
+    # Compact status line so Claude Code's hook and transcripts show when a run enters Improve (never the milestone narrative).
+    lines += [status_line(state),
+              f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}"]
     return "\n".join(lines) + "\n"
 
 

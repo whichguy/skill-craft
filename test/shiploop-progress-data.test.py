@@ -686,7 +686,9 @@ class StoryObservationTests(unittest.TestCase):
         self.assertEqual(visit["stage"], "improve")
         self.assertEqual(visit["parent_stage"], parent)
         self.assertEqual(visit["action"], state["active_improve"]["improve_action"])
-        self.assertEqual(projected["summary"]["now"], "improve")
+        self.assertEqual(projected["summary"]["now"], navigator._status_where(state))
+        self.assertIn(parent, projected["summary"]["now"])
+        self.assertIn("> improve", projected["summary"]["now"])
         # The stage under review has no history row yet: its events show in the one current visit, beside the
         # pass's own, and not outside every visit.
         self.assertEqual(visit["reviewed_action"], action)

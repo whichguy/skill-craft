@@ -551,7 +551,7 @@ def _abort_process(process: _SuiteProcess) -> None:
 
 
 # Overrides that would send a suite's state to the developer's own directories, so a suite never inherits them.
-_STATE_OVERRIDES = ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME")
+_STATE_OVERRIDES = ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME", "SHIPLOOP_STATE_HOME")
 # Overrides that would change every Git call a suite makes.  A shell with `GIT_CONFIG_COUNT=1, GIT_CONFIG_KEY_0=
 # core.quotePath, GIT_CONFIG_VALUE_0=false` set is a common local setup, and ask-agent's workspace guard refuses it by
 # design ("prepare refuses Git context environment overrides").  Inherited, it failed three suites that shell out to Git --
@@ -581,7 +581,7 @@ def _state_home_error(state_home: Path) -> str | None:
     return (f"the suite left state in its private XDG_STATE_HOME ({names}); outside run-all.sh that lands in the "
             "developer's ~/.local/state. Give its processes their own XDG_STATE_HOME, as "
             "git_fixture.isolate_git_environment does, or the store's own override (UNTIL_LOOP_STATE_DIR, "
-            "SHIPLOOP_KEEPALIVE_HOME), and leave out the host session markers that key the records "
+            "SHIPLOOP_KEEPALIVE_HOME, SHIPLOOP_STATE_HOME), and leave out the host session markers that key the records "
             "(CLAUDECODE, CLAUDE_CODE_SESSION_ID, GROK_AGENT, GROK_SESSION_ID). A private HOME alone is not "
             "enough: XDG_STATE_HOME takes precedence over it")
 

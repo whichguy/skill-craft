@@ -193,7 +193,7 @@ button:disabled { opacity: .5; cursor: default; }
 </style>
 </head>
 <body>
-<nav style="max-width:1180px;margin:16px auto;padding:0 16px" aria-label="Run pages"><a href="progress.html">← Progress story and evidence</a></nav>
+<nav id="run-nav" style="max-width:1180px;margin:16px auto;padding:0 16px" aria-label="Run pages"><a href="progress.html">← Progress story and evidence</a></nav>
 <main id="app"><p class="empty">This page has no run data; write it with <span class="mono">shiploop trace --run-dir RUN --html</span>.</p></main>
 <aside class="viewer" id="viewer" aria-label="Packet viewer">
   <header>
@@ -213,7 +213,8 @@ const TRACE = /*TRACE-DATA*/null;
 // loaded as a sibling script. The page re-renders in place with the new model and never reloads. Nothing below
 // closes over a model except `pending`, so a re-render lets the old model go.
 const LIVE_SECONDS = 5;
-const LIVE = {on: false, version: undefined, requested: undefined, received: undefined, fetching: false,
+const REVIVE_SECONDS = 15;
+const LIVE = {on: false, revivable: false, version: undefined, requested: undefined, received: undefined, fetching: false,
   pending: null, observedAt: "", timer: null, loads: Date.now()};
 // Busy: the packet viewer is open, a search box or note is being typed in, or text is selected.
 function liveBusy() {
@@ -237,10 +238,11 @@ function liveSchedule() {
   clearTimeout(LIVE.timer);
   LIVE.timer = null;
   if (LIVE.on) LIVE.timer = setTimeout(liveTick, LIVE_SECONDS * 1000);
+  else if (LIVE.revivable) LIVE.timer = setTimeout(liveTick, REVIVE_SECONDS * 1000);
 }
 function liveTick() {
   LIVE.timer = null;
-  if (!LIVE.on) return;
+  if (!LIVE.on && !LIVE.revivable) return;
   if (LIVE.pending && !liveBusy()) return liveApply(LIVE.pending);
   liveLoad("progress-version.js", null);
   liveSchedule();
@@ -265,7 +267,7 @@ window.__shiploopVersion = (v) => {
   const key = typeof v.trace === "string" ? v.trace : "";
   // Already showing it, or already received the content asked for under this key (a model without a version still
   // polls: its first key is new, and the key it was fetched for is then remembered).
-  if (!LIVE.on || !key || LIVE.fetching || key === LIVE.version || key === LIVE.received) return;
+  if ((!LIVE.on && !LIVE.revivable) || !key || LIVE.fetching || key === LIVE.version || key === LIVE.received) return;
   LIVE.fetching = true;
   LIVE.requested = key;
   liveLoad("trace-content.js", () => { LIVE.fetching = false; });
@@ -273,7 +275,7 @@ window.__shiploopVersion = (v) => {
 window.__shiploopTrace = (model) => {
   if (!model || typeof model !== "object" || !model.run) return;
   LIVE.received = LIVE.requested !== undefined ? LIVE.requested : model.version;
-  if (LIVE.on && !liveBusy()) liveApply(model);
+  if ((LIVE.on || LIVE.revivable) && !liveBusy()) liveApply(model);
   else LIVE.pending = model;
 };
 // Escape closes the packet viewer: one listener for the page's life, not one per render.
@@ -352,6 +354,7 @@ function bootTrace(TRACE) {
     ? !!observer.final : ["done", "halted"].includes(run.status);
   const watchable = (observer.mode === "watch" || (observer.mode === undefined &&
     ["active", "blocked", "done", "halted"].includes(run.status))) && !observerFinal;
+  const revivable = !!observer.revivable && !observerFinal;
 
   // ---------------------------------------------------------------- viewer
   const viewer = document.getElementById("viewer");
@@ -743,9 +746,19 @@ function bootTrace(TRACE) {
         " · state.md stays the authority; this page is a display.")].filter(Boolean));
   }
   render();
+  if (typeof location !== "undefined" && location && String(location.pathname || "").startsWith("/runs/")) {
+    const nav = document.getElementById("run-nav");
+    if (nav && !nav.querySelector("a.hub-back")) {
+      const sep = document.createTextNode(" · ");
+      const back = el("a", {class: "hub-back", href: "/"}, "All runs");
+      nav.insertBefore(sep, nav.firstChild);
+      nav.insertBefore(back, nav.firstChild);
+    }
+  }
   if (ui.open && TRACE.texts[ui.open.file] !== undefined) openPacket(ui.open.file, ui.open.label, ui.open.info);
   LIVE.version = TRACE.version;
   LIVE.on = watchable && ui.live;
+  LIVE.revivable = !LIVE.on && revivable && ui.live;
   liveShowObserved();
 }
 bootTrace(TRACE);

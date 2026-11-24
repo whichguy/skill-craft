@@ -20,6 +20,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills/shiploop/scripts"
 CLI = SCRIPTS / "shiploop"
 CORPUS = ROOT / "test/fixtures/backchain-check"
+sys.path.insert(0, str(ROOT / "test"))
+import state_home  # noqa: E402
+
+state_home.isolate()
+
 sys.path.insert(0, str(SCRIPTS))
 import shiploop_backchain_graph as verb  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402

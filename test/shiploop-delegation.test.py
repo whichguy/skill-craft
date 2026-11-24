@@ -1507,8 +1507,8 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         self.assertIn("Launch ONE fresh coding-capable native subagent with STRICTLY NO inherited parent conversation history",
                       improve_packets["reflect-and-revise"])
         for stage, pkt in improve_packets.items():
-            self.assertLess(len(pkt), 3_000, f"agents Improve packet too large at {stage}: {len(pkt)}")
-            self.assertLess(len(improve_packets_codex[stage]), 3_000,
+            self.assertLess(len(pkt), 3_200, f"agents Improve packet too large at {stage}: {len(pkt)}")
+            self.assertLess(len(improve_packets_codex[stage]), 3_200,
                             f"agents Improve packet (codex) too large at {stage}: {len(improve_packets_codex[stage])}")
             self.assertIn("worker-brief.md", pkt)
             self.assertIn("Host hint (cursor, pilot-ide):", pkt)

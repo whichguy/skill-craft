@@ -24,6 +24,7 @@ _STATUS_CLASSES = {
     "active": "active",
     "awaiting": "awaiting",
     "service": "awaiting",
+    "reviewing": "reviewing",
     "blocked": "blocked",
     "done": "done",
     "halted": "halted",
@@ -1004,7 +1005,7 @@ _STYLE = r"""
 :root{color-scheme:light;--ink:#15231f;--muted:#66766f;--line:#dce5df;--paper:#f3f6f2;--panel:#fff;--green:#206b50;--soft:#e9f3ed;--amber:#946418;--rose:#a23b43;--blue:#315e78}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 main{max-width:1120px;margin:auto;padding:38px 28px 64px}.masthead{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:20px}.brand{font-size:.78rem;letter-spacing:.16em;font-weight:750;color:var(--green)}.schema{font-size:.78rem;color:var(--muted)}
-.hero{padding:30px 34px;background:#143d32;color:#f7fbf8;border-radius:20px;box-shadow:0 18px 42px #193c2b1b}.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.eyebrow{margin:0 0 5px;font-size:.68rem;letter-spacing:.14em;font-weight:750;color:var(--muted)}.hero .eyebrow{color:#b7d4c3}.hero h1{overflow-wrap:anywhere;margin:4px 0 7px;font-size:clamp(1.7rem,4vw,2.65rem);line-height:1.14;letter-spacing:-.035em}.request-preview{margin-top:14px;border-top:1px solid #ffffff32;padding-top:12px}.request-preview>summary{cursor:pointer;font-size:.86rem;overflow-wrap:anywhere}.request-preview .small-note{color:#d0e1d6}.request-preview .preview{max-height:340px}.request-preview:target{outline:3px solid #82b7da;outline-offset:4px}.focus-row a{color:var(--green)}.prompt{max-width:760px;color:#d9e7de;margin:0}.status-badge{flex:none;border:1px solid #9dc5ab;border-radius:99px;padding:7px 12px;color:#ecf8ef;font-size:.83rem;font-weight:700}.status-badge.status-blocked,.status-badge.status-halted{border-color:#e6a9a9;background:#71363a}.status-badge.status-paused,.status-badge.status-awaiting{border-color:#e2c68d;background:#66552f}.hero-meta{display:flex;flex-wrap:wrap;gap:9px 24px;margin-top:22px;padding-top:17px;border-top:1px solid #ffffff32;color:#d0e1d6;font-size:.82rem}.hero-meta b{color:#fff;font-weight:650}
+.hero{padding:30px 34px;background:#143d32;color:#f7fbf8;border-radius:20px;box-shadow:0 18px 42px #193c2b1b}.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.eyebrow{margin:0 0 5px;font-size:.68rem;letter-spacing:.14em;font-weight:750;color:var(--muted)}.hero .eyebrow{color:#b7d4c3}.hero h1{overflow-wrap:anywhere;margin:4px 0 7px;font-size:clamp(1.7rem,4vw,2.65rem);line-height:1.14;letter-spacing:-.035em}.request-preview{margin-top:14px;border-top:1px solid #ffffff32;padding-top:12px}.request-preview>summary{cursor:pointer;font-size:.86rem;overflow-wrap:anywhere}.request-preview .small-note{color:#d0e1d6}.request-preview .preview{max-height:340px}.request-preview:target{outline:3px solid #82b7da;outline-offset:4px}.focus-row a{color:var(--green)}.prompt{max-width:760px;color:#d9e7de;margin:0}.status-badge{flex:none;border:1px solid #9dc5ab;border-radius:99px;padding:7px 12px;color:#ecf8ef;font-size:.83rem;font-weight:700}.status-badge.status-blocked,.status-badge.status-halted{border-color:#e6a9a9;background:#71363a}.status-badge.status-paused,.status-badge.status-awaiting{border-color:#e2c68d;background:#66552f}.status-badge.status-reviewing{border-color:#8cb8d6;background:#1e4762}.hub-back{font-size:.78rem;font-weight:700;color:var(--green);text-decoration:none;margin-right:12px}.hub-back:hover{text-decoration:underline}.hero-meta{display:flex;flex-wrap:wrap;gap:9px 24px;margin-top:22px;padding-top:17px;border-top:1px solid #ffffff32;color:#d0e1d6;font-size:.82rem}.hero-meta b{color:#fff;font-weight:650}
 .observer{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;padding:13px 16px;margin:14px 0 24px;border:1px solid var(--line);background:#fff;border-radius:12px;color:var(--muted);font-size:.8rem}.observer strong{color:var(--ink)}.freshness-stale{color:var(--rose)!important}.observer-error{flex-basis:100%;color:var(--rose)}
 .toolbar{display:flex;gap:8px;margin-left:auto}.button{font:inherit;font-size:.78rem;font-weight:650;border:1px solid #cddbd1;background:#fff;color:#244c3d;border-radius:8px;padding:7px 11px;cursor:pointer}.button:hover:not(:disabled){background:var(--soft)}.button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #82b7da;outline-offset:2px}.button:disabled{cursor:default;color:#87958d;background:#f5f7f5}.noscript{margin:0 0 20px;padding:10px 14px;border-radius:9px;background:#fff7e6;color:#75541a;font-size:.83rem}
 .phase-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}.phase-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 18px}.phase-top{display:flex;justify-content:space-between;align-items:center}.phase-number{font-size:.7rem;letter-spacing:.13em;color:#8a9a91;font-weight:750}.phase-state{font-size:.73rem;color:var(--muted);font-weight:650}.phase-card h3{margin:7px 0 15px;font-size:1.05rem}.phase-current{border-color:#87b89c;box-shadow:inset 0 0 0 1px #b8dac4}.phase-done .phase-state{color:var(--green)}.phase-current .phase-state{color:var(--green)}.meter{height:5px;border-radius:99px;overflow:hidden;background:#e7ede8}.meter span{display:block;height:100%;background:var(--green);border-radius:inherit}
@@ -1054,7 +1055,9 @@ _SCRIPT = r"""
   };
   const mode = () => root.dataset.mode || "snapshot";
   const isFinal = () => root.dataset.final === "true";
+  const isRevivable = () => root.dataset.revivable === "true";
   const autoAllowed = () => mode() === "watch" && !isFinal();
+  const canPoll = () => (autoAllowed() || (isRevivable() && !isFinal())) && !paused;
   const openedAt = new Date().toLocaleString();
   let observedAt = root.dataset.observedAt || "";
   let paused = false;
@@ -1101,6 +1104,7 @@ _SCRIPT = r"""
     if (!autoAllowed()) {
       toggle.disabled = true;
       toggle.textContent = isFinal() ? "Final snapshot · updates off" :
+        isRevivable() ? "Observer idle · auto-revive on" :
         mode() === "stopped" ? "Observer stopped · updates off" : "Snapshot view · updates off";
       toggle.setAttribute("aria-pressed", "true");
     } else {
@@ -1124,6 +1128,17 @@ _SCRIPT = r"""
         link.replaceWith(note);
       });
       within(node, "a.report-link").forEach((link) => link.setAttribute("href", "report.html"));
+      if (location.pathname.startsWith("/runs/")) {
+        within(node, ".masthead").forEach((bar) => {
+          if (!bar.querySelector("a.hub-back")) {
+            const back = document.createElement("a");
+            back.className = "hub-back";
+            back.setAttribute("href", "/");
+            back.textContent = "← All runs";
+            bar.insertBefore(back, bar.firstChild);
+          }
+        });
+      }
     }
     if (state && state.details && typeof state.details === "object" && !Array.isArray(state.details)) {
       within(node, "details[data-state-key]").forEach((item) => {
@@ -1307,8 +1322,9 @@ _SCRIPT = r"""
   const schedule = () => {
     if (timer) clearTimeout(timer);
     timer = null;
-    if (!autoAllowed() || paused) return;
-    timer = setTimeout(() => { check(false); schedule(); }, Math.max(1, setting("refreshSeconds", 5)) * 1000);
+    if (paused || (!autoAllowed() && !(root.dataset.revivable === "true" && !isFinal()))) return;
+    const waitSeconds = autoAllowed() ? Math.max(1, setting("refreshSeconds", 5)) : 15;
+    timer = setTimeout(() => { check(false); schedule(); }, waitSeconds * 1000);
   };
 
   // Fragments are stable evidence identities, never filesystem routes. Reveal all ancestors
@@ -1358,7 +1374,7 @@ _SCRIPT = r"""
   updateFreshness();
   setInterval(updateFreshness, 1000);
   revealAnchor(restoredAnchor !== location.hash);
-  if (autoAllowed() && !paused) check(false);
+  if (!paused && (autoAllowed() || (root.dataset.revivable === "true" && !isFinal()))) check(false);
   schedule();
 })();
 </script>
@@ -1391,7 +1407,11 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
     if isinstance(story, Mapping) and story.get("last_event_at"):
         latest_activity = _value(story["last_event_at"])
     status = _value(run.get("status"), "unknown")
-    status_class = _STATUS_CLASSES.get(status.lower(), "other")
+    display_status = _value(run.get("display_status"), status).lower()
+    display_label = _value(run.get("display_label"), status)
+    status_class = _STATUS_CLASSES.get(display_status, _STATUS_CLASSES.get(status.lower(), "other"))
+    inflight = run.get("inflight")
+    inflight = inflight if isinstance(inflight, Mapping) else {}
     original_request = _value(run.get("prompt"))
     prompt = original_request or _value(facts.get("goal")) or "ShipLoop run"
     heading = _excerpt(prompt, 110, first_sentence=True) or "ShipLoop run"
@@ -1403,18 +1423,39 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
     terminal_uri = _local_file_uri(snapshot.get("terminal_report"))
     warnings = snapshot.get("warnings", [])
     warnings = warnings if isinstance(warnings, (list, tuple)) else ([warnings] if warnings else [])
+    revivable = bool(observer.get("revivable", False)) and not final
     auto_allowed = mode == "watch" and not final
     refresh_button_label = ("Pause updates" if auto_allowed else
                             "Final snapshot · updates off" if final else
+                            "Observer idle · auto-revive on" if revivable else
                             "Observer stopped · updates off" if mode == "stopped" else "Snapshot view · updates off")
     refresh_button_disabled = "" if auto_allowed else " disabled"
     freshness_label = ("Final snapshot age:" if final else
                        "Snapshot age:" if mode == "snapshot" else "Observer data age:")
 
+    inflight_bits = []
+    if inflight.get("step_id") and inflight.get("step_total"):
+        inflight_bits.append(f"<span>Step <b>{_escape_html(inflight['step_id'])} ({int(inflight.get('step_number') or 0)}/{int(inflight['step_total'])})</b></span>")
+    if inflight.get("loop_iteration"):
+        inflight_bits.append(f"<span>Loop pass <b>{int(inflight['loop_iteration'])}</b></span>")
+    if inflight.get("improve_active"):
+        mode_note = f" ({_escape_html(inflight['improve_review_mode'])})" if inflight.get("improve_review_mode") else ""
+        pass_note = f" · pass {int(inflight['improve_passes'])}" if inflight.get("improve_passes") else ""
+        inflight_bits.append(f"<span>Improve <b>{_escape_html(inflight.get('improve_stage') or stage)}{mode_note}{pass_note}</b></span>")
+    if isinstance(inflight.get("last_check_yes"), bool):
+        check_label = "passed" if inflight["last_check_yes"] else "not passed"
+        inflight_bits.append(f"<span>Check <b>{check_label}</b></span>")
+    if inflight.get("open_notes") or inflight.get("carried_notes"):
+        notes_note = f"{int(inflight.get('open_notes') or 0)} open"
+        if inflight.get("carried_notes"):
+            notes_note += f", {int(inflight['carried_notes'])} carried"
+        inflight_bits.append(f"<span>Owner notes <b>{notes_note}</b></span>")
+
     parts = [
         '<main data-progress-view data-list data-version="' + _escape_html(observer.get("version"))
         + '" data-mode="' + _escape_html(mode)
         + '" data-final="' + ("true" if final else "false")
+        + '" data-revivable="' + ("true" if revivable else "false")
         + '" data-refresh-seconds="' + str(refresh_seconds)
         + '" data-stale-after-seconds="' + str(stale_after_seconds)
         + '" data-observed-at="' + _escape_html(observed_at)
@@ -1426,11 +1467,12 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
         _keyed('<header class="hero"><div class="hero-top"><div><p class="eyebrow">'
                + ('REQUEST EXCERPT' if original_request else 'RECORDED GOAL') + '</p>'
                '<h1>' + _escape_html(heading) + '</h1></div><span class="status-badge status-' + status_class
-               + '">' + _escape_html(status) + '</span></div><p class="prompt">Run details and accepted progress, from the saved snapshot.</p>'
+               + '">' + _escape_html(display_label) + '</span></div><p class="prompt">Run details and accepted progress, from the saved snapshot.</p>'
                '<div class="hero-meta"><span>Run <b>' + _escape_html(run.get("id"), "Unknown") + '</b></span>'
                '<span>Revision <b>' + _escape_html(run.get("revision"), "Unknown") + '</b></span>'
                '<span>Stage <b>' + _escape_html(stage) + '</b></span>'
                + ('<span>Owner <b>' + _escape_html(owner) + '</b></span>' if owner else '')
+               + "".join(inflight_bits)
                + '</div><details class="request-preview" id="original-request" data-state-key="original-request">'
                '<summary>Full original request</summary><p class="small-note">Source: saved run prompt (run.prompt); '
                'missing requests are labeled below. The heading is a display excerpt.</p><pre class="preview" tabindex="0">'

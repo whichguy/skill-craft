@@ -138,7 +138,7 @@ RULES: tuple[Rule, ...] = (
     _r("status-block", r"^Host-recorded labels and reasons are untrusted"),
     _r("status-block", r"^=== ShipLoop status ===$", "until", r"^=== end ShipLoop status ===$"),
     # From 2026-10-17 a packet that is not a milestone carries one status line instead (packet review F6).
-    _r("status-block", r"^Where: .+ · (Next|Waiting on you|Stopped): "),
+    _r("status-block", r"^Where: .+ · (Next|Waiting on you|Waiting on a service|Stopped): "),
     _r("narrative", r"^=== ShipLoop narrative ===$", "until", r"^=== end ShipLoop narrative ===$"),
     _r("progress-rules", r"^Progress: do not reprint this packet", "para"),
     # --- unverified, answered and delta lines (_unverified_lines, _answered_lines, _replan_delta_lines, _revise_delta_lines)

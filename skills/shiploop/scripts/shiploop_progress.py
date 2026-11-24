@@ -129,16 +129,94 @@ def running(root: Path) -> bool:
         return not acquired
 
 
-def sample(root: Path, *, optional_cache=None) -> dict | None:
+_WATCH_RUN_FILES = (
+    "state.md", "timeline.json", "trace.jsonl", "skill-calls.jsonl",
+    "progress-observations.jsonl", "callback-attempts", "report.html",
+)
+_WATCH_RUN_DIRS = ("loops", "checks", "tests", "expectations", "owner-notes", "inbox", "notes", "improve")
+
+
+def _stat_entry(path: Path) -> tuple[Any, ...]:
+    try:
+        info = path.lstat()
+        return (str(path), info.st_dev, info.st_ino, info.st_mtime_ns, info.st_size)
+    except OSError:
+        return (str(path), None)
+
+
+def _watch_signature(root: Path, previous: dict | None = None) -> tuple[Any, ...]:
+    """Cheap stat-only signature of all files and directories that influence a snapshot."""
+    entries: list[tuple[Any, ...]] = [_stat_entry(root / name) for name in _WATCH_RUN_FILES]
+    if root.name == "run":
+        entries.append(_stat_entry(root.parent / "workspace.md"))
+        entries.append(_stat_entry(root.parent / "return-receipt.md"))
+    for folder_name in _WATCH_RUN_DIRS:
+        folder = root / folder_name
+        entries.append(_stat_entry(folder))
+        try:
+            if folder.is_dir() and not folder.is_symlink():
+                for child in sorted(folder.iterdir()):
+                    entries.append(_stat_entry(child))
+        except OSError:
+            pass
+    doc_paths: set[str] = set()
+    if isinstance(previous, dict):
+        for doc in previous.get("documents", ()) or ():
+            if isinstance(doc, dict) and isinstance(doc.get("path"), str):
+                doc_paths.add(doc["path"])
+        core = getattr(previous, "core", None)
+        if isinstance(core, dict) and isinstance(core.get("state_raw"), bytes):
+            try:
+                prev_state = store.loads(core["state_raw"].decode("utf-8"))
+                repo = prev_state.get("repo")
+                if isinstance(repo, str) and repo:
+                    repo_path = Path(repo)
+                    doc_paths.add(str(repo_path / "docs" / "shiploop" / "spec.md"))
+                    for rel in ("docs/ARCHITECTURE.md", "ARCHITECTURE.md", "docs/architecture.md",
+                                "docs/shiploop/architecture.md"):
+                        doc_paths.add(str(repo_path / rel))
+                    child = prev_state.get("active_improve")
+                    if isinstance(child, dict) and child.get("skill"):
+                        import shiploop_standalone_improve as standalone
+                        receipt_path = standalone.receipt_path(child)
+                        doc_paths.add(str(receipt_path))
+                        doc_paths.add(str(receipt_path.parent))
+                        if receipt_path.parent.is_dir() and not receipt_path.parent.is_symlink():
+                            for item in sorted(receipt_path.parent.iterdir()):
+                                doc_paths.add(str(item))
+            except Exception:  # noqa: BLE001
+                pass
+    for raw_path in sorted(doc_paths):
+        entries.append(_stat_entry(Path(raw_path)))
+    return tuple(entries)
+
+
+def sample(root: Path, *, optional_cache=None, previous: dict | None = None,
+           previous_sig: tuple[Any, ...] | None = None) -> dict | None:
     """A snapshot of the run under a shared lock, or None when the run is busy or has a pending transaction."""
     import shiploop_progress_data as data
 
     with _lock(root, ".lock", shared=True) as acquired:
         if not acquired or os.path.lexists(root / store.JOURNAL_NAME):
             return None
+        sig = _watch_signature(root, previous)
+        if previous is not None and previous_sig is not None and sig == previous_sig:
+            import shiploop_story as story
+            now_ts = story.utc()
+            reused = data.Snapshot(previous)
+            reused["observed_at"] = now_ts
+            prev_core = getattr(previous, "core", None)
+            reused.core = {**prev_core, "observed_at": now_ts} if isinstance(prev_core, dict) else prev_core
+            reused.captures = getattr(previous, "captures", {})
+            reused.watch_sig = sig
+            reused.unchanged = True
+            return reused
         import shiploop_story as story
         core = story.capture_core(root)
-    return data.build_snapshot(root, core=core, optional_cache=optional_cache)
+    snapshot = data.build_snapshot(root, core=core, optional_cache=optional_cache)
+    snapshot.watch_sig = _watch_signature(root, snapshot)
+    snapshot.unchanged = False
+    return snapshot
 
 
 def _call(name: str, value: Any) -> str:
@@ -156,7 +234,7 @@ def page_key(source: Any, mode: str, final: bool, error: str, trace_status: str)
 
 
 def publish(root: Path, snapshot: dict, *, mode: str, interval: float,
-            final: bool = False, error: str = "", version: str = "") -> str:
+            final: bool = False, error: str = "", version: str = "", revivable: bool = False) -> str:
     """Write the progress page and its content script for ``snapshot`` with the observer's mode, interval,
     finality and error; returns the page's version.
     """
@@ -166,9 +244,14 @@ def publish(root: Path, snapshot: dict, *, mode: str, interval: float,
     publication = snapshot.get("trace_publication")
     version = version or page_key(snapshot.get("source_fingerprint"), mode, final, error,
                                   publication.get("status", "") if isinstance(publication, dict) else "")
-    value["observer"] = {"mode": mode, "interval_seconds": interval,
-                         "refresh_seconds": 5, "stale_after_seconds": STALE_AFTER,
-                         "final": final, "error": error, "version": version}
+    observer_meta: dict[str, Any] = {
+        "mode": mode, "interval_seconds": interval,
+        "refresh_seconds": 5, "stale_after_seconds": STALE_AFTER,
+        "final": final, "error": error, "version": version,
+    }
+    if revivable:
+        observer_meta["revivable"] = True
+    value["observer"] = observer_meta
     from shiploop_observation_io import screen
     # Preserve undecodable filename code points visibly without failing UTF-8 publication.
     title, main = (text.encode("utf-8", errors="backslashreplace").decode("utf-8")
@@ -190,14 +273,17 @@ def announce(root: Path, *, progress: str, trace: Any, observed_at: Any, status:
 
 
 def _refresh_trace(root: Path, key: Any, snapshot=None, *, mode: str = "snapshot",
-                   final: bool = False, error: str = "", force: bool = False) -> Any:
+                   final: bool = False, error: str = "", force: bool = False, revivable: bool = False) -> Any:
     """Publish from the same captured core. Failures propagate to progress/status."""
     import shiploop_trace as trace
     model = trace.build(root, core=getattr(snapshot, "core", None) if snapshot else None,
                         captures=getattr(snapshot, "captures", None) if snapshot else None)
     if snapshot and "story" in snapshot:
         model["story"] = snapshot["story"]
-    model["observer"] = {"mode": mode, "final": final, "error": error}
+    observer_meta: dict[str, Any] = {"mode": mode, "final": final, "error": error}
+    if revivable:
+        observer_meta["revivable"] = True
+    model["observer"] = observer_meta
     texts = trace.page_texts(root, model)
     current = trace.source_key(root, model=model, texts=texts)
     if force or current != key:
@@ -219,6 +305,8 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
         if not acquired:
             return 0 if watch else 2
         last = None
+        last_sig = None
+        last_trace_ok = False
         fingerprint = None
         trace_key = None
         activity_fingerprint = None
@@ -241,12 +329,33 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                     break
                 clock = time.monotonic()
                 try:
-                    current = sample(root, optional_cache=optional_cache)
+                    use_cache = (watch and last is not None and last_sig is not None
+                                 and last_trace_ok and terminal_since is None)
+                    if use_cache:
+                        current = sample(root, optional_cache=optional_cache,
+                                         previous=last, previous_sig=last_sig)
+                    else:
+                        current = sample(root, optional_cache=optional_cache)
                     if current is None:
                         # Busy/incomplete transactions cannot refresh observation time.
                         if not watch:
                             reason, code = "run busy or transaction pending", 2
                             break
+                    elif getattr(current, "unchanged", False):
+                        # Stat-gated fast path: nothing on disk changed, so only refresh heartbeat + STATUS.
+                        last["observed_at"] = current["observed_at"]
+                        if isinstance(getattr(last, "core", None), dict):
+                            last.core = {**last.core, "observed_at": current["observed_at"]}
+                        last_sig = getattr(current, "watch_sig", last_sig)
+                        _write(root, STATUS, json.dumps({
+                            "schema": "shiploop-progress-observer/v1", "instance": instance,
+                            "pid": os.getpid(), "run_id": last["run"]["id"],
+                            "revision": last["run"]["revision"], "observed_at": current["observed_at"],
+                            "status": "watching",
+                            "trace_publication": last["trace_publication"],
+                        }, sort_keys=True) + "\n")
+                        announce(root, progress=published, trace=trace_key,
+                                 observed_at=current["observed_at"], status="watching")
                     else:
                         source_key = current["source_fingerprint"]
                         activity_key = current.get("activity_fingerprint", current.get("story", {}).get("activity_fingerprint", source_key))
@@ -266,9 +375,11 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                             # Rewritten when the trace's own key moves; finality and mode are part of that key.
                             trace_key = _refresh_trace(root, trace_key, current, mode=mode,
                                                        final=final, force=not watch)
+                            last_trace_ok = True
                         except (OSError, ValueError, KeyError, TypeError, store.StorageError):
                             trace_error = "Trace publication failed; retained trace page may be stale."
                             current.setdefault("warnings", []).append(trace_error)
+                            last_trace_ok = False
                         current["trace_publication"] = {"status": "unavailable" if trace_error else "ok",
                                                          "observed_at": current["observed_at"], "message": trace_error}
                         key = page_key(source_key, mode, final, trace_error, current["trace_publication"]["status"])
@@ -276,6 +387,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                             published = publish(root, current, mode=mode, interval=interval, final=final,
                                                 error=trace_error, version=key)
                         last, fingerprint = current, source_key
+                        last_sig = getattr(current, "watch_sig", None)
                         activity_fingerprint = activity_key
                         status = "final" if final else "watching" if watch else "snapshot"
                         _write(root, STATUS, json.dumps({
@@ -294,6 +406,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                 except (OSError, ValueError, KeyError, TypeError, store.StorageError) as exc:
                     from shiploop_observation_io import screen
                     reason = screen("observation unavailable: " + str(exc))
+                    last_trace_ok = False
                     # Keep last good content and its old observed_at; errors are not progress. One publication
                     # per distinct failure shows it; the version script then tells open pages to take it.
                     if last is not None:
@@ -322,16 +435,18 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
             if root.is_dir():
                 try:
                     if last is not None and reason not in ("final", "snapshot"):
+                        revivable = reason.startswith("idle timeout")
                         try:
                             trace_key = _refresh_trace(root, trace_key, last, mode="snapshot",
-                                                       error=reason, force=True)
+                                                       error=reason, force=True, revivable=revivable)
                             trace_error = ""
                         except (OSError, ValueError, TypeError, KeyError, store.StorageError):
                             trace_error = "Trace publication failed; retained trace page may be stale."
                         last["trace_publication"] = {"status": "unavailable" if trace_error else "ok",
                                                      "observed_at": last["observed_at"], "message": trace_error}
                         published = publish(root, last, mode="snapshot", interval=interval,
-                                            error="; ".join(filter(None, (reason, trace_error))))
+                                            error="; ".join(filter(None, (reason, trace_error))),
+                                            revivable=revivable)
                         announce(root, progress=published, trace=trace_key,
                                  observed_at=last["observed_at"], status=reason)
                 except (OSError, ValueError, TypeError, KeyError, store.StorageError):
@@ -432,10 +547,13 @@ def _port(raw: str) -> int:
     return value
 
 
-def serve(root: Path, *, port: int | None, interval: float, idle_timeout: float) -> int:
-    """``view --serve``: keep the observer going for a live run, then serve the run's pages until interrupted."""
+def serve(root: Path | None, *, port: int | None, interval: float, idle_timeout: float,
+          extra_roots: Sequence[Path] = ()) -> int:
+    """``view --serve``: serve one run when ``root`` is given, else the multi-run hub until interrupted."""
     import shiploop_progress_serve as viewer
 
+    if root is None:
+        return viewer.serve_hub(extra_roots=extra_roots, port=port)
     try:
         if not finished(root) and not start(root, interval=interval, idle_timeout=idle_timeout):
             if running(root):
@@ -449,33 +567,144 @@ def serve(root: Path, *, port: int | None, interval: float, idle_timeout: float)
     return viewer.serve(root, port=port)
 
 
+def _start_server_background(
+    *,
+    run_dir: Path | None,
+    port: int | None,
+    interval: float,
+    idle_timeout: float,
+    extra_roots: Sequence[Path],
+) -> int:
+    """Launch ``shiploop view --serve`` detached and confirm it is listening."""
+    import shiploop_registry as registry
+
+    existing = registry.active_viewer()
+    if existing is not None and port is None and run_dir is None:
+        cli_path = Path(__file__).resolve().parent / "shiploop"
+        print(f"ShipLoop hub already running: {existing['url']}/ (pid {existing['pid']})")
+        print(f"Stop with: python3 {cli_path} view --stop-server")
+        return 0
+    command = [sys.executable, "-B", str(Path(__file__).resolve()), "--serve",
+               "--interval", str(interval), "--idle-timeout", str(idle_timeout)]
+    if run_dir is not None:
+        command += ["--run-dir", str(run_dir)]
+    if port is not None:
+        command += ["--port", str(port)]
+    for extra in extra_roots:
+        command += ["--runs-root", str(extra)]
+    process = subprocess.Popen(
+        command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True, close_fds=True,
+    )
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        active = registry.active_viewer()
+        if active is not None and active.get("pid") == process.pid:
+            cli_path = Path(__file__).resolve().parent / "shiploop"
+            label = "ShipLoop hub" if active.get("mode") == "hub" else "ShipLoop viewer"
+            print(f"{label}: {active['url']}/ (pid {process.pid}, read-only, this machine only)")
+            print(f"Stop with: python3 {cli_path} view --stop-server")
+            return 0
+        if process.poll() is not None:
+            break
+        time.sleep(0.05)
+    if process.poll() is None:
+        process.terminate()
+    print("ShipLoop viewer failed to start in the background.", file=sys.stderr)
+    return 2
+
+
+def _stop_server() -> int:
+    """Stop the active viewer server recorded in ``viewer.json``."""
+    import signal
+    import shiploop_registry as registry
+
+    active = registry.active_viewer()
+    if active is None:
+        print("No ShipLoop viewer server is running.")
+        return 0
+    pid = active.get("pid")
+    if not isinstance(pid, int) or pid <= 1:
+        registry.clear_viewer_info()
+        print("No ShipLoop viewer server is running.")
+        return 0
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        registry.clear_viewer_info(pid)
+        print("No ShipLoop viewer server is running.")
+        return 0
+    except OSError as exc:
+        print(f"Could not stop ShipLoop viewer (pid {pid}): {exc}", file=sys.stderr)
+        return 2
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        if registry.active_viewer() is None:
+            print(f"Stopped ShipLoop viewer (pid {pid}).")
+            return 0
+        time.sleep(0.05)
+    print(f"Sent SIGTERM to ShipLoop viewer (pid {pid}); shutdown still in progress.")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
     """Entry point of ``shiploop view``."""
     parser = argparse.ArgumentParser(prog="shiploop view", description=__doc__)
-    parser.add_argument("--run-dir", required=True)
+    parser.add_argument("--run-dir", default=None)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--watch", action="store_true", help="observe in this foreground process")
     mode.add_argument("--start", action="store_true", help="start one detached observer")
     mode.add_argument("--stop", action="store_true", help="stop observation and disable automatic restarts")
-    mode.add_argument("--status", action="store_true", help="read observer status without modifying state")
+    mode.add_argument("--status", action="store_true", help="read observer and viewer status without modifying state")
     mode.add_argument("--serve", action="store_true",
-                      help="start the observer and serve the run's pages read-only on 127.0.0.1 until interrupted")
+                      help="serve all discovered runs (default) or --run-dir read-only on 127.0.0.1")
+    mode.add_argument("--stop-server", action="store_true", help="stop the active ShipLoop browser viewer server")
+    parser.add_argument("--background", action="store_true",
+                        help="with --serve: launch the viewer server detached and print its URL")
+    parser.add_argument("--runs-root", action="append", default=[],
+                        help="with --serve or --status: extra run or .shiploop-runs directory to discover")
     parser.add_argument("--port", type=_port, default=None,
-                        help="with --serve: the TCP port (default: one derived from the run directory; 0 lets the "
-                             "system pick)")
+                        help="with --serve: TCP port (default: 41730 for hub or hash of --run-dir; 0 picks a free port)")
     parser.add_argument("--interval", type=_positive, default=2.0)
     parser.add_argument("--idle-timeout", type=_positive, default=IDLE_TIMEOUT)
     parser.add_argument("--instance", default="", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.port is not None and not args.serve:
         parser.error("--port needs --serve")
+    if args.background and not args.serve:
+        parser.error("--background needs --serve")
+    if args.stop_server and args.run_dir is not None:
+        parser.error("--stop-server takes no --run-dir")
+    if not args.run_dir and not (args.serve or args.stop_server or args.status):
+        parser.error("--run-dir is required except with --serve, --stop-server, or --status")
     try:
+        if args.stop_server:
+            return _stop_server()
+        extra_roots = tuple(Path(item).expanduser().resolve() for item in args.runs_root)
+        if args.run_dir is None:
+            import shiploop_registry as registry
+            if args.status:
+                discovered = registry.discover_runs(extra_roots=extra_roots)
+                print(json.dumps({
+                    "viewer": registry.active_viewer(),
+                    "runs_count": len(discovered),
+                    "active_runs": sum(1 for item in discovered
+                                       if item["state"].get("status") not in ("done", "halted")),
+                }, sort_keys=True))
+                return 0
+            if args.background:
+                return _start_server_background(run_dir=None, port=args.port, interval=args.interval,
+                                                idle_timeout=args.idle_timeout, extra_roots=extra_roots)
+            return serve(None, port=args.port, interval=args.interval, idle_timeout=args.idle_timeout,
+                         extra_roots=extra_roots)
+
         root = checked_root(Path(args.run_dir).expanduser())
         if core is not None:
             core.refuse_package_path(root)
         if args.status:
+            import shiploop_registry as registry
             print(json.dumps({**_read_json(root / STATUS), "running": running(root),
-                              "path": str(root / PAGE)}, sort_keys=True))
+                              "path": str(root / PAGE), "viewer": registry.active_viewer()}, sort_keys=True))
             return 0
         if args.stop:
             stop(root)
@@ -485,7 +714,11 @@ def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
             if _regular(root / DISABLED, missing=True):
                 (root / DISABLED).unlink()
         if args.serve:
-            return serve(root, port=args.port, interval=args.interval, idle_timeout=args.idle_timeout)
+            if args.background:
+                return _start_server_background(run_dir=root, port=args.port, interval=args.interval,
+                                                idle_timeout=args.idle_timeout, extra_roots=extra_roots)
+            return serve(root, port=args.port, interval=args.interval, idle_timeout=args.idle_timeout,
+                         extra_roots=extra_roots)
         if args.start:
             if not start(root, interval=args.interval, idle_timeout=args.idle_timeout):
                 if running(root):

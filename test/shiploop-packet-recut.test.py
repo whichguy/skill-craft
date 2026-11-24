@@ -128,14 +128,14 @@ class ImprovePacketTests(unittest.TestCase):
             # ShipLoop started the child: the packet asks for no start, no restart, no opening.
             self.assertNotIn("improve-start", packet)
             self.assertNotIn("--restart-stopped", packet)
-            # Nothing else instructs: no goal, references, rules, result shapes or stage guidance.
-            for absent in ("Goal:", "References (", "Rules", "Result template", "Current stage guidance",
+            # Nothing else instructs: no references, rules, result shapes or stage guidance.
+            for absent in ("References (", "Rules", "Result template", "Current stage guidance",
                            "Checked by", "Done when", "opening file", "Write the opening"):
                 self.assertNotIn(absent, packet, absent)
-            # The keepalive hooks' machine line stays; no progress block (packet review F6, 2026-10-17: the packet before
-            # it showed the step under review, the next producer packet shows the result).
+            # The keepalive hooks' machine line and compact status line stay; no narrative or status block.
             self.assertIn("Keepalive marker: ", packet)
-            for absent in ("=== ShipLoop status ===", "=== ShipLoop narrative ===", " · Next: "):
+            self.assertIn(navigator.status_line(state), packet)
+            for absent in ("=== ShipLoop status ===", "=== ShipLoop narrative ==="):
                 self.assertNotIn(absent, packet, absent)
             self.assertLess(len(packet), IMPROVE_CEILING)
 
@@ -261,8 +261,11 @@ class PrintedPacketTests(unittest.TestCase):
         for key, text in packets.offline_packets(CASES["node-fix-bug"], printed=True).items():
             with self.subTest(packet=key):
                 shown = hook.packet_progress(text)
-                if key.endswith("-improve"):  # an Improve packet carries no progress block
-                    self.assertIsNone(shown)
+                if key.endswith("-improve"):  # an Improve packet carries only the compact status line
+                    self.assertIsNotNone(shown)
+                    self.assertRegex(shown, hook.LINE)
+                    end = text.index(shown) + len(shown)
+                    self.assertLess(end, hook.WINDOW)
                     continue
                 end = text.index(shown) + len(shown)
                 self.assertLess(end, hook.WINDOW)
