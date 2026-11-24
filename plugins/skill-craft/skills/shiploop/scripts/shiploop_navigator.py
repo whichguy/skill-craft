@@ -8490,16 +8490,26 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
                     "history (inheriting full model, tools and permissions; no second worktree or cloud VM) for this "
                     + stage + " review, at every Improve stage and not from memory of an earlier one:"
                 )
-            lines += [
-                launch_line,
+            complete = _callback(core, root, "complete", action=improve_id(state),
+                                 **{"review-mode": mode})
+            fallback_lines = [
                 "   - Tell the worker to read and follow " + str(brief) + " completely (Improve argument: " + argument + ").",
                 "   - Include a short Conversation context note only for chat-only approvals, declines or decisions not on disk.",
                 "   - " + host_bindings.host_hint(host_override=host, worktree=worktree),
+            ]
+            if mode == "fork":
+                fallback_lines.append(
+                    "   - If this host has no native fork and you launched a fresh worker instead, replace "
+                    "`--review-mode=fork` with `--review-mode=fresh` on step 2.")
+            fallback_lines.append(
                 "   - If no native subagent tool is available on this host, run the improve skill inline with `"
-                + argument + "` and pass `--review-mode inline-fallback` on step 2.",
+                + argument + "` and replace `--review-mode=" + mode + "` with `--review-mode=inline-fallback` on step 2.")
+            lines += [
+                launch_line,
+                *fallback_lines,
                 "2. After collecting the worker's return and verifying " + str(receipt)
                 + " reports status `complete` (the worker never runs this), run: "
-                + _callback(core, root, "complete", action=improve_id(state)),
+                + complete,
                 *_improve_recovery_lines(core, root, state, child),
             ]
         else:

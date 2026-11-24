@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-11-23
 
+### skill-craft 4.7.1
+
+- Skills: shiploop 2.9.1
+
+### shiploop 2.9.1
+
+- Agents Improve packets now print `complete --review-mode=fork|fresh` and instruct
+  replacing it with `fresh` or `inline-fallback` when the host cannot run the Hybrid
+  intent, so `passes.md` provenance records observed mode instead of only the stage default.
+
 ### skill-craft 4.7.0
 
 - Skills: ask-agent 0.12.0, shiploop 2.9.0
