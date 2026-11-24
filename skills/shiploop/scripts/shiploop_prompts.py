@@ -1929,7 +1929,7 @@ preparatory commit); a mismatch there is a send-back.
    repository `sources` files that create that entry.
 8. Update KNOWLEDGE/environment.md: destinations and runtimes under ## Targets and runtimes; deploy, migrate, dry-run,
    rollback and confirm commands under ## Commands; approvals and accounts per environment under ## Access and accounts.
-9. Cite KNOWLEDGE/environment.md (and RUN/notes/environment-lifecycle.md if created) in `evidence_refs`; the decisions
+9. Cite KNOWLEDGE/environment.md in `evidence_refs` (and RUN/notes/environment-lifecycle.md if created); the decisions
    and constraints the plan rests on go in `summary`.
 """,
     "release-check": """\
