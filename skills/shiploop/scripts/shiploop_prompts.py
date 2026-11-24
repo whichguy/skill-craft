@@ -79,8 +79,9 @@ READ_ONLY_FANOUT_NOTE = (
     "**Optional read-only fan-out (`delegation: agents`).** When 2 or more independent read-only questions each need "
     "substantial investigation (at least ~20-30 s of model work), you may launch up to host capacity fresh "
     "general-purpose read-only native subagents in one turn (prefer blocking/foreground calls; if async, wait with a "
-    "120 s timeout and retry the same handle on timeout; never create a second git worktree or cloud VM; fall back "
-    "inline if unavailable). Give every reader five isolation rules: (1) write nothing inside WORKTREE or RUN "
+    "120 s timeout and retry the same handle on timeout or non-terminal wake-up until the terminal result arrives; "
+    "never create a second git worktree or cloud VM; fall back inline if unavailable). Give every reader five "
+    "isolation rules: (1) write nothing inside WORKTREE or RUN "
     "(`PYTHONDONTWRITEBYTECODE=1`); (2) put any scratch or writable probe copy in a private `mktemp -d` `TMPDIR` and "
     "delete it before returning; (3) bind local probe servers to `127.0.0.1:0` only; (4) stop only exact PIDs you "
     "started (never `pkill -f` or `killall`); (5) leaf worker only (spawn no subagents, run no ShipLoop callbacks) and "
@@ -94,9 +95,9 @@ FAILURE_DIAGNOSIS_FORK_STAGES = frozenset({"implement", "test"})
 FAILURE_DIAGNOSIS_FORK_NOTE = (
     "**Optional read-only failure diagnosis (`delegation: agents`).** Routine builds, clean lint passes, and "
     "obvious failures stay inline. Only when a lint or test failure is ambiguous or noisy and prior conversation "
-    "decisions matter may you fork this conversation into ONE read-only native worker to investigate the recorded "
+    "decisions matter may you fork this conversation directly into ONE read-only native subagent (never Ask Agent) to investigate the recorded "
     "failure in the current worktree. Inherit this session's model, effort, tools and permissions (prefer "
-    "blocking/foreground; if async, one observation wait of at least 120 s and retry the same handle on timeout; "
+    "blocking/foreground; if async, one observation wait of at least 120 s and retry the same handle on timeout or non-terminal wake-up until the terminal result arrives; "
     "never create a second git worktree or cloud VM). Give it the recorded failure output and relevant diff, and "
     "ask for the likely cause, exact `path:line` evidence, and one check that could disprove it. Keep it strictly "
     "read-only (write nothing inside WORKTREE or RUN; spawn no subagents; run no ShipLoop callbacks; remove any "
@@ -149,8 +150,8 @@ and run code and end-of-work reviews (`document`, `reflect-and-revise`) in one s
 fresh coding-capable native subagent with no inherited conversation history. Point
 the worker at CHILD/worker-brief.md (do not copy the full handoff into its prompt),
 inherit full model, effort, tools and permissions, prefer blocking/foreground execution (if
-async, one observation wait of at least 120 s; on timeout wait again on the same
-handle; never launch a second concurrent writer while the first is alive), and never
+async, one observation wait of at least 120 s; on timeout or non-terminal wake-up wait again on the same
+handle until the terminal result arrives; never launch a second concurrent writer while the first is alive), and never
 create a second worktree or cloud VM. After collecting the worker's actual native
 return (never from files alone), review returned findings/changes/checks, confirm
 CHILD/packet.json is complete and the worker finished writing, then alone submit the
@@ -1649,7 +1650,7 @@ preparatory commit); a mismatch there is a send-back.
    next steps' packets read it:
    - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
-     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n> and what it must
+     Leave every existing line verbatim (never edit or remove a pending-verification line). Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n> and what it must
      say.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves

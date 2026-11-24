@@ -1429,13 +1429,16 @@ class AgentsHybridDelegationTests(unittest.TestCase):
                 self.assertNotIn("Optional read-only failure diagnosis (`delegation: agents`)", packet, stage)
                 self.assertIn("127.0.0.1:0", packet, stage)
                 self.assertIn("pkill -f", packet, stage)
+                self.assertIn("non-terminal wake-up until the terminal result arrives", packet, stage)
                 self.assertIn("synthesize/reconcile findings", packet, stage)
                 self.assertIn("Host hint (codex):", packet, stage)
             elif stage in prompts.FAILURE_DIAGNOSIS_FORK_STAGES:
                 self.assertIn("Optional read-only failure diagnosis (`delegation: agents`)", packet, stage)
                 self.assertNotIn("Optional read-only fan-out (`delegation: agents`)", packet, stage)
+                self.assertIn("(never Ask Agent)", packet, stage)
                 self.assertIn("Inherit this session's model, effort, tools and permissions", packet, stage)
                 self.assertIn("one observation wait of at least 120 s", packet, stage)
+                self.assertIn("non-terminal wake-up until the terminal result arrives", packet, stage)
                 self.assertIn("same handle", packet, stage)
                 self.assertIn("path:line", packet, stage)
                 self.assertIn("one check that could disprove it", packet, stage)
@@ -1458,6 +1461,8 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         self.assertIn("Delegation: agents: run this producer stage inline", seen["implement"])
         self.assertIn("Bind no chain and dispatch no writing worker.", seen["implement"])
         self.assertNotIn("Bind no chain and dispatch no worker.", seen["implement"])
+        self.assertIn("Leave every existing line verbatim (never edit or remove a pending-verification line).",
+                      seen["document"])
 
     def test_agents_improve_packets_and_worker_brief_follow_hybrid_contract(self):
         selected = standalone.resolve_skill(str(CARD))
@@ -1508,6 +1513,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             self.assertIn("never from files alone", pkt)
             self.assertIn("review the returned findings/changes/checks", pkt)
             self.assertIn("one observation wait of at least 120 s", pkt)
+            self.assertIn("non-terminal wake-up wait again on the same handle until the terminal result arrives", pkt)
             self.assertIn("same handle", pkt)
             self.assertIn("never launch a second concurrent writer", pkt)
             expected_mode = "fresh" if stage in ("document", "reflect-and-revise") else "fork"
@@ -1528,6 +1534,10 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         # Worker briefs enforce leaf anti-recursion, canonical realpath, and stage-accurate commit rules.
         canon_repo = os.path.realpath(str(self.repo))
         self.assertIn(canon_repo, briefs["spec"])
+        self.assertIn("FIRST (before running any `improve-pass` command)", briefs["spec"])
+        self.assertIn("FIRST (before running any `improve-pass` command)", briefs["document"])
+        self.assertIn("Classify a pass that edits product, test, or knowledge files as `non-trivial`", briefs["spec"])
+        self.assertIn("Classify a pass that edits product, test, or knowledge files as `non-trivial`", briefs["document"])
         self.assertIn("Do NOT spawn subagents", briefs["spec"])
         self.assertIn("improve-commit", briefs["spec"])
         self.assertIn("commit NOTHING", briefs["document"])
