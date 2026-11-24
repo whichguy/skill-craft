@@ -134,8 +134,8 @@ class TestGroupTests(unittest.TestCase):
         # Roundtable adds one opt-in calibration suite (2026-11-07).
         # Nonblocking recovery adds one real-worktree suite (2026-11-12).
         # Retiring the Closed Loop adapter (3 suites) and all Salesforce/hosted suites (12 ShipLoop + 2 apparatus) brings SHIPLOOP_SUITES to 127.
-        # The defaults list's suite adds one (2026-11-21); the planning-loop suite adds one (2026-11-24).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 129)
+        # The defaults list's suite adds one (2026-11-21); the planning-loop suite adds one (2026-11-24); the fork-completeness verifier suite adds one (2026-11-24).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 130)
         # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
@@ -149,8 +149,8 @@ class TestGroupTests(unittest.TestCase):
         # The pushpress skill and its suite left skill-craft for a private repository (2026-11-22), so core is one fewer, 60, and all suites 190.
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 60)
         # Bundled Grok/GAS harness (2 suites), Closed Loop ShipLoop adapter (3 suites), and Salesforce/hosted cases (14 suites) retired (2026-11-19).
-        # The pushpress suite left with its skill (2026-11-22): 190; shiploop-planning-loop adds one (2026-11-24): 191.
-        self.assertEqual(len(suite_catalog.SUITES), 191)
+        # The pushpress suite left with its skill (2026-11-22): 190; shiploop-planning-loop adds one (2026-11-24): 191; shiploop-e2e-fork-completeness adds one (2026-11-24): 192.
+        self.assertEqual(len(suite_catalog.SUITES), 192)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -391,14 +391,12 @@ class TestGroupTests(unittest.TestCase):
     def test_original_inventory_commands_and_groups_are_unchanged(self) -> None:
         # All 190 rows after retiring the bundled harness, Closed Loop adapter, and Salesforce suites (2026-11-19),
         # and the defaults list's suite (2026-11-21): 191.
-        # The pushpress suite's row left the catalog with the skill (2026-11-22; it moved to a private repository), so the digest
-        # below is that of the 190 rows that remain: it changed by the removal of that one row and by nothing else.
-        # The planning-loop suite joined the catalog (2026-11-24): 191 rows.
+        # The planning-loop suite joined the catalog (2026-11-24): 191 rows; adding the fork-completeness verifier suite brings the catalog to 192 (2026-11-24).
         import hashlib
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "f70395f468ee0763bee580e63bad49f7844cf8673999d70c3845278e118e9dc7")
+        self.assertEqual(digest, "ed3926b5c0d5f28b1990596e44d5e2b87c50634341ac0123116ededbb605dd58")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])
@@ -1084,7 +1082,8 @@ class E2EFamilySelectionTest(unittest.TestCase):
     The family is pinned as it stands on this branch, so a merged group that adds a suite updates this list on purpose.
     """
 
-    FAMILY = {*E2E_SPLIT, "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
+    FAMILY = {*E2E_SPLIT, "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-fork-completeness",
+              "shiploop-e2e-reorientation",
               "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality",
               "shiploop-e2e-packet-anatomy", "shiploop-e2e-render-diff", "shiploop-e2e-commit-counters", "shiploop-e2e-slice",
               "shiploop-e2e-platform", "shiploop-e2e-status-card",

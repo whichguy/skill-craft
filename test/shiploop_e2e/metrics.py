@@ -21,6 +21,7 @@ from pathlib import Path
 import re
 from typing import NamedTuple
 
+import fork_completeness
 import glossary
 import rollouts
 import run_choice
@@ -2571,6 +2572,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # Directories only: each child also leaves a `<name>-bind.md` beside its directory.
         "improve_children": sum(1 for p in improve.iterdir() if p.is_dir()) if improve and improve.is_dir() else 0,
         "improve_reviews": improve_reviews(run_dir),
+        **({"fork_completeness": fc} if (fc := fork_completeness.collect(out, run_dir)) is not None else {}),
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in tools.reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),
         "stages": stages,
@@ -3131,6 +3133,8 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         lines.append(planning_text(metrics["planning"]))
     if metrics.get("tool_use"):
         lines.append(tool_use_text(metrics["tool_use"]))
+    if metrics.get("fork_completeness"):
+        lines.append(fork_completeness.summary_line(metrics["fork_completeness"]))
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
         # Named as the display contract it is, not as "compliance": on a long recorded run a model relayed 2 of 6 blocks

@@ -165,6 +165,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-runrecord.test.py",
     "test/shiploop-e2e-slice.test.py",
     "test/shiploop-e2e-fidelity.test.py",
+    "test/shiploop-e2e-fork-completeness.test.py",
     "test/shiploop-e2e-reorientation.test.py",
     "test/shiploop-e2e-environment.test.py",
     "test/shiploop-e2e-baseline.test.py",

@@ -117,6 +117,7 @@
     "test/shiploop-e2e-epoch.test.py": 31.23,
     "test/shiploop-e2e-experiments.test.py": 65.074,
     "test/shiploop-e2e-fidelity.test.py": 14.658,
+    "test/shiploop-e2e-fork-completeness.test.py": 0.5,
     "test/shiploop-e2e-hosts.test.py": 43.949,
     "test/shiploop-e2e-incremental-pilot.test.py": 37.48,
     "test/shiploop-e2e-intent-continuity.test.py": 3.321,
