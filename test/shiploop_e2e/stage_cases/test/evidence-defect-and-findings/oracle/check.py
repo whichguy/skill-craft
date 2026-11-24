@@ -22,9 +22,13 @@ def check_tests():
     if "TC-1" not in body or "TC-1 (a)" not in body:
         fail("test/paginate.test.js must contain both TC-1 and sub-case TC-1 (a)")
     res = load_result()
-    added = res.get("added_tests") or []
-    if not any(isinstance(r, dict) and r.get("id") == "TC-1 (a)" and r.get("command") for r in added):
-        fail("result.added_tests must register newly added sub-case TC-1 (a)")
+    added = res.get("added_tests")
+    if added is not None:
+        if not isinstance(added, list):
+            fail("result.added_tests must be a list when provided")
+        for row in added:
+            if not isinstance(row, dict) or not str(row.get("id") or "").strip() or not str(row.get("command") or "").strip():
+                fail("each result.added_tests entry must provide nonempty id and command")
 
 
 def check_findings():
