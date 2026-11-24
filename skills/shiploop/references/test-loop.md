@@ -64,9 +64,9 @@ No count of refused runs
 stops `done` (the packet shows the tally; at `test`, base, candidate and
 mutation runs share one). When the plan or a recorded command is what is wrong,
 take the stage's own remedy — back to the step plan with `send-back` at an INNER
-stage, or corrective work items with `add-work` at `system-test` and
-`release-verify`. A run that times out or cannot start refuses the stage without
-counting.
+stage (or `document` `done` with `replan_remaining` on a non-final step when done work commits cleanly), or
+`send-back` / `add-work` at `system-test` (`system-test-author`) and `release-verify` (`release-plan`). A run that
+times out or cannot start refuses the stage without counting.
 
 `test` is recorded as not applicable when the item has no test command and
 touches only documentation or configuration paths, and `document` when the
@@ -112,13 +112,14 @@ not proof of truth, currency or authority; delivery-contract gates still apply.
 ## Tests pass or the step stops
 
 Each inner stage's [Until Loop](inner-loop.md#stage-until-loops) prints its own repeat
-condition (`REPEAT` in `scripts/shiploop_loops.py`). At `implement` and `test`
-it is the same rule: run the checks; when one fails, diagnose it, fix the
-product code and rerun; change a check only for an independent reason that the
-check itself is wrong. Only a final full pass after the last edit counts. The
-stage ends on exactly one of: every check passes (`done`); a check proven
-unachievable (`send-back`); or, at `implement`, the same check still failing in the same way after a genuine fix
-that taught nothing new about why (`send-back`). A check that needs a tool, access or
-authority that is absent ends `blocked`, awaiting the person or service that must act. The loop judges its
-own iterations; ShipLoop's gates at `complete` (lint, the test runs, the
-expectation checks) are the script-enforced part.
+condition (`REPEAT` in `scripts/shiploop_loops.py`). At `test`, the loop runs in
+two beats: Beat 1 inspects the item's product diff (`RUN/fields/<action>-product-diff.patch`),
+`KNOWLEDGE/architecture.md`, quoted `test_cases` and `not_covered` to author focused
+tests and register newly added IDs in `added_tests`; Beat 2 runs every check, fixes
+local product defects (re-verifying the step Proof at `test` `done` whenever product
+code changed), and triages discoveries into `test_findings` (`none`, `local`,
+`amend-remaining`, `system-test`), open `assumptions`, or `send-back`. Only a final
+full pass after the last edit counts. The stage ends on `done`, `send-back`, or
+`blocked` (awaiting a person or service). ShipLoop's gates at `complete` (lint,
+the test runs, Proof re-check when product code changed, expectation checks) are
+the script-enforced part.

@@ -377,11 +377,34 @@ OUTER_SOURCES = {
 }
 
 
+def _all_targets(state: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    """Merged ``targets`` rows from test-strategy and accepted step-plan results (latest row per target name wins)."""
+    merged: Dict[str, Mapping[str, Any]] = {}
+    order: List[str] = []
+    for row in _latest_root_result(state, "test-strategy").get("targets") or ():
+        if isinstance(row, Mapping) and row.get("target"):
+            name = str(row["target"])
+            if name not in merged:
+                order.append(name)
+            merged[name] = row
+    accepted = state.get("accepted") or {}
+    for entry in state.get("history") or ():
+        if isinstance(entry, Mapping) and entry.get("stage") == "step-plan" and entry.get("outcome") == "done":
+            res = accepted.get(entry.get("action"))
+            if isinstance(res, Mapping):
+                for row in res.get("targets") or ():
+                    if isinstance(row, Mapping) and row.get("target"):
+                        name = str(row["target"])
+                        if name not in merged:
+                            order.append(name)
+                        merged[name] = row
+    return [merged[name] for name in order]
+
+
 def stateful_targets(state: Mapping[str, Any]) -> Dict[str, str]:
-    """{target: base_state_route} of each test-strategy target that keeps state between runs (run-5 batch F3)."""
-    rows = _latest_root_result(state, "test-strategy").get("targets") or ()
-    return {str(row["target"]): str(row.get("base_state_route") or "") for row in rows
-            if isinstance(row, Mapping) and row.get("keeps_state") == "yes" and row.get("target")}
+    """{target: base_state_route} of each test-strategy or step-plan target that keeps state between runs (run-5 batch F3)."""
+    return {str(row["target"]): str(row.get("base_state_route") or "") for row in _all_targets(state)
+            if row.get("keeps_state") == "yes"}
 
 
 def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, Any]:
@@ -434,13 +457,14 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str,
 def registered(state: Mapping[str, Any], work_item: str,
                added: Sequence[Mapping[str, Any]] = ()) -> Dict[str, List[str]]:
     """{command: [test IDs]}: the tests registered for the item under its current step plan, from every step's accepted
-    document result (a step review's final result becomes its document's) and then ``added``.  Astra's §9 row 4: a
-    test a review adds is registered by ID, so the reruns that follow run it, where an old filter would leave it out
-    unseen."""
+    test and document results (a step review's final result becomes its document's) and then ``added``.  Astra's §9
+    row 4: a test a review or test stage adds is registered by ID, so the reruns that follow run it, where an old
+    filter would leave it out unseen."""
     rows: List[Any] = []
-    for action in planning_revision.step_actions(state, work_item, STEP_RERUN_STAGE):
-        result = (state.get("accepted") or {}).get(action)
-        rows += list(result.get(ADDED_TESTS) or ()) if isinstance(result, Mapping) else []
+    for source_stage in (STAGES[0], STEP_RERUN_STAGE):
+        for action in planning_revision.step_actions(state, work_item, source_stage):
+            result = (state.get("accepted") or {}).get(action)
+            rows += list(result.get(ADDED_TESTS) or ()) if isinstance(result, Mapping) else []
     found: Dict[str, List[str]] = {}
     for row in [*rows, *(added or ())]:
         if isinstance(row, Mapping) and row.get("id") and row.get("command"):
@@ -503,16 +527,23 @@ def step_number(state: Mapping[str, Any], work_item: str) -> Optional[int]:
     return built if steps and 1 <= built <= len(steps) else None
 
 
-def step_command(state: Mapping[str, Any], work_item: str) -> Optional[Tuple[Mapping[str, Any], Dict[str, Any]]]:
-    """(the step, its Proof as a ``check`` row) for the implement step the item is on, or None: another stage, no step
-    left, or a step whose plan records no proof."""
+def step_command(state: Mapping[str, Any], work_item: str, *,
+                 stage: str = STEP_PROOF_STAGES[0]) -> Optional[Tuple[Mapping[str, Any], Dict[str, Any]]]:
+    """(the step, its Proof as a ``check`` row) for the step the item is on (implement, or test after a product-code
+    edit), or None: another stage, no step left, or a step whose plan records no proof."""
     import shiploop_loops as loops  # imported where used: the loops module imports this one late
 
     found = loops.cursor(state)
-    if found is None or found[0] not in STEP_PROOF_STAGES or found[2] != work_item:
+    allowed = (*STEP_PROOF_STAGES, *STAGES) if stage in STAGES else STEP_PROOF_STAGES
+    if found is None or found[0] not in allowed or found[2] != work_item:
         return None
-    step = loops.current_step(state, work_item)
-    proof = step.get("proof") if step is not None else None
+    if found[0] in STAGES:
+        number = step_number(state, work_item)
+        steps = _plan_steps(_step_plan(state, work_item)[1])
+        step = steps[number - 1] if number is not None and 1 <= number <= len(steps) else None
+    else:
+        step = loops.current_step(state, work_item)
+    proof = step.get("proof") if isinstance(step, Mapping) else None
     if not isinstance(proof, str) or not proof.strip():
         return None
     return step, {"command": proof.strip(), "suite": "check"}
@@ -974,9 +1005,8 @@ def _explain(run: Mapping[str, Any], stage: str = "") -> str:
             source, field = OUTER_SOURCES[stage]
             return (unread + source + " recorded this command and " + stage + " cannot edit it. A command that is "
                     "not a test runner (a shell pipeline, a grep, a probe) belongs in suite `check`, judged by its "
-                    "exit code. Report outcome add-work now, with one corrective work item: a new id, a title, and a "
-                    "context that names this command and says to record it as suite check in " + field
-                    + ". The outer stages then run again, and " + source + " records it.")
+                    "exit code. Report outcome send-back now, naming this command so " + source
+                    + " fixes it or records it as suite check in " + field + ".")
         return (unread + "Give the command ids and a runner flag that prints test names (for example --verbose; never "
                 "a dot or junit reporter), use a runner ShipLoop reads (" + counts.RUNNERS + "), or, for a command "
                 "that is not a test runner, record it as suite `check`.")
@@ -1461,8 +1491,11 @@ def reuse_eligible(state: Mapping[str, Any], stage: str, work_item: str,
     if stage == "release-verify":
         return False
     rows = list(commands)
-    if stage in STEP_PROOF_STAGES:
-        if _latest_root_result(state, "test-strategy").get("targets"):
+    if stage in (*STEP_PROOF_STAGES, *STAGES):
+        if _all_targets(state):
+            if any(row.get("keeps_state") == "yes" for row in _all_targets(state)):
+                return False
+        elif _latest_root_result(state, "test-strategy").get("targets"):
             return False
         rows += list(_step_plan(state, work_item)[1].get("test_commands") or ())
     return not any(row.get("target") or row.get("host_dependent")
@@ -1552,8 +1585,9 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     """
     root = Path(root)
     if commands is None:
+        added_rows = (result.get(ADDED_TESTS) or ()) if isinstance(result, Mapping) else ()
         commands, _reason = (release_commands(root, state) if stage == "release-verify"
-                             else stage_commands(state, stage, work_item))
+                             else stage_commands(state, stage, work_item, added_rows))
     if not commands:
         return {}, ""
     refused = refused_runs(root, action)
@@ -1676,14 +1710,19 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                      "the packet's start command (its receipt is replaced), then submit done again. " + attempts
                      + " Full output: " + str(root / relative) + ".")
     elif stage in OUTER_SOURCES and not plans and all(run["status"] == "uncounted" for run in failing):
-        # Nothing here is a product failure: the recorded command itself cannot be counted, and only an add-work
-        # reaches the stage that records it, so a "fix the code" line would send the model the wrong way.
-        lines.append("Report add-work as named above, not done: no change to the code makes a recorded command "
+        # Nothing here is a product failure: the recorded command itself cannot be counted, and send-back
+        # reaches the stage that recorded it without adding a full work item.
+        lines.append("Report send-back as named above, not done: no change to the code makes a recorded command "
                      "countable. Refused runs for this action so far: " + str(refused + 1) + " (" + REFUSED_TALLY
-                     + "); add-work does not wait for them. Full output: " + str(root / relative) + ".")
+                     + "); send-back does not wait for them. Full output: " + str(root / relative) + ".")
     elif observed is not None and observed["where"] == "returned-result" and disposition == "failed":
         # The generic reply ("fix the code") has no way out here: this stage cannot edit the commands or return.
         lines.append(_copy_refusal(observed, failing) + " " + attempts + " Full output: " + str(root / relative) + ".")
+    elif stage in OUTER_SOURCES:
+        source, _field = OUTER_SOURCES[stage]
+        lines.append("Report add-work for a product defect or send-back to " + source
+                     + " when a recorded command or plan is wrong (this stage never edits product code directly), "
+                     "then submit when resolved. " + attempts + " Full output: " + str(root / relative) + ".")
     else:
         lines.append("Fix the code so every command passes (never change a check to get green), then submit "
                      "done again. " + attempts + " Full output: " + str(root / relative) + ".")
@@ -1746,8 +1785,9 @@ def _proof_records(root: Path, action: str) -> List[Tuple[str, Mapping[str, Any]
 
 
 def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str, *, count: bool = True,
-               phase: str = "complete", runner: Optional[Runner] = None, env: Optional[Mapping[str, str]] = None,
-               clock: Optional[Callable[[], float]] = None, command_timeout: float = COMMAND_TIMEOUT_SECONDS) -> Tuple[Dict[str, str], str, List[str]]:
+               phase: str = "complete", stage: str = STEP_PROOF_STAGES[0], runner: Optional[Runner] = None,
+               env: Optional[Mapping[str, str]] = None, clock: Optional[Callable[[], float]] = None,
+               command_timeout: float = COMMAND_TIMEOUT_SECONDS) -> Tuple[Dict[str, str], str, List[str]]:
     """Run the inline implement step's Proof on the candidate; return (record writes, refusal body, summary lines).
 
     The Proof is the step plan's ``check`` for the step (``step_command``), judged as a check (``judge``: exit 0, and a
@@ -1760,7 +1800,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     check is refused: the step plan gate requires one, so only a run positioned another way lacks it.
     """
     root = Path(root)
-    found = step_command(state, work_item)
+    found = step_command(state, work_item, stage=stage)
     if found is None:
         return {}, ("ShipLoop step proof: the step this action builds records no check (its Proof) in the accepted step "
                     "plan, so ShipLoop cannot confirm it. Report send-back so the step plan records one."), []
@@ -1773,14 +1813,14 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                     if record.get("passed") is True and record.get("schema") == SCHEMA
                     and record.get("step") == step_id
                     and record.get("command") == row["command"] and tree and tree in (record.get("trees") or ())),
-                   None) if count and reuse_eligible(state, STEP_PROOF_STAGES[0], work_item, [row]) else None
+                   None) if count and reuse_eligible(state, stage, work_item, [row]) else None
     created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if matched is not None:
         line = ("step-proof: reused the passed " + ("check's run" if "-check.md" in matched[0] else "run") + " of "
                 + str(matched[1].get("created_at")) + " (" + matched[0] + "): the candidate is unchanged")
         if phase != "complete":
             return {}, "", [line]
-        record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": STEP_PROOF_STAGES[0],
+        record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": stage,
                   "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
                   "created_at": created, "cwd": str(repo), "passed": True, "disposition": "passed",
                   "runs": list(matched[1].get("runs") or ()), "trees": [tree],
@@ -1794,7 +1834,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     if "status" not in run:
         run.update(judge(row, run["exit"], output))
     disposition = _disposition([run], PASSING)
-    record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": STEP_PROOF_STAGES[0],
+    record = {"schema": SCHEMA, "kind": "step-proof", "action": action, "stage": stage,
               "work_item": work_item, "step": step_id, "command": row["command"], "phase": phase,
               "created_at": created, "cwd": str(repo), "passed": disposition == "passed", "disposition": disposition,
               "runs": [run], "trees": [found_tree for found_tree in dict.fromkeys([tree, _tree(root, repo)]) if found_tree]}
@@ -1808,9 +1848,9 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     tail = (str(run.get("stdout") or "") + "\n" + str(run.get("stderr") or "")).strip().splitlines()[-15:]
     headline = ("the review changed step " + step_id + " and its Proof did not pass, so the step is not accepted"
                 if phase == "improve-import" else
-                "step " + step_id + "'s Proof did not pass, so its " + STEP_PROOF_STAGES[0] + " is not done")
+                "step " + step_id + "'s Proof did not pass, so its " + stage + " is not done")
     lines = ["ShipLoop step proof: " + headline + ". ShipLoop ran it from " + str(repo) + ":",
-             "- " + row["command"] + " -> " + _explain(run, STEP_PROOF_STAGES[0]),
+             "- " + row["command"] + " -> " + _explain(run, stage),
              *("    | " + line for line in tail),
              "Full output: " + str(root / relative) + ".",
              *([REPEAT_LINE] if phase == "complete" else [])]

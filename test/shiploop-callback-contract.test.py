@@ -2858,11 +2858,11 @@ class UncountedCommandRouteTests(RealCliCase):
         self.assertIn("could not read how many tests it ran", reply)
         self.assertIn("system-test-author recorded this command and system-test cannot edit it", reply)
         self.assertIn("belongs in suite `check`, judged by its exit code", reply)
-        self.assertEqual(self.named_exit(reply), ("add-work", "system_commands"))
+        self.assertEqual(self.named_exit(reply), ("send-back", "system_commands"))
         # The two lines that sent the model the wrong way: edit the command, or fix the code.
         self.assertNotIn("Give the command ids", reply)
         self.assertNotIn("Fix the code so every command passes", reply)
-        self.assertIn("Refused runs for this action so far: 1 (base, candidate and mutation runs together); add-work "
+        self.assertIn("Refused runs for this action so far: 1 (base, candidate and mutation runs together); send-back "
                       "does not wait for them.", reply)
 
     def test_the_add_work_the_refusal_names_is_accepted_with_one_corrective_item(self) -> None:
@@ -2870,13 +2870,11 @@ class UncountedCommandRouteTests(RealCliCase):
         outcome, field = self.named_exit(self.refused(callback, run))
         # What to submit is read from the reply (outcome, the field to record in) and the packet's printed shape.
         shape = first_object(printed_shapes(head)[outcome])
-        item = {"id": "W9", "title": "Record the system check", "context": f"Record `{PIPELINE}` as suite check in {field}."}
-        write_block(path, {**shape, "summary": "A recorded command is not a test runner.", "headline": "Adding work.",
-                           "evidence_refs": [str(self.evidence)], "work_items": [item]})
+        write_block(path, {**shape, "summary": f"Record `{PIPELINE}` as suite check in {field}.",
+                           "evidence_refs": [str(self.evidence)]})
         self.accepted(callback)
         state = self.state(run)
-        self.assertEqual([row["id"] for row in state["work_items"]][-1], "W9")
-        self.assertNotEqual(nav.current_stage(state), "system-test")
+        self.assertEqual(nav.current_stage(state), "system-test-author")
 
     def test_the_same_pipeline_as_done_is_still_refused_and_only_add_work_re_records_it(self) -> None:
         run, _, callback, path = self.at_system_test(PIPELINE)
@@ -2900,8 +2898,9 @@ class UncountedCommandRouteTests(RealCliCase):
         run, _, callback, _ = self.at_system_test(COUNTED_FAILURE)
         reply = self.refused(callback, run)
         self.assertIn("-> exit 1", reply)
-        self.assertIn("Fix the code so every command passes", reply)
-        self.assertNotIn("Report outcome add-work now", reply)
+        self.assertIn("Report add-work for a product defect or send-back to system-test-author", reply)
+        self.assertNotIn("Fix the code so every command passes", reply)
+        self.assertNotIn("Report outcome send-back now", reply)
 
     def test_at_a_stage_whose_commands_the_step_plan_recorded_the_reply_keeps_ids_and_a_flag_and_adds_check(self) -> None:
         recorded = {"step-plan": {**RESULTS["step-plan"], "test_commands": [
@@ -2915,6 +2914,7 @@ class UncountedCommandRouteTests(RealCliCase):
         self.assertIn("Give the command ids and a runner flag that prints test names", reply)
         self.assertIn("for a command that is not a test runner, record it as suite `check`", reply)
         self.assertNotIn("Report outcome add-work now", reply)
+        self.assertNotIn("Report outcome send-back now", reply)
 
 
 class InnerGateRouteTests(RealCliCase):

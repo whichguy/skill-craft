@@ -88,6 +88,7 @@
     "test/scaffold-skill.test.sh": 0.203,
     "test/shiploop-actual-improve-cli.test.py": 385.242,
     "test/shiploop-assumptions.test.py": 0.951,
+    "test/shiploop-evidence-testing.test.py": 5.0,
     "test/shiploop-auth-readiness.test.py": 9.05,
     "test/shiploop-backchain-check.test.py": 13.843,
     "test/shiploop-callback-contract.test.py": 370.845,

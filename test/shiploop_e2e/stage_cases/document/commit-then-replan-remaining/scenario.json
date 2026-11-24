@@ -1,0 +1,150 @@
+{
+  "stage": "document",
+  "about": "Document step S1 paginate fix cleanly while emitting replan_remaining so S1 commits before step-plan amends S2 based on TF1.",
+  "tags": [
+    "fix-forward",
+    "replan-remaining"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Fix paginate() in src/paginate.js so trailing partial pages work accurately and expose paginated /items in src/server.js. R-1: Return all items for trailing partial pages (Math.ceil total pages) and expose paginated /items in server.js.",
+    "work_item": {
+      "id": "W1",
+      "title": "Fix pagination and add paginated /items route",
+      "context": "Fix src/paginate.js (S1) then add /items in src/server.js (S2)."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": true
+  },
+  "seed_records": {
+    "step-plan": {
+      "outcome": "done",
+      "summary": "Two steps: S1 fixes paginate (C1); S2 exposes paginated /items (C2).",
+      "follows": ["R-1"],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "paginate([1,2,3,4,5], 3, 2) returns {page: 3, pages: 3, items: [5]}. Confirm by: running node --test --reporter=spec test/paginate.test.js; pass when exit 0. Serves R-1.",
+          "confirm": "executed"
+        },
+        {
+          "id": "C2",
+          "text": "GET /items returns paginated response in server.js. Confirm by: running node --test test/server.test.js; pass when exit 0. Serves R-1.",
+          "confirm": "executed"
+        }
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "task": "Fix paginate() with Math.ceil (C1).",
+          "deps": [],
+          "criteria": ["C1"],
+          "paths": ["src/paginate.js"],
+          "proof": "node -e 'const {paginate}=require(\"./src/paginate\");if(paginate([1,2,3,4,5],3,2).pages!==3)process.exit(1)'",
+          "skills": []
+        },
+        {
+          "id": "S2",
+          "task": "Add paginated /items route in src/server.js (C2).",
+          "deps": ["S1"],
+          "criteria": ["C2"],
+          "paths": ["src/server.js"],
+          "proof": "node --test test/server.test.js",
+          "skills": []
+        }
+      ],
+      "paths": ["src/paginate.js", "src/server.js", "test/paginate.test.js", "test/server.test.js"],
+      "expectations": [
+        {"id": "E1", "state": "works", "statement": "src/paginate.js exists.", "steps": ["S1"], "paths": ["src/paginate.js"], "check": "test -f src/paginate.js"},
+        {"id": "E2", "state": "works", "statement": "src/server.js exists.", "steps": ["S2"], "paths": ["src/server.js"], "check": "test -f src/server.js"}
+      ],
+      "test_commands": [
+        {"command": "node --test --test-reporter=spec test/paginate.test.js", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+        {"command": "node --test --test-reporter=spec test/server.test.js", "suite": "focused", "ids": ["TC-2"], "criteria": ["C2"]},
+        {"command": "node --test", "suite": "regression", "ids": ["TC-1"], "criteria": ["C1", "C2"], "minimum": true}
+      ],
+      "check_na": "Dependency-free Node fixture has no separate lint or build step."
+    },
+    "test-spec": {
+      "outcome": "done",
+      "summary": "Test cases TC-1 and TC-2.",
+      "assumptions": [],
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "criterion": "C1",
+          "requirement": "R-1",
+          "oracle": "paginate([1,2,3,4,5], 3, 2) returns {page: 3, pages: 3, items: [5]}.",
+          "red": "paginate uses Math.floor on base.",
+          "green": "paginate uses Math.ceil."
+        },
+        {
+          "id": "TC-2",
+          "criterion": "C2",
+          "requirement": "R-1",
+          "oracle": "GET /items paginates items.",
+          "red": "/items absent on base.",
+          "green": "/items works."
+        }
+      ]
+    },
+    "implement": {
+      "outcome": "done",
+      "summary": "Fixed src/paginate.js page calculation.",
+      "not_covered": [],
+      "learned": ["paginate throws RangeError for non-integer query arguments."],
+      "decisions": ["Keep strict Number.isInteger validation inside paginate."]
+    },
+    "test": {
+      "outcome": "done",
+      "summary": "Verified TC-1 and boundary TC-1 (a); recorded TF1 noting S2 must parse and validate integer query params.",
+      "added_tests": [
+        {"id": "TC-1 (a)", "command": "node --test --test-reporter=spec test/paginate.test.js"}
+      ],
+      "test_findings": [
+        {
+          "id": "TF1",
+          "finding": "S2 server.js GET /items receives string query params and must parse/validate integer bounds before calling paginate().",
+          "evidence": "test/paginate.test.js TC-1 (a) and RangeError guard in src/paginate.js",
+          "impact": "amend-remaining",
+          "next_step": "Emit replan_remaining at document so S1 commits and step-plan amends S2."
+        }
+      ]
+    }
+  },
+  "planted": [
+    {"id": "P1", "what": "Documents S1 pagination behavior in README.md and records knowledge dispositions.", "signature": "README pagination docs and knowledge map"},
+    {"id": "P2", "what": "Emits replan_remaining on non-final document done to commit S1 and re-sequence S2.", "signature": "replan_remaining covering S2"}
+  ],
+  "controls": [
+    {"id": "C1", "what": "Document touches only README and docs/shiploop without editing src/server.js."}
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "document"},
+    {"proves": "P1", "packet_contains": "knowledge"},
+    {"proves": "P2", "packet_contains": "TF1"},
+    {"proves": "P2", "packet_contains": "replan_remaining"}
+  ],
+  "oracle": [
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check.py\" docs", "exit": 0},
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check.py\" knowledge", "exit": 0},
+    {"proves": "P2", "command": "python3 \"$STAGE_ORACLE/check.py\" replan", "exit": 0},
+    {"proves": "C1", "changed_only": ["README.md", "docs/shiploop/**"]},
+    {"proves": "C1", "file": "src/server.js", "unchanged": true}
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

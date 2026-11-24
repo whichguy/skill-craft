@@ -640,7 +640,7 @@ class RemovalTests(HomeFixture):
         self.assertEqual(knowledge.CLOSES, {"prepare": (S, E, A), "release-plan": (E,), "release-verify": (E,)})
         self.assertEqual(knowledge.STAGE_FILES, {
             "discovery": (E,), "research": (E,), "spec": (S,), "test-strategy": (E, A), "plan": (A,), "prepare": (E,),
-            "step-plan": (A, E), "validate-existing": (E,), "implement": (E, A), "test": (E,), "document": (S, A, E),
+            "step-plan": (A, E), "validate-existing": (E,), "implement": (E, A), "test": (E, A), "document": (S, A, E),
             "reflect-and-revise": (A, E),
             "system-test-author": (E,), "release-plan": (E,), "release-check": (E,), "release-verify": (E,), "operations": (E,)})
         for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
@@ -888,7 +888,7 @@ class SectionsTests(HomeFixture):
                "step-plan": ("architecture.md", "environment.md"),
                "validate-existing": ("environment.md",),
                "implement": ("environment.md", "architecture.md"),
-               "test": ("environment.md",),
+               "test": ("environment.md", "architecture.md"),
                # Design T §9.1 2b-3, option C (owner 2026-10-28): each step's document reflects on what it showed.
                "document": ("spec.md", "architecture.md", "environment.md"),
                "reflect-and-revise": ("architecture.md", "environment.md")}

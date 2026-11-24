@@ -24,16 +24,18 @@ from typing import Any, List, Mapping, NamedTuple, Tuple
 import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 
-# The plan (whose open rows name a work item) and the open-item stages after it (whose open rows name a stage).  Document
-# records the work a step found outside its item (design T §9.1 2b-3, option C, owner 2026-10-28).
-OPEN_ITEM_STAGES = frozenset(("test-spec", "document", "reflect-and-revise", "system-test-author", "system-test",
-                              "release-plan", "release-verify"))
+# The plan (whose open rows name a work item) and the open-item stages after it (whose open rows name a stage).
+# test-strategy, test, test-spec and document can leave optional open items (OPTIONAL_OPEN_ITEM_STAGES allows
+# test-strategy and test to omit assumptions when none are open for backward compatibility).
+OPEN_ITEM_STAGES = frozenset(("test-strategy", "test-spec", "test", "document", "reflect-and-revise",
+                              "system-test-author", "system-test", "release-plan", "release-verify"))
+OPTIONAL_OPEN_ITEM_STAGES = frozenset(("test-strategy", "test"))
 STAGES = frozenset(("plan",)) | OPEN_ITEM_STAGES
 # The producers whose open item may name their own item's reflect-and-revise as its due stage.
-REFLECT_AND_REVISE_PRODUCERS = ("test-spec", "document")
+REFLECT_AND_REVISE_PRODUCERS = ("test-spec", "test", "document")
 # The open-item stages an inline item runs once per step (design T §8): every step's result keeps its open rows, where
 # ``planning_revision.current_actions`` keeps only the latest result per (work item, stage).
-PER_STEP_STAGES = frozenset(("document",))
+PER_STEP_STAGES = frozenset(("test", "document"))
 DISPOSITIONS = ("evidenced", "probed", "open")
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 _QUESTION_ID = re.compile(r"^Q\d+$")
@@ -225,12 +227,14 @@ def check_files(rows: list[Mapping[str, Any]]) -> None:
 def allowed_due_stages(stage: str) -> Tuple[str, ...]:
     """The due stages an open item at an open-item ``stage`` may name, in graph order.
 
-    A later OUTER stage, or ``reflect-and-revise`` (the same item's) when the producer is test-spec or document.  Work
-    for a later work item goes through reflect-and-revise's work_items, as before (K12).
+    ``test-strategy`` may target ``plan``, ``prepare``, or any outer stage; ``test-spec``, ``test``, and
+    ``document`` may name their own item's ``reflect-and-revise`` or any later outer stage. Work for a later work item
+    goes through reflect-and-revise's work_items, as before (K12).
     """
     order = stage_spec.STAGES
+    later_prelude = [name for name in ("plan", "prepare") if stage == "test-strategy" and order.index(name) > order.index(stage)]
     later = [name for name in stage_spec.OUTER if order.index(name) > order.index(stage)]
-    return tuple((["reflect-and-revise"] if stage in REFLECT_AND_REVISE_PRODUCERS else []) + later)
+    return tuple(later_prelude + (["reflect-and-revise"] if stage in REFLECT_AND_REVISE_PRODUCERS else []) + later)
 
 
 def wrong_due_stages(rows: List[Mapping[str, Any]], stage: str) -> List[Tuple[str, str]]:

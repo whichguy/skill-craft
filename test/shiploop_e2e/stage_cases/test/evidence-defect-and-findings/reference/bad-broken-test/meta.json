@@ -1,0 +1,1 @@
+{"fails": ["C1"], "why": "Leaves a failing assertion in test/paginate.test.js so node --test exits non-zero."}

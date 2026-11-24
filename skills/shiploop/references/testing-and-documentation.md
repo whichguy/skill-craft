@@ -217,14 +217,16 @@ short of that proof issues the stage.
 
 ### Reruns after the test stage
 
-Each step's `document` reruns the test commands too: on `done` it reruns what its
-own edits could affect (nothing after no edit, the check commands of its step after
+`document` is followed by `step-plan` when a non-final step reports `done` with `replan_remaining`,
+or otherwise advances to the next step (`implement`) or `reflect-and-revise`.
+`document` reruns what its own edits could affect (nothing after no edit, the check commands of its step after
 a documentation-only edit, or every command the step's `test` stage ran after a
-code or test edit) and refuses unless each passes; a refused rerun opens
-send-back. The outer `system-test` and
+code or test edit, including tests registered by `added_tests` at `test` or `document`) and refuses unless each passes;
+a refused rerun opens `send-back`. The outer `system-test` and
 `release-verify` rerun their own recorded commands unconditionally, from
-`system-test-author` and `release-plan`. There is no test loop at those stages;
-the packet lists the commands. At
+`system-test-author` and `release-plan`, without direct product-code edits (product
+defects route to `add-work`; wrong or uncountable recorded commands route to `send-back`).
+There is no test loop at those stages; the packet lists the commands. At
 `release-verify` of an isolated run the commands run in a clean copy of the result
 the workspace return delivered (made fresh from the return receipt into
 `consumer-check` under the workspace root, never in your checkout); with no

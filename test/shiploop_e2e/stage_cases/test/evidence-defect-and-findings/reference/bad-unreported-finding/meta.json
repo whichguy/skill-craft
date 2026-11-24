@@ -1,0 +1,1 @@
+{"fails": ["P2"], "why": "Drops structured test_findings despite discovering a downstream server validation gap."}

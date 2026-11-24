@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "Documented S1 paginate() without emitting replan_remaining.",
+  "assumptions": [],
+  "knowledge": {
+    "spec": "Noted R-1 pagination behavior (W1/S1).",
+    "architecture": "Unchanged.",
+    "environment": "Unchanged."
+  }
+}

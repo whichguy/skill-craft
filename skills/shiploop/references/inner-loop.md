@@ -109,12 +109,17 @@ that result as evidence, and step-plan revises such a requirement and re-plans.
 No count of send-backs stops an item (state.md `revisions`). A loop that stops
 blocked for either reports `send-back`; a cancelled loop is refused (stop is `pause`).
 
-Fix forward: a step whose `document` was accepted is done and never reruns. The
-interrupted step's results drop; its edits stay. The redone step-plan packet
-names the previous plan and the send-back and prints the done rows: the
-amendment starts `steps` with them exactly, each `"done": true`, then at least
-one step to run. A fix to done work is a new step with new criterion IDs; cases
-due at a done step stay as accepted. ShipLoop refuses any reopening.
+Fix forward: a step whose `document` was accepted is done and never reruns. On
+`send-back`, the interrupted step's results drop while its edits stay. When a
+non-final step (`Sk`, while steps remain) is itself valid and ready to commit
+while discoveries show `S(k+1)..Sn` must be re-sequenced, `document` may emit
+`done` with `replan_remaining: {"reason", "affects"}` so ShipLoop commits `Sk`
+first, recaptures the lint base, and returns cleanly to `step-plan` keeping `Sk`
+done. In both routes, the redone step-plan packet names the prior plan and
+prints the done rows: the amendment starts `steps` with them exactly, each
+`"done": true`, then at least one step to run. A fix to done work is a new step
+with new criterion IDs; cases due at a done step stay as accepted. ShipLoop
+refuses any reopening.
 
 ## After reflect-and-revise
 

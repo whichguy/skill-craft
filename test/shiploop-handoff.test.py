@@ -1049,9 +1049,9 @@ class HandoffShapeTests(unittest.TestCase):
                          [])
 
     def test_open_items_are_allowed_at_the_new_stages_and_an_owner_only_there(self) -> None:
-        self.assertEqual(assumptions.STAGES, frozenset(("plan", "test-spec", "document", "reflect-and-revise",
-                                                        "system-test-author", "system-test", "release-plan",
-                                                        "release-verify")))
+        self.assertEqual(assumptions.STAGES, frozenset(("plan", "test-strategy", "test-spec", "test", "document",
+                                                        "reflect-and-revise", "system-test-author", "system-test",
+                                                        "release-plan", "release-verify")))
         row = {"id": "A1", "assumption": "The tab renders.", "disposition": "open", "settle": "open it",
                "reason": "no browser", "due_stage": "release-verify", "owner": "Pat"}
         for stage in sorted(assumptions.STAGES - {"plan"}):
@@ -1063,7 +1063,7 @@ class HandoffShapeTests(unittest.TestCase):
                                                                  if key != "due_stage"}, "due_item": "W1"}]}, "plan"))
         self.assertIn("owner", self.refused({"outcome": "done", "summary": "s",
                                              "assumptions": [dict(row, owner=" ")], "knowledge": KNOWLEDGE}, "document"))
-        self.assertIn("assumptions", self.refused({"outcome": "done", "summary": "s", "assumptions": []}, "test"))
+        self.assertIn("assumptions", self.refused({"outcome": "done", "summary": "s", "assumptions": []}, "implement"))
 
     def test_reflect_and_revise_work_items_cannot_silently_drop_pending_open_assumption_due_item(self) -> None:
         state = {
@@ -1827,10 +1827,12 @@ class HandoffGateTests(GateCase):
             with self.subTest(stage):
                 state = two_items(self.repo, stage)
                 result = dict(cases.get(stage, done), lessons=LESSONS) if stage == "release-verify" else cases.get(stage, done)
-                message = self.refusal(state, stage, result)
-                self.assertTrue(message.startswith("Add assumptions to "), message)
-                later = [name for name in stage_spec.OUTER if stage_spec.STAGES.index(name) > stage_spec.STAGES.index(stage)]
-                allowed = later + (["reflect-and-revise"] if stage in ("test-spec", "document") else [])
+                if stage in assumptions.OPTIONAL_OPEN_ITEM_STAGES:
+                    self.accepts(state, stage, result)
+                else:
+                    message = self.refusal(state, stage, result)
+                    self.assertTrue(message.startswith("Add assumptions to "), message)
+                allowed = list(assumptions.allowed_due_stages(stage))
                 for due_stage in allowed:
                     self.accepts(state, stage, dict(result, assumptions=[dict(row, due_stage=due_stage)]))
                 for due_stage in ("W1", stage, "reflect-and-revise", "intake"):
@@ -1838,7 +1840,7 @@ class HandoffGateTests(GateCase):
                         continue
                     message = self.refusal(state, stage, dict(result, assumptions=[dict(row, due_stage=due_stage)]))
                     self.assertTrue(message.startswith("Fix the due stages in "), message)
-                    self.assertIn("A1 names '" + due_stage + "'; the allowed due stages are " + ", ".join(sorted(allowed, key=stage_spec.STAGES.index)) + ".", message)
+                    self.assertIn("A1 names '" + due_stage + "'; the allowed due stages are " + ", ".join(allowed) + ".", message)
 
     def test_every_refusal_line_one_is_the_fix_the_result_path_and_the_next_step_on_each_route(self) -> None:
         state = two_items(self.repo)
@@ -2353,7 +2355,7 @@ class MockCaseTests(RepoCase):
                               "what it stands in for, and `plays`, the slow, failing or out-of-order behaviour it "
                               "plays.", spec)
                 test = " ".join(prompts.duty("test", delegation=route).split())
-                item = test[test.index("1. **Write the cases.**"):test.index("2. **")]
+                item = test[test.index("1. **"):test.index("2. **")]
                 self.assertIn("Mocks first: before a case's test, build the mock it names in `mock`, playing what it "
                               "says the dependency does, slow, failing or out of order included. The mock's own header "
                               "states what it stands in for and what it plays: a mock proves the code only against the "

@@ -1,0 +1,14 @@
+{
+  "outcome": "done",
+  "summary": "Emits replan_remaining but leaves knowledge empty and skips README.",
+  "assumptions": [],
+  "knowledge": {
+    "spec": "",
+    "architecture": "Unchanged.",
+    "environment": ""
+  },
+  "replan_remaining": {
+    "reason": "Amend S2.",
+    "affects": ["S2"]
+  }
+}

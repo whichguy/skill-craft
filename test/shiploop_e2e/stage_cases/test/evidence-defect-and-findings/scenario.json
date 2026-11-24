@@ -1,0 +1,179 @@
+{
+  "stage": "test",
+  "about": "Inspect the implementation diff, write focused and boundary tests for paginate(), fix the off-by-one bug revealed, and emit structured test_findings and added_tests.",
+  "tags": [
+    "evidence-testing",
+    "test-findings"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Fix paginate() in src/paginate.js so trailing partial pages work accurately, reject non-integer bounds cleanly, and cover boundary behavior. R-1: Return all items for trailing partial pages (Math.ceil total pages) and reject non-positive or non-integer page/size arguments with RangeError.",
+    "work_item": {
+      "id": "W1",
+      "title": "Fix pagination page-count and boundary handling",
+      "context": "Fix trailing partial page truncation in src/paginate.js and add focused tests including partial-page and out-of-range cases."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": true
+  },
+  "seed_records": {
+    "step-plan": {
+      "outcome": "done",
+      "summary": "Plan 2 steps: S1 fixes paginate page calculation (C1); S2 adds server pagination endpoint (C2).",
+      "follows": ["R-1"],
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "paginate([1,2,3,4,5], 2, 2) returns page 2 of 3 pages with [3,4] and partial page 3 with [5]. Confirm by: running node --test --test-name-pattern 'TC-1' test/paginate.test.js; pass when exit 0. Serves R-1.",
+          "confirm": "executed"
+        },
+        {
+          "id": "C2",
+          "text": "GET /items?page=2 exposes paginated results in server.js. Confirm by: running node --test test/server.test.js; pass when exit 0. Serves R-1.",
+          "confirm": "executed"
+        }
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "task": "Update paginate() in src/paginate.js to compute pages with Math.ceil (C1).",
+          "deps": [],
+          "criteria": ["C1"],
+          "paths": ["src/paginate.js"],
+          "proof": "node -e 'const {paginate}=require(\"./src/paginate\");const r=paginate([1,2,3,4,5],3,2);if(r.pages!==3||r.items[0]!==5)process.exit(1)'",
+          "skills": []
+        },
+        {
+          "id": "S2",
+          "task": "Wire paginate() into src/server.js /items handler (C2).",
+          "deps": ["S1"],
+          "criteria": ["C2"],
+          "paths": ["src/server.js"],
+          "proof": "node --test test/server.test.js",
+          "skills": []
+        }
+      ],
+      "paths": ["src/paginate.js", "src/server.js", "test/paginate.test.js", "test/server.test.js"],
+      "expectations": [
+        {
+          "id": "E1",
+          "state": "works",
+          "statement": "src/paginate.js exists.",
+          "steps": ["S1"],
+          "paths": ["src/paginate.js"],
+          "check": "test -f src/paginate.js"
+        },
+        {
+          "id": "E2",
+          "state": "works",
+          "statement": "src/server.js exists.",
+          "steps": ["S2"],
+          "paths": ["src/server.js"],
+          "check": "test -f src/server.js"
+        }
+      ],
+      "test_commands": [
+        {
+          "command": "node --test --test-reporter=spec test/paginate.test.js",
+          "suite": "focused",
+          "ids": ["TC-1"],
+          "criteria": ["C1"]
+        },
+        {
+          "command": "node --test --test-reporter=spec test/server.test.js",
+          "suite": "focused",
+          "ids": ["TC-2"],
+          "criteria": ["C2"]
+        },
+        {
+          "command": "node --test",
+          "suite": "regression",
+          "ids": ["TC-1"],
+          "criteria": ["C1", "C2"],
+          "minimum": true
+        }
+      ],
+      "check_na": "Dependency-free Node fixture has no separate lint or build step."
+    },
+    "test-spec": {
+      "outcome": "done",
+      "summary": "Specify TC-1 for S1 partial page and TC-2 for S2 server route.",
+      "assumptions": [],
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "criterion": "C1",
+          "requirement": "R-1",
+          "oracle": "paginate([1,2,3,4,5], 3, 2) returns {page: 3, pages: 3, items: [5]} and paginate([1], 2, 1) returns items: [].",
+          "red": "paginate uses Math.floor on base so pages is 2 and page 3 returns [] instead of [5].",
+          "green": "paginate uses Math.ceil so pages is 3 and page 3 returns [5]."
+        },
+        {
+          "id": "TC-2",
+          "criterion": "C2",
+          "requirement": "R-1",
+          "oracle": "GET /items returns paginated slice.",
+          "red": "/items does not paginate on base.",
+          "green": "/items returns paginated page."
+        }
+      ]
+    },
+    "implement": {
+      "outcome": "done",
+      "summary": "Updated src/paginate.js to use Math.ceil.",
+      "not_covered": [
+        {
+          "behaviour": "Empty input array paginate([], 1, 5) returns pages: 0, items: [] without throwing.",
+          "reason": "Covered in test stage as a boundary sub-case TC-1 (a)."
+        }
+      ],
+      "learned": ["Math.ceil fixes partial trailing page counts cleanly."],
+      "decisions": ["Keep 1-based page indexing and RangeError checks."]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "Result writes TC-1 plus boundary sub-case TC-1 (a) into test/paginate.test.js and registers added_tests.",
+      "signature": "TC-1 and added_tests"
+    },
+    {
+      "id": "P2",
+      "what": "Result records structured test_findings naming remaining server validation gap.",
+      "signature": "structured test_findings"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "node --test passes with both TC-1 and TC-1 (a)."
+    }
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "test"},
+    {"proves": "P1", "packet_contains": "architecture.md"},
+    {"proves": "P1", "packet_contains": "-product-diff.patch"},
+    {"proves": "P1", "packet_contains": "added_tests"},
+    {"proves": "P2", "packet_contains": "test_findings"}
+  ],
+  "oracle": [
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check.py\" tests", "exit": 0},
+    {"proves": "P2", "command": "python3 \"$STAGE_ORACLE/check.py\" findings", "exit": 0},
+    {"proves": "C1", "command": "node --test --test-reporter=spec test/paginate.test.js", "exit": 0}
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

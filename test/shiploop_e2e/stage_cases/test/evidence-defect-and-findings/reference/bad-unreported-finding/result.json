@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "Added TC-1 and TC-1 (a) without recording test_findings.",
+  "added_tests": [
+    {
+      "id": "TC-1 (a)",
+      "command": "node --test --test-reporter=spec test/paginate.test.js"
+    }
+  ]
+}
