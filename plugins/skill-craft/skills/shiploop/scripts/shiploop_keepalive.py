@@ -415,6 +415,11 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             binding.update({key: previous[key] for key in STOP_MEMORY if key in previous})
         _write_json(path, binding)
     claim_owner(status["run_dir"], host, session)
+    try:
+        import shiploop_registry as registry
+        registry.register_from_hook(Path(status["run_dir"]), host=host)
+    except Exception:  # noqa: BLE001 - registry updates must never block keepalive
+        pass
     return binding
 
 

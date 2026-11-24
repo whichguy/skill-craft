@@ -300,6 +300,25 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                 init += ["--lint", args.lint]
             if args.planning_review:
                 init += ["--planning-review", args.planning_review]
+            try:
+                import shiploop_registry as registry
+                source_abs = os.path.abspath(record["source_repo"])
+                other_active = [
+                    str(item.get("run_id") or item.get("run_key") or "")
+                    for item in registry.discover_runs(extra_roots=(root.parent,))
+                    if item["state"].get("status") not in ("done", "halted")
+                    and os.path.abspath(str(item.get("source_repo") or item.get("repo") or "")) == source_abs
+                    and os.path.abspath(str(item["run_dir"])) != os.path.abspath(record["run_dir"])
+                ]
+                if other_active:
+                    print(
+                        f"ShipLoop notice: {len(other_active)} other active run(s) target {source_abs} "
+                        f"({', '.join(other_active)}); both work in isolated worktrees, and the second "
+                        "workspace return will reconcile against the first.",
+                        file=sys.stderr,
+                    )
+            except Exception:  # noqa: BLE001 - informational notice must never block workspace start
+                pass
             return main(core, init)
         if args.operation in ("plan-return", "review-return"):
             # Like every run-bound verb, refuse a retired or unloadable run
@@ -645,12 +664,171 @@ def _saved_state(root: Path) -> Optional[dict]:
     return state if isinstance(state, dict) else None
 
 
+def _format_runs_text(payload: Mapping[str, Any], cli_path: Path, *, active_only: bool = False) -> str:
+    runs = payload.get("runs") or []
+    if active_only:
+        runs = [row for row in runs if row.get("status") not in ("done", "halted")]
+    lines: list[str] = []
+    if not runs:
+        lines.append("No active ShipLoop runs discovered." if active_only else "No ShipLoop runs discovered.")
+    else:
+        for row in runs:
+            inf = row.get("inflight") or {}
+            extras = []
+            if inf.get("step_id") and inf.get("step_total"):
+                extras.append(f"Step {inf['step_id']} {inf.get('step_number')}/{inf['step_total']}")
+            if inf.get("loop_iteration"):
+                extras.append(f"loop pass {inf['loop_iteration']}")
+            if inf.get("improve_active"):
+                extras.append("improve" + (f" ({inf['improve_review_mode']})" if inf.get("improve_review_mode") else ""))
+            if inf.get("open_notes"):
+                extras.append(f"{inf['open_notes']} open note(s)")
+            if row.get("attention_reasons"):
+                extras.extend(row["attention_reasons"])
+            suffix = f" [{' · '.join(extras)}]" if extras else ""
+            lines.append(
+                f"[{row.get('display_label') or row.get('status')}] {row.get('run_id')} "
+                f"({row.get('repo_name') or row.get('repo')}) · {row.get('where')}{suffix}"
+            )
+            lines.append(f"  Goal: {row.get('goal')} · Run dir: {row.get('run_dir')}")
+    conflicts = payload.get("shared_repo_conflicts") or {}
+    for repo, ids in sorted(conflicts.items()):
+        lines.append(f"Shared source repo warning: {repo} has concurrent runs ({', '.join(ids)})")
+    viewer = payload.get("viewer")
+    if isinstance(viewer, Mapping) and viewer.get("url"):
+        lines.append(f"Viewer running: {str(viewer['url']).rstrip('/')}/")
+    else:
+        lines.append(f"Launch browser dashboard: python3 {shlex.quote(str(cli_path))} view --serve")
+    return "\n".join(lines)
+
+
+def _run_watch_key(row: Mapping[str, Any]) -> tuple[Any, ...]:
+    inf = row.get("inflight") or {}
+    return (
+        row.get("display_status"),
+        row.get("stage"),
+        row.get("revision"),
+        inf.get("step_id"),
+        inf.get("loop_iteration"),
+        inf.get("improve_passes"),
+        inf.get("last_check_yes"),
+        inf.get("open_notes"),
+    )
+
+
+def runs_command(core: Any, argv: Sequence[str]) -> int:
+    """List or watch discovered ShipLoop runs across repositories."""
+    import shiploop_progress_serve as viewer_mod
+
+    parser = argparse.ArgumentParser(prog="shiploop runs", description="List or watch discovered ShipLoop runs")
+    parser.add_argument("--json", action="store_true", dest="as_json", help="emit JSON payload")
+    parser.add_argument("--active", action="store_true", help="only show non-terminal runs")
+    parser.add_argument("--runs-root", action="append", default=[], help="extra run or .shiploop-runs directory")
+    parser.add_argument("--watch", action="store_true", help="watch discovered runs until Ctrl-C")
+    parser.add_argument("--interval", type=float, default=2.0, help="polling interval in seconds for --watch")
+    args = parser.parse_args(argv)
+    if args.interval < 0.1:
+        parser.error("--interval must be at least 0.1 seconds")
+    extra_roots = tuple(Path(item).expanduser().resolve() for item in args.runs_root)
+    cli_path = core.PACKAGE_ROOT / "scripts" / "shiploop"
+    if args.as_json:
+        payload = viewer_mod.hub_runs_payload(extra_roots=extra_roots)
+        if args.active:
+            payload["runs"] = [row for row in payload["runs"] if row.get("status") not in ("done", "halted")]
+            payload["counts"]["total"] = len(payload["runs"])
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+    cache: dict[str, Any] = {}
+    payload = viewer_mod.hub_runs_payload(extra_roots=extra_roots, cache=cache)
+    print(_format_runs_text(payload, cli_path, active_only=args.active), flush=True)
+    if not args.watch:
+        return 0
+    seen = {row["run_dir"]: _run_watch_key(row) for row in payload["runs"]}
+    try:
+        while True:
+            time.sleep(args.interval)
+            nxt = viewer_mod.hub_runs_payload(extra_roots=extra_roots, cache=cache)
+            for row in nxt["runs"]:
+                if args.active and row.get("status") in ("done", "halted"):
+                    continue
+                key = _run_watch_key(row)
+                if seen.get(row["run_dir"]) != key:
+                    seen[row["run_dir"]] = key
+                    stamp = time.strftime("%H:%M:%S")
+                    print(f"[{stamp}] [{row.get('display_label')}] {row.get('run_id')} · {row.get('where')}",
+                          flush=True)
+    except KeyboardInterrupt:
+        return 0
+    return 0
+
+
+def _watch_status(core: Any, root: Path, interval: float) -> int:
+    """Print status_block and watch read-only for transitions/loop activity until done/halted or Ctrl-C."""
+    import shiploop_progress_data as data
+    import shiploop_registry as registry
+
+    if interval < 0.1:
+        raise ProtocolError("--interval must be at least 0.1 seconds")
+    state = core.load_state(root)
+    retired = navigator.retired_run_reason(state)
+    need(retired is None, retired or "")
+    navigator.validate(state)
+    print(navigator.status_block(state), flush=True)
+    viewer = registry.active_viewer()
+    cli_path = core.PACKAGE_ROOT / "scripts" / "shiploop"
+    if isinstance(viewer, Mapping) and viewer.get("url"):
+        run_key = registry.safe_run_key(state.get("run_id"), root)
+        url = str(viewer["url"]).rstrip("/")
+        if viewer.get("mode") == "hub":
+            print(f"Viewer: {url}/runs/{run_key}/ (all runs: {url}/)", flush=True)
+        else:
+            print(f"Viewer: {url}/", flush=True)
+    else:
+        print(f"Launch browser dashboard: python3 {shlex.quote(str(cli_path))} view --serve", flush=True)
+
+    def sig_of(st: Mapping[str, Any]) -> tuple[Any, ...]:
+        inf = data.inflight_activity(root, st)
+        return (
+            st.get("revision"),
+            st.get("status"),
+            navigator.display_status(st)[0],
+            navigator.current_stage(st),
+            inf.get("step_id"),
+            inf.get("loop_iteration"),
+            inf.get("improve_passes"),
+            inf.get("last_check_yes"),
+            inf.get("open_notes"),
+        )
+
+    last_sig = sig_of(state)
+    if state.get("status") in ("done", "halted"):
+        return 0
+    try:
+        while True:
+            time.sleep(interval)
+            try:
+                current = core.load_state(root)
+                navigator.validate(current)
+            except (SystemExit, OSError, ValueError, navigator.NavigatorError, store.StorageError):
+                continue
+            cur_sig = sig_of(current)
+            if cur_sig != last_sig:
+                last_sig = cur_sig
+                print(navigator.status_block(current), flush=True)
+                if current.get("status") in ("done", "halted"):
+                    return 0
+    except KeyboardInterrupt:
+        return 0
+
+
 def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     """Dispatch one ShipLoop command line; returns the process exit code."""
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv and raw_argv[0] == "view":
         import shiploop_progress
         return shiploop_progress.main(raw_argv[1:], core=core)
+    if raw_argv and raw_argv[0] == "runs":
+        return runs_command(core, raw_argv[1:])
     if raw_argv and raw_argv[0] == "trace":
         import shiploop_trace
         return shiploop_trace.main(raw_argv[1:], core=core)
@@ -681,7 +859,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         description="Markdown-authoritative, script-navigated session harness",
     )
     subs = parser.add_subparsers(dest="command", required=True)
-    subs.add_parser("view", help="portable HTML progress snapshot and read-only background observer")
+    subs.add_parser("view", help="portable HTML progress snapshot, background observer, and read-only browser hub")
+    subs.add_parser("runs", help="list or watch all discovered ShipLoop runs across repositories")
     subs.add_parser("trace", help="read the run trace: every stage done, current or pending, the steps run, each packet "
                                   "as sent, refusals and hook continuations (--action, --json, --html)")
     subs.add_parser("note", help="the run's owner: leave a note the next done result must account for with a row "
@@ -778,6 +957,9 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                              help="optional (Improve stage only): record how the review ran (fork, fresh, inline, or inline-fallback)")
         if name == "context":
             sub.add_argument("--section", default="navigator")
+        if name == "status":
+            sub.add_argument("--watch", action="store_true", help="watch this run's status until done/halted or Ctrl-C")
+            sub.add_argument("--interval", type=float, default=2.0, help="polling interval in seconds for --watch")
         if name in ("halt", "pause"):
             sub.add_argument("--reason", required=True)
         if name == "resume":
@@ -830,6 +1012,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         if refused:
             print(f"ShipLoop blocked: {refused}", file=sys.stderr)
             return 2
+    if args.command == "status" and getattr(args, "watch", False):
+        return _watch_status(core, root, args.interval)
     progress_ready = False
     try:
         with core.run_lock(root):
@@ -985,8 +1169,15 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         print(f"Recover the current durable action: {recovery}", file=sys.stderr)
         return 2
     finally:
-        # The workflow lock has been released. Observation is a separate,
-        # best-effort file publisher and never owns an action or recovery.
+        # The workflow lock has been released. Observation and run registration
+        # are separate, best-effort helpers and never own an action or recovery.
         if progress_ready:
+            try:
+                after_state = _TRACE.get("after")
+                if isinstance(after_state, Mapping):
+                    import shiploop_registry as registry
+                    registry.register_run(root, after_state)
+            except Exception:  # noqa: BLE001 - registry writes must never fail a transition
+                pass
             import shiploop_progress
             shiploop_progress.ensure(root)

@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.12.0
+
+- Skills: shiploop 2.14.0
+
+### shiploop 2.14.0
+
+- Organize ShipLoop status across all states (step-level progress, Improve status lines, aligned chat/hook reporting, Waiting-on-you/Reviewing hero badges, in-flight loop/check signals, and idle auto-revive), add stat-gated low-CPU observation, smart startup viewer recommendations, `shiploop runs` / `shiploop status --watch`, and a read-only loopback multi-run hub server (`shiploop view --serve [--background | --stop-server]`) supporting concurrent ShipLoop runs with shared-repo return-conflict warnings.
+
 ### skill-craft 4.11.0
 
 - Skills: shiploop 2.13.0

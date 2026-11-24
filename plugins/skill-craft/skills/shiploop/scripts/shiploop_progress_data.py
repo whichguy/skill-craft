@@ -554,19 +554,23 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
                       "status": item_status, "plan": _display_text(plan_text), "dependencies": []})
 
     graphs, graph_identity = _implementation_graphs(state, run_root, current, warnings, mtimes)
+    display_status, display_label = navigator.display_status(state)
+    inflight = inflight_activity(run_root, state, timeline=timeline)
 
     source_changed_at = _mtime_text(max(mtimes) if mtimes else None)
     state_digest = _sha256_hex(state_raw)
     fingerprint_value = {
         "schema": SCHEMA,
         "run": {"id": state["run_id"], "revision": state["revision"],
-                "status": state["status"], "stage": stage, "owner": owner,
+                "status": state["status"], "display_status": display_status,
+                "stage": stage, "owner": owner,
                 "reason": reason, "prompt": prompt},
         "state_sha256": state_digest,
         "plan_accepted": plan_accepted,
         "documents": doc_identity,
         "activity": activity_identity,
         "graphs": graph_identity,
+        "inflight": inflight,
         "terminal_report": report_identity,
         "workspace_return": receipt_identity,
     }
@@ -575,7 +579,9 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
         "observed_at": observed_at,
         "source_changed_at": source_changed_at,
         "run": {"id": state["run_id"], "prompt": prompt, "revision": state["revision"],
-                "status": state["status"], "stage": stage, "owner": owner, "reason": reason},
+                "status": state["status"], "display_status": display_status,
+                "display_label": display_label, "stage": stage, "owner": owner,
+                "reason": reason, "inflight": inflight},
         "facts": facts,
         "status_block": status_block,
         "plan_accepted": plan_accepted,
@@ -592,7 +598,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
     import shiploop_story as story_data
     story, captures = story_data.build(run_root, state, timeline, previous=optional_cache, observed_at=observed_at, core=core, captured=document_captures)
     snapshot["story"] = story
-    snapshot["activity_fingerprint"] = _sha256_hex(_canonical([_redact_tree(state), story["activity_fingerprint"]]))
+    snapshot["activity_fingerprint"] = _sha256_hex(_canonical([_redact_tree(state), story["activity_fingerprint"], inflight]))
     snapshot["source_fingerprint"] = _sha256_hex(_canonical([snapshot["source_fingerprint"], story["content_fingerprint"]]))
     from shiploop_observation_io import screen
     snapshot = Snapshot(screen(snapshot))
@@ -601,6 +607,161 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
                                  "timeline_raw": json.dumps(timeline).encode(), "observed_at": observed_at}
     snapshot.captures = captures
     return snapshot
+
+
+def _trace_tail_at(run_root: Path) -> str | None:
+    """Best-effort timestamp of the newest complete line in ``trace.jsonl`` without reading the whole file."""
+    path = run_root / "trace.jsonl"
+    flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError:
+        return None
+    try:
+        with os.fdopen(fd, "rb") as handle:
+            info = os.fstat(handle.fileno())
+            if info.st_nlink != 1:
+                return None
+            size = info.st_size
+            if size <= 0:
+                return None
+            offset = max(0, size - 16_384)
+            handle.seek(offset)
+            chunk = handle.read(16_384)
+            if offset > 0:
+                _, _, chunk = chunk.partition(b"\n")
+            for raw_line in reversed(chunk.splitlines()):
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line.decode("utf-8"))
+                except (UnicodeError, ValueError):
+                    continue
+                if isinstance(row, Mapping) and isinstance(row.get("at"), str):
+                    return row["at"]
+    except OSError:
+        return None
+    return None
+
+
+def inflight_activity(run_root: Path, state: Mapping[str, Any], *, timeline: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Read-only summary of live in-flight work between navigator transitions."""
+    import shiploop_owner_notes as owner_notes
+
+    stage, action, workitem = navigator._active_cursor(state)
+    action_id = action.get("id") if isinstance(action, Mapping) else None
+    child = state.get("active_improve")
+    step_id: str | None = None
+    step_number = 0
+    step_total = 0
+    if workitem and stage in ("implement", "test", "document"):
+        view = navigator.step_view(state, workitem)
+        if view is not None:
+            step_id = str(view.step.get("id") or f"S{view.number}")
+            step_number = int(view.number)
+            step_total = len(view.steps)
+
+    loop_iteration = 0
+    loop_status = ""
+    improve_active = isinstance(child, Mapping)
+    improve_stage = str(child.get("stage") or "") if improve_active else ""
+    improve_review_mode = ""
+    improve_passes = 0
+    if improve_active:
+        if state.get("delegation") == "agents" and improve_stage:
+            improve_review_mode = navigator.default_review_mode(state, improve_stage)
+        elif state.get("delegation"):
+            improve_review_mode = str(state["delegation"])
+        if child.get("skill"):
+            try:
+                import shiploop_standalone_improve as standalone
+                receipt_path = standalone.receipt_path(child)
+                if not receipt_path.is_symlink() and receipt_path.is_file():
+                    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                    if isinstance(receipt, Mapping):
+                        loop_iteration = int((receipt.get("progress") or {}).get("action_number") or 0)
+                        loop_status = str(receipt.get("status") or "")
+                child_dir = receipt_path.parent
+                if child_dir.is_dir() and not child_dir.is_symlink():
+                    improve_passes = sum(
+                        1 for item in child_dir.iterdir()
+                        if item.name.startswith("review-") and item.name.endswith(".md") and not item.is_symlink()
+                    )
+            except (OSError, ValueError, TypeError):
+                pass
+    elif isinstance(action_id, str) and action_id:
+        try:
+            raw, _ = _read_beneath(run_root, f"loops/{action_id}-terminal.json", 512 * 1024)
+            receipt = json.loads(raw.decode("utf-8"))
+            if isinstance(receipt, Mapping):
+                loop_iteration = int((receipt.get("progress") or {}).get("action_number") or 0)
+                loop_status = str(receipt.get("status") or "")
+        except (FileNotFoundError, OSError, UnicodeError, ValueError, TypeError, _UnsafeSource):
+            pass
+
+    last_check_yes: bool | None = None
+    last_check_at: str | None = None
+    if isinstance(action_id, str) and action_id and not improve_active:
+        try:
+            raw, _ = _read_beneath(run_root, f"checks/{action_id}.md", 256 * 1024)
+            record = store.loads(raw.decode("utf-8"))
+            if isinstance(record, Mapping):
+                if isinstance(record.get("yes"), bool):
+                    last_check_yes = record["yes"]
+                if isinstance(record.get("created_at"), str):
+                    last_check_at = record["created_at"]
+        except (FileNotFoundError, OSError, UnicodeError, ValueError, store.StorageError, _UnsafeSource):
+            pass
+
+    open_notes = 0
+    carried_notes = 0
+    try:
+        found_notes = owner_notes.notes(run_root)
+        if found_notes:
+            ledger = owner_notes.ledger(state)
+            for note in found_notes:
+                status_word = owner_notes.standing(ledger.get(note["id"], ()))
+                if status_word == "open":
+                    open_notes += 1
+                elif status_word == "carried":
+                    carried_notes += 1
+    except (OSError, ValueError, TypeError, owner_notes.NoteError):
+        pass
+
+    callback_attempts = 0
+    try:
+        raw, _ = _read_beneath(run_root, "callback-attempts", 128)
+        callback_attempts = int(raw.decode("utf-8").strip() or 0)
+    except (FileNotFoundError, OSError, UnicodeError, ValueError, _UnsafeSource):
+        pass
+
+    last_event_at = _trace_tail_at(run_root)
+    if not last_event_at and isinstance(timeline, Mapping):
+        accepted = timeline.get("accepted")
+        if isinstance(accepted, Mapping) and accepted:
+            stamps = [v for v in accepted.values() if isinstance(v, str)]
+            last_event_at = max(stamps) if stamps else None
+        if not last_event_at and isinstance(timeline.get("started"), str):
+            last_event_at = timeline["started"]
+
+    return {
+        "step_id": step_id,
+        "step_number": step_number,
+        "step_total": step_total,
+        "loop_iteration": loop_iteration,
+        "loop_status": loop_status,
+        "improve_active": improve_active,
+        "improve_stage": improve_stage,
+        "improve_review_mode": improve_review_mode,
+        "improve_passes": improve_passes,
+        "last_check_yes": last_check_yes,
+        "last_check_at": last_check_at,
+        "open_notes": open_notes,
+        "carried_notes": carried_notes,
+        "callback_attempts": callback_attempts,
+        "last_event_at": last_event_at,
+    }
 
 
 def _redact_tree(value: Any) -> Any:
@@ -615,4 +776,4 @@ def _redact_tree(value: Any) -> Any:
     return value
 
 
-__all__ = ["SCHEMA", "build_snapshot"]
+__all__ = ["SCHEMA", "build_snapshot", "inflight_activity"]

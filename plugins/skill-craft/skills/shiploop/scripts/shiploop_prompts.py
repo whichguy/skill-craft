@@ -427,18 +427,22 @@ for _facility_stage in sorted(TEST_FACILITY_STAGES - {"reflect-and-revise"}):
 
 
 PROGRESS_REPORTING = """\
-Progress: do not reprint this packet's progress; it orients you. A packet carries one
-progress block: at a milestone the ShipLoop narrative section, otherwise one
-`Where: ... · Next: ...` status line (an Improve packet carries neither).
-The user sees the run's status through a host status hook where one exists. At
-start/recovery and after each callback, tell the user at most one line of your
-own: the item, the stage just finished and the stage now starting. When the user
-asks for the full status, show the block `shiploop status` prints (the run's
-status.md holds the same), unchanged. At a
-milestone follow the narrative section's first line, which says whether you paste
-the narrative to the user as written or the host already showed it. Only the current owner reports overall progress. State labels say which action is assigned, not that work, tests, or
-Improve iterations have occurred.  Describe Improve activity only from its own
-observed records; do not infer a review count, completion percentage, or ETA.
+Progress: do not reprint this packet's progress; it orients you. Every producer
+and Improve packet carries one progress block: at a milestone the ShipLoop
+narrative section, otherwise one `Where: ... · Next: ...` status line.
+At run start or cold recovery, share the packet's `Progress view:` HTML link and
+its live dashboard URLs (if a server is already running) or recommended launch
+command once per run. At a milestone, follow the narrative section's first line,
+which says whether you paste the narrative to the user as written or the host's
+status hook already showed it. Between milestones (including entering Improve
+and advancing steps), the Claude Code terminal CLI status hook already shows a
+two-line summary so do not repeat it there; on every other host or surface, tell
+the user at most one concise line naming the item/step, what finished, and what
+is starting (never invent percentages or ETAs). When the user asks for full
+status, show the block `shiploop status` prints (the run's status.md holds the
+same), unchanged. Only the current owner reports overall progress. State labels
+say which action is assigned, not that work, tests, or Improve iterations have
+occurred; describe Improve activity only from its own observed records.
 Run to completion by default within scope and authority. Emit progress as an
 intermediate update, then immediately continue the active packet's current owner
 while authorized runnable work remains. Do not wait for acknowledgement, ask

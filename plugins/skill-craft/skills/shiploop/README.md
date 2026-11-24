@@ -1,4 +1,4 @@
-# ShipLoop navigator 2.13.0
+# ShipLoop navigator 2.14.0
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
@@ -107,9 +107,10 @@ What happens next, in order:
 Watch it without interrupting:
 
 ```sh
-python3 "$SKILL_ROOT/scripts/shiploop" status --run-dir "$RUN"   # where it is, what is done, what is next
-open "$RUN/progress.html"                                        # live page; no server needed
-python3 "$SKILL_ROOT/scripts/shiploop" view --run-dir "$RUN" --serve   # the same pages in a browser, read-only, until Ctrl-C
+python3 "$SKILL_ROOT/scripts/shiploop" runs                                # list all concurrent runs
+python3 "$SKILL_ROOT/scripts/shiploop" status --run-dir "$RUN" [--watch]   # where it is, what is done, what is next
+open "$RUN/progress.html"                                                  # live page; no server needed
+python3 "$SKILL_ROOT/scripts/shiploop" view --serve [--background]         # multi-run hub in a browser at 127.0.0.1:41730
 ```
 
 `$SKILL_ROOT` is the directory holding the loaded `SKILL.md` and `$RUN` is the run directory the first packet prints
@@ -616,7 +617,7 @@ and it is the highest-risk combination. See [run options](references/run-options
 
 | You want to | Do this | What it does |
 |---|---|---|
-| See where it is | `status`, `progress.html`, `view --serve` | Read-only; `--serve` shows the pages in a browser at `127.0.0.1` |
+| See where it is | `runs`, `status [--watch]`, `progress.html`, `view --serve` | Read-only; `--serve` opens the multi-run hub at `127.0.0.1:41730` (or one run with `--run-dir`) |
 | Tell it something | `note --text` | The next done result must account for it with a row (applied, already, carried or declined); the report lists what each stage did |
 | Stop for now | `pause --reason` | Keeps the pending action; `resume` continues |
 | Answer a question | `resume --answer` | Only your own words count |
