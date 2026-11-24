@@ -1250,8 +1250,10 @@ DUTIES = {
     Write it under ## Real-boundary checks as an ordered procedure from its start (actor, entry route, initial state),
     with an ID later stages cite. Otherwise record the outcome unverified with owner and due stage (handoff, or the
     stage whose external effect it gates). An HTTP response alone is neither.
-""" + _duty_focus(13, "KNOWLEDGE/environment.md or KNOWLEDGE/architecture.md", "strategy") + """\
-14. `evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output and source used.
+13. Open questions from intake or unverified pre-build risks that plan, prepare or outer stages must resolve go in
+    optional `assumptions` (`due_stage`: `"plan"`, `"prepare"` or an outer stage).
+""" + _duty_focus(14, "KNOWLEDGE/environment.md or KNOWLEDGE/architecture.md", "strategy") + """\
+15. `evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output and source used.
 """,
     "plan": """\
 1. Reopen accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research}.md,
@@ -1436,14 +1438,15 @@ Change no product file in this stage.
    blocked (`awaiting` an answer: drop or keep) citing the superseding result; never skip the item
    or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
    widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
-2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions,
-   and plan against the Test layers and Test targets below; in the summary say which you retain, refine or supersede
-   and why, locators in evidence_refs. Revalidate harness, suite and browser tools for the changed surfaces
-   (Repeatable test-suite guide). Code this item writes that no Test layers row names: add its rows in
-   `test_layers` (the test-strategy shape); a `prerequisite` row's harness is set up by the item's first step, whose
-   check runs it. A remote-resident case needs its framework and an authorized setup, invocation, result retrieval
-   and teardown route. Reuse an existing facility before the smallest missing one (Reusable test facilities); record
-   its locator and readiness gap in the summary.
+2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions, plus
+   any `test_findings` / `assumptions` discoveries; plan against the Test layers and Test targets below; in the summary
+   say which you retain, refine or supersede and why, locators in evidence_refs. Revalidate harness, suite and browser
+   tools for the changed surfaces (Repeatable test-suite guide). Code this item writes that no Test layers row names,
+   or a refined layer/harness: add or supersede its rows in `test_layers` (same `code` + `layer` replaces earlier row);
+   new or changed execution environments go in optional `targets` (`test-strategy` shape). A `prerequisite` row's
+   harness is set up by the item's first step, whose check runs it. A remote-resident case needs its framework and an
+   authorized setup, invocation, result retrieval and teardown route. Reuse an existing facility before the smallest
+   missing one (Reusable test facilities); record its locator and readiness gap in the summary.
 3. **`criteria`** (`[{"id": "C1", "text": "...", "confirm": "executed"}]`). Each text: `<condition>. Confirm by: <what
    a command observes>; pass when <expected result>`, naming the R-<n> served.
    - `confirm`: `executed` when a recorded command runs the behaviour (a text search runs nothing); `searched` for
@@ -1481,8 +1484,9 @@ Change no product file in this stage.
      (Jest `--verbose`, pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID
      and outcome on every exit. """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. A run that executed no test is refused, so check the filter.
-   - regression: the retained suites the changed paths affect; only the fast one marked `"minimum": true` runs
-     before the last step (none: `minimum_na`).
+   - regression: the retained suites the changed paths affect plus inherited passing regression suites from earlier items
+     (unless superseded with explanation in `summary`); only the fast one marked `"minimum": true` runs before the
+     last step (none: `minimum_na`).
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
      `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
    - Cover behaviour this item adds or changes with repeatable executable test scripts run by a suite runner—never
@@ -1548,7 +1552,9 @@ Write no test code in this stage.
    deployed (the Test targets below say which target keeps state and how its base state is produced); a guard that only
    checks a file is not RED. "characterisation" if it already passes.
 """ + _TEST_SPEC_PROCEDURE + """\
-5. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
+5. Cover positive, failure and boundary pairs per spec clause (valid, boundary/edge, invalid). Group multi-aspect
+   behaviours as cohesive focused tests (e.g. `describe('<ID> ...')`) rather than stuffing dozens of unrelated
+   assertions into one monolithic test block. Each new or changed public entry point: one rejection case per constraint
    (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state,
    and one case per documented throw or refusal branch.
 6. Isolate each test: no shared mutable state, each with its failure cleanup. Name the harness, helper or fixture
@@ -1621,33 +1627,45 @@ preparatory commit); a mismatch there is a send-back.
    Report blocked, with awaiting, only when a person (a decision or a grant) or an outside service must resolve it.
 """ + _IMPLEMENT_WORKER,
     "test": """\
-1. **Write the cases.** Mocks first: before a case's test, build the mock it names in `mock`, playing what it says
-   the dependency does, slow, failing or out of order included. The mock's own header states what it stands in for
-   and what it plays: a mock proves the code only against the behaviour it simulates. Each quoted test case becomes a
-   test titled with its ID as its own word, in the suite and
-   command its case names (Repeatable test-suite guide, Target-native test selection), asserting the spec's oracle,
-   never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities). Build a
-   missing facility within this item and validate it before the tests that use it; record it in
+1. **Reveal evidence & write the cases (Beat 1).** Before writing tests, read the item's product diff patch
+   (`RUN/fields/<action>-product-diff.patch` or `git diff`), KNOWLEDGE/architecture.md, quoted `test_cases`, and
+   implement's `not_covered` to map concrete changed branches, edge cases, state transitions and interfaces. Mocks first:
+   before a case's test, build the mock it names in `mock`, playing what it says the dependency does, slow, failing or
+   out of order included. The mock's own header states what it stands in for and what it plays: a mock proves the code
+   only against the behaviour it simulates. Each quoted test case becomes a test titled with its ID as its own word,
+   in the suite and command its case names (Repeatable test-suite guide, Target-native test selection), asserting the
+   spec's oracle, never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test
+   facilities). Build a missing facility within this item and validate it before the tests that use it; record it in
    KNOWLEDGE/environment.md ## Harnesses and suites (locator, interface, readiness, owner, revalidation condition).
-   Use the plan concerns assigned to test that apply to this step. Write no case due at a later stage.
-   Decide where each new test belongs: a new suite (a recorded command must run it), the minimum suite
-   (it runs at every step) or the full suites (they run at the last step); the summary says
-   which. Test the new code in detail with deterministic, executable test scripts: unit and mock tests first, then
-   any MCP server or skill this host offers where it observes more (capture repeatable checks as scripts in the test
-   suite rather than relying on interactive or prompt-driven tool calls alone). Use each skill this packet lists for
-   the stage.
-2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. Record a
-   harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary decision in
-   KNOWLEDGE/architecture.md ## Real-boundary checks. Summary: which decisions you retain, refine or supersede and why.
+   Use the plan concerns assigned to test that apply to this step. Write no case due at a later stage. Decide where
+   each new test belongs: a new suite (a recorded command must run it), the minimum suite (it runs at every step) or
+   the full suites (they run at the last step); the summary says which. Test the new code in detail with deterministic,
+   executable test scripts: unit and mock tests first, then any MCP server or skill this host offers where it observes
+   more (capture repeatable checks as scripts in the test suite rather than relying on interactive or prompt-driven tool
+   calls alone). Use each skill this packet lists for the stage. Register newly added durable test IDs in optional
+   `added_tests` (`[{"id", "command"}]`) so document reruns them too.
+2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions.
+   Record a harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary
+   decision in KNOWLEDGE/architecture.md ## Real-boundary checks.
+   Summary: which decisions you retain, refine or supersede and why.
    A recorded completion does not prove a harness, fixture or target still works.
-3. **Gaps.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
+3. **Gaps & probes.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
    sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
    `<ID> (<letter>)`; none fits: report send-back. Each new or changed public entry point gets a valid, a boundary
-   and an invalid case. Test a new error path or debug output, on and off, with safe diagnostic context.
-4. **Run and fix.** After each change run every recorded command, the red-check command and the lint command. Find
-   each failure's cause with one small observation (product defect, invalid test, environment) and fix the product.
-   Change a test, fixture, golden file or threshold only for an independent reason written in RUN/notes/<action>.md.
-   Never weaken, delete or skip a test to get green. A repeated unchanged failure is not progress: change approach.
+   and an invalid case. Test a new error path or debug output, on and off, with safe diagnostic context. When runtime
+   behaviour is ambiguous, run bounded diagnostic probes saved under `RUN/experiments/`.
+4. **Run, fix & triage (Beat 2).** After each change run every recorded command, the red-check command and the lint
+   command. Find each failure's cause with one small observation (product defect, invalid test, environment) and fix
+   the product. Change a test, fixture, golden file or threshold only for an independent reason written in
+   RUN/notes/<action>.md. Never weaken, delete or skip a test to get green. A repeated unchanged failure is not
+   progress: change approach. If you edit product code to fix a defect, re-run this step's Proof too (ShipLoop re-runs
+   it at done). Triage each discovery into 4 tiers:
+   - Local (`impact: "local"` or `"none"`): defect inside this step -> fix code/test here; doc/minor risk -> `test_findings`.
+   - Amend remaining (`impact: "amend-remaining"`): evidence showing remaining planned steps `S(k+1)..Sn` need
+     re-sequencing -> record in `test_findings` so document commits this step cleanly and emits `replan_remaining`.
+   - Outer (`impact: "system-test"`): cross-slice integration gap or `not-exercisable` mutant -> record in
+     `test_findings` and/or open `assumptions` (`due_stage`: `reflect-and-revise` or an outer stage).
+   - Send-back / blocked: unachievable failure or missing requirement -> report `send-back`; user/access block -> `blocked`.
 5. **End states.** Each case ends as:
    - validated: run, and the observation matches the oracle;
    - validated another way: the first method could not observe it, another ran and passed, still titled with the ID;
@@ -1655,12 +1673,15 @@ preparatory commit); a mismatch there is a send-back.
    - unachievable: a named reason and the requirement left unverified; report send-back.
    A case written but not run has no end state.
 6. **Result fields.** `red_na`: each new test passing on the item base without this change, `[{"id", "reason"}]`.
-   `retired_tests`: each test this item deliberately retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires
-   it>"}]` (any other drop below a command's floor is refused). `lint_waivers`: `{"id": "<printed ID>", "reason":
-   "<why>"}` per lint finding that must stay.
+   `retired_tests`: each test this item deliberately retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires it>"}]`
+   (any other drop below a command's floor is refused). `lint_waivers`: `{"id": "<printed ID>", "reason": "<why>"}` per
+   lint finding that must stay. Optional evidence/triage fields: `test_findings` (`[{"id", "finding", "evidence",
+   "impact", "next_step"}]`), `added_tests`, `assumptions` (due at `reflect-and-revise` or a later outer stage), and
+   `mutant_dispositions`: `[{"mutant", "disposition", "evidence"}]` (`equivalent`, `out-of-scope`, or
+   `not-exercisable`, which forwards to system testing).
 7. **Proof limits.** A passing command proves only the cases it runs; a smoke or subset run never stands for a
    recorded command; a local pass does not replace a required remote or real-boundary check (Real-boundary test
-   guidance). Probes and experiments go in RUN/scratch. Install, download or fetch nothing. Never commit or push.
+   guidance). Probes and experiments go in RUN/scratch or RUN/experiments. Install, download or fetch nothing. Never commit or push.
 8. **Send back** (naming the case or command, why, the requirement left unverified, and every required command that
    could not run) when: a failure is proven unachievable (contradicts the spec or another requirement, needs an
    absent tool, access or authority, or would exceed the item); a recorded command is wrong or cannot run here; an
@@ -1669,8 +1690,8 @@ preparatory commit); a mismatch there is a send-back.
    outside dependency must unblock it.
 """,
     "document": """\
-1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
-   item's diff. Use the plan concerns assigned to document that apply to this step.
+1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results, the item's
+   diff, and any `test_findings` below. Use the plan concerns assigned to document that apply to this step.
 2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
    docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
    authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
@@ -1679,16 +1700,18 @@ preparatory commit); a mismatch there is a send-back.
    next steps' packets read it:
    - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
-     Leave every existing line verbatim (never edit or remove a pending-verification line). Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n> and what it must
-     say.
+     Leave every existing line verbatim (never edit or remove a pending-verification line). Add lines only; a requirement
+     whose intent moved is no edit: report send-back naming the R-<n> and what it must say.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
    - KNOWLEDGE/environment.md: a command that worked under ## Commands; a harness or platform fact not yet recorded.
-   - Work the step showed: a defect in its change, fix now; work this item's step plan lacks, report send-back; work a
-     later step already holds: leave it to that step; work outside this item: an open item in `assumptions` due at
-     reflect-and-revise. A system, release or real-boundary check the criteria need is an open item due at the stage that
-     makes it, with its owner.
+   - Work the step or `test_findings` showed: a defect in its change, fix now; work this item's step plan lacks in this
+     step (`Sk`), report send-back; non-final `Sk` valid and ready to commit while `S(k+1)..Sn` must re-sequence (and
+     steps remain after this one), emit `replan_remaining: {"reason": "...", "affects": ["S2", ...]}` on done so
+     ShipLoop commits `Sk` first then returns to `step-plan`; work a later step already holds: leave it to that step;
+     work outside this item: an open item in `assumptions` due at reflect-and-revise. A system, release or real-boundary
+     check the criteria need is an open item due at the stage that makes it, with its owner.
    In `knowledge` give `spec`, `architecture` and `environment`: for each of those living files, what you changed in
    it or why it needed no change.
 4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
@@ -1696,8 +1719,9 @@ preparatory commit); a mismatch there is a send-back.
 5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
    behaviour needs no documentation, why the README did not change, or why an example cannot run here.
 6. **Commit nothing yourself.** """ + _ITEM_COMMIT + """
-7. Plan or criterion wrong as observed: report send-back naming it. Report blocked only when a behaviour cannot be
-   observed here, naming it.
+7. Plan or criterion wrong as observed: report send-back naming it. Non-final `Sk` valid with remaining steps needing
+   re-sequencing: report `done` with `replan_remaining`. Report blocked only when a behaviour cannot be observed here,
+   naming it.
 """,
     "reflect-and-revise": """\
 1. **Knowledge home.** Update in place under the sections named here, with no new ## heading for this item's results;
@@ -1775,18 +1799,18 @@ preparatory commit); a mismatch there is a send-back.
 """,
     "system-test-author": """\
 1. Gather: the test strategy (KNOWLEDGE/environment.md ## Harnesses and suites, KNOWLEDGE/architecture.md ## Real-boundary
-   checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), and the open items quoted
-   below (the system-test obligations), and the plan concerns assigned here. The records in force are the ones listed
-   under "Results this stage builds on" (each completed item's step-plan, test-spec and test result and its candidate
-   run); infer no whole-product
-   coverage from the last transition or item. The current OUTER plans are the latest done records after the most
-   recent accepted add-work; pending and blocked results are not plan authority. `evidence_refs`: the action,
-   result and test-note locators used.
+   checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), open items (`assumptions`),
+   forwarded `test_findings` and `not-exercisable` `mutant_dispositions` below, and the plan concerns assigned here.
+   The records in force are the ones listed under "Results this stage builds on" (each completed item's step-plan,
+   test-spec and test result and its candidate run); infer no whole-product coverage from the last transition or item. The
+   current OUTER plans are the latest done records after the most recent accepted add-work; pending and blocked results
+   are not plan authority. `evidence_refs`: the action, result and test-note locators used.
 2. Choose cases: each due-later case from item 1 becomes a system case here or an open item with its due stage
-   (item 7). Add cases for the real integration, consumer, runtime, security, accessibility, migration,
-   compatibility and operational boundaries that apply; reconcile suite membership and prerequisites first.
-   Reassess changed security boundaries in the integrated candidate, including later-added work, even if the plan's
-   security row says no or is absent. N/A only with the reason; missing access is not N/A.
+   (item 7). Triage forwarded `test_findings` (especially `impact: "system-test"`) and `not-exercisable` mutants into
+   integrated system checks or explicit open items. Add cases for the real integration, consumer, runtime, security,
+   accessibility, migration, compatibility and operational boundaries that apply; reconcile suite membership and
+   prerequisites first. Reassess changed security boundaries in the integrated candidate, including later-added work,
+   even if the plan's security row says no or is absent. N/A only with the reason; missing access is not N/A.
 3. Write the catalog in `summary`, one row per case in the System-test catalog guidance shape (case ID, phase,
    requirement, expected outcome, environment and target, prerequisites, executable reference, owner). A post-release
    case is owned by release-verify and never waived.
@@ -1839,9 +1863,11 @@ preparatory commit); a mismatch there is a send-back.
    blocked or unrun required remote check and establishes no combined full-suite pass; keep that check's owner and
    boundary. Check repeatability when fixtures changed. Never blindly replay an uncertain external effect.
    `evidence_refs`: each command, candidate and target, scope, cleanup outcome and unrun check.
-4. A recorded system command that fails here is no open item: ShipLoop refuses done while it fails. Fix the
-   candidate, report send-back when the command or case itself is wrong, add-work for missing product work, or
-   blocked when nothing else can proceed.
+4. A recorded system command that fails here is no open item: ShipLoop refuses done while it fails. Never edit
+   product code directly here: report `add-work` for a product defect or missing work, `send-back` to
+   `system-test-author` when the command or case itself is wrong or uncountable, or `blocked` with `awaiting` when a
+   person or external service must unblock it. Also triage any forwarded `test_findings` or `not-exercisable` mutants
+   below (verify covered by `system_commands`, carry forward open if gated externally, or emit `add-work` / `send-back`).
 5. After a material change to code, tests, fixtures, configuration or target, rerun the affected observations; reuse
    unaffected evidence only with its identity and relevance stated.
 6. Run any open item system-test-author recorded that this stage can now run, reporting each in the summary (not

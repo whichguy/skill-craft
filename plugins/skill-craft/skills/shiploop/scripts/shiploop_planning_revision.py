@@ -187,6 +187,14 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
                         result[(key_item, per_step)] = lists.lists[per_step][-1]
             else:
                 lists.add(stage, action)
+                if stage == "document" and isinstance(accepted[action], Mapping) and accepted[action].get("replan_remaining"):
+                    # Commit-then-amend fix-forward: Sk finished and committed, so keep its done count while reopening
+                    # downstream step-plan/test-spec/validate-existing/implement/test for S(k+1)..Sn.
+                    lists.kept = len(lists.lists["document"])
+                    reopened = frozenset(stage_spec.INNER[stage_spec.INNER.index(stage_spec.SEND_BACK_TO):]) - {"document"}
+                    for key in tuple(result):
+                        if key[0] == key_item and key[1] in reopened:
+                            result.pop(key)
             continue
         if outcome == "send-back":
             workitem = entry.get("workitem")
@@ -240,6 +248,9 @@ def _item_steps(state: Mapping[str, Any], workitem: Any) -> _StepLists:
                 lists.plan(accepted[entry["action"]])
             else:
                 lists.add(str(entry.get("stage")), str(entry["action"]))
+                if (entry.get("stage") == "document" and isinstance(accepted[entry["action"]], Mapping)
+                        and accepted[entry["action"]].get("replan_remaining")):
+                    lists.kept = len(lists.lists["document"])
     return lists
 
 

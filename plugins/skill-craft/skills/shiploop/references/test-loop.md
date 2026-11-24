@@ -18,16 +18,13 @@ every step, an unmarked one at the item's last step only; a plan of two or more
 steps marks one or gives `minimum_na`
 ([what each step runs](testing-and-documentation.md#what-each-step-runs)).
 
-The `test` stage follows `implement`. Tests are written after the build phase
-and must assert the behaviour the test spec's oracle states; ShipLoop mutates a
-sample of the item's changed product lines and refuses each surviving mutant
-that no focused test kills and no `mutant_dispositions` entry explains. Inside its [Until Loop](inner-loop.md#stage-until-loops) the stage writes a test for every
-test-spec case (the case ID as its own word in the test's name), runs every
-recorded command, the `red-check` command and the lint command, and fixes the
-product code (a test only for an independent reason it records) until all pass.
-On `done`, after the lint gate, ShipLoop runs two things itself
-(`scripts/shiploop_test_loop.py`), each with `/bin/sh -c` from the repository
-(at most 10 minutes per command):
+The `test` stage follows `implement`. Tests run after build and assert each spec
+oracle; ShipLoop mutates changed product lines and refuses unkilled mutants
+without a `mutant_dispositions` entry. Its [Until Loop](inner-loop.md#stage-until-loops)
+adds a test per spec case (ID as its own word in the name), runs all recorded,
+`red-check` and lint commands, and fixes product code (recording independent reasons
+for test edits) until all pass. On `done`, after lint, ShipLoop runs two gates
+(`scripts/shiploop_test_loop.py`) with `/bin/sh -c` (10 min limit per command):
 
 1. **Base run** (`base_check`): every focused and regression command in a
    temporary detached worktree at the item's base (after any preparatory fix),
@@ -64,9 +61,9 @@ No count of refused runs
 stops `done` (the packet shows the tally; at `test`, base, candidate and
 mutation runs share one). When the plan or a recorded command is what is wrong,
 take the stage's own remedy — back to the step plan with `send-back` at an INNER
-stage, or corrective work items with `add-work` at `system-test` and
-`release-verify`. A run that times out or cannot start refuses the stage without
-counting.
+stage (or `document` `done` with `replan_remaining` on a non-final step when done work commits cleanly), or
+`send-back` / `add-work` at `system-test` (`system-test-author`) and `release-verify` (`release-plan`). A run that
+times out or cannot start refuses the stage without counting.
 
 `test` is recorded as not applicable when the item has no test command and
 touches only documentation or configuration paths, and `document` when the
@@ -111,14 +108,15 @@ not proof of truth, currency or authority; delivery-contract gates still apply.
 
 ## Tests pass or the step stops
 
-Each inner stage's [Until Loop](inner-loop.md#stage-until-loops) prints its own repeat
-condition (`REPEAT` in `scripts/shiploop_loops.py`). At `implement` and `test`
-it is the same rule: run the checks; when one fails, diagnose it, fix the
-product code and rerun; change a check only for an independent reason that the
-check itself is wrong. Only a final full pass after the last edit counts. The
-stage ends on exactly one of: every check passes (`done`); a check proven
-unachievable (`send-back`); or, at `implement`, the same check still failing in the same way after a genuine fix
-that taught nothing new about why (`send-back`). A check that needs a tool, access or
-authority that is absent ends `blocked`, awaiting the person or service that must act. The loop judges its
-own iterations; ShipLoop's gates at `complete` (lint, the test runs, the
-expectation checks) are the script-enforced part.
+Each inner stage's [Until Loop](inner-loop.md#stage-until-loops) prints its
+repeat condition (`REPEAT` in `scripts/shiploop_loops.py`). At `test`, Beat 1
+inspects `RUN/fields/<action>-product-diff.patch`, `KNOWLEDGE/architecture.md`,
+`test_cases`, and `not_covered` to write focused tests and register new IDs in
+`added_tests`; Beat 2 runs checks, fixes local product defects (re-verifying step
+Proof at `done`), and triages into `test_findings` (`none`, `local`,
+`amend-remaining`, `system-test`), `assumptions`, or `send-back`. Only a final
+full pass after the last edit counts. It ends on `done`, `send-back`, or, at
+`implement`, the same check still failing in the same way after a genuine fix
+that taught nothing new about why (`send-back`). Missing tools, access or
+authority end `blocked`. ShipLoop's gates at `complete` (lint, tests, Proof on
+product edits, expectations) are script-enforced.

@@ -96,12 +96,17 @@ owner and the released target as its environment.
 ## Reassessment, change, and closure
 
 Every `reflect-and-revise` reassesses whether the catalog still matches the
-delivery: no change, with the relevant case IDs and rationale, or a revision. A
-revision that needs new fixture or setup work revises the future queue in that
+delivery: no change, with the relevant case IDs and rationale, or a revision.
+Both `system-test-author` and `system-test` consume forwarded `test_findings`
+and `not-exercisable` `mutant_dispositions` from inner `test` results so gaps
+discovered during step testing flow into integrated system cases or open items.
+A revision that needs new fixture or setup work revises the future queue in that
 same `reflect-and-revise` result so the producer precedes its consumer. The last
 reflect-and-revise's Improve review covers the executed items together, including
-their system-test implications. At outer stages, a needed catalog change is
-corrective work through `add-work`.
+their system-test implications. At outer stages (`system-test`, `release-verify`),
+a product defect routes to corrective work through `add-work` (never direct
+product edits), and a wrong or uncountable recorded command routes via `send-back`
+to `system-test-author` or `release-plan`.
 
 Completed or running case definitions stay immutable. Add a corrective case
 for a changed requirement, target or executable assertion; do not rewrite a

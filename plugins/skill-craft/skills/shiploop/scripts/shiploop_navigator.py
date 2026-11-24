@@ -85,7 +85,8 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
-    "knowledge", "added_tests", "question_categories", "questions", "defaults", "notes",
+    "knowledge", "added_tests", "test_findings", "replan_remaining",
+    "question_categories", "questions", "defaults", "notes",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -133,7 +134,8 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "settled", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions", "defaults", "notes",
+    "mutant_dispositions", "knowledge", "added_tests", "test_findings", "replan_remaining",
+    "question_categories", "questions", "defaults", "notes",
 )
 _STATE_KEYS = frozenset(
     (
@@ -501,11 +503,23 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     return state["work_index"] + 1 >= len(state["work_items"])
 
 
+def _is_item_revision_row(row: Mapping[str, Any], accepted: Mapping[str, Any] | None = None) -> bool:
+    """True when ``row`` reopened an inner work item's step plan via ``send-back`` or ``document`` ``replan_remaining``."""
+    if row.get("outcome") == "send-back":
+        return True
+    if row.get("stage") == item_scope.DOCUMENT_STAGE and row.get("outcome") == "done":
+        res = (accepted or {}).get(row.get("action"))
+        return isinstance(res, Mapping) and bool(res.get("replan_remaining"))
+    return False
+
+
 def _first_item_review(state: Mapping[str, Any], item: Any, earlier: Any) -> bool:
     """Whether a "first-item" stage's result for ``item`` is reviewed: the run's first work item, or an item whose
-    send-back is in ``earlier`` (the history before that result), so a redone plan is reviewed (owner, 2026-10-19)."""
+    send-back or commit-then-amend replan is in ``earlier`` (the history before that result), so a redone plan is
+    reviewed (owner, 2026-10-19)."""
     first = state["work_items"][0]["id"] if state["work_items"] else None
-    return item == first or any(row["workitem"] == item and row["outcome"] == "send-back" for row in earlier)
+    accepted = state.get("accepted") or {}
+    return item == first or any(row.get("workitem") == item and _is_item_revision_row(row, accepted) for row in earlier)
 
 
 def delegation(state: Mapping[str, Any]) -> str:
@@ -775,8 +789,9 @@ def _sent_back_results(state: Mapping[str, Any], stage: str, workitem: str | Non
     if stage not in REVISIT_STAGES or workitem is None or not state["revisions"].get(workitem):
         return None
     history = state["history"]
+    accepted = state.get("accepted") or {}
     revised = [index for index, row in enumerate(history)
-               if row["workitem"] == workitem and row["outcome"] == "send-back"]
+               if row["workitem"] == workitem and _is_item_revision_row(row, accepted)]
     _need(revised, "work item " + workitem + " records a send-back but no send-back result")
     latest = revised[-1]
 
@@ -851,7 +866,9 @@ def _previous_step_results(state: Mapping[str, Any], workitem: str) -> dict[str,
     item was never sent back).  An inline step is one action, accepted in plan order (``implement_progress``), so the
     done implement rows after each accepted step plan pair with that plan's steps."""
     history = state["history"]
-    sends = [index for index, row in enumerate(history) if row["workitem"] == workitem and row["outcome"] == "send-back"]
+    accepted = state.get("accepted") or {}
+    sends = [index for index, row in enumerate(history)
+             if row["workitem"] == workitem and _is_item_revision_row(row, accepted)]
     found: dict[str, str] = {}
     steps: list[str] = []
     for row in history[:sends[-1]] if sends else ():
@@ -910,10 +927,23 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None, r
         # Another step's result is not this step's (S3.4): say this one had none.
         previous = ("none for step " + str(view.step.get("id")) + " (it had no accepted result before the send-back; "
                     "the item's earlier steps' changes are in the checkout)")
+    replan_info = sending.get("replan_remaining") if isinstance(sending, Mapping) else None
+    if isinstance(replan_info, Mapping):
+        affects = ", ".join(map(str, replan_info.get("affects") or ()))
+        revisit_head = (f"Revisit: {by} committed completed step(s) and reopened remaining steps of {workitem} "
+                        f"(fix-forward {sent.count})"
+                        + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
+                        + ". Why (replan_remaining, untrusted): \""
+                        + _bounded_packet_text(str(replan_info.get("reason", "")), limit=REVISIT_SUMMARY)
+                        + ("\" (affects: " + affects + ")" if affects else "\"")
+                        + " Summary: \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.")
+    else:
+        revisit_head = (f"Revisit: {by} sent {workitem} back to {stage_spec.SEND_BACK_TO} (send-back "
+                        f"{sent.count})"
+                        + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
+                        + ". Why (its summary, untrusted): \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.")
     return [
-        f"Revisit: {by} sent {workitem} back to {stage_spec.SEND_BACK_TO} (send-back "
-        f"{sent.count})" + ("; this packet asks for an amended plan, not a new one" if stage == stage_spec.SEND_BACK_TO else "")
-        + ". Why (its summary, untrusted): \"" + summary + "\" Evidence: RUN/results/" + sent.sent_back + ".md.",
+        revisit_head,
         step_line or ("Your previous accepted " + stage + " result: " + previous + "."
                       + (" The tree may hold an earlier attempt's edits: git status shows them." if stage == "implement"
                          else "")),
@@ -1216,12 +1246,52 @@ def _canonical_result(
             raise NavigatorError(str(exc)) from exc
     if test_loop.ADDED_TESTS in value:
         # Shape only; the CLI gate checks each command is one the step plan recorded (``_check_added_tests``).
-        _need(stage == item_scope.DOCUMENT_STAGE and outcome == "done",
-              "added_tests is allowed only on a done document result")
+        _need(stage in ("test", item_scope.DOCUMENT_STAGE) and outcome == "done",
+              "added_tests is allowed only on a done test or document result")
         rows = _records(value[test_loop.ADDED_TESTS], test_loop.ADDED_TESTS, ("id", "command"))
         _need(all("\n" not in row["id"] for row in rows), "an added_tests id is one line: the start of the test's "
               "printed title, for example TC-3 (a)")
         result[test_loop.ADDED_TESTS] = [{"id": row["id"].strip(), "command": row["command"].strip()} for row in rows]
+    if "test_findings" in value:
+        _need(stage == "test" and outcome == "done", "test_findings is allowed only on a done test result")
+        raw_findings = value["test_findings"]
+        _need(isinstance(raw_findings, list),
+              'test_findings is [{"id", "finding", "evidence", "impact": "none"|"local"|"amend-remaining"|"system-test", '
+              '"next_step"}]')
+        findings_out: list[dict[str, Any]] = []
+        seen_f: set[str] = set()
+        impacts = ("none", "local", "amend-remaining", "system-test")
+        for idx, entry in enumerate(raw_findings):
+            _need(isinstance(entry, Mapping), f"test_findings[{idx}] must be an object")
+            ident = entry.get("id")
+            _need(isinstance(ident, str) and assumptions._ID.fullmatch(ident) is not None,
+                  f"test_findings[{idx}].id must be a short identifier such as TF1")
+            _need(ident not in seen_f, f"test_findings id {ident} is listed twice")
+            seen_f.add(ident)
+            impact = entry.get("impact")
+            _need(impact in impacts,
+                  f"test_findings {ident}.impact must be one of {', '.join(impacts)}")
+            findings_out.append({
+                "id": ident,
+                "finding": _text(entry.get("finding"), f"test_findings {ident}.finding"),
+                "evidence": _text(entry.get("evidence"), f"test_findings {ident}.evidence"),
+                "impact": impact,
+                "next_step": _text(entry.get("next_step"), f"test_findings {ident}.next_step"),
+            })
+        result["test_findings"] = findings_out
+    if "replan_remaining" in value:
+        _need(stage == item_scope.DOCUMENT_STAGE and outcome == "done",
+              "replan_remaining is allowed only on a done document result")
+        rp = value["replan_remaining"]
+        _need(isinstance(rp, Mapping) and set(rp) <= {"reason", "affects"},
+              'replan_remaining is {"reason": "<why remaining steps must be amended>", "affects": ["S2", ...]}')
+        affects = rp.get("affects")
+        _need(isinstance(affects, list) and bool(affects),
+              'replan_remaining.affects must be a nonempty list of step or requirement IDs')
+        result["replan_remaining"] = {
+            "reason": _text(rp.get("reason"), "replan_remaining.reason"),
+            "affects": [_text(item, "replan_remaining.affects entry") for item in affects],
+        }
     for key in ("check_na", "minimum_na"):
         if key in value:
             _need(stage == "step-plan" and outcome == "done", key + " is allowed only on a done step-plan result")
@@ -1243,7 +1313,7 @@ def _canonical_result(
     # Shape only (the test layers, run-5 batch F1/F3); the CLI gate applies each field's rule.  A step plan's test_layers
     # are the item's own rows.
     for key, stages in (("test_layers", ("test-strategy", "step-plan")), ("test_layers_na", ("test-strategy",)),
-                        ("targets", ("test-strategy",)), ("harness_runs", ("prepare",)),
+                        ("targets", ("test-strategy", "step-plan")), ("harness_runs", ("prepare",)),
                         ("mutant_dispositions", ("test",))):
         if key in value:
             _need(stage in stages and outcome == "done", key + " is allowed only on a done " + " or ".join(stages)
@@ -1554,6 +1624,7 @@ def _validate_action(action: Any, stage: str, label: str) -> str:
     extra = set(action) - {"id", "stage"} if isinstance(action, Mapping) else set()
     _need(isinstance(action, Mapping) and {"id", "stage"} <= set(action) and (not extra or (
         stage == "implement" and extra == {"base"} and tree(action.get("base"))) or (
+        stage == "test" and extra <= {"entry"} and ("entry" not in action or tree(action["entry"]))) or (
         stage == "document" and extra <= {"changed", "entry"} and isinstance(action.get("changed", False), bool)
         and ("entry" not in action or tree(action["entry"])))),
           f"{label} is invalid")
@@ -2338,6 +2409,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         blocks.append(_Block("rerun", P1, test_loop.rerun_lines(root, state, workitem or "", stage)))
     elif stage == "handoff":
         blocks.append(_Block("observed", P1, test_loop.observed_lines(root, state)))
+    blocks.append(_Block("test-evidence", P1, _test_evidence_lines(root, state, stage, workitem)))
     # What a release stage's duties run or its gate reads (packet review G33-1, G33-2): the commands and route of the
     # return, and the delivery contract's lines.
     if stage in RETURN_STAGES:
@@ -2868,10 +2940,11 @@ def _earlier_focused_ids(state: Mapping[str, Any], work_item: str | None) -> dic
 
 
 def _check_added_tests(state: Mapping[str, Any], stage: str, result: Any) -> None:
-    """Refuse a done document result (or its step review's final result) whose ``added_tests`` names a command the
-    item's step plan did not record as focused or regression: only a recorded command reruns, so only it can run the
-    test."""
-    if stage != item_scope.DOCUMENT_STAGE or not isinstance(result, Mapping) or result.get("outcome") != "done":
+    """Refuse a done test or document result (or its step review's final result) whose ``added_tests`` names a command
+    the item's step plan did not record as focused or regression: only a recorded command reruns, so only it can run
+    the test."""
+    if stage not in ("test", item_scope.DOCUMENT_STAGE) or not isinstance(result, Mapping) \
+            or result.get("outcome") != "done" or not (result.get(test_loop.ADDED_TESTS) or ()):
         return
     _action, plan = test_loop._step_plan(state, _current_work_item(state))
     recorded = [str(row.get("command")) for row in plan.get("test_commands") or ()
@@ -3781,13 +3854,46 @@ def _test_strategy_layers(state: Mapping[str, Any]) -> tuple[list[Any] | None, l
     return found.get("test_layers"), found.get("targets")
 
 
+def _merge_layer_rows(base_rows: Sequence[Any] | None, own_rows: Sequence[Any] | None) -> list[Any]:
+    """Merge ``base_rows`` and ``own_rows`` of ``test_layers``; a matching ``(code, layer)`` in ``own_rows`` replaces
+    the earlier row in place while preserving order, and new rows append."""
+    merged: list[Any] = [dict(row) for row in base_rows or () if isinstance(row, Mapping)]
+    index = {(row.get("code"), row.get("layer")): idx for idx, row in enumerate(merged)}
+    for row in own_rows or ():
+        if not isinstance(row, Mapping):
+            continue
+        key = (row.get("code"), row.get("layer"))
+        if key in index:
+            merged[index[key]] = dict(row)
+        else:
+            index[key] = len(merged)
+            merged.append(dict(row))
+    return merged
+
+
+def _merge_target_rows(base_targets: Sequence[Any] | None, own_targets: Sequence[Any] | None) -> list[Any]:
+    """Merge ``targets`` rows by ``target`` name (latest row wins)."""
+    merged: list[Any] = [dict(row) for row in base_targets or () if isinstance(row, Mapping)]
+    index = {str(row.get("target")): idx for idx, row in enumerate(merged) if row.get("target")}
+    for row in own_targets or ():
+        if not isinstance(row, Mapping) or not row.get("target"):
+            continue
+        name = str(row["target"])
+        if name in index:
+            merged[index[name]] = dict(row)
+        else:
+            index[name] = len(merged)
+            merged.append(dict(row))
+    return merged
+
+
 def _test_layers(state: Mapping[str, Any], work_item: str | None) -> tuple[list[Any], list[Any]]:
-    """The run's ``test_layers`` with ``work_item``'s own step-plan rows after them, and the run's ``targets``."""
-    rows, targets = _test_strategy_layers(state)
+    """The run's merged ``test_layers`` and merged ``targets`` (``test-strategy`` + ``step-plan`` updates)."""
+    rows, _targets = _test_strategy_layers(state)
     action = planning_revision.current_actions(state).get((work_item, "step-plan")) if work_item else None
     plan = (state.get("accepted") or {}).get(action) if action else None
     own = plan.get("test_layers") if isinstance(plan, Mapping) else None
-    return [*(rows or ()), *(own or ())], list(targets or ())
+    return _merge_layer_rows(rows, own), list(test_loop._all_targets(state))
 
 
 def _layer_lines(state: Mapping[str, Any], work_item: str | None) -> fields.Shown:
@@ -3848,7 +3954,14 @@ def write_field_files(root: Path, state: Mapping[str, Any]) -> None:
     """Write the RUN/fields files that ``field_files`` derives from state, each only when it is missing or differs: the
     whole text of every field the current packet or its Improve handoff prints cut (``shiploop_fields``).  ``emit`` and
     the ``context`` command call it before they print, so a packet never names a file that is not there."""
-    for relative, text in field_files(state).items():
+    files = dict(field_files(state))
+    if state.get("status") == "active" and not state.get("active_improve"):
+        stage, action, workitem = _active_cursor(state)
+        if stage == "test" and isinstance(action, Mapping) and workitem:
+            patch, _why = item_scope.changed_patch_or_reason(root, str(workitem))
+            if patch:
+                files["fields/" + str(action["id"]) + "-product-diff.patch"] = patch
+    for relative, text in files.items():
         target = Path(root) / relative
         if target.is_file():
             with open(target, encoding="utf-8", newline="") as handle:   # no newline translation: a CRLF field matches
@@ -3894,21 +4007,23 @@ def _check_submitted_layers(state: Mapping[str, Any], stage: str, result: Any) -
         own = layers.canonical_rows(result.get("test_layers", []))
         if own:
             layers.check_rows(own)
+        own_targets = layers.canonical_targets(result.get("targets", [])) if "targets" in result else []
+        merged_targets = _merge_target_rows(test_loop._all_targets(state) or targets, own_targets)
         code = item_scope.behavioural_paths(result.get("paths") or ())
         _need("test_layers_na" not in _test_strategy_result(state) or bool(own) or not code,
               "the run recorded no test layers (test_layers_na), but this item's paths hold code ("
               + ", ".join(code[:5]) + "): list the item's own rows in test_layers, " + layers.ROW_SHAPE)
         criteria = [row for row in result.get("criteria") or () if isinstance(row, Mapping)]
         commands = [row for row in result.get("test_commands") or () if isinstance(row, Mapping)]
-        # F3: a command names the test-strategy target it runs on; one on a target that keeps state is remote.
-        named = sorted({str(row.get("target")) for row in targets or () if isinstance(row, Mapping)})
+        # F3: a command names a test-strategy or step-plan target it runs on; one on a target that keeps state is remote.
+        named = sorted({str(row.get("target")) for row in merged_targets if isinstance(row, Mapping)})
         for row in commands:
             _need(not row.get("target") or row.get("target") in named,
                   "test command `" + str(row.get("command")) + "` names target `" + str(row.get("target")) + "`, which "
                   "is no test-strategy targets row (" + (", ".join(named) or "none recorded") + "). Name one of "
                   "those rows, or leave target out for a command that runs on the checkout. Then run the same "
                   "callback again")
-        layers.check_confirms(criteria, [*(run_rows or ()), *own], commands)
+        layers.check_confirms(criteria, _merge_layer_rows(run_rows, own), commands)
     except layers.LayerError as exc:
         raise NavigatorError(str(exc)) from exc
 
@@ -4143,23 +4258,31 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
                            "No entry: " + ", ".join(absent) + "."])
     if stage in assumptions.OPEN_ITEM_STAGES:
         if "assumptions" not in result:
-            return _Fault("Add assumptions to {result}", "adds assumptions",
-                          ['Shape: the open items this stage leaves, or [] when none; each {"id", "assumption", '
-                           '"disposition": "open", "settle", "reason", "due_stage", "owner" (a person, when the duty '
-                           "names one)}. Later stages quote each until its due stage settles it."])
-        wrong = assumptions.wrong_due_stages(result["assumptions"], stage)
-        if wrong:
-            return _Fault("Fix the due stages in {result}", "fixes due stages",
-                          ["Name a later outer stage (or reflect-and-revise, from " + _reflect_and_revise_producers() + ") as each "
-                           "open item's due_stage; work for a later item goes in reflect-and-revise's work_items.",
-                           "; ".join(ident + " names '" + due_stage + "'" for ident, due_stage in wrong)
-                           + "; the allowed due stages are " + ", ".join(assumptions.allowed_due_stages(stage)) + "."])
-        try:
-            assumptions.check_files(result["assumptions"])
-        except assumptions.AssumptionError as exc:
-            return _Fault("Fix the evidence in {result}", "fixes evidence",
-                          ["Every local evidence path an assumption cites must exist; a probed one cites its saved output.",
-                           str(exc) + "."])
+            if stage not in assumptions.OPTIONAL_OPEN_ITEM_STAGES:
+                return _Fault("Add assumptions to {result}", "adds assumptions",
+                              ['Shape: the open items this stage leaves, or [] when none; each {"id", "assumption", '
+                               '"disposition": "open", "settle", "reason", "due_stage", "owner" (a person, when the duty '
+                               "names one)}. Later stages quote each until its due stage settles it."])
+        else:
+            wrong = assumptions.wrong_due_stages(result["assumptions"], stage)
+            if wrong:
+                return _Fault("Fix the due stages in {result}", "fixes due stages",
+                              ["Name an allowed due stage (such as reflect-and-revise, from "
+                               + _reflect_and_revise_producers() + ", or a later outer stage; plan/prepare at "
+                               "test-strategy) as each open item's due_stage; work for a later item goes in "
+                               "reflect-and-revise's work_items.",
+                               "; ".join(ident + " names '" + due_stage + "'" for ident, due_stage in wrong)
+                               + "; the allowed due stages are " + ", ".join(assumptions.allowed_due_stages(stage)) + "."])
+            try:
+                assumptions.check_files(result["assumptions"])
+            except assumptions.AssumptionError as exc:
+                return _Fault("Fix the evidence in {result}", "fixes evidence",
+                              ["Every local evidence path an assumption cites must exist; a probed one cites its saved output.",
+                               str(exc) + "."])
+    if stage == item_scope.DOCUMENT_STAGE and "replan_remaining" in result and not _next_step_follows(state, stage):
+        return _Fault("Remove replan_remaining or use send-back in {result}", "removes replan_remaining",
+                      ["replan_remaining is only for a step before the item's last step (other steps remain to "
+                       "re-sequence); at the last step report send-back or emit open items for reflect-and-revise."])
     if stage == "test-spec":
         found = expectations.check_test_cases(root, state, result)
         if found is not None:
@@ -4216,7 +4339,8 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     # Only the fields this gate reads: another field's shape fault stays the refusal of the gate that owns it.
-    projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions") if key in result}
+    projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions", "replan_remaining")
+                 if key in result}
     repo = Path(str(state["repo"]))
     hint = (expectations.requirement_ids_text(repo, str(repo / knowledge.HOME / "spec.md"))
             if stage == "test-spec" and "test_cases" in projected else "")
@@ -4491,6 +4615,15 @@ def _apply_result(state: Mapping[str, Any], action_id: str, result: Any, improve
             updated["stage"] = next_stage
             updated["action"] = _new_action(next_stage)
             updated["status"] = "done" if next_stage == "done" else "active"
+        validate(updated)
+        return updated
+
+    if _is_inner_root(updated) and stage == item_scope.DOCUMENT_STAGE and "replan_remaining" in canonical:
+        # Commit-then-amend fix-forward: Sk finished (commit runs on accept); increment revisions and return to step-plan
+        # keeping S1..Sk marked done so only S(k+1)..Sn re-sequence.
+        current_id = updated["work_items"][updated["work_index"]]["id"]
+        updated["revisions"][current_id] = updated["revisions"].get(current_id, 0) + 1
+        _replace_inner_action(updated, stage_spec.SEND_BACK_TO)
         validate(updated)
         return updated
 
@@ -4836,6 +4969,7 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     after, writes = _validate_existing_entry(root, before, after)
     after = _document_entry(root, after)
     after = _step_entry(root, before, after)
+    after = _test_entry(root, before, after)
     # The step's commit stage runs against its own base, before the next step's base replaces it.  Its records are saved
     # with the state they advance.
     writes = {**writes, **_commit_stage(root, before, after)}
@@ -4851,25 +4985,68 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
 
 
 def _iteration_base(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> dict[str, str]:
-    """Recapture the item's base (``lint.capture_base``) when the run advances from a step's document stage to the next
-    step's build, so every later reader of the base (the lint gate, the mutation check, the base test run, document's
-    left-out rule, the commit scope and the step review's diff) reads this step's change alone (design T §8).
-
-    The record is written at once, because this transition's own lint pass reads it, and returned for the save.  The
-    first step keeps the base captured when the item began; a step entered again after a send-back keeps its base, so
-    edits the send-back left stay that step's change instead of vanishing into its base (design T §9 row 5)."""
+    """Recapture the item's base (``lint.capture_base``) when the run advances from a step's committed document stage
+    to the next step's build or a fix-forward step-plan (commit-then-amend), so every later reader of the base reads
+    only subsequent steps' changes."""
     stage, action, item = _active_cursor(after)
-    if (stage != "implement" or item is None or after.get("status") != "active" or before.get("status") != "active"
-            or not _is_inner_root(before)):
+    if (stage not in ("implement", stage_spec.SEND_BACK_TO) or item is None or after.get("status") != "active"
+            or before.get("status") != "active" or not _is_inner_root(before)):
         return {}
     prior_stage, prior, prior_item = _active_cursor(before)
     if prior_item != item or prior_stage != "document" or (isinstance(prior, Mapping) and isinstance(action, Mapping)
                                                             and prior.get("id") == action.get("id")):
         return {}
+    if stage == stage_spec.SEND_BACK_TO:
+        prior_id = prior.get("id") if isinstance(prior, Mapping) else None
+        accepted = (after.get("accepted") or {}).get(prior_id) if prior_id else None
+        if not isinstance(accepted, Mapping) or accepted.get("outcome") != "done":
+            return {}
     writes = lint.capture_base(root, Path(after["repo"]), str(item))
     for relative, text in writes.items():
         store.atomic_write_text(Path(root) / relative, text)
     return writes
+
+
+def _test_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """Snapshot the tree a step's test stage starts from on its action record (``entry``) so done detects product edits."""
+    stage, action, workitem = _active_cursor(after)
+    if (stage != "test" or not isinstance(action, Mapping) or "entry" in action or after.get("active_improve")
+            or after.get("status") != "active" or workitem is None):
+        return after
+    prior = _active_cursor(before)[1] if before.get("status") == "active" else None
+    if isinstance(prior, Mapping) and prior.get("id") == action["id"]:
+        return after
+    tree = improve_changes.snapshot_tree(Path(root), Path(after["repo"]))
+    if not tree:
+        return after
+    advanced = deepcopy(after)
+    advanced["inner_loops"][workitem]["action"] = {**action, "entry": tree}
+    return advanced
+
+
+def _test_edited_product_code(root: Path, state: Mapping[str, Any], workitem: Any) -> bool:
+    """True when the active test action modified or deleted existing product code since entering the test stage."""
+    if "stage" not in state or "repo" not in state:
+        return False
+    stage, action, _item = _active_cursor(state)
+    entry = action.get("entry") if isinstance(action, Mapping) else None
+    if stage != "test" or not entry or not workitem:
+        return False
+    repo = Path(state["repo"])
+    current = improve_changes.snapshot_tree(Path(root), repo)
+    if not current or current == str(entry):
+        return False
+    try:
+        diff = lint._git(repo, "diff-tree", "-r", "--no-commit-id", "--name-status", str(entry), str(current))
+    except lint.LintError:
+        return False
+    for line in diff.stdout.decode("utf-8", "replace").splitlines():
+        if "\t" not in line:
+            continue
+        status_code, path = line.split("\t", 1)
+        if status_code[:1] in ("M", "D") and item_scope.classify(path) == "code" and not path.startswith("docs/shiploop/"):
+            return True
+    return False
 
 
 def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) -> dict[str, Any]:
@@ -5131,9 +5308,10 @@ def _test_loop_gate(root: Path, state: Mapping[str, Any], action_id: str, stage:
 
 
 def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, workitem: str | None,
-                     submitted: Any, *, count: bool = True) -> list[str]:
-    """Accept an implement step's done only after ShipLoop runs the step's Proof on the candidate (implement-step fix
-    plan section 4.1, unit W2-A); return its ``Gates:`` line.
+                     submitted: Any, *, count: bool = True,
+                     stage: str = test_loop.STEP_PROOF_STAGES[0]) -> list[str]:
+    """Accept an implement (or code-editing test) step's done only after ShipLoop runs the step's Proof on the
+    candidate (implement-step fix plan section 4.1, unit W2-A); return its ``Gates:`` line.
 
     A refusal names both routes through the loop with its literal start command: fix the work and report done, or, when
     the Proof cannot assess the step as planned, stop the loop blocked and report send-back.  ``count`` False (the check)
@@ -5141,7 +5319,7 @@ def _step_proof_gate(core: Any, root: Path, state: Mapping[str, Any], action_id:
     if (not isinstance(submitted, Mapping) or submitted.get("outcome") != "done"
             or step_view(state, workitem) is None):
         return []
-    writes, refusal, lines = test_loop.step_proof(root, state, workitem or "", action_id, count=count)
+    writes, refusal, lines = test_loop.step_proof(root, state, workitem or "", action_id, count=count, stage=stage)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     if refusal:
@@ -5696,7 +5874,7 @@ def _required_handoff_keys(stage: str, state: Mapping[str, Any] | None = None) -
     """The hand-off fields a done result of ``stage`` must carry (consumer contract section 3), the step notes among
     them: ShipLoop commits the steps one by one (``_commit_stage``)."""
     keys = [key for key, owner in HANDOFF_FIELDS.items() if owner == stage and key not in _OPTIONAL_HANDOFF]
-    if stage in assumptions.OPEN_ITEM_STAGES and stage != "plan":
+    if stage in assumptions.OPEN_ITEM_STAGES and stage != "plan" and stage not in assumptions.OPTIONAL_OPEN_ITEM_STAGES:
         keys.append("assumptions")
     return keys
 
@@ -7595,10 +7773,18 @@ def _stage_gates(stage: str, state: Mapping[str, Any], *, notes_owed: bool = Fal
                      "open assumption without a due_item naming a work item in this plan, or drops an intake "
                      "experiment-routed question")
     elif stage in assumptions.OPEN_ITEM_STAGES:
-        gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item due at "
-                     "a stage that is not a later outer stage"
-                     + (" or this item's reflect-and-revise" if stage in assumptions.REFLECT_AND_REVISE_PRODUCERS else "")
-                     + ", or evidence files that do not exist")
+        if stage in assumptions.OPTIONAL_OPEN_ITEM_STAGES:
+            gates.append("an assumptions open item due at a stage that is not a later outer stage"
+                         + (" or this item's reflect-and-revise"
+                            if stage in assumptions.REFLECT_AND_REVISE_PRODUCERS else "")
+                         + (", plan, or prepare" if stage == "test-strategy" else "")
+                         + ", or evidence files that do not exist")
+        else:
+            gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item due at "
+                         "a stage that is not a later outer stage"
+                         + (" or this item's reflect-and-revise"
+                            if stage in assumptions.REFLECT_AND_REVISE_PRODUCERS else "")
+                         + ", or evidence files that do not exist")
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
         gates.append("a focused command that only reruns an earlier item's test IDs, starts with a file guard, or lacks "
@@ -7828,14 +8014,141 @@ def _unnamed_command_lines(root: Path, state: Mapping[str, Any], work_item: str 
             + ". Write each under ## Commands, or say in the summary why one does not belong."]
 
 
+def _format_finding(item: str, row: Mapping[str, Any]) -> str:
+    return ("- [" + str(row.get("impact")) + "] " + item + " " + str(row.get("id")) + ": "
+            + _one_line(row.get("finding")) + " | evidence: " + _one_line(row.get("evidence"))
+            + " | next: " + _one_line(row.get("next_step")))
+
+
+def _test_evidence_lines(root: Path, state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
+    """Progressive test evidence forwarded cleanly when present (empty when clean so clean packets stay compact)."""
+    if state["status"] != "active" or state.get("active_improve"):
+        return []
+    current = planning_revision.current_actions(state)
+    accepted = state.get("accepted") or {}
+    lines: list[str] = []
+    if stage in ("plan", "prepare"):
+        due = [found for found in assumptions.open_items(state)
+               if found.stage == "test-strategy" and found.row.get("due_stage") == stage]
+        if due:
+            lines.append("Test-strategy open items due here (`due: " + stage + "`):")
+            for item in due:
+                row = item.row
+                lines.append("- " + str(row.get("id")) + ": " + _one_line(row.get("assumption"))
+                             + " | settle: " + _one_line(row.get("settle"))
+                             + " | reason: " + _one_line(row.get("reason")))
+        return lines
+    if stage == "test-strategy":
+        intake_action = current.get((None, "intake"))
+        intake_res = accepted.get(intake_action) if intake_action else None
+        questions = intake_res.get("questions") if isinstance(intake_res, Mapping) else None
+        if isinstance(questions, list) and questions:
+            rows = []
+            for row in questions:
+                if isinstance(row, Mapping):
+                    qid = str(row.get("id") or row.get("category") or "Q")
+                    qtext = _one_line(row.get("question") or row.get("text") or row.get("summary") or json.dumps(row))
+                    rows.append("- " + qid + ": " + qtext)
+            if rows:
+                lines.append("Intake questions & open risks (plan experiments or due_stage assumptions around these):")
+                lines.extend(rows)
+        return lines
+    if stage == "step-plan" and work_item is not None:
+        completed = [str(ident) for ident in state.get("completed_work_items") or ()]
+        if completed:
+            inherited: list[str] = []
+            seen_cmd: set[str] = set()
+            for prev_item in completed:
+                plan_action, plan = test_loop._step_plan(state, prev_item)
+                reg_cmds = {str(r.get("command")) for r in (plan.get("test_commands") or () if plan_action else ())
+                            if isinstance(r, Mapping) and r.get("suite") == "regression" and r.get("command")}
+                passed = _passed_commands(root, state, prev_item)
+                cmds = [cmd for cmd in (passed or sorted(reg_cmds)) if cmd in reg_cmds] if reg_cmds else (passed or [])
+                for cmd in cmds:
+                    if cmd not in seen_cmd:
+                        seen_cmd.add(cmd)
+                        inherited.append(f"- `{cmd}` (from {prev_item})")
+            if inherited:
+                lines.append("Inherited passing regression commands from earlier items (carry into `test_commands` or explain "
+                             "supersession in `summary`):")
+                lines.extend(inherited)
+        if state.get("revisions", {}).get(work_item):
+            findings: list[str] = []
+            for action in planning_revision.step_actions(state, work_item, "test"):
+                res = accepted.get(action)
+                for row in (res.get("test_findings") or () if isinstance(res, Mapping) else ()):
+                    if isinstance(row, Mapping):
+                        findings.append(_format_finding(work_item, row))
+            if findings:
+                lines.append("Test findings from earlier steps of " + work_item + ":")
+                lines.extend(findings)
+        return lines
+    if stage == item_scope.DOCUMENT_STAGE and work_item is not None:
+        action = current.get((work_item, "test"))
+        res = accepted.get(action) if action else None
+        rows = [row for row in (res.get("test_findings") or () if isinstance(res, Mapping) else ())
+                if isinstance(row, Mapping)]
+        if rows:
+            lines.append("Test findings reported at this step's test stage (`test_findings`):")
+            lines.extend(_format_finding(work_item, row) for row in rows)
+        return lines
+    if stage == "reflect-and-revise" and work_item is not None:
+        findings = []
+        for action in planning_revision.step_actions(state, work_item, "test"):
+            res = accepted.get(action)
+            for row in (res.get("test_findings") or () if isinstance(res, Mapping) else ()):
+                if isinstance(row, Mapping):
+                    findings.append(_format_finding(work_item, row))
+        if findings:
+            lines.append("Test findings recorded in " + work_item + ":")
+            lines.extend(findings)
+        return lines
+    if stage in ("system-test-author", "system-test"):
+        findings = []
+        not_ex: list[str] = []
+        for done_item in state.get("completed_work_items") or ():
+            item_id = str(done_item)
+            for action in planning_revision.step_actions(state, item_id, "test"):
+                res = accepted.get(action)
+                if not isinstance(res, Mapping):
+                    continue
+                for row in res.get("test_findings") or ():
+                    if isinstance(row, Mapping):
+                        findings.append(_format_finding(item_id, row))
+                for disp in res.get("mutant_dispositions") or ():
+                    if isinstance(disp, Mapping) and disp.get("disposition") == "not-exercisable":
+                        not_ex.append("- " + item_id + " " + _one_line(disp.get("mutant"))
+                                      + " (" + _one_line(disp.get("evidence")) + ")")
+        if findings:
+            lines.append("Forwarded inner test findings (`test_findings`):")
+            lines.extend(findings)
+        if not_ex:
+            lines.append("Mutants marked `not-exercisable` in inner tests (cover or carry open):")
+            lines.extend(not_ex)
+        return lines
+    return lines
+
+
 def _commit_scope_lines(root: Path, state: Mapping[str, Any], stage: str, work_item: str | None) -> list[str]:
-    """At document, the item's declared paths, its changed paths (``CHANGED_SINCE_BASE``), which duty 1 lists behaviours
-    from (plan row TD-8), and any changed file the commit stage will leave.
+    """At test: changed paths + full product-code diff patch path; at document: declared paths, changed paths
+    (``CHANGED_SINCE_BASE``), and any changed file the commit stage will leave.
 
     The lists come from ``item_scope.commit_scope``, the rule ``commit_item`` applies, so the packet names the
     files before the commit and the notice after it names the same ones.  Unknown changes print nothing.
     """
-    if state["status"] != "active" or state.get("active_improve") or work_item is None or stage != "document":
+    if state["status"] != "active" or state.get("active_improve") or work_item is None:
+        return []
+    if stage == "test":
+        allowed = item_scope.declared(state, work_item)
+        changed, why = item_scope.changed_paths_or_reason(root, work_item)
+        lines = [CHANGED_SINCE_BASE + (("not computed: " + why) if changed is None else _against_plan(changed, allowed))]
+        action = current_action(state)
+        patch, _pwhy = item_scope.changed_patch_or_reason(root, work_item)
+        if patch and isinstance(action, Mapping) and action.get("id"):
+            lines.append("Product diff patch: RUN/fields/" + str(action["id"])
+                         + "-product-diff.patch (inspect before writing tests).")
+        return lines
+    if stage != "document":
         return []
     allowed = item_scope.declared(state, work_item)
     lines = ["Step plan paths: " + (", ".join(allowed) or "none declared")]
@@ -10460,6 +10773,10 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
         _lint_gate(core, root, state, action_id, stage, workitem, submitted, count=count)
     if stage in test_loop.STAGES:
         gate_lines = _test_loop_gate(root, state, action_id, stage, workitem, submitted, count=count)
+        if (isinstance(submitted, Mapping) and submitted.get("outcome") == "done"
+                and _test_edited_product_code(root, state, workitem)):
+            gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, workitem, submitted,
+                                                       count=count, stage="test")
     elif stage in test_loop.RERUN_STAGES:
         _test_rerun_gate(root, state, action_id, stage, workitem, submitted, count=count)
     if stage in test_loop.STEP_PROOF_STAGES:

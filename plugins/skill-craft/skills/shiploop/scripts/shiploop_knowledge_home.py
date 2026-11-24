@@ -97,7 +97,7 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "step-plan": (ARCHITECTURE, "environment.md"),
     "validate-existing": ("environment.md",),
     "implement": ("environment.md", ARCHITECTURE),
-    "test": ("environment.md",),
+    "test": ("environment.md", ARCHITECTURE),
     "document": ("spec.md", ARCHITECTURE, "environment.md"),
     "reflect-and-revise": (ARCHITECTURE, "environment.md"),
     "system-test-author": ("environment.md",),

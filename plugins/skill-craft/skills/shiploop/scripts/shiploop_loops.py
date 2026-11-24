@@ -91,10 +91,11 @@ WORK: Mapping[str, str] = {
         "{run}/packets/{action}.md for it; then rerun every expectation's check."),
     "implement": WORK_STEP,
     "test": (
-        "Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet until every case "
-        "is a passing test the focused command runs; write each test change's independent reason in "
-        "{run}/notes/{action}.md; then " + _CHECK + " (it runs the base run, the candidate run and the mutation "
-        "check without counting)."),
+        "Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet and every "
+        "`not_covered` edge (inspecting the implementation diff, running focused/regression commands, and triaging "
+        "discoveries into local fixes, `test_findings`, `assumptions`, or send-back) until every case is a passing "
+        "test the focused command runs; write each test change's independent reason in {run}/notes/{action}.md; then "
+        + _CHECK + " (it runs the base run, the candidate run and the mutation check without counting)."),
     "document": (
         "Do duty items {items} of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
     "reflect-and-revise": (
@@ -137,12 +138,14 @@ REPEAT: Mapping[str, str] = {
         "fix or a fact that changes the plan, and blocked for a fix outside this run. " + _NEVER_CANCEL),
     "implement": REPEAT_STEP,
     "test": (
-        "Repeat while a case has no test or the latest iteration found a failing command, a missing ID, a count "
-        "below the floor, a new ID passing on the base, a lint finding or a refusal from the check, and changed code or "
-        "tests to fix it; "
-        + _NO_LIMIT + " Stop blocked when a failure is proven unachievable (it contradicts the specification or "
-        "another requirement, needs a tool, access or authority that is absent, or would exceed the item), or "
-        "when a recorded command cannot run here. " + _NEVER_CANCEL),
+        "Repeat while a case or `not_covered` edge lacks a test, or the latest iteration found a failing command, a "
+        "missing ID, a count below the floor, a new ID passing on the base, a surviving mutant, a lint finding or a "
+        "refusal from the check, fixing defects (and re-running the step Proof if code changed) and triaging "
+        "discoveries; "
+        + _NO_LIMIT + " Stop blocked when a failure is proven unachievable in this step or item (contradicts the "
+        "specification or another requirement, needs a tool, access or authority that is absent, or would exceed the "
+        "item -> send-back; user decision/access -> blocked), or when a recorded command cannot run here. "
+        + _NEVER_CANCEL),
     "document": (
         "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong "
         "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it), or when a "

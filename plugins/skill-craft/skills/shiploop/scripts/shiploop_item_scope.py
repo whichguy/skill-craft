@@ -381,6 +381,42 @@ def changed_since(run_dir: Path, base: Optional[Mapping[str, Any]], *,
                   if path.startswith(lead) and not lint._runtime_path(path))
 
 
+def changed_patch_or_reason(run_dir: Path, work_item: str, *,
+                            timeout: float = 60.0) -> Tuple[Optional[str], str]:
+    """(unified product-code diff patch against base, '') when readable, else (None, NO_BASE or UNREADABLE)."""
+    base = lint.read_base(Path(run_dir), work_item)
+    if not base or not base.get("toplevel") or not base.get("tree"):
+        return None, NO_BASE
+    top = Path(base["toplevel"])
+    prefix = str(base.get("prefix") or ".")
+    index = Path(run_dir) / "lint" / "tmp" / ("patch-" + uuid.uuid4().hex + ".index")
+    try:
+        current = lint.snapshot_tree(top, Path(run_dir), index, prefix=prefix, timeout=timeout)
+    except lint.LintError:
+        return None, UNREADABLE
+    finally:
+        if index.exists():
+            index.unlink()
+    names = lint._git(top, "diff-tree", "-r", "-z", "--no-renames", "--name-only", base["tree"], current,
+                      timeout=timeout)
+    if names.returncode:
+        return None, UNREADABLE
+    lead = "" if prefix in (".", "") else prefix.rstrip("/") + "/"
+    raw_paths = [raw.decode("utf-8", "surrogateescape") for raw in names.stdout.split(b"\0") if raw]
+    rel_paths = [path[len(lead):] for path in raw_paths
+                 if path.startswith(lead) and not lint._runtime_path(path)]
+    product = [path for path in behavioural_paths(rel_paths)
+               if classify(path) != "test" and not path.startswith("docs/shiploop/")]
+    if not product:
+        return "", ""
+    git_paths = [lead + path for path in product]
+    result = lint._git(top, "diff-tree", "-r", "-p", "-U3", "--no-renames", base["tree"], current, "--", *git_paths,
+                       timeout=timeout)
+    if result.returncode:
+        return None, UNREADABLE
+    return result.stdout.decode("utf-8", "replace"), ""
+
+
 def outside(paths: Sequence[str], allowed: Sequence[str]) -> List[str]:
     """Changed paths that match none of the declared paths or globs (ShipLoop's knowledge home aside)."""
     return [path for path in paths if not path.startswith("docs/shiploop/") and not any(path == rule or _matches(path, rule)
