@@ -786,7 +786,8 @@ _HEADING_FILES = ("environment.md", ARCHITECTURE)
 _LIVE_SECTION = {"spec.md": "Requirements", ARCHITECTURE: "Decisions"}
 _MOVED_SECTION = {name: section for name, _, _, _, section in _RETAINED}
 # Standing headings permitted in placement checks without making them mandatory in SECTIONS (17c7fa8ef X11).
-_OPTIONAL_SECTIONS: Dict[str, Tuple[str, ...]] = {"environment.md": ("Delivery", "Release")}
+# Note: "Release and promotion" is canonical in SECTIONS["environment.md"], so stage-report headings like "## Release plan" must still warn.
+_OPTIONAL_SECTIONS: Dict[str, Tuple[str, ...]] = {"environment.md": ("Delivery",)}
 _TRANSIENT_PATH_TOKEN = re.compile(r"\S*(?:\.shiploop-runs/|\.shiploop-improve/|/tmp/shiploop-)\S*")
 
 

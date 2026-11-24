@@ -1542,10 +1542,8 @@ class PlacementNoticeTests(HomeFixture):
             "ShipLoop placement notice: " + str(path) + " gained new headings 'Commands (release)' that match no named section "
             "or repeat one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
 
-    def test_optional_delivery_and_release_headings_are_allowed_unless_repeated(self) -> None:
+    def test_optional_delivery_heading_is_allowed_unless_repeated(self) -> None:
         self.previous()
-        self.append("environment.md", "\n## Release procedure\n\nnpm run release\n")
-        self.assertEqual(self.notices(), [])
         self.append("environment.md", "\n## Delivery\n\nnpm run deploy\n")
         self.assertEqual(self.notices(), [])
         path = self.append("environment.md", "\n## Delivery (extra)\n\nnpm run deploy:extra\n")
