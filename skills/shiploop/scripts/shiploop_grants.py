@@ -102,6 +102,9 @@ def _fixes(grants: Sequence[Path]) -> List[Tuple[str, str]]:
         ("cursor", "Cursor - in cursor-agent CLI pass "
          + " ".join(f"--add-dir {quoted_dir}" for quoted_dir in quoted)
          + " (or --sandbox disabled when permitted); in Cursor IDE allow write access to those directories and rerun."),
+        ("antigravity", "Antigravity - restart with agy "
+         + " ".join(f"--add-dir {quoted_dir}" for quoted_dir in quoted)
+         + " (or allow write access to those directories in Antigravity settings) and rerun."),
     ]
 
 

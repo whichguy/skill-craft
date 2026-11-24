@@ -1623,6 +1623,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             "cursor": "Host hint (cursor, pilot-ide):",
             "grok": "Host hint (grok):",
             "opencode": "Host hint (opencode, unqualified):",
+            "antigravity": "Host hint (antigravity):",
             "unknown": "Host hint (unknown):",
         }
         state = nav.new_state(str(self.repo), "All-host agents check.", delegation="agents")

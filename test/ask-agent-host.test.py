@@ -83,6 +83,10 @@ class HostCommandTests(unittest.TestCase):
             ({"CURSOR_CONVERSATION_ID": "c1", "GROK_AGENT": "1"}, "grok", ["CURSOR_CONVERSATION_ID"]),
             ({"CURSOR_AGENT": "1", "OPENCODE": "1"}, "opencode", ["CURSOR_AGENT"]),
             ({"CLAUDECODE": "1", "OPENCODE": "1"}, "opencode", ["CLAUDECODE"]),
+            ({"ANTIGRAVITY_AGENT": "1", "CODEX_THREAD_ID": "t"}, "codex", ["ANTIGRAVITY_AGENT"]),
+            ({"ANTIGRAVITY_AGENT": "1", "CLAUDECODE": "1"}, "claude", ["ANTIGRAVITY_AGENT"]),
+            ({"ANTIGRAVITY_CONVERSATION_ID": "c1", "GROK_AGENT": "1"}, "grok", ["ANTIGRAVITY_CONVERSATION_ID"]),
+            ({"ANTIGRAVITY_AGENT": "1", "CURSOR_AGENT": "1"}, "cursor", ["ANTIGRAVITY_AGENT"]),
         ]
         for environ, host, others in cases:
             with self.subTest(environ=environ):
@@ -99,6 +103,8 @@ class HostCommandTests(unittest.TestCase):
         self.assertEqual(self.report(CODEX_THREAD_ID="")["host"], "unknown")
         self.assertEqual(self.report(GROK_AGENT="", CLAUDECODE="1")["host"], "claude")
         self.assertEqual(self.report(CURSOR_AGENT="", CURSOR_CONVERSATION_ID="")["host"], "unknown")
+        self.assertEqual(self.report(ANTIGRAVITY_AGENT="", ANTIGRAVITY_CONVERSATION_ID="")["host"], "unknown")
+        self.assertEqual(self.report(ANTIGRAVITY_AGENT="1")["host"], "antigravity")
 
     def test_unknown_host_has_no_binding_and_points_to_the_prose(self) -> None:
         found = self.report(PATH="/usr/bin", TERM="xterm")
@@ -127,10 +133,12 @@ class HostCommandTests(unittest.TestCase):
         self.assertTrue(self.sl_bindings.supports_fork("cursor"))
         self.assertFalse(self.sl_bindings.supports_fork("grok"))
         self.assertFalse(self.sl_bindings.supports_fork("opencode"))
+        self.assertFalse(self.sl_bindings.supports_fork("antigravity"))
         self.assertFalse(self.sl_bindings.supports_fork("unknown"))
         self.assertEqual(self.sl_bindings.worker_capacity("codex"), 3)
         self.assertEqual(self.sl_bindings.worker_capacity("claude"), 4)
         self.assertEqual(self.sl_bindings.worker_capacity("cursor"), 4)
+        self.assertEqual(self.sl_bindings.worker_capacity("antigravity"), 4)
 
         codex_hint = self.sl_bindings.host_hint({"CODEX_THREAD_ID": "t1"}, worktree="/tmp/wt")
         self.assertIn("Host hint (codex):", codex_hint)
@@ -150,6 +158,12 @@ class HostCommandTests(unittest.TestCase):
         override_hint = self.sl_bindings.host_hint({"CODEX_THREAD_ID": "t1"}, host_override="claude", worktree="/tmp/wt")
         self.assertIn("Host hint (claude):", override_hint)
         self.assertIn('cd "/tmp/wt" &&', override_hint)
+
+        agy_hint = self.sl_bindings.host_hint({"ANTIGRAVITY_AGENT": "1"}, worktree="/tmp/wt")
+        self.assertIn("Host hint (antigravity):", agy_hint)
+        self.assertIn("invoke_subagent", agy_hint)
+        self.assertIn('Workspace="inherit"', agy_hint)
+        self.assertIn('cd "/tmp/wt" &&', agy_hint)
 
         unknown_hint = self.sl_bindings.host_hint({})
         self.assertIn("Host hint (unknown):", unknown_hint)
@@ -209,8 +223,8 @@ class BindingDataTests(unittest.TestCase):
                 elif binding["status"] == "pilot-ide":
                     self.assertTrue(binding["tested"])
                 self.assertTrue(binding["tools"]["spawn"] and all(isinstance(t, str) and t for group in binding["tools"].values() for t in group))
-                self.assertIn(binding["serial_mode"], ("foreground", "async-wait"))
-                self.assertIn(binding["parallel_mode"], ("foreground", "async-wait"))
+                self.assertIn(binding["serial_mode"], ("foreground", "async-wait", "async-reactive"))
+                self.assertIn(binding["parallel_mode"], ("foreground", "async-wait", "async-reactive"))
                 self.assertIsInstance(binding["cwd_on_spawn"], bool)
                 self.assertIsInstance(binding["spawn_arguments"], dict)
                 self.assertIsInstance(binding["fresh_args"], dict)

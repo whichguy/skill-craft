@@ -15,7 +15,7 @@ from typing import Any, Mapping, Optional
 
 DATA = Path(__file__).resolve().parent.parent / "references" / "host-bindings.json"
 SCHEMA = "skill-craft/host-bindings/v2"
-KNOWN_HOSTS = ("codex", "grok", "opencode", "claude", "cursor", "unknown")
+KNOWN_HOSTS = ("codex", "grok", "opencode", "claude", "cursor", "antigravity", "unknown")
 
 
 @functools.lru_cache(maxsize=4)

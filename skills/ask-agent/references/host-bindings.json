@@ -6,14 +6,15 @@
     "authority": "The live native tool schema wins over this file: where they differ, follow the live schema and disclose the difference."
   },
   "detect": {
-    "order": ["codex", "grok", "opencode", "claude", "cursor"],
+    "order": ["codex", "grok", "opencode", "claude", "cursor", "antigravity"],
     "why": "innermost host first: a nested host inherits its launcher's variables",
     "markers": {
       "codex": ["CODEX_SANDBOX", "CODEX_THREAD_ID"],
       "grok": ["GROK_AGENT", "GROK_SESSION_ID", "GROK_SANDBOX"],
       "opencode": ["OPENCODE"],
       "claude": ["CLAUDECODE"],
-      "cursor": ["CURSOR_AGENT", "CURSOR_CONVERSATION_ID"]
+      "cursor": ["CURSOR_AGENT", "CURSOR_CONVERSATION_ID"],
+      "antigravity": ["ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID"]
     },
     "exact_names_only": "Never match a prefix: Codex plugin variables (CODEX_COMPANION_*) are set in Claude Code and Grok sessions."
   },
@@ -117,6 +118,26 @@
       "observation_timeout_ms": null,
       "capacity": null,
       "hint": "Use task without task_id and set workdir on every bash call; background fan-out requires a persistent TUI with OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true (otherwise run serially)."
+    },
+    "antigravity": {
+      "name": "Antigravity",
+      "section": "references/host-capabilities.md#antigravity",
+      "status": "qualified",
+      "tested": ["1.1.2"],
+      "tools": {"spawn": ["invoke_subagent"], "stop": ["manage_subagents"]},
+      "worker_type": "self",
+      "serial_mode": "async-reactive",
+      "parallel_mode": "async-reactive",
+      "cwd_on_spawn": false,
+      "spawn_arguments": {"TypeName": "self", "Workspace": "inherit"},
+      "fresh_args": {"TypeName": "self", "Workspace": "inherit"},
+      "fork_args": null,
+      "background_args": {"TypeName": "self", "Workspace": "inherit"},
+      "forbidden_fresh_args": [],
+      "collect": "invoke_subagent returns conversationId asynchronously and wakes the parent reactively when finished (end your turn with no tool calls to wait; do not poll)",
+      "observation_timeout_ms": null,
+      "capacity": null,
+      "hint": "Use invoke_subagent with TypeName=\"self\", Workspace=\"inherit\" (no branch/share, no fork: pass inline context, no swarm unprompted); end turn to wait; prefix shell calls with cd \"<WORKTREE>\" &&, absolute paths."
     }
   }
 }

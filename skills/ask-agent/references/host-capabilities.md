@@ -235,6 +235,20 @@ support claims based on process exit or later resume.
 [Versioned task implementation](https://raw.githubusercontent.com/anomalyco/opencode/v1.18.31/packages/opencode/src/tool/task.ts)
 and [permissions](https://opencode.ai/docs/permissions/).
 
+## Antigravity
+
+Use `invoke_subagent` with `TypeName="self"` and `Workspace="inherit"` (never
+`Workspace="branch"` or `Workspace="share"`): live `agy` 1.1.2 probes confirmed
+`invoke_subagent` starts a fresh context (a parent canary token is absent in
+the child) and returns a `conversationId` asynchronously, waking the parent
+reactively on completion when the parent ends its turn with no tool calls (do
+not poll or run shell `sleep`). Do not call `swarm` unless the user explicitly
+invoked `/swarm`. `invoke_subagent` has no native parent-history fork option, so
+pass essential conversation context inline when a caller asks for a forked
+review. Pass explicit `cd "<WORKTREE>" &&` on every shell command and use
+absolute paths for file tools. Use `send_message` (`Recipient`, `Message`) for
+same-child follow-up and `manage_subagents` to list or stop active subagents.
+
 ## Different machines and client APIs
 
 Cloud/remote execution needs the repository, helper and inputs on the worker's
