@@ -36,6 +36,7 @@ REFLECT_AND_REVISE_PRODUCERS = ("test-spec", "document")
 PER_STEP_STAGES = frozenset(("document",))
 DISPOSITIONS = ("evidenced", "probed", "open")
 _ID = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
+_QUESTION_ID = re.compile(r"^Q\d+$")
 _URL = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://\S+$")
 # The fields each disposition must carry, beyond id, assumption and disposition.
 _FIELDS = {
@@ -47,10 +48,11 @@ _FIELDS = {
 _PLAN_OPEN = frozenset(("settle", "reason", "due_item"))
 _SHAPE = (
     "each assumption is {id, assumption, disposition} plus: evidenced -> evidence "
-    "(list of absolute paths or URLs); probed -> check (the read or command) and "
-    "evidence (its captured output); open -> settle (what would settle it), reason "
+    "(list of absolute paths or URLs); probed -> check (the read or command), "
+    "evidence (its captured output) and, optionally at plan, effect (how the probe changed or confirmed the plan); "
+    "open -> settle (what would settle it), reason "
     "(why it was not run) and, at plan, due_item (the work item that settles or blocks on it) or, at a later stage, "
-    "due_stage (the later stage it is due at)"
+    "due_stage (the later stage it is due at); at plan any row may carry question (an intake Q<n> ID)"
 )
 
 
@@ -94,6 +96,13 @@ def canonical(value: Any, stage: str) -> list[dict[str, Any]]:
                   f"{label}: owner is only for an open item at " + ", ".join(sorted(OPEN_ITEM_STAGES))
                   + "; delete it")
             keys = keys - {"owner"}
+        if "question" in keys:
+            _need(stage == "plan", f"{label}: question is only for a plan assumption; delete it")
+            keys = keys - {"question"}
+        if "effect" in keys:
+            _need(disposition == "probed" and stage == "plan",
+                  f"{label}: effect is only for a probed assumption at plan; delete it")
+            keys = keys - {"effect"}
         _need(keys == required,
               f"{label} ({disposition}) needs exactly {', '.join(sorted(required))}; {_SHAPE}")
         row: dict[str, Any] = {
@@ -111,8 +120,68 @@ def canonical(value: Any, stage: str) -> list[dict[str, Any]]:
                 row[key] = _text(entry[key], f"{label}.{key}")
         if "owner" in entry:
             row["owner"] = _text(entry["owner"], f"{label}.owner (a person)")
+        if "question" in entry:
+            qid = entry["question"]
+            _need(isinstance(qid, str) and _QUESTION_ID.fullmatch(qid) is not None,
+                  f"{label}.question must be an intake question ID such as Q1")
+            row["question"] = qid
+        if "effect" in entry:
+            row["effect"] = _text(entry["effect"], f"{label}.effect")
         rows.append(row)
     return rows
+
+
+def experiment_questions(state: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    """Questions the current accepted intake result routed to ``experiment``, in intake order."""
+    action = planning_revision.current_actions(state).get((None, "intake"))
+    result = (state.get("accepted") or {}).get(action) if action else None
+    if not isinstance(result, Mapping):
+        return []
+    return [row for row in result.get("questions") or ()
+            if isinstance(row, Mapping) and row.get("route") == "experiment" and isinstance(row.get("id"), str)]
+
+
+def check_experiment_questions(rows: List[Mapping[str, Any]], questions: List[Mapping[str, Any]]) -> None:
+    """Refuse a done plan that drops any intake question routed to ``experiment``."""
+    if not questions:
+        return
+    covered = {str(row.get("question")) for row in rows if row.get("question")}
+    missing = [str(row["id"]) for row in questions if str(row["id"]) not in covered]
+    if not missing:
+        return
+    raise AssumptionError(
+        "intake routed experiment question(s) " + ", ".join(missing)
+        + " that no plan assumption accounts for: add a plan assumption row with \"question\": \""
+        + missing[0] + "\" (disposition probed with saved output in RUN/experiments/, evidenced, or open "
+        "with due_item and reason why no probe could settle it now)"
+    )
+
+
+def experiment_question_lines(state: Mapping[str, Any], stage: str) -> List[str]:
+    """Packet lines quoting intake experiment-routed questions and the isolated experiment sandbox."""
+    if stage not in ("research", "plan"):
+        return []
+    questions = experiment_questions(state)
+    lines: List[str] = []
+    if stage == "plan":
+        lines.append("Experiment sandbox: RUN/experiments/<exp-id>/ (or a disposable temp copy outside WORKTREE "
+                     "when code must change; never mutate product files in WORKTREE).")
+    if questions:
+        if stage == "research":
+            lines.append("Intake routed these questions to experiment (settle with a bounded isolated probe under "
+                         "RUN/experiments/ here, or carry them to plan):")
+        else:
+            lines.append('Intake routed these questions to experiment (account for each in `assumptions` with '
+                         '"question": "<Qid>", probed with saved output in RUN/experiments/, evidenced, or open '
+                         'with why no probe could settle it now):')
+        for row in questions:
+            parts = [f"- {row['id']}: {row.get('question', '')}"]
+            if row.get("changes"):
+                parts.append(f"changes: {row['changes']}")
+            if row.get("blocks"):
+                parts.append(f"blocks: {row['blocks']}")
+            lines.append(" | ".join(parts))
+    return lines
 
 
 def check_due_items(current: list[Mapping[str, Any]], items: set[str]) -> None:

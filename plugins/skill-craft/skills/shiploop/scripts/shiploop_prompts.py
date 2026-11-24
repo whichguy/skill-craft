@@ -1255,7 +1255,19 @@ DUTIES = {
    and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
    contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
    boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
-   Before defining dependent work, reuse sufficient current evidence for consequential uncertainty. Run a small representative probe only when it can settle a decision more usefully than reading or conditional planning; first state the alternatives and distinguishing observation. Follow the existing bounded-research guidance (research-loop.md#recursive-discovery-and-experiments) for authorization, pre-probe bounds and accounting, and owned scratch cleanup. For any probe, add only missing command/output links, setup identity, limits and decision consequences to the existing evidence record. Zero probes is valid. Keep unresolved dependencies conditional and independent work eligible. Carry findings and remaining allowance through the existing evidence references; do not reset the same investigation's allowance.
+   Work iteratively inside this stage's Until Loop, prioritizing evidence over forecast:
+   (a) draft or refine a provisional plan (architecture, interfaces, queue);
+   (b) identify every load-bearing assumption and every intake `route: "experiment"` question whose outcome could
+       materially change a decision, interface, dependency order, or feasibility;
+   (c) run each worthwhile experiment in an isolated sandbox under `RUN/experiments/<exp-id>/` (or a disposable temp
+       copy of the repository outside `WORKTREE` when code must change — never mutate product files in `WORKTREE`).
+       Before running, state the decision, alternatives, and distinguishing observation; save the exact command, setup
+       identity, and raw output under `RUN/experiments/<exp-id>/`;
+   (d) fold observed evidence back into `RUN/inbox/<action>.md` and `KNOWLEDGE/architecture.md`, then re-check whether
+       another material experiment remains before marking the loop exit satisfied.
+   Reuse sufficient current evidence; zero experiments is valid when no consequential uncertainty remains (complete on
+   iteration 1). Follow `research-loop.md#recursive-discovery-and-experiments` for authorization, bounds accounting,
+   and scratch cleanup. Keep unresolved dependencies conditional and independent work eligible.
 2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`
    (item 17). Order readiness, implementation, integration and release so no consumer runs before its
    prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
@@ -1266,7 +1278,8 @@ DUTIES = {
    need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
    platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
-   `{id, applies: "no", reason}`; one clause each; capture promotion, migration and settings choices in switchover, migrate-before/after and config.
+   `{id, applies: "no", reason}`; one clause each; capture promotion, migration and settings choices in switchover,
+   migrate-before/after and config. In multi-item plans, `W1` maps all 15 rows; `W2+` may map all 15 rows or set `"deferred"`.
    Carry each acceptance line's required surface and completion condition into the owning item's context. For a
    later or unavailable observation, retain its owner, due phase and unresolved status under the existing
    completion and unverified policies. Opt-in execution or a lower-layer pass does not close a stronger explicit
@@ -1347,11 +1360,17 @@ DUTIES = {
 13. Each item's `context` states the loadable seam its tests import, so a test loads before the implementation exists,
     and, where the language has more than one module format (CommonJS or ESM, with or without package.json), the one
     its files use.
-14. Before fixing item IDs, check the draft once for coherent increments. Split a deliverable with different
-    prerequisites, a useful intermediate contract or artifact, or independent implementation and check; merge
-    fragments sharing prerequisites and an implementation boundary with no checkable state of their own. A small
-    change may be one item; no minimum or quota. Every item pays a fixed round of stages and reviews, so setup (a
-    skeleton, configuration, tools) goes in the first item that builds on it. Preservation and negative requirements are checks
+14. Before fixing item IDs, check the draft once for coherent vertical increments. A small or cohesive single-surface
+    change stays one item; no minimum or quota. For a multi-surface or feature-rich request (for example storage + API
+    + UI, or a core workflow plus rich secondary capabilities), slice **vertically**, never by horizontal layer: make
+    `W1` (`slice: "spine"`) the thinnest working end-to-end slice across the real path with a real executable
+    end-to-end smoke check inside `W1`, then order `W2..Wn` (`slice: "enrich"`) as progressive enrichment slices that
+    layer richer behaviour, edge cases, and polish onto the working spine. Keep all known requirements up front in
+    `KNOWLEDGE/spec.md` and mapped across `W1..Wn`'s `follows`, so the spine chooses compatible interfaces without
+    building everything at once. Only a genuinely blocking test facility or foundation repair precedes `W1`
+    (`slice: "prerequisite"`). Merge fragments sharing prerequisites and a vertical boundary with no checkable
+    end-to-end state of their own. Every item pays a fixed round of stages and reviews, so setup (a skeleton,
+    configuration, tools) goes in the first item that builds on it. Preservation and negative requirements are checks
     on the affected item unless they need their own change. Add no item for step planning, validation, build, test,
     documentation, verification, commit or review (each item already gets them). Keep a cross-item or
     later-environment check at the boundary where it is due.
@@ -1362,10 +1381,13 @@ DUTIES = {
     Record independent branches and file or resource conflicts in `summary`; isolation alone is not parallel safety.
     ShipLoop runs the queue serially.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
-    notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
-    open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
-17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (the R-<n>/AD-<n> it serves) and
-    optional `context`, covering every approved outcome, including required independent work with no downstream consumer.
+    notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`
+    citing saved output under `RUN/experiments/`, and optional `effect` stating how the observation changed or
+    confirmed the plan; open: `due_item`, `reason`, `settle`), plus optional `question` (`"Q<n>"`) accounting for
+    every intake `route: "experiment"` question. An open assumption's `due_item` is the `work_items` ID that settles it.
+17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (the R-<n>/AD-<n> it serves),
+    optional `slice` (`spine`, `enrich`, `prerequisite`, `corrective`) and optional `context`, covering every approved
+    outcome, including required independent work with no downstream consumer.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
     `evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
     handoff.
@@ -1433,9 +1455,10 @@ Change no product file in this stage.
    - Use the fewest steps the item allows; one step is the default. Every step pays its own test, document, review
      and commit round, so separately confirmable behaviours share a step and its proof shows each of them. Size: at
      most 12 criteria and 6 product files a step (a file that only describes another changed file counts with it;
-     tests, docs and its proof script do not). Cut a larger item at a module or layer boundary (interface first,
-     then each side) into the fewest steps of that size. Fold a step no proof confirms alone (half a rename,
-     scaffolding) into the first step that uses it. A single bug fix or mechanical rename is one step.
+     tests, docs and its proof script do not). Cut a larger item vertically (end-to-end slice first — with an E2E
+     smoke check on a spine — then enrich) into the fewest steps of that size. Quick probes use RUN/scratch. Fold a
+     step no proof confirms alone (half a rename, scaffolding) into the first step that uses it. A single bug fix or
+     mechanical rename is one step.
    - Tests are not a step (the test stage writes them) unless the item is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by
@@ -1701,10 +1724,14 @@ preparatory commit); a mismatch there is a send-back.
      decision locator, rationale, revalidation condition and, for such a requirement, the changed behaviour and its R-<n>
      in KNOWLEDGE/spec.md (copy no transcript, invent no decision ledger; a context summary is not proof). That revision,
      accepted at step-plan, is not the incompatible finding below;
+   - progressive enrichment: when pending enrichment items (`W2+`) remain, sharpen their `context`, interfaces,
+     deferred concerns and `follows` from what this completed slice revealed, carrying this slice's working E2E smoke
+     check forward as the next item's regression baseline; if a new consequential unknown surfaced, settle it with a
+     small isolated probe in `RUN/experiments/` before revising the queue;
    - finding incompatible with the approved work (changed requirement, permission or invocation contract): stop the
      loop and report blocked; it is no queue edit, unless an owner note this stage owes asks for the requirement
      change: then rewrite the requirement in place, queue the work and report done.
-   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "follows", "context"}` in
+   To change the queue give `work_items`: the whole future queue, rows `{"id", "title", "follows", "slice"?, "context"}` in
    prerequisite order, no completed or current ID, keeping unrelated pending work and each primary requirement in
    some item's `follows` (a completed or current item counts). Explain each removal, merge or supersession in the summary. Omit `work_items` to keep the
    queue.

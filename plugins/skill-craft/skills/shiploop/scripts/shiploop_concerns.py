@@ -70,12 +70,17 @@ def _text(value: Any, label: str) -> str:
     return " ".join(value.split())
 
 
-def canonical_plan(value: Any) -> Dict[str, List[Dict[str, str]]]:
-    """A plan's ``concerns`` in canonical form: every item lists every concern once, in ``CONCERNS`` order."""
-    _need(isinstance(value, Mapping) and value, "concerns is an object keyed by work item ID, each a list of rows")
-    out: Dict[str, List[Dict[str, str]]] = {}
+def canonical_plan(value: Any) -> Dict[str, Any]:
+    """A plan's ``concerns`` in canonical form: every item lists every concern once, in ``CONCERNS`` order,
+    or ``"deferred"`` for a later enrichment work item in a multi-item plan (checked by ``check_plan``)."""
+    _need(isinstance(value, Mapping) and value, "concerns is an object keyed by work item ID, each a list of rows "
+          '(or "deferred" for a later work item after the first)')
+    out: Dict[str, Any] = {}
     for item, rows in value.items():
-        _need(isinstance(rows, list), f"concerns for {item} must be a list of rows")
+        if rows == "deferred":
+            out[str(item)] = "deferred"
+            continue
+        _need(isinstance(rows, list), f'concerns for {item} must be a list of rows (or "deferred" for a later item)')
         seen: Dict[str, Dict[str, str]] = {}
         for raw in rows:
             _need(isinstance(raw, Mapping), f"each concern row for {item} is an object")
@@ -105,26 +110,37 @@ def canonical_plan(value: Any) -> Dict[str, List[Dict[str, str]]]:
     return out
 
 
-def check_plan(concerns: Mapping[str, Sequence[Mapping[str, str]]], item_ids: Sequence[str]) -> None:
-    """Every work item of the queue has its rows, and no other item has any.  Rows of any length are accepted."""
+def check_plan(concerns: Mapping[str, Any], item_ids: Sequence[str]) -> None:
+    """Every work item of the queue has its rows (or ``"deferred"`` after the first item), and no other item has any.
+    Rows of any length are accepted."""
     missing = [item for item in item_ids if item not in concerns]
     _need(not missing, "a done plan maps every concern for every work item: concerns lacks " + ", ".join(missing))
     extra = sorted(set(concerns) - set(item_ids))
     _need(not extra, "concerns names items that are not in work_items: " + ", ".join(extra))
+    if item_ids and concerns.get(item_ids[0]) == "deferred":
+        raise ConcernError(
+            f"{item_ids[0]} is the first work item and cannot defer concerns: map all {len(CONCERN_IDS)} concerns "
+            f'for {item_ids[0]} (only later items after {item_ids[0]} may use "deferred")'
+        )
 
 
-def owned_rows(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: str) -> List[Mapping[str, str]]:
+def _item_rows(plan_concerns: Mapping[str, Any], item: str) -> Sequence[Mapping[str, str]]:
+    rows = plan_concerns.get(item, ())
+    return rows if isinstance(rows, list) else ()
+
+
+def owned_rows(plan_concerns: Mapping[str, Any], item: str) -> List[Mapping[str, str]]:
     """The applicable rows of ``item`` that its step plan maps to steps."""
-    return [row for row in plan_concerns.get(item, ()) if row.get("applies") == "yes"
+    return [row for row in _item_rows(plan_concerns, item) if row.get("applies") == "yes"
             and row.get("owner_stage") == "step-plan"]
 
 
-def handoff_rows(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: str,
+def handoff_rows(plan_concerns: Mapping[str, Any], item: str,
                  stage: str) -> List[Mapping[str, str]]:
     """An item's applicable rows for its owner, security rows for acceptance, or release-plan rows for CD follow-ons."""
     if stage not in HANDOFF_STAGES:
         return []
-    return [row for row in plan_concerns.get(item, ()) if row.get("applies") == "yes"
+    return [row for row in _item_rows(plan_concerns, item) if row.get("applies") == "yes"
             and (row.get("id") == "security" if stage == "product-acceptance"
                  else row.get("owner_stage") == ("release-plan" if stage in CD_FOLLOW_STAGES else stage))]
 
@@ -163,9 +179,15 @@ def check_step_plan(mapped: Sequence[Mapping[str, Any]], owned: Sequence[Mapping
         _need(not unknown, f"concern {name} names steps the result does not list: " + ", ".join(unknown))
 
 
-def packet_lines(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: str) -> List[str]:
-    """The step-plan packet's lines for ``item``: its applicable rows, by value; none when the plan wrote none."""
-    rows = [row for row in plan_concerns.get(item, ()) if row.get("applies") == "yes"]
+def packet_lines(plan_concerns: Mapping[str, Any], item: str) -> List[str]:
+    """The step-plan packet's lines for ``item``: its applicable rows, by value; rolling-wave notice when deferred."""
+    raw = plan_concerns.get(item)
+    if raw == "deferred":
+        return [
+            "Concerns for " + item + " were deferred at plan (rolling-wave enrichment): assess applicable concerns now "
+            "from KNOWLEDGE/ and completed slices; no pre-bound rows are required in `concerns` (pass [] or omit)."
+        ]
+    rows = [row for row in _item_rows(plan_concerns, item) if row.get("applies") == "yes"]
     if not rows:
         return []
     lines = ["Concerns the plan decided for " + item + " (map each owned by step-plan to the steps that deliver it):"]

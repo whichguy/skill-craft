@@ -111,7 +111,8 @@ sentence name only the stages that hand off. The Improve stages after each step'
 option does not cover the Backchain loop or the inner stages' Until Loops.
 
 Besides the review, `none` removes what only the plan child hosts: its `improve-reconcile`
-route and the plan-time experiments (the packets do not print them). The spec and the test
+route and review-time `plan-time experiments` notebook (the packets do not print them). The `plan` producer's own Until Loop,
+isolated `RUN/experiments/` sandbox, and `assumptions` / `intake` experiment-question gates still run in both modes. The spec and the test
 strategy are committed to `docs/shiploop` when each is accepted, with no review after, so
 later runs inherit them unreviewed. Under `stage` the `spec` child binds the selected Improve
 card; a `none` run has no planning child to bind it, yet its first `implement` step starts an

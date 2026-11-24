@@ -32,7 +32,7 @@ BLOCKS = frozenset({
 # Assistive tool runs the script performs around a stage.
 ENTRY_RUNS = frozenset({
     "lint-base",           # snapshot the work item's lint base when the item starts
-    "loop-contract",       # write the stage's Until Loop contract (every inner stage)
+    "loop-contract",       # write the stage's Until Loop contract (plan and every inner stage)
     "expectation-check",   # run the step plan's expectation checks on the item base; all match: no packet
 })
 COMPLETE_RUNS = frozenset({
@@ -303,16 +303,19 @@ _ROWS = (
     ),
     Stage(
         "plan", "prelude",
-        goal='Plan dependencies and the queue: ordered `work_items`, `assumptions`, and structure decisions in KNOWLEDGE/architecture.md.',
+        goal='Plan dependencies, experiments and the queue: ordered `work_items`, `assumptions`, `concerns`, and structure decisions in KNOWLEDGE/architecture.md.',
         short_goal='plan the work items',
         done_when=(
             "every criterion is owned by a work item",
-            "work items are in dependency order with readiness and completion conditions",
-            "the assumption list is complete: each assumption evidenced, probed, or open with the item that settles it",
+            "work items are in dependency order with readiness and completion conditions, vertical end-to-end first for multi-surface requests",
+            "every load-bearing assumption and intake experiment-routed question is evidenced, probed in an isolated sandbox with saved output, or open with its due_item and why no probe could settle it now",
+            "no unrun isolated experiment remains that could materially change the plan",
         ),
         develop="Plan namespaces, placement, schema and storage up front.",
         test="Plan a missing test facility as its own prerequisite work.",
         deploy="Include environment preparation and delivery work; ask for delivery authority at the first concrete boundary.",
+        entry_runs=("loop-contract",),
+        complete_runs=("loop-terminal",),
         improve="always",
         reads=("intake", "discovery", "research", "spec", "test-strategy"),
         blocks=frozenset({"test-facility", "backchain", "interaction-design", "work-items"}),

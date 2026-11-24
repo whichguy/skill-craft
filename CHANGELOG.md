@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.11.0
+
+- Skills: shiploop 2.13.0
+
+### shiploop 2.13.0
+
+- Add an isolated experiment-driven Until Loop to `plan`, carry `intake` `route: "experiment"` questions to `research`/`plan` with decision-linked `assumptions`, and switch multi-surface planning and `step-plan` cuts to vertical end-to-end-first slicing with rolling-wave enrichment (`slice`, deferred `W2+` concerns, and `reflect-and-revise` enrichment replanning).
+
 ### skill-craft 4.10.0
 
 - Skills: shiploop 2.12.0

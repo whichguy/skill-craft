@@ -1,10 +1,24 @@
 # Experiments during planning
 
+Planning experiments happen in two complementary places:
+
+1. **Inside the `plan` producer's own Until Loop** (in every run, both `planning_review: stage` and `planning_review: none`).
+   `plan` runs inside a ShipLoop-authored Until Loop contract (`loops/<action>-contract.json`) that iterates:
+   draft provisional plan → identify load-bearing assumptions and `intake` `route: "experiment"` questions → run
+   worthwhile experiments in isolated sandboxes under `RUN/experiments/<exp-id>/` (or a disposable temp copy of the
+   repository outside `WORKTREE` when code must change; never mutating product files in `WORKTREE`) → fold observed
+   evidence back into the plan and `KNOWLEDGE/architecture.md` → repeat until no material experiment remains (0
+   experiments finishes on iteration 1). Each `probed` assumption cites its saved output under `RUN/experiments/` and
+   may record `"effect"` stating how the result changed or confirmed the plan; every `intake` `route: "experiment"`
+   question must be accounted for in `assumptions` with `"question": "<Qid>"`.
+2. **During the `Plan Improve` review** (in `planning_review: stage` runs; `planning_review: none` skips `Plan Improve`
+   and its `improve-reconcile` route while keeping `plan`'s own Until Loop and assumption gates).
+
 Every navigator protocol 4 run recorded with `planning_review: stage` (the default)
-supports planning experiments; there is no protocol selector, and a saved run from an older
-protocol is refused. A run recorded with `planning_review: none` has no Plan Improve child, so
-none of this applies: its packets print neither the guide and notebook locators nor the
-`improve-reconcile` route, and the plan's `assumptions` list is still checked at `complete`.
+supports `Plan Improve` experiments and upstream reconciliation; there is no protocol selector, and a saved run from an
+older protocol is refused. A run recorded with `planning_review: none` has no Plan Improve child, so its packets print
+neither the `Plan Improve` notebook locator nor the `improve-reconcile` route, while `plan`'s own Until Loop, isolated
+`RUN/experiments/` sandbox, and `assumptions` / `intake` experiment-question gates remain active at `complete`.
 Follow the current packet.
 
 Lifecycle and owner rules remain in the

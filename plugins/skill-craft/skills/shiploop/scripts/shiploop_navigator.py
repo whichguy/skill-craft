@@ -563,6 +563,9 @@ def _title_from_prompt(prompt: str) -> str:
     return prompt.strip()[:160]
 
 
+WORK_ITEM_SLICES = ("spine", "enrich", "prerequisite", "corrective")
+
+
 def _normalise_work_items(value: Any, *, allow_empty: bool) -> list[dict[str, Any]]:
     _need(isinstance(value, list), "work_items must be a list")
     _need(allow_empty or bool(value), "work_items must not be empty")
@@ -571,7 +574,7 @@ def _normalise_work_items(value: Any, *, allow_empty: bool) -> list[dict[str, An
     for raw in value:
         _need(isinstance(raw, Mapping), "work item must be an object")
         keys = set(raw)
-        _need(keys <= {"id", "title", "follows", "context"} and {"id", "title"} <= keys,
+        _need(keys <= {"id", "title", "follows", "context", "slice"} and {"id", "title"} <= keys,
               "work item has unsupported or missing fields")
         item_id = raw.get("id")
         _need(isinstance(item_id, str) and _WORK_ITEM_ID.fullmatch(item_id) is not None,
@@ -579,6 +582,11 @@ def _normalise_work_items(value: Any, *, allow_empty: bool) -> list[dict[str, An
         _need(item_id not in seen, "duplicate work item ID")
         seen.add(item_id)
         row: dict[str, Any] = {"id": item_id, "title": _text(raw.get("title"), "work item title")}
+        if "slice" in raw:
+            kind = raw["slice"]
+            _need(isinstance(kind, str) and kind in WORK_ITEM_SLICES,
+                  "work item " + item_id + "'s slice must be one of " + ", ".join(WORK_ITEM_SLICES))
+            row["slice"] = kind
         if "follows" in raw:
             # Shape only: the IDs' entries and the primary requirements' coverage are checked at the CLI gates
             # (shiploop_primary.check_queue, F3 of the 2026-10-28 plan).
@@ -2235,15 +2243,16 @@ HEAD_CONTEXT_EXCERPT = 400
 
 
 def _work_item_block(root: Path, state: Mapping[str, Any]) -> _Block | None:
-    """The item an inner stage works on: its id, title and context (a head prints a shorter excerpt of the context)."""
+    """The item an inner stage works on: its id, title, optional slice and context (a head prints a shorter excerpt)."""
     work = state["work_items"][state["work_index"]]
     field = f"work_items[{state['work_index']}]"
     first = (f"Work item: {work['id']} ({state['work_index'] + 1}/{len(state['work_items'])}) — "
              + _required_excerpt(work["title"], root, field + ".title", limit=240))
+    lead = [first, *(["Work item slice: " + work["slice"]] if "slice" in work else [])]
     if "context" not in work:
-        return _Block("work-item", P1, [first])
-    return _Block("work-item", P1, [first, "Work item context: " + _required_excerpt(work["context"], root, field + ".context")],
-                  [first, "Work item context: " + _required_excerpt(work["context"], root, field + ".context",
+        return _Block("work-item", P1, lead)
+    return _Block("work-item", P1, [*lead, "Work item context: " + _required_excerpt(work["context"], root, field + ".context")],
+                  [*lead, "Work item context: " + _required_excerpt(work["context"], root, field + ".context",
                                                                     limit=HEAD_CONTEXT_EXCERPT)])
 
 
@@ -2302,6 +2311,8 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
     blocks.append(_Block("look-back", P1, look_back_lines(state, stage)))
     if stage == "step-plan" and workitem is not None:
         blocks.append(_Block("concerns", P1, _concern_lines(state, workitem).lines))
+    if stage in ("research", "plan"):
+        blocks.append(_Block("experiment-questions", P1, assumptions.experiment_question_lines(state, stage)))
     if stage == "prepare" or stage in ("step-plan", "test-spec", "test") and workitem is not None:
         # Required text (run-5 batch F1, F3): the test layers and targets by value, never cut from a head; prepare sets
         # up the prerequisite harnesses, step-plan, test-spec and test plan and write the tests against them.
@@ -3926,6 +3937,7 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
         items = {row["id"] for row in queue if isinstance(row, Mapping) and "id" in row}
         assumptions.check_due_items(rows, items)
         assumptions.check_files(rows)
+        assumptions.check_experiment_questions(rows, assumptions.experiment_questions(state))
     except assumptions.AssumptionError as exc:
         raise NavigatorError(str(exc)) from exc
 
@@ -5595,7 +5607,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
             {"id": "A1", "assumption": "...", "disposition": "evidenced",
              "evidence": ["<absolute path or URL>"]},
             {"id": "A2", "assumption": "...", "disposition": "probed", "check": "...",
-             "evidence": ["<absolute path of the saved probe output>"]},
+             "evidence": ["<absolute path of the saved probe output under RUN/experiments/>"],
+             "effect": "<how the probe changed or confirmed the plan>"},
             {"id": "A3", "assumption": "...", "disposition": "open", "settle": "...",
              "reason": "...", "due_item": "W1"},
         ]
@@ -7485,8 +7498,9 @@ def _stage_gates(stage: str, state: Mapping[str, Any], *, notes_owed: bool = Fal
         gates.append("a summary that leaves a sentence of the request uncited (each S<n> of RUN/request.md)")
         gates.append("a key-question ledger that is malformed or keeps a template placeholder")
     if stage == "plan":
-        gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
-                     "open assumption without a due_item naming a work item in this plan")
+        gates.append("an assumption list that is malformed, cites evidence files that do not exist, leaves an "
+                     "open assumption without a due_item naming a work item in this plan, or drops an intake "
+                     "experiment-routed question")
     elif stage in assumptions.OPEN_ITEM_STAGES:
         gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item due at "
                      "a stage that is not a later outer stage"
@@ -10644,6 +10658,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     try:
                         _check_submitted_evidence(
                             submitted, _loop_receipt(root, state, cursor_stage, action_id, cursor_item))
+                        _check_submitted_assumptions(state, cursor_stage, submitted)
                         _check_submitted_unverified(state, cursor_stage, submitted)
                         _check_submitted_defaults(state, cursor_stage, submitted)
                     except NavigatorError as exc:
