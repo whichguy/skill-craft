@@ -1,0 +1,15 @@
+{
+  "outcome": "done",
+  "headline": "Vertical plan that omits R-4 and defers W1 concerns.",
+  "summary": "Vertical spine + enrichment, but missing R-4 and invalid deferred W1 concerns.",
+  "evidence_refs": ["docs/shiploop/architecture.md"],
+  "work_items": [
+    {"id": "W1", "title": "Vertical notes spine (store + HTTP API + CLI + E2E smoke)", "slice": "spine", "follows": ["R-1"], "context": "Store, POST/GET /notes HTTP API, bin/notes.js CLI, and E2E smoke test."},
+    {"id": "W2", "title": "Enrich filtering and export", "slice": "enrich", "follows": ["R-2", "R-3"], "context": "Add search, pagination, CSV/NDJSON export."}
+  ],
+  "concerns": {
+    "W1": "deferred",
+    "W2": "deferred"
+  },
+  "assumptions": []
+}

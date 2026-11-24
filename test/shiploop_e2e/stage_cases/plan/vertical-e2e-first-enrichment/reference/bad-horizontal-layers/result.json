@@ -1,0 +1,33 @@
+{
+  "outcome": "done",
+  "headline": "Horizontal layer-by-layer plan.",
+  "summary": "Build storage layer first, then HTTP API layer, then CLI layer.",
+  "evidence_refs": ["docs/shiploop/architecture.md"],
+  "work_items": [
+    {"id": "W1", "title": "Build storage layer", "follows": ["R-1"], "context": "Create src/notes-store.js only with unit tests."},
+    {"id": "W2", "title": "Build HTTP API layer", "follows": ["R-1", "R-2", "R-3", "R-4"], "context": "Add all HTTP endpoints."},
+    {"id": "W3", "title": "Build CLI layer", "follows": ["R-1", "R-2", "R-3"], "context": "Add bin/notes.js CLI."}
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "No UI"},
+      {"id": "api", "applies": "no", "reason": "Later"},
+      {"id": "messaging", "applies": "no", "reason": "None"},
+      {"id": "state", "applies": "yes", "decision": "JSON store", "anchor": "R-1", "owner_stage": "step-plan"},
+      {"id": "migrate-before", "applies": "no", "reason": "None"},
+      {"id": "migrate-after", "applies": "no", "reason": "None"},
+      {"id": "switchover", "applies": "no", "reason": "None"},
+      {"id": "concurrency", "applies": "no", "reason": "None"},
+      {"id": "platform-services", "applies": "no", "reason": "None"},
+      {"id": "scale", "applies": "no", "reason": "None"},
+      {"id": "security", "applies": "no", "reason": "None"},
+      {"id": "observability", "applies": "no", "reason": "None"},
+      {"id": "config", "applies": "no", "reason": "None"},
+      {"id": "performance", "applies": "no", "reason": "None"},
+      {"id": "accessibility", "applies": "no", "reason": "None"}
+    ],
+    "W2": "deferred",
+    "W3": "deferred"
+  },
+  "assumptions": []
+}

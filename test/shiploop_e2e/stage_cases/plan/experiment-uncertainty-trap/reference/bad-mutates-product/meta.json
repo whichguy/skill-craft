@@ -1,0 +1,4 @@
+{
+  "fails": ["C1"],
+  "why": "Mutates product file src/server.js inside WORKTREE instead of staying isolated to docs/shiploop/** and RUN/experiments/."
+}

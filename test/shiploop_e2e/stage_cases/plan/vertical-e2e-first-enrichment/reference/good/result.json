@@ -1,0 +1,51 @@
+{
+  "outcome": "done",
+  "headline": "Vertical notes plan: W1 end-to-end spine, W2 search/filter/pagination, W3 export/stats.",
+  "summary": "All requirements R-1..R-4 stay up front in spec.md. W1 builds a thin working vertical spine across JSON file storage, POST/GET /notes HTTP endpoints, and bin/notes.js CLI with an executable E2E smoke test inside W1. W2 and W3 progressively enrich the working spine with deferred rolling-wave concerns.",
+  "evidence_refs": ["docs/shiploop/architecture.md", "docs/shiploop/spec.md"],
+  "work_items": [
+    {
+      "id": "W1",
+      "title": "Thin vertical end-to-end notes spine (store + POST/GET /notes + CLI + E2E smoke)",
+      "slice": "spine",
+      "follows": ["R-1", "R-4", "AD-1", "AD-2"],
+      "context": "Deliver file-backed JSON note store (src/notes-store.js), POST /notes and GET /notes on src/server.js, and bin/notes.js create/list commands. Include an executable E2E smoke test in test/notes-e2e.test.js verifying CLI -> HTTP -> JSON persistence end to end while preserving /users and node --test."
+    },
+    {
+      "id": "W2",
+      "title": "Enrich notes API and CLI with search, tag filtering, and pagination",
+      "slice": "enrich",
+      "follows": ["R-2", "R-4"],
+      "context": "Layer search query, tag filtering, and pagination onto GET /notes and bin/notes.js, keeping W1 E2E smoke green as regression baseline."
+    },
+    {
+      "id": "W3",
+      "title": "Enrich notes API and CLI with CSV/NDJSON export and tag statistics",
+      "slice": "enrich",
+      "follows": ["R-3", "R-4"],
+      "context": "Add CSV/NDJSON export and summary statistics endpoints and CLI subcommands on top of W1-W2."
+    }
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "CLI and HTTP API only"},
+      {"id": "api", "applies": "yes", "decision": "Add POST /notes and GET /notes preserving /users", "anchor": "R-1, R-4", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "Synchronous HTTP/CLI"},
+      {"id": "state", "applies": "yes", "decision": "Atomic JSON file store at configurable path", "anchor": "R-1, AD-2", "owner_stage": "step-plan"},
+      {"id": "migrate-before", "applies": "no", "reason": "New file store"},
+      {"id": "migrate-after", "applies": "no", "reason": "No cleanup"},
+      {"id": "switchover", "applies": "no", "reason": "Local app"},
+      {"id": "concurrency", "applies": "yes", "decision": "Write-temp-and-rename updates", "anchor": "AD-2", "owner_stage": "step-plan"},
+      {"id": "platform-services", "applies": "no", "reason": "Node stdlib only"},
+      {"id": "scale", "applies": "no", "reason": "Single-file local store"},
+      {"id": "security", "applies": "yes", "decision": "Validate JSON payloads and reject malformed bodies with 400", "anchor": "R-1", "owner_stage": "step-plan"},
+      {"id": "observability", "applies": "no", "reason": "Standard HTTP status codes and stderr"},
+      {"id": "config", "applies": "yes", "decision": "NOTES_FILE env var with temp path in tests", "anchor": "AD-2", "owner_stage": "step-plan"},
+      {"id": "performance", "applies": "no", "reason": "Local JSON store"},
+      {"id": "accessibility", "applies": "no", "reason": "No UI"}
+    ],
+    "W2": "deferred",
+    "W3": "deferred"
+  },
+  "assumptions": []
+}

@@ -1,0 +1,48 @@
+{
+  "outcome": "done",
+  "headline": "Clarified NDJSON export plan after probing export-engine batch limit and newline escaping.",
+  "summary": "Probed tools/export-engine.js in RUN/experiments/exp-export-engine/: confirmed ERR_BATCH_LIMIT at >25 records and raw unescaped newlines unless --escape-newlines is passed. Plan chunks exports into batches of <=25 records and always passes --escape-newlines.",
+  "evidence_refs": [
+    "docs/shiploop/architecture.md",
+    "/tmp/run/experiments/exp-export-engine/probe.txt"
+  ],
+  "work_items": [
+    {
+      "id": "W1",
+      "title": "Implement chunked NDJSON user exporter with --escape-newlines and tests",
+      "slice": "spine",
+      "follows": ["R-1", "R-2", "AD-1", "AD-2"],
+      "context": "Chunk user lists into batches of at most 25 records and invoke node tools/export-engine.js --format ndjson --escape-newlines per batch so multiline notes stay valid single-line JSON; preserve /users endpoints and node --test."
+    }
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "No UI requested"},
+      {"id": "api", "applies": "yes", "decision": "Expose exportUsers helper and preserve /users HTTP routes", "anchor": "R-1, R-2", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "No async queues"},
+      {"id": "state", "applies": "no", "reason": "Reads existing in-memory users"},
+      {"id": "migrate-before", "applies": "no", "reason": "No schema change"},
+      {"id": "migrate-after", "applies": "no", "reason": "No cleanup migration"},
+      {"id": "switchover", "applies": "no", "reason": "Local library/CLI"},
+      {"id": "concurrency", "applies": "no", "reason": "Sequential batch invocations"},
+      {"id": "platform-services", "applies": "no", "reason": "Local Node stdlib only"},
+      {"id": "scale", "applies": "yes", "decision": "Chunk batches to <=25 records per CLI call per AD-2", "anchor": "R-1", "owner_stage": "step-plan"},
+      {"id": "security", "applies": "yes", "decision": "Spawn node with argv array, no shell interpolation", "anchor": "AD-2", "owner_stage": "step-plan"},
+      {"id": "observability", "applies": "no", "reason": "Propagate CLI stderr on error"},
+      {"id": "config", "applies": "no", "reason": "Zero new config"},
+      {"id": "performance", "applies": "no", "reason": "Bounded batch spawning"},
+      {"id": "accessibility", "applies": "no", "reason": "No UI"}
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "A1",
+      "question": "Q1",
+      "assumption": "tools/export-engine.js --format ndjson fails above 25 records and breaks NDJSON on multiline fields without --escape-newlines",
+      "disposition": "probed",
+      "check": "node tools/export-engine.js --format ndjson on 26 records and multiline bio in RUN/experiments/exp-export-engine/",
+      "evidence": ["/tmp/run/experiments/exp-export-engine/probe.txt"],
+      "effect": "Changed W1 design to chunk inputs into <=25-record batches and pass --escape-newlines."
+    }
+  ]
+}

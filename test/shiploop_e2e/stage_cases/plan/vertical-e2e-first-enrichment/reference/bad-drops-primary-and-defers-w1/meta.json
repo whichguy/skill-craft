@@ -1,0 +1,4 @@
+{
+  "fails": ["C1"],
+  "why": "Drops primary requirement R-4 and illegally sets W1 concerns to deferred."
+}

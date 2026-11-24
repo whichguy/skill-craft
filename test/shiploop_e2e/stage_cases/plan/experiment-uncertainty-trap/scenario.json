@@ -1,0 +1,120 @@
+{
+  "stage": "plan",
+  "about": "When intake routes a consequential runtime uncertainty to experiment, plan runs an isolated probe in RUN/experiments/ inside its Until Loop, discovers the actual CLI framing and batch-size constraints, and clarifies the plan instead of forecasting from docs.",
+  "tags": [
+    "plan",
+    "experiments",
+    "until-loop"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Add a user export feature backed by the existing tools/export-engine.js CLI (R-1: export all users as valid NDJSON via tools/export-engine.js, preserving multiline bio notes and supporting arbitrarily large user lists; R-2: preserve existing /users API endpoints and node --test suite with zero npm dependencies).",
+    "work_item": {
+      "id": "W1",
+      "title": "Add reliable NDJSON user export via export-engine",
+      "context": "R-1: export all users as valid NDJSON via tools/export-engine.js preserving multiline notes and large lists. R-2: preserve existing /users API and node --test."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "seed_records": {
+    "intake": {
+      "question_categories": [
+        {"id": "K1", "applies": "yes"},
+        {"id": "K2", "applies": "no", "reason": "single local runtime"},
+        {"id": "K3", "applies": "no", "reason": "no external auth"},
+        {"id": "K4", "applies": "no", "reason": "no persistent migration"},
+        {"id": "K5", "applies": "no", "reason": "no UI requested"},
+        {"id": "K6", "applies": "no", "reason": "no deployment target"},
+        {"id": "K7", "applies": "no", "reason": "no messaging"},
+        {"id": "K8", "applies": "no", "reason": "no concurrency requirement"},
+        {"id": "K9", "applies": "no", "reason": "no observability SLA"},
+        {"id": "K10", "applies": "no", "reason": "no third-party service"},
+        {"id": "K11", "applies": "no", "reason": "no compliance rule"},
+        {"id": "K12", "applies": "no", "reason": "terms unambiguous"}
+      ],
+      "questions": [
+        {
+          "id": "Q1",
+          "category": "K1",
+          "question": "Does node tools/export-engine.js --format ndjson handle multiline fields and batches over 25 records without corruption or failure?",
+          "changes": "Whether the exporter must chunk batches and pass explicit escaping flags/normalization",
+          "route": "experiment",
+          "default": "Pipe all records in a single call to --format ndjson",
+          "blocks": "plan"
+        }
+      ]
+    },
+    "spec": {
+      "primary": ["R-1", "R-2"],
+      "defaults": []
+    },
+    "test-strategy": {
+      "test_layers": [
+        {
+          "code": "src/export.js and src/server.js",
+          "layer": "unit",
+          "harness": "node --test",
+          "status": "available",
+          "reason": "Existing zero-dependency Node test runner."
+        },
+        {
+          "code": "tools/export-engine.js integration",
+          "layer": "e2e",
+          "harness": "node --test",
+          "status": "available",
+          "reason": "Spawns tools/export-engine.js directly in temp directories."
+        }
+      ],
+      "targets": [
+        {
+          "target": "local Node.js",
+          "keeps_state": "no",
+          "base_state_route": "n/a"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "plan runs an isolated probe for intake question Q1, links Q1 in assumptions with disposition probed and effect, and incorporates both empirical findings (max 25 records per invocation requiring chunking, and raw newline breakage requiring --escape-newlines).",
+      "signature": "Q1 probed with saved evidence + effect, and plan accounts for 25-record chunking and --escape-newlines"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "plan finishes done, covers primary requirements R-1 and R-2, maps valid concerns for W1, and modifies no product source files outside docs/shiploop/**."
+    }
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "plan"},
+    {"proves": "P1", "packet_contains": "Until Loop \\(no iteration limit"},
+    {"proves": "P1", "packet_contains": "Experiment sandbox: RUN/experiments/<exp-id>/"},
+    {"proves": "P1", "packet_contains": "Q1: Does node tools/export-engine\\.js --format ndjson"},
+    {"proves": "C1", "packet_contains": "KNOWLEDGE/architecture\\.md"}
+  ],
+  "oracle": [
+    {"proves": "P1", "outcome": ["done"]},
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check_plan_exp.py\" P1", "exit": 0},
+    {"proves": "C1", "outcome": ["done"]},
+    {"proves": "C1", "command": "python3 \"$STAGE_ORACLE/check_plan_exp.py\" C1", "exit": 0},
+    {"proves": "C1", "changed_only": ["docs/shiploop/**"]}
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "stage": "plan",
+  "about": "For a multi-surface, feature-rich request (persistent JSON storage, HTTP API, CLI client, plus rich filtering, CSV export, and summary stats), plan organizes work vertically with W1 as a thin end-to-end working spine (including an in-W1 E2E smoke check) followed by progressive W2+ enrichment items rather than horizontal layer-by-layer items.",
+  "tags": [
+    "plan",
+    "vertical-slicing",
+    "enrichment"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Extend this Node project with a persistent notes capability across storage, HTTP API, and CLI: (R-1) file-backed JSON note store + POST /notes and GET /notes HTTP endpoints + a bin/notes.js CLI that creates and lists notes against the running server; (R-2) search, tag filtering, and pagination on GET /notes and the CLI; (R-3) CSV and NDJSON export with summary statistics (count by tag, latest timestamp) across API and CLI; (R-4) preserve existing /users endpoints and keep node --test passing with zero npm dependencies.",
+    "work_item": {
+      "id": "W1",
+      "title": "Thin vertical end-to-end notes spine",
+      "context": "Deliver minimal persistent store + POST/GET /notes + CLI create/list with an executable E2E smoke test in W1, then enrich in W2+."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "seed_records": {
+    "spec": {
+      "primary": ["R-1", "R-2", "R-3", "R-4"],
+      "defaults": []
+    },
+    "test-strategy": {
+      "test_layers": [
+        {
+          "code": "src/notes-store.js and src/server.js",
+          "layer": "unit",
+          "harness": "node --test",
+          "status": "available",
+          "reason": "Zero-dependency Node test runner covers store and handler units."
+        },
+        {
+          "code": "store + HTTP server + bin/notes.js CLI end-to-end flow",
+          "layer": "e2e",
+          "harness": "node --test",
+          "status": "available",
+          "reason": "Spawns ephemeral HTTP server on port 0 and invokes bin/notes.js against it in temp directories."
+        }
+      ],
+      "targets": [
+        {
+          "target": "local Node.js",
+          "keeps_state": "no",
+          "base_state_route": "n/a"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "plan decomposes the multi-surface request vertically: W1 has slice 'spine' delivering a thin end-to-end path across storage + HTTP API + CLI with an executable E2E smoke check inside W1, followed by at least one W2+ item with slice 'enrich' for filtering/export/stats (not horizontal layer items or a single monolith).",
+      "signature": "multi-item vertical plan with W1 slice='spine' spanning multiple surfaces + in-W1 E2E smoke check, and W2+ slice='enrich'"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "plan finishes done, maps all primary requirements R-1..R-4 across work_items[*].follows, provides all 15 concerns on W1 (allowing deferred or 15 rows on W2+), and modifies no product source files outside docs/shiploop/**."
+    }
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "plan"},
+    {"proves": "P1", "packet_contains": "slice \\*\\*vertically\\*\\*, never by horizontal layer"},
+    {"proves": "P1", "packet_contains": "slice: \"spine\""},
+    {"proves": "P1", "packet_contains": "slice: \"enrich\""},
+    {"proves": "C1", "packet_contains": "may map all 15 rows or set `\"deferred\"`"}
+  ],
+  "oracle": [
+    {"proves": "P1", "outcome": ["done"]},
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check_vertical_plan.py\" P1", "exit": 0},
+    {"proves": "C1", "outcome": ["done"]},
+    {"proves": "C1", "command": "python3 \"$STAGE_ORACLE/check_vertical_plan.py\" C1", "exit": 0},
+    {"proves": "C1", "changed_only": ["docs/shiploop/**"]}
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

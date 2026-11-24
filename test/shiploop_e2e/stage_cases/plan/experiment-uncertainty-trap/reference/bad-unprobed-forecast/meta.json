@@ -1,0 +1,4 @@
+{
+  "fails": ["P1"],
+  "why": "Leaves intake experiment question Q1 unprobed and forecasts a single-shot call without 25-record chunking or --escape-newlines."
+}

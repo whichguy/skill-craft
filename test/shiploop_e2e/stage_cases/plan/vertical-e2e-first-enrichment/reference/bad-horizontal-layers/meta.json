@@ -1,0 +1,4 @@
+{
+  "fails": ["P1"],
+  "why": "Cuts horizontally by layer (storage-only W1) instead of a vertical end-to-end spine with an in-W1 E2E smoke test."
+}
