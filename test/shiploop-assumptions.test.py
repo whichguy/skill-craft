@@ -102,8 +102,9 @@ class ShapeTests(unittest.TestCase):
         # done-only field (the refusal names the field and says to delete it).
         # Since the consumer contract (X10) the open-item stages after plan carry the list too; the sentence names them all.
         allowed = ("only on a done document, plan, reflect-and-revise, release-plan, release-verify, system-test, "
-                   "system-test-author, test-spec")
-        for stage, outcome, message in (("research", "done", allowed), ("spec", "done", allowed), ("test", "done", allowed),
+                   "system-test-author, test, test-spec, test-strategy")
+        for stage, outcome, message in (("research", "done", allowed), ("spec", "done", allowed),
+                                        ("implement", "done", allowed),
                                         ("plan", "blocked", "a blocked result does not carry assumptions")):
             extra = {"awaiting": AWAITING} if outcome == "blocked" else {}
             with self.assertRaisesRegex(nav.NavigatorError, message):

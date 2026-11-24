@@ -1491,11 +1491,8 @@ def reuse_eligible(state: Mapping[str, Any], stage: str, work_item: str,
     if stage == "release-verify":
         return False
     rows = list(commands)
-    if stage in (*STEP_PROOF_STAGES, *STAGES):
+    if stage in STEP_PROOF_STAGES:
         if _all_targets(state):
-            if any(row.get("keeps_state") == "yes" for row in _all_targets(state)):
-                return False
-        elif _latest_root_result(state, "test-strategy").get("targets"):
             return False
         rows += list(_step_plan(state, work_item)[1].get("test_commands") or ())
     return not any(row.get("target") or row.get("host_dependent")
@@ -1813,7 +1810,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                     if record.get("passed") is True and record.get("schema") == SCHEMA
                     and record.get("step") == step_id
                     and record.get("command") == row["command"] and tree and tree in (record.get("trees") or ())),
-                   None) if count and reuse_eligible(state, stage, work_item, [row]) else None
+                   None) if count and reuse_eligible(state, STEP_PROOF_STAGES[0], work_item, [row]) else None
     created = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     if matched is not None:
         line = ("step-proof: reused the passed " + ("check's run" if "-check.md" in matched[0] else "run") + " of "

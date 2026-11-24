@@ -1157,8 +1157,10 @@ class TestLoopTests(unittest.TestCase):
                 else:
                     self.assertIn("Test rerun: on done, ShipLoop runs every test command", self.packet())
                 (self.repo / "retained.txt").unlink()  # this stage broke a regression test
+                expected_tail = (r"Report add-work for a product defect or send-back to "
+                                 if stage in test_loop.OUTER_SOURCES else r"Fix the code so every command passes")
                 self.assert_refused(DONE, r"(?s)" + stage + r" is not done.*\[regression\] test -f retained.txt"
-                                    r" -> exit 1.*Fix the code so every command passes", loop=True)
+                                    r" -> exit 1.*" + expected_tail, loop=True)
                 (self.repo / "retained.txt").write_text("retained\n")
                 self.complete(DONE)
                 self.assertNotEqual(nav.current_stage(self.settle()), stage)
@@ -3529,8 +3531,8 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         row = next(row for row in test_loop.stage_commands(after, "test", "W1")[0] if row["command"] == self.REGISTERED)
         self.assertEqual(row["ids"], ["TC-1 (a)"])
         self.assertNotIn("TC-1 (a)", test_loop.new_ids(after, "W1"))
-        with self.assertRaisesRegex(nav.NavigatorError, "added_tests is allowed only on a done document result"):
-            nav._canonical_result(dict(DONE, added_tests=final["added_tests"]), stage="test")
+        with self.assertRaisesRegex(nav.NavigatorError, "added_tests is allowed only on a done test or document result"):
+            nav._canonical_result(dict(DONE, added_tests=final["added_tests"]), stage="implement")
         with self.assertRaisesRegex(nav.NavigatorError, 'added_tests entries each need id, command'):
             nav._canonical_result(dict(DONE, added_tests=[{"id": "TC-1 (a)"}]), stage="document")
         with self.assertRaisesRegex(nav.NavigatorError, "added_tests names `make test`, which is not a focused or "

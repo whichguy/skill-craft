@@ -1672,11 +1672,11 @@ preparatory commit); a mismatch there is a send-back.
      the summary says what changed and why;
    - unachievable: a named reason and the requirement left unverified; report send-back.
    A case written but not run has no end state.
-6. **Result fields.** Optional evidence/triage fields on done: `test_findings` (`[{"id", "finding", "evidence", "impact", "next_step"}]`),
-   `added_tests`, `assumptions` (due at `reflect-and-revise` or a later outer stage). `red_na`: each new test passing
-   on the item base without this change, `[{"id", "reason"}]`. `retired_tests`: each test this item deliberately
-   retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires it>"}]` (any other drop below a command's floor is
-   refused). `lint_waivers`: `{"id": "<printed ID>", "reason": "<why>"}` per lint finding that must stay.
+6. **Result fields.** `red_na`: each new test passing on the item base without this change, `[{"id", "reason"}]`.
+   `retired_tests`: each test this item deliberately retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires it>"}]`
+   (any other drop below a command's floor is refused). `lint_waivers`: `{"id": "<printed ID>", "reason": "<why>"}` per
+   lint finding that must stay. Optional evidence/triage fields: `test_findings` (`[{"id", "finding", "evidence",
+   "impact", "next_step"}]`), `added_tests`, `assumptions` (due at `reflect-and-revise` or a later outer stage), and
    `mutant_dispositions`: `[{"mutant", "disposition", "evidence"}]` (`equivalent`, `out-of-scope`, or
    `not-exercisable`, which forwards to system testing).
 7. **Proof limits.** A passing command proves only the cases it runs; a smoke or subset run never stands for a

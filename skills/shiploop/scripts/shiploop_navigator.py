@@ -4985,9 +4985,9 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
 
 
 def _iteration_base(root: Path, before: Mapping[str, Any], after: Mapping[str, Any]) -> dict[str, str]:
-    """Recapture the item's base (``lint.capture_base``) when the run advances from a step's document stage to the next
-    step's build or a fix-forward step-plan (commit-then-amend), so every later reader of the base reads only subsequent
-    steps' changes."""
+    """Recapture the item's base (``lint.capture_base``) when the run advances from a step's committed document stage
+    to the next step's build or a fix-forward step-plan (commit-then-amend), so every later reader of the base reads
+    only subsequent steps' changes."""
     stage, action, item = _active_cursor(after)
     if (stage not in ("implement", stage_spec.SEND_BACK_TO) or item is None or after.get("status") != "active"
             or before.get("status") != "active" or not _is_inner_root(before)):
@@ -4996,6 +4996,11 @@ def _iteration_base(root: Path, before: Mapping[str, Any], after: Mapping[str, A
     if prior_item != item or prior_stage != "document" or (isinstance(prior, Mapping) and isinstance(action, Mapping)
                                                             and prior.get("id") == action.get("id")):
         return {}
+    if stage == stage_spec.SEND_BACK_TO:
+        prior_id = prior.get("id") if isinstance(prior, Mapping) else None
+        accepted = (after.get("accepted") or {}).get(prior_id) if prior_id else None
+        if not isinstance(accepted, Mapping) or accepted.get("outcome") != "done":
+            return {}
     writes = lint.capture_base(root, Path(after["repo"]), str(item))
     for relative, text in writes.items():
         store.atomic_write_text(Path(root) / relative, text)
@@ -5020,17 +5025,28 @@ def _test_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) ->
 
 
 def _test_edited_product_code(root: Path, state: Mapping[str, Any], workitem: Any) -> bool:
-    """True when the active test action edited non-test behavioural code since entering the test stage."""
+    """True when the active test action modified or deleted existing product code since entering the test stage."""
     if "stage" not in state or "repo" not in state:
         return False
     stage, action, _item = _active_cursor(state)
-    if stage != "test" or not isinstance(action, Mapping) or not action.get("entry") or not workitem:
+    entry = action.get("entry") if isinstance(action, Mapping) else None
+    if stage != "test" or not entry or not workitem:
         return False
-    changed = improve_changes.paths_since(Path(root), Path(state["repo"]), str(action["entry"]))
-    if not changed:
+    repo = Path(state["repo"])
+    current = improve_changes.snapshot_tree(Path(root), repo)
+    if not current or current == str(entry):
         return False
-    return any(item_scope.classify(path) != "test" and not path.startswith("docs/shiploop/")
-               for path in item_scope.behavioural_paths(changed))
+    try:
+        diff = lint._git(repo, "diff-tree", "-r", "--no-commit-id", "--name-status", str(entry), str(current))
+    except lint.LintError:
+        return False
+    for line in diff.stdout.decode("utf-8", "replace").splitlines():
+        if "\t" not in line:
+            continue
+        status_code, path = line.split("\t", 1)
+        if status_code[:1] in ("M", "D") and item_scope.classify(path) == "code" and not path.startswith("docs/shiploop/"):
+            return True
+    return False
 
 
 def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) -> dict[str, Any]:
