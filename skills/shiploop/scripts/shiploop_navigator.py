@@ -9170,7 +9170,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
     mid_run_reflect = child["stage"] == "reflect-and-revise" and not end_of_work
     lines.extend([
         "", "Current action: Improve the completed " + child["stage"] + " result.",
-        *(["End-of-work review: this is the run's end-of-work Improve "
+        *(["End-of-work review: this is the run's single Improve "
            "after its executed steps. The candidate is every work item's delivered change since the "
            "accepted plan (product code, tests, documentation and the reflect-and-revise queue), not only "
            "this reflect-and-revise result. Use the accepted step results in state.md history and their "
