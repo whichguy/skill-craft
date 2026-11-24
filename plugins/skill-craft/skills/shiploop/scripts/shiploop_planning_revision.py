@@ -153,8 +153,10 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
     This deliberately reads only ``history`` and ``accepted``.  It is therefore
     usable by source readers that receive a compact/synthetic state projection.
     It keeps the latest done result per (workitem, stage); a chronological
-    reconcile row removes the root planning suffix beginning at its target,
-    and a send-back row removes its work item's results from the step plan on.
+    reconcile row removes the root planning suffix beginning at its target, an
+    inner send-back row removes its work item's results from the step plan on,
+    an outer send-back row removes the outer stages from its target on, and an
+    add-work row clears prior outer results before corrective work starts.
     The amended step plan that marks done steps (fix forward) restores the latest
     of their per-step results.
     """
@@ -188,10 +190,23 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
             continue
         if outcome == "send-back":
             workitem = entry.get("workitem")
-            steps.setdefault(workitem if isinstance(workitem, str) else None, _StepLists()).send_back()
-            reopened = frozenset(stage_spec.INNER[stage_spec.INNER.index(stage_spec.SEND_BACK_TO):])
+            if isinstance(workitem, str):
+                steps.setdefault(workitem, _StepLists()).send_back()
+                reopened = frozenset(stage_spec.INNER[stage_spec.INNER.index(stage_spec.SEND_BACK_TO):])
+                for key in tuple(result):
+                    if key[0] == workitem and key[1] in reopened:
+                        result.pop(key)
+            elif stage in stage_spec.OUTER_SEND_BACK_TO:
+                target = stage_spec.OUTER_SEND_BACK_TO[stage]
+                reopened = frozenset(stage_spec.OUTER[stage_spec.OUTER.index(target):])
+                for key in tuple(result):
+                    if key[0] is None and key[1] in reopened:
+                        result.pop(key)
+            continue
+        if outcome == "add-work":
+            outer = frozenset(stage_spec.OUTER)
             for key in tuple(result):
-                if key[0] == workitem and key[1] in reopened:
+                if key[0] is None and key[1] in outer:
                     result.pop(key)
             continue
         if outcome != "reconcile":

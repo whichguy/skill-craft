@@ -4,6 +4,19 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.9.2
+
+- Skills: shiploop 2.11.2
+
+### shiploop 2.11.2
+
+- Run the review lint gate and merge step-registered `added_tests` in end-of-work `reflect-and-revise` Improve reruns, and enforce `_step_spec_refusal` on `test` stage `done` submissions.
+- Prevent `improve-commit` (and `improve-pass`) from committing `docs/shiploop/` edits that drop earlier `R-<n>` requirement or `AD-<n>` architecture decision IDs into `HEAD` before `improve_import` inspects them.
+- Enforce `_check_submitted_concerns` and stage-appropriate `_inner_gates` (`step-plan` expectations and `reflect-and-revise` skill decisions) on Improve `--final-result` imports, and reject `skill.path` / `skill.index` entries outside the repository root.
+- Update `planning_revision.current_actions()` to invalidate stale outer stage actions on outer `send-back` (`system-test` to `system-test-author`, `release-verify` to `release-plan`) and on outer `add-work`.
+- Keep `spec.md` requirement entries declarative (no mutable "pending implementation/verification" status lines that trigger `document` `spec_writeback` refusals), and instruct forked `--delegation agents` Improve workers in `CHILD/worker-brief.md` to avoid re-reading unchanged files already in inherited context.
+- Update stale Improve/reflect packet wording (single final pass import, pending-result framing, conditional skill-trial note) and reject retired `R-<n>` IDs in `expectations.check_test_cases`.
+
 ### skill-craft 4.9.1
 
 - Skills: shiploop 2.11.1

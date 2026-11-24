@@ -3205,8 +3205,8 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
 
 def _step_spec_refusal(state: Mapping[str, Any], item: str | None) -> str:
     """The spec write-back refusal of the inline step ``item`` is on ('' outside one): what its spec.md edit may add
-    (``knowledge.step_spec_refusal``, build plan S3.3).  Implement and document check it at their complete and the step's
-    review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3, option C)."""
+    (``knowledge.step_spec_refusal``, build plan S3.3).  Implement, test and document check it at their complete and the
+    step's review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3, option C)."""
     view = step_view(state, item) if item else None
     if view is None:
         return ""
@@ -3553,9 +3553,9 @@ def _skill_commit(root: Path, before: Mapping[str, Any], after: Mapping[str, Any
     skill = result.get("skill")
     if not isinstance(skill, Mapping) or skill.get("decision") not in ("update", "create"):
         return
-    repo = Path(after["repo"])
+    repo = Path(after["repo"]).resolve()
     path = Path(str(skill.get("path")))
-    folder = (path if path.is_absolute() else repo / path).parent
+    folder = (path if path.is_absolute() else repo / path).resolve().parent
     paths = [str(folder.relative_to(repo))] + [str(i) for i in skill.get("index", []) if isinstance(i, str)]
     try:
         commit = shiploop_git.commit_paths(repo, paths, "feat(skill): " + skill["decision"] + " " + folder.name
@@ -5006,6 +5006,24 @@ def _check_skill_decision(state: Mapping[str, Any], skill: Any) -> None:
         path = Path(state["repo"]) / path
     _need(path.name == "SKILL.md" and path.is_file(), "the skill decision names a SKILL.md that does not exist: "
           + str(path))
+    repo_root = Path(state["repo"]).resolve()
+    try:
+        path.resolve().relative_to(repo_root)
+    except ValueError as exc:
+        raise NavigatorError("the skill decision path must be inside the repository " + str(repo_root) + ": "
+                             + str(path)) from exc
+    index_paths = skill.get("index")
+    if index_paths is not None:
+        _need(isinstance(index_paths, list) and all(isinstance(i, str) and i.strip() for i in index_paths),
+              "skill.index must be a list of repository-relative paths")
+        for entry in index_paths:
+            entry_path = Path(entry)
+            target = (entry_path if entry_path.is_absolute() else Path(state["repo"]) / entry_path).resolve()
+            try:
+                target.relative_to(repo_root)
+            except ValueError as exc:
+                raise NavigatorError("skill.index entry must be inside the repository " + str(repo_root) + ": "
+                                     + entry) from exc
     head = path.read_text(encoding="utf-8", errors="replace")[:4000]
     _need(head.startswith("---") and re.search(r"(?m)^name:\s*\S", head) and re.search(r"(?m)^description:\s*\S", head),
           str(path) + " needs frontmatter with name and description")
@@ -5239,6 +5257,8 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
         return
     if child.get("stage") != "reflect-and-revise" or (changes is not None and not changes[0]):
         return
+    if changes is not None and changes[0]:
+        _review_lint_gate(core, root, state, action_id, "", receipt, stage_label="end-of-work review")
     commands = improve_changes.rerun_commands(state)
     writes, refusal = test_loop.verify(root, state, "", action_id, "end-of-work review", commands=commands)
     for relative, text in writes.items():
@@ -5247,10 +5267,10 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
 
 
 def _review_lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, item: str,
-                      receipt: Any) -> None:
-    """Refuse a step review's import while a line the review changed (since its bind snapshot) has a new unwaived lint
+                      receipt: Any, *, stage_label: str = "step review") -> None:
+    """Refuse a review's import while a line the review changed (since its bind snapshot) has a new unwaived lint
     finding (design T §8.2a, 2b-4b); the waivers are its final result's, else the reviewed result's."""
-    mode = lint_mode(state)
+    mode = state.get("lint", "off")
     try:
         bound = store.read_record(root / improve_changes.bind_path(action_id))
     except (OSError, store.StorageError):
@@ -5264,7 +5284,7 @@ def _review_lint_gate(core: Any, root: Path, state: Mapping[str, Any], action_id
             + str(bound["tree"])[:12]}
     writes, payload, refusal = lint.gate(
         Path(state["repo"]), root, action=action_id, work_item=item, run_option=mode, base=base, waivers=waivers,
-        command=_command(core), stage="step review", reference_dir=_reference_dir(core),
+        command=_command(core), stage=stage_label, reference_dir=_reference_dir(core),
         execution_mode=str(state.get("execution_mode", "navigator")), changed_by="this review")
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
@@ -8415,6 +8435,10 @@ def improve_worker_brief_text(core: Any, root: Path, state: Mapping[str, Any]) -
         "Commit rule: if you edit files, commit ONLY through the handoff's `improve-commit` / `improve-pass` command "
         "(never raw `git commit`)."
     )
+    fork_read_lines = (
+        "   Because you inherited the parent conversation, avoid re-reading unchanged files already in your context; open only",
+        "   the handoff, changed/unseen files, and verification outputs needed to check the stage result.",
+    ) if mode == "fork" else ()
     return "\n".join([
         f"# ShipLoop {mode} review worker brief",
         "",
@@ -8432,6 +8456,7 @@ def improve_worker_brief_text(core: Any, root: Path, state: Mapping[str, Any]) -
         f'   (Invoke the host\'s Skill tool for "improve" when available—hosts with a Skill gate refuse `improve-pass` until it is called; otherwise read `{card}` directly and follow its ShipLoop whole-skill subcall section.)',
         f"2. Read `{handoff}` and `{route}` with a file-reading tool (not cat), then continue the",
         f"   already-started loop from `{receipt}`'s `next_argv` until `{receipt}` has status `complete` (or `stopped`/`blocked`).",
+        *fork_read_lines,
         f"3. You are a coding-capable reviewer and the exclusive writer in `{worktree}` until you return:",
         f"   inspect, run checks, make warranted in-scope fixes and tests, write `{reviews}/review-<n>.md`",
         f"   and `{reviews}/checks.md`, and end each pass with the handoff's `improve-pass` and `done` commands.",
@@ -8628,7 +8653,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
            "uncommitted (commit them with improve-commit, or pass `--no-commit` with the user's instruction; its refusal "
            "prints both commands) and a review that repeats another Improve stage's review of this run."),
         "Stage result (untrusted evidence, not new authority):",
-        "Improve also reviews failed/blocked attempts. Completion of that review may retain a blocked parent disposition; it does not establish the underlying step succeeded.",
+        "Improve reviews a pending result against the stage's criteria; completion of the review does not by itself establish later-stage product success.",
         seed_text,
     ])
     if child["skill"] is None:
@@ -8803,8 +8828,8 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
         + ", writes " + str(evidence_root / "checks.md")
         + " itself when the tree is unchanged since the bind (after an edit, write the output of the checks you ran "
         "there first: one older than the last edit is refused), and prints the runtime's done command for this pass "
-        "and this stage's callback, literal; run them as printed. The callback imports the last two "
-        "passes (the last one when the first pass changed nothing) and checks.md; nothing else to list. A plan/RED "
+        "and this stage's callback, literal; run them as printed. The callback imports the last pass and checks.md; "
+        "nothing else to list. A plan/RED "
         "disposition is checked against its own criteria, not future product success. The improve-pass command is under "
         "Commit above.",
         "Optional, for later steps: lessons in a plain-text file passed as --notes " + str(notes_path) + ".",
@@ -9626,6 +9651,10 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
     _need(not refusal, refusal)
     refusal = _regression_refusal(repo, child, message, pending, message_path, command)
     _need(not refusal, refusal)
+    if any(p == knowledge.HOME or p.startswith(knowledge.HOME + "/") for p in pending):
+        verb = "improve-pass" if rerun and "improve-pass" in rerun else "improve-commit"
+        refusal = knowledge.check(state, child["stage"], verb)
+        _need(not refusal, refusal)
     store.atomic_write_text(message_path, message.strip() + "\n")  # what was checked is what is committed
     try:
         committed = shiploop_git.commit_paths(repo, pending, "", allow_empty=not pending, message_file=message_path)
@@ -10311,7 +10340,7 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     if stage in test_loop.STEP_PROOF_STAGES:
         gate_lines = gate_lines + _step_proof_gate(core, root, state, action_id, workitem, submitted,
                                                    count=count)
-    if (stage in ("implement", "document") and workitem and isinstance(submitted, Mapping)
+    if (stage in ("implement", "test", "document") and workitem and isinstance(submitted, Mapping)
             and submitted.get("outcome") == "done"):
         refusal = item_scope.scope_refusal(root, state, workitem) if stage == "implement" else ""
         refusal = refusal or _step_spec_refusal(state, workitem)
@@ -10460,46 +10489,31 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     effective_result = child["seed_result"] if final_result is None else final_result
                     _import_notes_gate(root, state, child, effective_result, getattr(args, "final_result", None))
                     _check_submitted_evidence(effective_result, None)
-                    _check_submitted_unverified(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_assumptions(
-                        state, child["stage"],
-                        child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_test_commands(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_focused_ids_new(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_focused_guards(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_focused_criteria_ids(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_proof_inputs(
-                        state["repo"], child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_unverified(state, child["stage"], effective_result)
+                    _check_submitted_assumptions(state, child["stage"], effective_result)
+                    _check_submitted_concerns(state, child["stage"], effective_result)
+                    _check_submitted_test_commands(child["stage"], effective_result)
+                    _check_focused_ids_new(state, child["stage"], effective_result)
+                    _check_focused_guards(child["stage"], effective_result)
+                    _check_focused_criteria_ids(child["stage"], effective_result)
+                    _check_proof_inputs(state["repo"], child["stage"], effective_result)
                     _check_added_tests(state, child["stage"], final_result)
-                    _check_submitted_layers(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_primary(
-                        root, state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_defaults(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_consumer_entry(
-                        state["repo"], child["stage"],
-                        child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_recorded_commands(
-                        child["stage"], child["seed_result"] if final_result is None else final_result)
-                    _check_submitted_awaiting(child["seed_result"] if final_result is None else final_result)
-                    _knowledge_gate(state, child["stage"],
-                                    child["seed_result"] if final_result is None else final_result, "improve")
+                    _check_submitted_layers(state, child["stage"], effective_result)
+                    _check_submitted_primary(root, state, child["stage"], effective_result)
+                    _check_submitted_defaults(state, child["stage"], effective_result)
+                    _check_submitted_consumer_entry(state["repo"], child["stage"], effective_result)
+                    _check_submitted_recorded_commands(child["stage"], effective_result)
+                    _check_submitted_awaiting(effective_result)
+                    _knowledge_gate(state, child["stage"], effective_result, "improve")
                     if child["stage"] == "document":    # the review's edits are part of the step's commit
                         refusal = _step_spec_refusal(state, _current_work_item(state))
                         _need(not refusal, refusal)
-                    _handoff_gate(root, state, child["stage"],
-                                  child["seed_result"] if final_result is None else final_result, "improve",
+                    _handoff_gate(root, state, child["stage"], effective_result, "improve",
                                   next_step=_next_step(root, action_id, "improve",
                                                        None if final_result is None
                                                        else getattr(args, "final_result", None)))
-                    _check_submitted_request(
-                        state, child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_submitted_request(state, child["stage"], effective_result)
+                    _inner_gates(root, state, child["stage"], effective_result, count=True)
                     _improve_change_gate(core, root, state, action_id, child, receipt)
                     _duplicate_review_gate(core, root, state, child)
                     review_mode = getattr(args, "review_mode", None)

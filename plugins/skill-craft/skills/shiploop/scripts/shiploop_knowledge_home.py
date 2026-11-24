@@ -312,12 +312,13 @@ def _home_changed(repo: Path) -> bool:
 
 
 def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> str:
-    """Refusal text when a stage's done would commit knowledge that is missing or drops an ID.
+    """Refusal text when a stage's done or an Improve commit would commit knowledge that is missing or drops an ID.
 
     A close requires its files; any other stage is checked only when it changed the home,
     because ShipLoop commits the home after every accepted stage that changed it.  ``command`` is the callback the
-    refusal tells the model to run again (``complete``; ``improve`` is the Improve stage's complete).  A drop is seen
-    only in an edit still uncommitted: an edit a review already committed through ``improve-commit`` is the baseline.
+    refusal tells the model to run again (``complete``; ``improve`` is the Improve stage's complete;
+    ``improve-commit`` / ``improve-pass`` are the Improve review commit paths).  A drop is seen only against HEAD:
+    checking before ``improve-commit`` commits ``docs/shiploop/`` prevents a review commit from hiding a dropped ID.
     """
     repo = Path(str(state["repo"]))
     if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
@@ -340,8 +341,8 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     # A plain mention anywhere in the file keeps an ID (a heading, a table row, a line under Retired or Superseded); nothing
     # is dropped from a file HEAD does not hold yet.  Line 1 is the fix, the absolute path and the command, with no ID
     # list, so a long list can never cut the fix off a model that reads the first 250 characters; the IDs follow, in full.
-    # The baseline is HEAD, so an edit already committed (a review's, through improve-commit) is not seen: only one still
-    # uncommitted, which is why the knowledge gate runs before the commit gate on the Improve stage's route.
+    # The baseline is HEAD, so an uncommitted drop cannot be smuggled past complete by committing through improve-commit
+    # first (improve-commit calls check() before committing docs/shiploop/); knowledge gate also runs before commit gate.
     refusals = []
     for name, ids, what, kind, section in _RETAINED:
         path = repo / HOME / name
@@ -352,6 +353,8 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
             if command == "complete":
                 first = ("Restore the lost " + prefix + "-<n> in " + str(path) + " or move it under '" + section
                          + "', then run the same callback again.")
+            elif command in ("improve-commit", "improve-pass"):
+                first = ("Restore " + prefix + "-<n> in " + str(path) + ", then run " + command + " again.")
             else:
                 # The route's real sequence: the fix is the review's uncommitted edit, so improve-commit comes before the
                 # import (else the commit gate is the next refusal).  Shorter, so `cut -c1-250` keeps all three steps at

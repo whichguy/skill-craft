@@ -90,7 +90,7 @@ WORK: Mapping[str, str] = {
     "document": (
         "Do duty items {items} of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
     "reflect-and-revise": (
-        "Do duty items {items} of {run}/packets/{action}.md; write the skill trial to "
+        "Do duty items {items} of {run}/packets/{action}.md; if creating or updating a skill, write the trial to "
         "{run}/notes/{action}-skill-trial.md."),
 }
 
