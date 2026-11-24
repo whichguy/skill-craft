@@ -514,12 +514,40 @@ def _is_item_revision_row(row: Mapping[str, Any], accepted: Mapping[str, Any] | 
 
 
 def _first_item_review(state: Mapping[str, Any], item: Any, earlier: Any) -> bool:
-    """Whether a "first-item" stage's result for ``item`` is reviewed: the run's first work item, or an item whose
-    send-back or commit-then-amend replan is in ``earlier`` (the history before that result), so a redone plan is
-    reviewed (owner, 2026-10-19)."""
+    """Whether a "first-item" stage's result for ``item`` is reviewed: the run's first work item, an item whose
+    send-back or commit-then-amend replan is in ``earlier`` (the history before that result, owner 2026-10-19), an item
+    whose plan ``concerns`` were ``deferred``, or a corrective item added after ``plan`` (by ``add-work`` or
+    ``reflect-and-revise``)."""
     first = state["work_items"][0]["id"] if state["work_items"] else None
+    if item == first:
+        return True
     accepted = state.get("accepted") or {}
-    return item == first or any(row.get("workitem") == item and _is_item_revision_row(row, accepted) for row in earlier)
+    if any(row.get("workitem") == item and _is_item_revision_row(row, accepted) for row in earlier):
+        return True
+    if item is None:
+        return False
+    plan_row = next(
+        (row for row in reversed(earlier) if row.get("stage") == "plan" and row.get("outcome") == "done"),
+        None,
+    )
+    plan_res = accepted.get(plan_row.get("action")) if isinstance(plan_row, Mapping) else None
+    if isinstance(plan_res, Mapping):
+        concerns = plan_res.get("concerns")
+        if isinstance(concerns, Mapping) and concerns.get(item) == "deferred":
+            return True
+        planned_items = plan_res.get("work_items")
+        if isinstance(planned_items, list) and planned_items:
+            planned_ids = {r.get("id") for r in planned_items if isinstance(r, Mapping) and r.get("id")}
+            return bool(planned_ids) and item not in planned_ids
+    for row in earlier:
+        if row.get("outcome") == "add-work" or (
+                row.get("stage") == "reflect-and-revise" and row.get("outcome") == "done"):
+            res = accepted.get(row.get("action"))
+            added = res.get("work_items") if isinstance(res, Mapping) else None
+            if isinstance(added, list) and any(
+                    isinstance(r, Mapping) and r.get("id") == item for r in added):
+                return True
+    return False
 
 
 def delegation(state: Mapping[str, Any]) -> str:

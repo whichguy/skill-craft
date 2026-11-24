@@ -885,6 +885,55 @@ class FirstItemReviewTests(unittest.TestCase):
         self.assertIsNone(state["active_improve"])
         self.assertEqual((nav.current_stage(state), nav._current_work_item(state)), ("test-spec", "W2"))
 
+    def test_deferred_concerns_and_corrective_items_trigger_step_plan_review(self):
+        # Deferred concerns on W2 at plan trigger step-plan review for W2 while non-deferred W3 stays unreviewed.
+        state = advance_to(self.new(), "plan")
+        plan_action = nav.current_action(state)["id"]
+        state = nav.apply(state, plan_action, dict(
+            DONE, work_items=self.ITEMS,
+            concerns={**no_concerns_map(["W1", "W3"]), "W2": "deferred"},
+        ))
+        state = nav.finish_improve(state, plan_action, receipt("plan"))
+        state, reviewed = walk(state)
+        self.assertEqual([entry for entry in reviewed if entry[0] == "step-plan"],
+                         [("step-plan", "W1"), ("step-plan", "W2")])
+        nav.validate(state)
+
+        # W3 added at reflect-and-revise triggers step-plan review even when W2 was skipped.
+        state2 = advance_to(self.new(), "plan")
+        plan_action2 = nav.current_action(state2)["id"]
+        state2 = nav.apply(state2, plan_action2, dict(DONE, work_items=self.ITEMS[:2]))
+        state2 = nav.finish_improve(state2, plan_action2, receipt("plan"))
+        state2 = self.to(state2, "reflect-and-revise", "W2")
+        rr_action = nav.current_action(state2)["id"]
+        state2 = nav.apply(state2, rr_action, dict(DONE, work_items=[{"id": "W3", "title": "Corrective item"}]))
+        if state2["active_improve"] is not None:
+            state2 = nav.finish_improve(state2, rr_action, receipt("reflect-and-revise"))
+        state2, reviewed2 = walk(state2)
+        self.assertEqual([entry for entry in reviewed2 if entry[0] == "step-plan"], [("step-plan", "W3")])
+        nav.validate(state2)
+
+        # W3 added via add-work triggers step-plan review (both with and without plan work_items).
+        for plan_result in (dict(DONE, work_items=self.ITEMS[:2]), DONE):
+            with self.subTest(plan_has_items="work_items" in plan_result):
+                state3 = advance_to(self.new(), "plan")
+                pa3 = nav.current_action(state3)["id"]
+                state3 = nav.apply(state3, pa3, plan_result)
+                state3 = nav.finish_improve(state3, pa3, receipt("plan"))
+                state3 = advance_to(state3, "system-test")
+                state3 = nav.apply(state3, nav.current_action(state3)["id"], {
+                    "outcome": "add-work",
+                    "summary": "Add corrective item W3.",
+                    "work_items": [{"id": "W3", "title": "Added by outer"}],
+                })
+                self.assertEqual((nav.current_stage(state3), nav._current_work_item(state3)), ("step-plan", "W3"))
+                sp_action = nav.current_action(state3)["id"]
+                state3 = nav.apply(state3, sp_action, DONE)
+                self.assertIsNotNone(state3["active_improve"], "add-work corrective item's step-plan is reviewed")
+                state3 = nav.finish_improve(state3, sp_action, receipt("step-plan"))
+                state3, _ = walk(state3)
+                nav.validate(state3)
+
     def test_a_missing_record_for_the_first_items_step_plan_is_still_refused(self):
         state, _ = walk(self.new(), plan_items=self.ITEMS)
         action = next(e["action"] for e in state["history"] if e["stage"] == "step-plan" and e["workitem"] == "W1")
