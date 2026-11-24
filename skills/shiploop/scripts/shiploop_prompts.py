@@ -2559,6 +2559,19 @@ A pass that finds no material violation is trivial.
 """
 END_REVIEW_FOCUS = END_REVIEW_FOCUS_HEAD + "\n" + CODE_CRAFT
 
+REFLECT_REVISION_REVIEW_FOCUS = """\
+Mid-run reflection and queue-revision review focus. Further work items remain,
+and this reflect-and-revise changed either remaining work_items or docs/shiploop/spec.md:
+- verify any docs/shiploop/spec.md change accurately reflects delivered behaviour
+  and keeps active R-<n> IDs and retired requirements consistent with completed work;
+- verify any revised remaining work_items preserve all pending requirements,
+  open assumptions, follows mappings, and accurate context without dropping
+  or duplicating work;
+- verify KNOWLEDGE/environment.md names commands that passed at this item's
+  test stage under ## Commands (or explains why not) and the skill decision fits.
+A pass that finds no material violation is trivial.
+"""
+
 # The per-step Improve review's focus (owner decision 2026-10-10: an Improve stage reviews every accepted implement step,
 # whatever the planning review option says).  The step's tests are written later, so this review is the only check of
 # the step's code before them; it carries the Code craft rubric verbatim because the child reads no other file reliably.
@@ -2935,6 +2948,7 @@ __all__ = (
     "DELEGATIONS",
     "DUTIES",
     "END_REVIEW_FOCUS",
+    "REFLECT_REVISION_REVIEW_FOCUS",
     "ENVIRONMENT_DISCOVERY_REQUIREMENTS",
     "CODE_CRAFT",
     "IMPLEMENTATION_STAGES",

@@ -471,6 +471,42 @@ def _improve_child_for(state: Mapping[str, Any], action_id: Any) -> Mapping[str,
     return child if child is not None and action_id == child.get("improve_action") else None
 
 
+def _is_final_reflect_and_revise(state: Mapping[str, Any], result: Mapping[str, Any]) -> bool:
+    """Whether ``result`` at ``reflect-and-revise`` leaves no work item pending after it."""
+    if "work_items" in result:
+        return not result["work_items"]
+    if "work_index" not in state or "work_items" not in state:
+        return True
+    return state["work_index"] + 1 >= len(state["work_items"])
+
+
+def _is_end_of_work_review(state: Mapping[str, Any], child: Mapping[str, Any]) -> bool:
+    """True when ``child`` is the final ``reflect-and-revise`` end-of-work review rather than a mid-run one."""
+    return (child.get("stage") == "reflect-and-revise"
+            and _is_final_reflect_and_revise(state, child.get("seed_result") or {}))
+
+
+def _work_items_equal(current_remaining: Sequence[Mapping[str, Any]],
+                      submitted_remaining: Sequence[Mapping[str, Any]]) -> bool:
+    """Whether a submitted ``reflect-and-revise`` ``work_items`` matches the existing remaining queue."""
+    def signature(rows: Sequence[Mapping[str, Any]]) -> list[tuple[Any, ...]]:
+        return [
+            (r.get("id"), r.get("title"), r.get("slice"), tuple(r.get("follows") or ()), r.get("context"))
+            for r in rows if isinstance(r, Mapping)
+        ]
+
+    return signature(current_remaining) == signature(submitted_remaining)
+
+
+def _spec_digest(repo: Path) -> str | None:
+    """SHA-256 hex digest of ``KNOWLEDGE/spec.md`` in ``repo``, or None if absent/unreadable."""
+    path = Path(repo) / knowledge.HOME / "spec.md"
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
 def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[str, Any]) -> bool:
     """Say whether this accepted producer result starts an Improve stage.
 
@@ -478,8 +514,9 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
     is reviewed (all seven under ``stage``; under ``none`` only system-test-author
     and release-plan), every accepted implement step, plus the successful reflect-and-revise that leaves no work item
     pending (after its own queue revision), so one review covers all executed
-    steps before OUTER system tests and release.  A later Improve that adds work
-    items moves that end review to the new last item's reflect-and-revise.  Only a done result is reviewed (N5): a blocked,
+    steps before OUTER system tests and release — as well as any earlier reflect-and-revise
+    that changes remaining work_items or KNOWLEDGE/spec.md.  A later Improve that adds work
+    items moves the end review to the new last item's reflect-and-revise.  Only a done result is reviewed (N5): a blocked,
     send-back or add-work result goes straight to its route.
     """
     if result["outcome"] != "done":
@@ -498,9 +535,13 @@ def _improve_checkpoint(state: Mapping[str, Any], stage: str, result: Mapping[st
         return not (isinstance(action, Mapping) and action.get("changed") is False)
     if stage not in stage_spec.with_improve("last-item") or result["outcome"] != "done":
         return False
-    if "work_items" in result:
-        return not result["work_items"]
-    return state["work_index"] + 1 >= len(state["work_items"])
+    if _is_final_reflect_and_revise(state, result):
+        return True
+    if "work_items" in result and not _work_items_equal(
+            state["work_items"][state["work_index"] + 1:], result["work_items"]):
+        return True
+    action = _active_cursor(state)[1]
+    return isinstance(action, Mapping) and action.get("spec_changed") is True
 
 
 def _is_item_revision_row(row: Mapping[str, Any], accepted: Mapping[str, Any] | None = None) -> bool:
@@ -1654,7 +1695,10 @@ def _validate_action(action: Any, stage: str, label: str) -> str:
         stage == "implement" and extra == {"base"} and tree(action.get("base"))) or (
         stage == "test" and extra <= {"entry"} and ("entry" not in action or tree(action["entry"]))) or (
         stage == "document" and extra <= {"changed", "entry"} and isinstance(action.get("changed", False), bool)
-        and ("entry" not in action or tree(action["entry"])))),
+        and ("entry" not in action or tree(action["entry"]))) or (
+        stage == "reflect-and-revise" and extra <= {"spec_entry", "spec_changed"}
+        and ("spec_entry" not in action or action["spec_entry"] is None or tree(action["spec_entry"]))
+        and isinstance(action.get("spec_changed", False), bool))),
           f"{label} is invalid")
     action_id = action.get("id")
     _need(isinstance(action_id, str) and _ACTION_ID.fullmatch(action_id) is not None,
@@ -4996,6 +5040,7 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     """
     after, writes = _validate_existing_entry(root, before, after)
     after = _document_entry(root, after)
+    after = _reflect_entry(after)
     after = _step_entry(root, before, after)
     after = _test_entry(root, before, after)
     # The step's commit stage runs against its own base, before the next step's base replaces it.  Its records are saved
@@ -5171,6 +5216,33 @@ def _validate_existing_entry(root: Path, before: Mapping[str, Any],
     nxt = _record_not_applicable(advanced, _next_stage(stage, advanced))
     advanced["inner_loops"][workitem] = {"stage": nxt, "action": _new_action(nxt)}
     return advanced, writes
+
+
+def _reflect_entry(after: dict[str, Any]) -> dict[str, Any]:
+    """Snapshot ``KNOWLEDGE/spec.md``'s digest on a newly entered ``reflect-and-revise`` action."""
+    stage, action, workitem = _active_cursor(after)
+    if (stage != "reflect-and-revise" or not isinstance(action, Mapping) or after.get("active_improve")
+            or after.get("status") != "active" or not workitem or action["id"] in after["accepted"]
+            or "spec_entry" in action):
+        return after
+    advanced = deepcopy(after)
+    advanced["inner_loops"][workitem]["action"] = {**action, "spec_entry": _spec_digest(Path(after["repo"]))}
+    return advanced
+
+
+def _with_reflect_spec_changed(state: Mapping[str, Any], submitted: Any) -> Mapping[str, Any]:
+    """Stamp ``spec_changed`` on a ``reflect-and-revise`` cursor action right before ``apply`` if ``spec.md`` changed."""
+    stage, action, workitem = _active_cursor(state)
+    if (stage != "reflect-and-revise" or not isinstance(action, Mapping) or state.get("active_improve") is not None
+            or state.get("status") != "active" or not workitem or "spec_entry" not in action
+            or "spec_changed" in action or not isinstance(submitted, Mapping) or submitted.get("outcome") != "done"):
+        return state
+    changed = _spec_digest(Path(state["repo"])) != action["spec_entry"]
+    if not changed:
+        return state
+    updated = deepcopy(dict(state))
+    updated["inner_loops"][workitem]["action"] = {**action, "spec_changed": True}
+    return updated
 
 
 def _document_entry(root: Path, after: dict[str, Any]) -> dict[str, Any]:
@@ -5528,10 +5600,15 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
         return
     if child.get("stage") != "reflect-and-revise" or (changes is not None and not changes[0]):
         return
+    end_of_work = _is_end_of_work_review(state, child)
+    stage_label = "end-of-work review" if end_of_work else "reflection review"
     if changes is not None and changes[0]:
-        _review_lint_gate(core, root, state, action_id, "", receipt, stage_label="end-of-work review")
+        _review_lint_gate(core, root, state, action_id, "", receipt, stage_label=stage_label)
+    if not end_of_work and changes is not None and all(
+            knowledge.in_home(path) or path.startswith("docs/") for path in changes[0]):
+        return
     commands = improve_changes.rerun_commands(state)
-    writes, refusal = test_loop.verify(root, state, "", action_id, "end-of-work review", commands=commands)
+    writes, refusal = test_loop.verify(root, state, "", action_id, stage_label, commands=commands)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
     _need(not refusal, refusal)
@@ -8545,8 +8622,9 @@ def _improve_line(state: Mapping[str, Any], stage: str) -> str:
                 "change against its steps' tasks and criteria, Code craft and architecture.md, and commits warranted "
                 "edits.")
     elif stage == "reflect-and-revise":
-        when = ("A done result that leaves no work item pending starts the run's single "
-                "end-of-work Improve stage over every executed item's change.")
+        when = ("A done result that leaves no work item pending starts the run's "
+                "end-of-work Improve stage over every executed item's change; an earlier done result "
+                "that changes remaining work_items or KNOWLEDGE/spec.md starts a focused reflection Improve stage.")
     else:
         return ""
     # The blocked route is the outcome shapes' and the rules' (2026-10-11 dedupe); this line is the Improve directive.
@@ -8746,7 +8824,9 @@ def _improve_focus(state: Mapping[str, Any], child: Mapping[str, Any]) -> tuple[
     if stage in guidance.PLANNING_REVIEW_STAGES:
         return _numbered_focus(_planning_focus(state, child), state, child), []
     if stage == "reflect-and-revise":
-        return _numbered_focus(guidance.END_REVIEW_FOCUS_HEAD.rstrip(), state, child), [guidance.CODE_CRAFT.rstrip()]
+        if _is_end_of_work_review(state, child):
+            return _numbered_focus(guidance.END_REVIEW_FOCUS_HEAD.rstrip(), state, child), [guidance.CODE_CRAFT.rstrip()]
+        return _numbered_focus(guidance.REFLECT_REVISION_REVIEW_FOCUS.rstrip(), state, child), []
     if stage in stage_spec.with_improve("item"):
         return (_numbered_focus(guidance.IMPLEMENT_STEP_REVIEW_FOCUS_HEAD.rstrip(), state, child),
                 [guidance.CODE_CRAFT.rstrip()])
@@ -8795,9 +8875,9 @@ def _improve_lint_lines(core: Any, root: Path, state: Mapping[str, Any]) -> list
             "this Improve stage): " + _callback(core, root, "lint", action=child["action_id"])]
 
 
-def _regression_clause(stage: str) -> str:
+def _regression_clause(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
     """The commit-message rule for a fix that changes code (F5), at the end-of-work review that owes it; '' elsewhere."""
-    if stage != "reflect-and-revise":
+    if not _is_end_of_work_review(state, child):
         return ""
     return (" A commit that changes code, not only tests, adds `Regression test: <the ID of the test in this commit "
             "that fails without the fix>` or `Regression test: none: <why no test can show it>`.")
@@ -9039,7 +9119,8 @@ def _focus_text(state: Mapping[str, Any], child: Mapping[str, Any]) -> str:
     if stage in guidance.PLANNING_REVIEW_STAGES:
         return _planning_focus(state, child)
     if stage == "reflect-and-revise":
-        return guidance.END_REVIEW_FOCUS.rstrip()
+        return (guidance.END_REVIEW_FOCUS.rstrip() if _is_end_of_work_review(state, child)
+                else guidance.REFLECT_REVISION_REVIEW_FOCUS.rstrip())
     if stage in stage_spec.with_improve("item"):
         return guidance.IMPLEMENT_STEP_REVIEW_FOCUS.rstrip()
     return ""
@@ -9081,15 +9162,20 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
                      + "\nFull producer result: " + str(root / "state.md")
                      + "; field active_improve.seed_result. Read the complete required context before acting; "
                      "retain its decisions and constraints in the child contract.")
-    end_of_work = child["stage"] == "reflect-and-revise"
+    end_of_work = _is_end_of_work_review(state, child)
+    mid_run_reflect = child["stage"] == "reflect-and-revise" and not end_of_work
     lines.extend([
         "", "Current action: Improve the completed " + child["stage"] + " result.",
-        *(["End-of-work review: this is the run's single Improve "
+        *(["End-of-work review: this is the run's end-of-work Improve "
            "after its executed steps. The candidate is every work item's delivered change since the "
            "accepted plan (product code, tests, documentation and the reflect-and-revise queue), not only "
            "this reflect-and-revise result. Use the accepted step results in state.md history and their "
            "evidence_refs as the step record; review across items before OUTER system tests and release."]
-          if end_of_work else []),
+          if end_of_work else
+          ["Mid-run reflection review: further work items remain after this item, and this reflect-and-revise "
+           "changed remaining work_items or KNOWLEDGE/spec.md. Review those queue/spec changes before the next "
+           "work item's step-plan begins."]
+          if mid_run_reflect else []),
         "The reviewed result stays pending until this Improve stage's complete imports the review.",
         "Checked by: the Improve skill runs its own review and checks; once its runtime returns complete you run the "
         "Improve stage's callback, which validates the child's receipt and imports its review and check files "
@@ -9249,7 +9335,7 @@ def _render_improve(core: Any, root: Path, state: Mapping[str, Any], lines: list
             "writes the full one). For a change to a remote system that left no file change, add `Remote change: <system "
             "alias>, <what changed>, <where its evidence is>` and append `--remote-change` to the command. Do not write "
             "the message with a shell heredoc or run git commit yourself: a hand-typed commit skips these checks. More: "
-            "ROUTE#record-commit-and-learning." + _regression_clause(child["stage"])]),
+            "ROUTE#record-commit-and-learning." + _regression_clause(state, child)]),
         "Improve context ownership: " + str(Path(__file__).resolve().parent.parent / "references" / "improve-context.md")
         + ("#default-route-the-parent-runs-improve-delegation-inline" if inline
            else "#direct-review-workers-delegation-agents" if route == guidance.AGENTS else ""),
@@ -10011,16 +10097,16 @@ def _lessons_and_citations_refusal(repo: Path, message: str, message_path: Path,
 REGRESSION_LINE = re.compile(r"(?m)^Regression test:[ \t]*(.*?)[ \t]*$")
 
 
-def _regression_refusal(repo: Path, child: Mapping[str, Any], message: str, pending: Sequence[str],
-                        message_path: Path, command: str) -> str:
+def _regression_refusal(state: Mapping[str, Any], repo: Path, child: Mapping[str, Any], message: str,
+                        pending: Sequence[str], message_path: Path, command: str) -> str:
     """The refusal for a missing or unproven ``Regression test:`` line, '' when none is owed or the line holds.
 
-    Owed only at the end-of-work review (reflect-and-revise), when this commit changes code that is not a test: that review
-    fixes code after the tests ran, so the line names a test ID that a test file in this same commit holds, or
-    ``none: <reason>`` when no test can show the fix.  Step reviews owe no line (owner decision: end-of-item only); the
-    item's tests come after them.
+    Owed only at the end-of-work review (final reflect-and-revise), when this commit changes code that is not a test:
+    that review fixes code after the tests ran, so the line names a test ID that a test file in this same commit holds,
+    or ``none: <reason>`` when no test can show the fix.  Step reviews and mid-run reflection reviews owe no line; the
+    item's or remaining work items' tests come after them.
     """
-    if child["stage"] != "reflect-and-revise":
+    if not _is_end_of_work_review(state, child):
         return ""
     code = [path for path in item_scope.behavioural_paths(pending) if item_scope.classify(path) != "test"]
     if not code:
@@ -10100,7 +10186,7 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
         return 0
     refusal, message = _lessons_and_citations_refusal(repo, message, message_path, command)
     _need(not refusal, refusal)
-    refusal = _regression_refusal(repo, child, message, pending, message_path, command)
+    refusal = _regression_refusal(state, repo, child, message, pending, message_path, command)
     _need(not refusal, refusal)
     if any(p == knowledge.HOME or p.startswith(knowledge.HOME + "/") for p in pending):
         verb = "improve-pass" if rerun and "improve-pass" in rerun else "improve-commit"
@@ -11145,7 +11231,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             for line in gate_lines:
                 print(line)
             return 0
-        updated = apply(state, action_id, submitted)
+        state_for_apply = _with_reflect_spec_changed(state, submitted) if state["status"] == "active" else state
+        updated = apply(state_for_apply, action_id, submitted)
         if updated != state:
             terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)
             if terminal_knowledge_closed:

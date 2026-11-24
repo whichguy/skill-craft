@@ -1642,9 +1642,13 @@ class NavigatorContractTests(unittest.TestCase):
         state = self._advance_to_reflect_and_revise(self._planned_queue(rows))
         self.assertEqual([item["id"] for item in state["work_items"]], ["W1", "W2", "W3"])
         action = self._action(state)
-        # The replacement queue is not empty, so this reflect-and-revise is not the
-        # run's last-item review; it advances directly, with no Improve child.
-        revised = navigator.apply(state, action["id"], result(work_items=replacement))
+        # The replacement queue changes future work_items, so this non-final
+        # reflect-and-revise starts a focused mid-run Improve child before advancing.
+        revised_waiting = navigator.apply(state, action["id"], result(work_items=replacement))
+        self.assertIsNotNone(revised_waiting["active_improve"])
+        revised = navigator.finish_improve(
+            revised_waiting, action["id"], receipt("reflect-and-revise")
+        )
 
         self.assertEqual([item["id"] for item in revised["work_items"]], ["W1", "NEW"])
         self.assertEqual(

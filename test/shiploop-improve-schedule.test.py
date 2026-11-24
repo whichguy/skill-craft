@@ -943,6 +943,126 @@ class FirstItemReviewTests(unittest.TestCase):
             nav.validate(broken)
 
 
+class MidRunReflectReviewTests(unittest.TestCase):
+    """Non-final reflect-and-revise starts Improve only when remaining work_items or KNOWLEDGE/spec.md changed."""
+
+    ITEMS = [{"id": "W1", "title": "First"}, {"id": "W2", "title": "Second"}]
+
+    def _to_first_reflect(self):
+        state = advance_to(nav.new_state("/simulation-only/repo", "Mid-run reflect fixture.", improve_skill=""), "plan")
+        pa = nav.current_action(state)["id"]
+        state = nav.apply(state, pa, dict(DONE, work_items=self.ITEMS))
+        state = nav.finish_improve(state, pa, receipt("plan"))
+        for _ in range(100):
+            if (nav.current_stage(state), nav._current_work_item(state)) == ("reflect-and-revise", "W1") \
+                    and state["active_improve"] is None:
+                return state
+            st, act = nav.current_stage(state), nav.current_action(state)["id"]
+            state = nav.apply(state, act, DONE)
+            if state["active_improve"] is not None:
+                state = nav.finish_improve(state, act, receipt(st))
+        raise AssertionError("did not reach W1 reflect-and-revise")
+
+    def test_unchanged_non_final_reflect_skips_improve_and_re_echo_skips_too(self):
+        for result in (DONE, dict(DONE, work_items=self.ITEMS[1:])):
+            with self.subTest(re_echo="work_items" in result):
+                state = self._to_first_reflect()
+                updated = nav.apply(state, nav.current_action(state)["id"], result)
+                self.assertIsNone(updated["active_improve"])
+                self.assertEqual((nav.current_stage(updated), nav._current_work_item(updated)), ("step-plan", "W2"))
+                nav.validate(updated)
+
+    def test_modified_future_work_items_trigger_mid_run_reflect_improve(self):
+        state = self._to_first_reflect()
+        action = nav.current_action(state)["id"]
+        waiting = nav.apply(state, action, dict(DONE, work_items=[
+            {"id": "W2", "title": "Second", "context": "Updated context after W1."}]))
+        child = waiting["active_improve"]
+        self.assertIsNotNone(child)
+        self.assertEqual(child["stage"], "reflect-and-revise")
+        self.assertFalse(nav._is_end_of_work_review(waiting, child))
+        self.assertIn("Mid-run reflection and queue-revision review focus", nav._focus_text(waiting, child))
+        self.assertNotIn("Code craft", nav._focus_text(waiting, child))
+        self.assertEqual(nav._regression_clause(waiting, child), "")
+        rendered: list[str] = []
+        nav._render_improve(None, Path("/simulation-only/run"), waiting, rendered)
+        self.assertIn("Mid-run reflection review:", "\n".join(rendered))
+        nav.validate(waiting)
+        resumed = nav.finish_improve(waiting, action, receipt("reflect-and-revise"))
+        self.assertEqual((nav.current_stage(resumed), nav._current_work_item(resumed)), ("step-plan", "W2"))
+        nav.validate(resumed)
+
+    def test_spec_changed_flag_triggers_mid_run_reflect_improve(self):
+        state = self._to_first_reflect()
+        state["inner_loops"]["W1"]["action"]["spec_changed"] = True
+        action = nav.current_action(state)["id"]
+        waiting = nav.apply(state, action, DONE)
+        self.assertIsNotNone(waiting["active_improve"])
+        self.assertFalse(nav._is_end_of_work_review(waiting, waiting["active_improve"]))
+        nav.validate(waiting)
+        resumed = nav.finish_improve(waiting, action, receipt("reflect-and-revise"))
+        self.assertEqual((nav.current_stage(resumed), nav._current_work_item(resumed)), ("step-plan", "W2"))
+
+    def test_real_spec_edit_at_non_final_reflect_triggers_improve_via_cli(self):
+        with tempfile.TemporaryDirectory(prefix="shiploop-a2-spec-") as tmp:
+            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GIT_CONFIG_GLOBAL=os.devnull,
+                       GIT_CONFIG_NOSYSTEM="1")
+            base = Path(tmp).resolve()
+            repo = base / "repo"
+            repo.mkdir()
+            (repo / "a.txt").write_text("x\n", encoding="utf-8")
+            for argv in (["init", "-q"], ["add", "."],
+                         ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "init"]):
+                subprocess.run(["git", *argv], cwd=repo, env=env, check=True)
+            spec = repo / "docs" / "shiploop" / "spec.md"
+            spec.parent.mkdir(parents=True)
+            spec.write_text("# Spec\n\nR-1: First requirement.\nR-2: Second requirement.\n", encoding="utf-8")
+            subprocess.run(["git", "add", "docs"], cwd=repo, env=env, check=True)
+            subprocess.run(["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t",
+                            "commit", "-qm", "spec"], cwd=repo, env=env, check=True)
+            run = base / "run"
+            subprocess.run([sys.executable, "-B", str(CLI), "init", "--repo", str(repo), "--run-dir", str(run),
+                            "--prompt=test A2", "--planning-review", "none", "--improve-skill", str(CARD)],
+                           cwd=base, env=env, check=True, capture_output=True)
+            # Seed run directly into W1 reflect-and-revise with spec_entry captured cleanly via _reflect_entry.
+            s = advance_to(store.read_record(run / "state.md"), "plan")
+            pa = nav.current_action(s)["id"]
+            s = nav.apply(s, pa, dict(DONE, work_items=self.ITEMS))
+            s = self._to_first_reflect_repo(s)
+            nav.save(run, s)
+            # Modify docs/shiploop/spec.md during W1 reflect-and-revise.
+            spec.write_text("# Spec\n\nR-1: First requirement (clarified).\nR-2: Second requirement.\n", encoding="utf-8")
+            rr_act = nav.current_action(s)["id"]
+            res_path = run / "inbox" / (rr_act + ".md")
+            rr_payload = {
+                **DONE,
+                "assumptions": [],
+                "skill": {"decision": "none", "reason": "No repeatable workflow.", "evidence": []},
+            }
+            rr_payload = loop_support.with_receipt(rr_payload, loop_support.finish_loop(run))
+            store.write_record(res_path, rr_payload)
+            done = subprocess.run([sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run),
+                                   "--action", rr_act, "--result", str(res_path)],
+                                  cwd=base, env=env, capture_output=True, text=True)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            saved = store.read_record(run / "state.md")
+            self.assertIsNotNone(saved["active_improve"])
+            self.assertEqual(saved["active_improve"]["stage"], "reflect-and-revise")
+            self.assertFalse(nav._is_end_of_work_review(saved, saved["active_improve"]))
+            self.assertTrue(saved["inner_loops"]["W1"]["action"].get("spec_changed"))
+
+    def _to_first_reflect_repo(self, state):
+        for _ in range(100):
+            if (nav.current_stage(state), nav._current_work_item(state)) == ("reflect-and-revise", "W1") \
+                    and state["active_improve"] is None:
+                return nav._reflect_entry(state)
+            st, act = nav.current_stage(state), nav.current_action(state)["id"]
+            state = nav.apply(state, act, DONE)
+            if state["active_improve"] is not None:
+                state = nav.finish_improve(state, act, receipt(st))
+        raise AssertionError("did not reach W1 reflect-and-revise")
+
+
 class DocsMatchTheStageTableTests(unittest.TestCase):
     """The whole-run map, the README and the Improve schedule describe the stage table (``shiploop_stage_spec``); each was
     found to list a stage the table does not (``test-spec`` as reviewed, the retired ``verify``).  The table is the source
