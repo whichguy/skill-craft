@@ -2279,6 +2279,90 @@ def context_summary(rows: list[dict]) -> dict:
             "top_sources": [{"source": source, "bytes": size} for source, size in ranked]}
 
 
+def open_item_settlement(state: dict | None) -> dict:
+    """Audit open assumptions across history without refusing: how often each open item's ID appears in its due stage's
+    done summary or assumptions."""
+    empty = {"total": 0, "due_completed": 0, "settled": 0, "unsettled": []}
+    if not isinstance(state, dict):
+        return empty
+    history = state.get("history")
+    accepted = state.get("accepted")
+    if not isinstance(history, list) or not isinstance(accepted, dict):
+        return empty
+    seen: set[tuple[str, str]] = set()
+    recorded: list[tuple[int, str, str, object, object, object]] = []
+    for index, entry in enumerate(history):
+        if not isinstance(entry, dict) or entry.get("outcome") != "done":
+            continue
+        action = entry.get("action")
+        result = accepted.get(action) if isinstance(action, str) else None
+        if not isinstance(result, dict):
+            continue
+        stage = str(entry.get("stage") or "")
+        workitem = entry.get("workitem")
+        for row in result.get("assumptions") or ():
+            if not isinstance(row, dict) or row.get("disposition") != "open":
+                continue
+            oid = row.get("id")
+            if not isinstance(oid, str) or not oid or not isinstance(action, str):
+                continue
+            key = (action, oid)
+            if key in seen:
+                continue
+            seen.add(key)
+            recorded.append((index, oid, stage, workitem, row.get("due_stage"), row.get("due_item")))
+
+    due_completed = 0
+    settled = 0
+    unsettled: list[dict[str, object]] = []
+    for index, oid, source_stage, source_item, due_stage, due_item in recorded:
+        due_rows: list[dict] = []
+        for later in history[index + 1:]:
+            if not isinstance(later, dict) or later.get("outcome") != "done":
+                continue
+            l_stage = later.get("stage")
+            l_item = later.get("workitem")
+            if source_stage == "plan" and due_item:
+                if l_item == due_item:
+                    due_rows.append(later)
+            elif due_stage:
+                if due_stage == "reflect-and-revise":
+                    if l_stage == "reflect-and-revise" and l_item == source_item:
+                        due_rows.append(later)
+                elif l_stage == due_stage:
+                    due_rows.append(later)
+        if not due_rows:
+            continue
+        due_completed += 1
+        token = re.compile(rf"(?<![A-Za-z0-9_-]){re.escape(oid)}(?![A-Za-z0-9_-])")
+        matched = False
+        for target in due_rows:
+            d_res = accepted.get(target.get("action")) or {}
+            if not isinstance(d_res, dict):
+                continue
+            parts = [str(d_res.get("summary") or "")]
+            if d_res.get("assumptions") is not None:
+                parts.append(json.dumps(d_res.get("assumptions"), sort_keys=True))
+            if token.search("\n".join(parts)):
+                matched = True
+                break
+        if matched:
+            settled += 1
+        else:
+            unsettled.append({
+                "id": oid,
+                "source_stage": source_stage,
+                "due_stage": due_stage or "step-plan..reflect-and-revise",
+                "due_item": due_item,
+            })
+    return {
+        "total": len(recorded),
+        "due_completed": due_completed,
+        "settled": settled,
+        "unsettled": unsettled,
+    }
+
+
 def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None, *,
             planning_cli: Path | None = None) -> dict:
     """The run's metrics. ``tools`` is the ToolLog to fill (a caller that reads the tool calls itself, as fidelity.py does,
@@ -2572,6 +2656,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # Directories only: each child also leaves a `<name>-bind.md` beside its directory.
         "improve_children": sum(1 for p in improve.iterdir() if p.is_dir()) if improve and improve.is_dir() else 0,
         "improve_reviews": improve_reviews(run_dir),
+        "open_item_settlement": open_item_settlement(state),
         **({"fork_completeness": fc} if (fc := fork_completeness.collect(out, run_dir)) is not None else {}),
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in tools.reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),
@@ -3135,6 +3220,16 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         lines.append(tool_use_text(metrics["tool_use"]))
     if metrics.get("fork_completeness"):
         lines.append(fork_completeness.summary_line(metrics["fork_completeness"]))
+    settlement = metrics.get("open_item_settlement") or {}
+    if settlement.get("due_completed"):
+        unsettled = settlement.get("unsettled") or ()
+        extra = ""
+        if unsettled:
+            labels = [f"{row['id']}@{row['due_stage']}" for row in unsettled[:5]]
+            more = f" +{len(unsettled) - 5}" if len(unsettled) > 5 else ""
+            extra = f" (unsettled: {', '.join(labels)}{more})"
+        lines.append(f"open items settled {settlement['settled']}/{settlement['due_completed']} "
+                     f"(total {settlement['total']}){extra}")
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
         # Named as the display contract it is, not as "compliance": on a long recorded run a model relayed 2 of 6 blocks

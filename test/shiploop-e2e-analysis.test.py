@@ -4479,5 +4479,73 @@ class UnitCheckRequiresExecutedTests(unittest.TestCase):
                 self.assertIn("ran=2 executed=1 skipped=1", passed.stdout)
 
 
+class OpenItemSettlementTests(unittest.TestCase):
+    """Non-refusing audit metric for open-item mentions at their due stages."""
+
+    def _run_with_state(self, tmp: str, state: dict) -> dict:
+        out = Path(tmp) / "out"
+        run_dir = out / "run"
+        run_dir.mkdir(parents=True)
+        (out / "events.jsonl").write_text("", encoding="utf-8")
+        (out / "timeline.jsonl").write_text("", encoding="utf-8")
+        (run_dir / "state.md").write_text("```shiploop-state\n" + json.dumps(state) + "\n```\n", encoding="utf-8")
+        return metrics.collect(out, run_dir)
+
+    def test_empty_and_unreached_due_stages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m0 = self._run_with_state(tmp + "/a", {"history": [], "accepted": {}})
+            self.assertEqual(m0["open_item_settlement"], {"total": 0, "due_completed": 0, "settled": 0, "unsettled": []})
+            self.assertFalse(any("open items settled" in line for line in metrics.summary_lines(m0)))
+
+            m1 = self._run_with_state(tmp + "/b", {
+                "history": [{"stage": "document", "outcome": "done", "workitem": "W1", "action": "nav-1"}],
+                "accepted": {"nav-1": {"outcome": "done", "summary": "doc", "assumptions": [
+                    {"id": "A1", "assumption": "x", "disposition": "open", "settle": "run", "reason": "wait",
+                     "due_stage": "product-acceptance"},
+                ]}},
+            })
+            self.assertEqual(m1["open_item_settlement"], {"total": 1, "due_completed": 0, "settled": 0, "unsettled": []})
+
+    def test_settled_and_unsettled_across_summary_and_assumptions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = {
+                "history": [
+                    {"stage": "plan", "outcome": "done", "workitem": None, "action": "a-plan"},
+                    {"stage": "test-spec", "outcome": "done", "workitem": "W1", "action": "a-ts"},
+                    {"stage": "document", "outcome": "done", "workitem": "W1", "action": "a-doc"},
+                    {"stage": "step-plan", "outcome": "done", "workitem": "W1", "action": "a-sp"},
+                    {"stage": "reflect-and-revise", "outcome": "done", "workitem": "W1", "action": "a-rr"},
+                    {"stage": "product-acceptance", "outcome": "done", "workitem": None, "action": "a-pa"},
+                ],
+                "accepted": {
+                    "a-plan": {"outcome": "done", "summary": "plan", "assumptions": [
+                        {"id": "A1", "assumption": "seam", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_item": "W1"},
+                    ]},
+                    "a-ts": {"outcome": "done", "summary": "ts", "assumptions": [
+                        {"id": "A2", "assumption": "timing", "disposition": "open", "settle": "verify",
+                         "reason": "defer", "due_stage": "reflect-and-revise"},
+                    ]},
+                    "a-doc": {"outcome": "done", "summary": "doc", "assumptions": [
+                        {"id": "A3", "assumption": "ux", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_stage": "product-acceptance"},
+                    ]},
+                    "a-sp": {"outcome": "done", "summary": "Settled A1 by reading seam."},
+                    "a-rr": {"outcome": "done", "summary": "Done.", "assumptions": [{"id": "A2", "note": "checked"}]},
+                    "a-pa": {"outcome": "done", "summary": "Accepted all features."},
+                },
+            }
+            m = self._run_with_state(tmp, state)
+            self.assertEqual(m["open_item_settlement"], {
+                "total": 3,
+                "due_completed": 3,
+                "settled": 2,
+                "unsettled": [{"id": "A3", "source_stage": "document", "due_stage": "product-acceptance",
+                               "due_item": None}],
+            })
+            lines = metrics.summary_lines(m)
+            self.assertIn("open items settled 2/3 (total 3) (unsettled: A3@product-acceptance)", lines)
+
+
 if __name__ == "__main__":
     unittest.main()
