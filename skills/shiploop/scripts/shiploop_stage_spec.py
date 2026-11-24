@@ -548,7 +548,7 @@ _ROWS = (
             "the consumer entry names how a person reaches the result",
         ),
         test="Plan the post-release checks.",
-        deploy="Plan the release, its rollback and the post-release checks.",
+        deploy="Plan ordered destination stages (when multi-stage), per-environment settings parity, per-hop authority gates, data/schema migrations (expand, deploy, verify, contract), and rollback or forward-repair.",
         improve="always",
         # system-test-author: the system commands it recorded (consumer contract CONSUMES, 2026-10-11).
         reads=("spec", "plan", "system-test-author", "system-test"),
@@ -562,7 +562,7 @@ _ROWS = (
             "each release precondition is observed",
             "each post-release confirm command ran once and recorded its not-there-yet output",
         ),
-        deploy="Dry-run the deploy; do not release.",
+        deploy="Verify per-environment settings readiness and migration preconditions (rehearsal, schema/data drift, backup, live compatibility), and dry-run the deploy without mutating a target.",
         reads=("release-plan",),
     ),
     Stage(
@@ -573,7 +573,7 @@ _ROWS = (
             "the planned release ran with a recorded grant, or a justified not-applicable",
             "the released identity is recorded",
         ),
-        deploy="Release only with a recorded grant; the dry run precedes the real deploy.",
+        deploy="Release hop-by-hop in planned order (migrate-before, deploy/config, verify, migrate-after when due) with per-hop authority after dry-run passes; never blindly rerun non-idempotent migrations.",
         reads=("release-plan", "release-check"),
     ),
     Stage(
@@ -586,7 +586,7 @@ _ROWS = (
             "and what a later run should pick up",
         ),
         test="A passing unit suite is not delivery evidence.",
-        deploy="Verify the release in the target.",
+        deploy="Verify live target behavior, post-migration data integrity and existing-data compatibility, and migrate-after cleanup; keep checkout-clean consumer checks distinct from live-target checks.",
         tools="On done, ShipLoop runs every consumer check release-plan recorded.",
         complete_runs=("test-rerun",),
         reads=("spec", "release-plan", "release"),

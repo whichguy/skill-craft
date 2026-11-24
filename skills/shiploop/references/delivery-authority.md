@@ -55,6 +55,12 @@ Silence, a login or access receipt, an old one-off approval/receipt, and an
 agent-written policy are not grants. Do not test write permission by making the
 change. An approved standing policy must itself be traceable to a user approval.
 
+Authority is **per destination stage and operation**: a grant to deploy to
+`dev` or `staging` never authorizes `prod`, and a code-deploy grant never
+authorizes destructive production schema contraction or data mutation unless
+explicitly stated in the request or user decision. Name each hop's grant status
+at `release-plan` and stop before any ungranted hop at `release`.
+
 Independent work that is already authorized may continue in its assigned action.
 Record the outstanding approval's owner and earliest gate, but do not perform
 the necessary write or declare `release-plan` complete while that authority is

@@ -3466,5 +3466,66 @@ class LiveRunGuidanceTests(unittest.TestCase):
                       text)
 
 
+class MultiStageCDAndMigrationPromptTests(unittest.TestCase):
+    """Multi-stage CD destinations, per-environment settings parity, and expand/deploy/contract migrations reach outer
+    CD prompts, stage specs, and references."""
+
+    def test_outer_cd_prompts_and_stage_specs_cue_promotion_ladders_settings_and_migrations(self) -> None:
+        rp = normalized(prompts.prompt("release-plan"))
+        for clause in (
+            "ordered destination environments / promotion ladder",
+            "per-environment settings/config/secrets/feature-flag parity",
+            "KNOWLEDGE/environment.md ## Release and promotion",
+            "`migrate-before` (additive expand/backfill) -> code/config deploy -> verification -> `migrate-after` (contract/cleanup)",
+            "isolated rehearsal on realistic data",
+            "point-of-no-return",
+            "rollback vs. forward-repair",
+            "Approval for dev or staging never authorizes prod or destructive production data changes",
+            "Keep checkout-clean packaging/build/regression `consumer_checks` distinct from live target/post-migration checks",
+        ):
+            with self.subTest(stage="release-plan", clause=clause):
+                self.assertIn(clause, rp)
+
+        rc = normalized(prompts.prompt("release-check"))
+        for clause in (
+            "per-environment settings/config/secrets readiness and target parity",
+            "migration preconditions (isolated rehearsal evidence, target schema/data version drift check, backup/snapshot precondition, live compatibility)",
+            "Keep checkout-clean checks separate from live environment/target readiness checks",
+        ):
+            with self.subTest(stage="release-check", clause=clause):
+                self.assertIn(clause, rc)
+
+        rel = normalized(prompts.prompt("release"))
+        for clause in (
+            "Execute hop-by-hop across planned destination stages in order",
+            "`migrate-before` (expand/backfill) -> settings/code deploy -> post-deploy verify/gate -> `migrate-after` cleanup when due",
+            "stop, release no unapproved hop",
+            "Never blindly replay a merge, push, non-idempotent migration",
+        ):
+            with self.subTest(stage="release", clause=clause):
+                self.assertIn(clause, rel)
+
+        rv = normalized(prompts.prompt("release-verify"))
+        for clause in (
+            "Keep checkout-clean `consumer_checks` distinct from live-target checks",
+            "verify post-migration data integrity, existing-data compatibility, and `migrate-after` cleanup",
+            "A pass on another surface only supports (for example dev when prod is required)",
+            "## Release and promotion",
+        ):
+            with self.subTest(stage="release-verify", clause=clause):
+                self.assertIn(clause, rv)
+
+    def test_environment_and_authority_guides_cover_multistage_and_migration_rules(self) -> None:
+        env_doc = normalized((REFERENCES / "environment-lifecycle.md").read_text(encoding="utf-8"))
+        for phrase in (
+            "## Multi-stage promotion, per-environment settings, and data migration",
+            "Approval or passing checks in `dev` or `staging` never authorizes or proves `prod`",
+            "`migrate-before` (additive/expand/backfill) -> code/config deploy -> verification -> `migrate-after` (contraction/cleanup)",
+        ):
+            self.assertIn(phrase, env_doc)
+        auth_doc = normalized((REFERENCES / "delivery-authority.md").read_text(encoding="utf-8"))
+        self.assertIn("Authority is **per destination stage and operation**", auth_doc)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

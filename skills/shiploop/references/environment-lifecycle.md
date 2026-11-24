@@ -134,6 +134,32 @@ A local-only scope can make external release work N/A, but candidate identity an
 current local consumer evidence remain required. A stage-scoped Improve may assess
 a plan/check and record its handoff; it cannot execute or replay a release effect.
 
+## Multi-stage promotion, per-environment settings, and data migration
+
+When a system promotes across multiple destination environments (for example
+`dev` -> `test`/`staging` -> `prod`), or changes per-environment settings or
+persistent schemas/data, apply these rules without inventing unnecessary hops
+for local-only work:
+
+- **Ordered promotion gates & isolated authority:** Record the exact destination
+  ladder, which hops already ran in INNER vs. remain for `release`, each hop's
+  promotion gate, and separate scoped authority per destination. Approval or
+  passing checks in `dev` or `staging` never authorizes or proves `prod`.
+- **Per-environment settings, secrets, and rebuild invalidation:** Check
+  environment variables, config files, secrets/accounts, and feature flags per
+  destination before mutation (`release-check`), and record whether a config
+  change or rebuild invalidates earlier candidate checks.
+- **Data and schema migration discipline:** Sequence rollout explicitly as
+  `migrate-before` (additive/expand/backfill) -> code/config deploy ->
+  verification -> `migrate-after` (contraction/cleanup). Establish isolated
+  rehearsal evidence on realistic data, live reader/writer compatibility during
+  rollout, idempotency/resume checkpoints, backup/snapshot preconditions,
+  point-of-no-return, and explicit rollback vs. forward-repair procedures. Never
+  blindly re-run a non-idempotent migration after a partial failure or login
+  boundary. Record standing repeatable steps in
+  `KNOWLEDGE/environment.md ## Release and promotion` and run-specific state in
+  `RUN/notes/environment-lifecycle.md`.
+
 ## Durable record and responsibility
 
 `RUN/reference.md#policies` holds the canonical run locator
