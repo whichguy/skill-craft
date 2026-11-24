@@ -1,0 +1,25 @@
+{
+  "outcome": "done",
+  "headline": "Ran unnecessary probe on formatUsd.",
+  "summary": "Probed String.padStart behavior in RUN/experiments/.",
+  "evidence_refs": ["docs/shiploop/architecture.md", "/tmp/run/experiments/pad/out.txt"],
+  "work_items": [
+    {"id": "W1", "title": "Fix formatUsd", "follows": ["R-1", "R-2", "AD-1"], "context": "Pad remainder."}
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "None"}, {"id": "api", "applies": "yes", "decision": "Keep API", "anchor": "R-1", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "None"}, {"id": "state", "applies": "no", "reason": "None"},
+      {"id": "migrate-before", "applies": "no", "reason": "None"}, {"id": "migrate-after", "applies": "no", "reason": "None"},
+      {"id": "switchover", "applies": "no", "reason": "None"}, {"id": "concurrency", "applies": "no", "reason": "None"},
+      {"id": "platform-services", "applies": "no", "reason": "None"}, {"id": "scale", "applies": "no", "reason": "None"},
+      {"id": "security", "applies": "no", "reason": "None"}, {"id": "observability", "applies": "no", "reason": "None"},
+      {"id": "config", "applies": "no", "reason": "None"}, {"id": "performance", "applies": "no", "reason": "None"},
+      {"id": "accessibility", "applies": "no", "reason": "None"}
+    ]
+  },
+  "assumptions": [
+    {"id": "A1", "assumption": "padStart pads zeros", "disposition": "probed", "check": "node -e ...",
+     "evidence": ["/tmp/run/experiments/pad/out.txt"], "effect": "Confirmed padStart works."}
+  ]
+}

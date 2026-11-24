@@ -1,0 +1,4 @@
+{
+  "fails": ["P1"],
+  "why": "Stops after probing export-v1 and assumes export-v2-stream handles unlimited payloads as JSONL without probing --mode jsonl or the 4096-byte limit."
+}

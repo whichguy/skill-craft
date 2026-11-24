@@ -204,6 +204,7 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # red_na / retired_tests record-field shape (shiploop_navigator.py:2626-2658).
     "record_fields": re.compile(r"is a non-empty list of \{|entries each need "),
     # concerns shape and coverage (shiploop_concerns.py).
+    "deferred_concerns_w1_gate": re.compile(r"is the first work item and cannot defer concerns"),
     "concerns_gate": re.compile(r"concern rows are|concerns is (?:an object|a list)|unknown concern|concern \S+ is "
                                 r"(?:listed|mapped) twice|concerns names items that are not in work_items|no step "
                                 r"delivers|concerns maps concerns the plan does not give"),
@@ -211,6 +212,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # (shiploop_expectations.check_step_plan).
     "assumptions_due_item": re.compile(r"(?:expectations|criteria) cite from .+, which is not an open plan assumption|"
                                        r"open plan assumptions .+ name .+ as (?:due_item|consumer)"),
+    # Intake experiment questions that plan failed to account for (shiploop_assumptions.check_experiment_questions).
+    "experiment_questions_gate": re.compile(r"intake routed experiment question\(s\) .+ that no plan assumption accounts for"),
     # Open-item (assumptions) record shape (shiploop_assumptions.py).
     "assumptions_gate": re.compile(r"assumption \S+ is listed twice|assumptions is a list of"),
     # Expectations: a step's expectations must list every changed path and the path's presence on the item's lint
@@ -3870,6 +3873,90 @@ def stage_share(out: Path, run_dir: Path | None = None, stage: str = "plan", nee
             "authoring_share": round(authoring / window["seconds"], 4),
             "named": {"needle": needle, "calls": len(times), "span_seconds": span_seconds,
                       "span_share": None if span_seconds is None else round(span_seconds / window["seconds"], 4)}}
+
+
+def planning_observability(run_dir: Path | None, state: dict | None = None) -> dict:
+    """Summarize planning Until Loop iterations, experiment sandboxes, snapshots, question coverage, and slice layout."""
+    state = engine_state(run_dir) if state is None else state
+    run_path = Path(run_dir) if run_dir is not None else None
+    accepted = state.get("accepted") or {}
+    history = state.get("history") or ()
+    plan_action = next((row.get("action") for row in reversed(history)
+                        if isinstance(row, dict) and row.get("stage") == "plan"), None)
+    if not isinstance(plan_action, str):
+        action_obj = state.get("action") if isinstance(state.get("action"), dict) else {}
+        if state.get("stage") == "plan" and isinstance(action_obj.get("id"), str):
+            plan_action = action_obj["id"]
+    plan_result = accepted.get(plan_action) if isinstance(plan_action, str) and isinstance(accepted, dict) else None
+    plan_result = plan_result if isinstance(plan_result, dict) else {}
+
+    loop_iters = None
+    if run_path is not None and isinstance(plan_action, str):
+        receipt_path = run_path / "loops" / f"{plan_action}-terminal.json"
+        if receipt_path.is_file() and not receipt_path.is_symlink():
+            try:
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8", errors="replace"))
+            except (OSError, ValueError):
+                receipt = None
+            if isinstance(receipt, dict):
+                progress = receipt.get("progress") if isinstance(receipt.get("progress"), dict) else {}
+                raw_num = progress.get("action_number", receipt.get("action_number"))
+                if isinstance(raw_num, int) and not isinstance(raw_num, bool):
+                    loop_iters = raw_num
+
+    experiment_dirs = 0
+    snapshot_count = 0
+    if run_path is not None and (run_path / "experiments").is_dir():
+        for entry in (run_path / "experiments").iterdir():
+            if entry.is_symlink():
+                continue
+            if entry.is_dir() and not entry.name.startswith("."):
+                experiment_dirs += 1
+            elif entry.is_file() and re.fullmatch(r"plan-iter-\d+\.md", entry.name):
+                snapshot_count += 1
+
+    assumptions = plan_result.get("assumptions") if isinstance(plan_result.get("assumptions"), list) else []
+    probed = [row for row in assumptions if isinstance(row, dict) and row.get("disposition") == "probed"]
+    probed_with_effect = sum(1 for row in probed if isinstance(row.get("effect"), str) and row.get("effect").strip())
+
+    intake_action = next((row.get("action") for row in reversed(history)
+                          if isinstance(row, dict) and row.get("stage") == "intake"), None)
+    intake_result = accepted.get(intake_action) if isinstance(intake_action, str) and isinstance(accepted, dict) else {}
+    q_ids = []
+    for row in (intake_result.get("questions") or []) if isinstance(intake_result, dict) else []:
+        if isinstance(row, dict) and row.get("route") == "experiment" and isinstance(row.get("id"), str):
+            q_ids.append(row["id"])
+    covered_q_ids = set()
+    for q_id in q_ids:
+        pat = re.compile(rf"\b{re.escape(q_id)}\b")
+        for row in assumptions:
+            if not isinstance(row, dict):
+                continue
+            if row.get("question") == q_id or pat.search(str(row.get("statement") or "")) or pat.search(str(row.get("check") or "")):
+                covered_q_ids.add(q_id)
+                break
+
+    work_items = state.get("work_items") or plan_result.get("work_items") or []
+    slice_counts: dict[str, int] = {}
+    for item in work_items if isinstance(work_items, list) else ():
+        if isinstance(item, dict) and isinstance(item.get("slice"), str) and item["slice"]:
+            slice_counts[item["slice"]] = slice_counts.get(item["slice"], 0) + 1
+
+    concerns = plan_result.get("concerns") if isinstance(plan_result.get("concerns"), dict) else {}
+    deferred_items = sorted(str(k) for k, v in concerns.items() if v == "deferred")
+
+    return {
+        "plan_loop_iterations": loop_iters,
+        "plan_experiment_dirs": experiment_dirs,
+        "plan_snapshots": snapshot_count,
+        "plan_probed_assumptions": len(probed),
+        "plan_probed_with_effect": probed_with_effect,
+        "intake_experiment_questions_total": len(q_ids),
+        "intake_experiment_questions_covered": len(covered_q_ids),
+        "work_item_count": len(work_items) if isinstance(work_items, list) else 0,
+        "work_item_slices": slice_counts,
+        "deferred_concerns_items": deferred_items,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:

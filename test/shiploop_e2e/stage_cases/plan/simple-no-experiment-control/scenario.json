@@ -1,0 +1,74 @@
+{
+  "stage": "plan",
+  "about": "Small single-surface bugfix control: with zero intake experiment questions and a clear single-file contract in src/currency.js, plan keeps 1 work item (W1), runs zero unnecessary experiments, and exits its Until Loop cleanly.",
+  "tags": ["plan", "control", "until-loop", "restraint"],
+  "tiers": ["verify", "render", "live"],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Fix formatUsd(cents) in src/currency.js so single-digit cent remainders are zero-padded to two digits (R-1: 105 -> '$1.05', 100 -> '$1.00'; R-2: preserve validation and existing node --test suite).",
+    "work_item": {
+      "id": "W1",
+      "title": "Zero-pad cents in formatUsd with unit regression tests",
+      "context": "Fix src/currency.js remainder formatting and add unit tests covering 0..9 cent remainders and existing error checks."
+    },
+    "checks": ["node --test"]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "seed_records": {
+    "intake": {
+      "question_categories": [
+        {"id": "K1", "applies": "no", "reason": "single file src/currency.js contract is clear"},
+        {"id": "K2", "applies": "no", "reason": "single local runtime"},
+        {"id": "K3", "applies": "no", "reason": "no auth"},
+        {"id": "K4", "applies": "no", "reason": "no persistence"},
+        {"id": "K5", "applies": "no", "reason": "no UI"},
+        {"id": "K6", "applies": "no", "reason": "no deployment target"},
+        {"id": "K7", "applies": "no", "reason": "no messaging"},
+        {"id": "K8", "applies": "no", "reason": "no concurrency"},
+        {"id": "K9", "applies": "no", "reason": "no observability SLA"},
+        {"id": "K10", "applies": "no", "reason": "no third-party service"},
+        {"id": "K11", "applies": "no", "reason": "no compliance rule"},
+        {"id": "K12", "applies": "no", "reason": "terms unambiguous"}
+      ],
+      "questions": []
+    },
+    "spec": {"primary": ["R-1", "R-2"], "defaults": []},
+    "test-strategy": {
+      "test_layers": [
+        {"code": "src/currency.js", "layer": "unit", "harness": "node --test", "status": "available", "reason": "Existing zero-dependency Node test runner."}
+      ],
+      "targets": [{"target": "local Node.js", "keeps_state": "no", "base_state_route": "n/a"}]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "Small single-surface fix keeps 1 work item (W1) and runs 0 unnecessary probed experiments.",
+      "signature": "1 work item W1 and 0 probed assumptions"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "plan covers R-1 and R-2, maps all 15 concerns for W1, and leaves product code untouched."
+    }
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "plan"},
+    {"proves": "P1", "packet_contains": "A small or cohesive single-surface\\s+change stays one item"},
+    {"proves": "P1", "packet_contains": "zero experiments is valid when no consequential uncertainty remains"},
+    {"proves": "C1", "packet_contains": "KNOWLEDGE/architecture\\.md"}
+  ],
+  "oracle": [
+    {"proves": "P1", "outcome": ["done"]},
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check_simple_control.py\" P1", "exit": 0},
+    {"proves": "C1", "outcome": ["done"]},
+    {"proves": "C1", "command": "python3 \"$STAGE_ORACLE/check_simple_control.py\" C1", "exit": 0},
+    {"proves": "C1", "changed_only": ["docs/shiploop/**"]}
+  ],
+  "live": {"samples": 1, "pass": 1}
+}

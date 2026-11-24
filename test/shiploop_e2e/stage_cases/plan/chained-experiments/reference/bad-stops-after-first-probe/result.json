@@ -1,0 +1,44 @@
+{
+  "outcome": "done",
+  "headline": "Switched blindly to export-v2-stream after v1 hit 20-record cap.",
+  "summary": "Probed export-v1 and hit 20-record limit, so switched to a single invocation of tools/export-v2-stream.js for all 100+ records.",
+  "evidence_refs": ["docs/shiploop/architecture.md", "/tmp/run/experiments/v1-probe/decision.md"],
+  "work_items": [
+    {
+      "id": "W1",
+      "title": "Invoke export-v2-stream once for all users",
+      "follows": ["R-1", "R-2", "AD-1"],
+      "context": "Call node tools/export-v2-stream.js once with all 100+ records."
+    }
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "No UI"},
+      {"id": "api", "applies": "yes", "decision": "Expose export endpoint", "anchor": "R-1", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "None"},
+      {"id": "state", "applies": "no", "reason": "None"},
+      {"id": "migrate-before", "applies": "no", "reason": "None"},
+      {"id": "migrate-after", "applies": "no", "reason": "None"},
+      {"id": "switchover", "applies": "no", "reason": "None"},
+      {"id": "concurrency", "applies": "no", "reason": "None"},
+      {"id": "platform-services", "applies": "no", "reason": "None"},
+      {"id": "scale", "applies": "no", "reason": "v2 docs say unlimited"},
+      {"id": "security", "applies": "no", "reason": "Local"},
+      {"id": "observability", "applies": "no", "reason": "None"},
+      {"id": "config", "applies": "no", "reason": "None"},
+      {"id": "performance", "applies": "no", "reason": "None"},
+      {"id": "accessibility", "applies": "no", "reason": "None"}
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "A1",
+      "question": "Q1",
+      "assumption": "v1 caps at 20 so v2 handles unlimited inputs directly",
+      "disposition": "probed",
+      "check": "node tools/export-v1.js on 21 records",
+      "evidence": ["/tmp/run/experiments/v1-probe/decision.md"],
+      "effect": "Switched to single-shot export-v2-stream.js call."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "outcome": "done",
+  "headline": "Planned 1-item fix for formatUsd zero-padding with unit tests.",
+  "summary": "No material unknown remains in src/currency.js; W1 fixes cent remainder padding to 2 digits and adds unit regression tests.",
+  "evidence_refs": ["docs/shiploop/architecture.md", "docs/shiploop/environment.md"],
+  "work_items": [
+    {
+      "id": "W1",
+      "title": "Zero-pad cents in formatUsd with unit regression tests",
+      "follows": ["R-1", "R-2", "AD-1"],
+      "context": "Pad String(remainder).padStart(2, '0') in src/currency.js and cover single-digit remainder + error cases via node --test."
+    }
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "No UI"},
+      {"id": "api", "applies": "yes", "decision": "Preserve formatUsd signature in src/currency.js", "anchor": "R-1, R-2", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "No messaging"},
+      {"id": "state", "applies": "no", "reason": "Pure function"},
+      {"id": "migrate-before", "applies": "no", "reason": "No storage"},
+      {"id": "migrate-after", "applies": "no", "reason": "No storage"},
+      {"id": "switchover", "applies": "no", "reason": "Local module"},
+      {"id": "concurrency", "applies": "no", "reason": "Synchronous pure helper"},
+      {"id": "platform-services", "applies": "no", "reason": "Node stdlib only"},
+      {"id": "scale", "applies": "no", "reason": "Single scalar formatting call"},
+      {"id": "security", "applies": "no", "reason": "Integer bounds checked in formatUsd"},
+      {"id": "observability", "applies": "no", "reason": "Throws RangeError on invalid input"},
+      {"id": "config", "applies": "no", "reason": "No config"},
+      {"id": "performance", "applies": "no", "reason": "Constant time"},
+      {"id": "accessibility", "applies": "no", "reason": "No UI"}
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "A1",
+      "assumption": "Node.js stdlib String.prototype.padStart(2, '0') formats single-digit remainders cleanly",
+      "disposition": "evidenced",
+      "evidence": ["docs/shiploop/environment.md"]
+    }
+  ]
+}

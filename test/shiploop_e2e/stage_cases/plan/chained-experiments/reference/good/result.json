@@ -1,0 +1,49 @@
+{
+  "outcome": "done",
+  "headline": "Clarified exporter plan via two chained isolated probes (v1 cap -> v2 mode and 4096-byte cap).",
+  "summary": "Iter 1 probed tools/export-v1.js (ERR_MAX_RECORDS >20 pointing to v2). Iter 2 probed tools/export-v2-stream.js and uncovered default CSV mode corruption plus 4096-byte stdin buffer limit. Plan uses export-v2-stream.js --mode jsonl chunked <=4096 bytes per call.",
+  "evidence_refs": [
+    "docs/shiploop/architecture.md",
+    "/tmp/run/experiments/v1-probe/decision.md",
+    "/tmp/run/experiments/v2-probe/decision.md"
+  ],
+  "work_items": [
+    {
+      "id": "W1",
+      "title": "Implement <=4096-byte chunked exporter via export-v2-stream --mode jsonl",
+      "slice": "spine",
+      "follows": ["R-1", "R-2", "AD-1", "AD-2"],
+      "context": "Batch records so serialized stdin <=4096 bytes per call to node tools/export-v2-stream.js --mode jsonl; preserve /users HTTP routes and node --test."
+    }
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "No UI requested"},
+      {"id": "api", "applies": "yes", "decision": "Expose export endpoint and helper", "anchor": "R-1, R-2", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "No async queues"},
+      {"id": "state", "applies": "no", "reason": "Reads existing users"},
+      {"id": "migrate-before", "applies": "no", "reason": "No schema change"},
+      {"id": "migrate-after", "applies": "no", "reason": "No cleanup migration"},
+      {"id": "switchover", "applies": "no", "reason": "Local CLI"},
+      {"id": "concurrency", "applies": "no", "reason": "Sequential bounded batches"},
+      {"id": "platform-services", "applies": "no", "reason": "Local Node stdlib"},
+      {"id": "scale", "applies": "yes", "decision": "Chunk JSON array payloads <=4096 bytes for export-v2-stream --mode jsonl", "anchor": "AD-2", "owner_stage": "step-plan"},
+      {"id": "security", "applies": "yes", "decision": "Pass argv array directly without shell interpolation", "anchor": "AD-2", "owner_stage": "step-plan"},
+      {"id": "observability", "applies": "no", "reason": "Surface CLI stderr"},
+      {"id": "config", "applies": "no", "reason": "No config keys"},
+      {"id": "performance", "applies": "no", "reason": "Bounded subprocesses"},
+      {"id": "accessibility", "applies": "no", "reason": "No UI"}
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "A1",
+      "question": "Q1",
+      "assumption": "export-v1.js fails above 20 records and export-v2-stream.js needs --mode jsonl plus <=4096-byte stdin batches",
+      "disposition": "probed",
+      "check": "Probed export-v1 (21 records) then export-v2-stream (>4096 bytes) in RUN/experiments/",
+      "evidence": ["/tmp/run/experiments/v1-probe/decision.md", "/tmp/run/experiments/v2-probe/decision.md"],
+      "effect": "Switched to export-v2-stream.js --mode jsonl with byte-bounded <=4096-byte batching."
+    }
+  ]
+}

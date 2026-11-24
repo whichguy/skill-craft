@@ -1,0 +1,4 @@
+{
+  "fails": ["C1"],
+  "why": "Omits primary requirement R-2 from work_items[*].follows."
+}

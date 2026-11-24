@@ -1,0 +1,4 @@
+{
+  "fails": ["P1"],
+  "why": "Runs an unnecessary probed assumption on a trivial static bugfix."
+}

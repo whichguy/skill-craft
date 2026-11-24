@@ -1,0 +1,85 @@
+{
+  "stage": "plan",
+  "about": "When experiment 1 uncovers a failure and points to a recommended v2 fallback, plan runs a secondary isolated probe on v2 rather than switching blindly, discovering v2's default CSV corruption mode and 4096-byte stdin buffer limit.",
+  "tags": ["plan", "experiments", "until-loop", "chained"],
+  "tiers": ["verify", "render", "live"],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Export 100+ user records including UTF-8 names, commas, and multiline notes as valid JSON Lines using the existing repo export CLI tools (R-1: export 100+ records cleanly as JSON Lines; R-2: preserve existing /users HTTP API endpoints and node --test suite with zero npm dependencies).",
+    "work_item": {
+      "id": "W1",
+      "title": "Export 100+ users via probed repository exporter",
+      "context": "R-1: export 100+ user records with UTF-8, commas, and multiline notes as valid JSON Lines via tools/export-v1.js or tools/export-v2-stream.js. R-2: preserve /users endpoints and node --test."
+    },
+    "checks": ["node --test"]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "seed_records": {
+    "intake": {
+      "question_categories": [
+        {"id": "K1", "applies": "yes"},
+        {"id": "K2", "applies": "no", "reason": "single local runtime"},
+        {"id": "K3", "applies": "no", "reason": "no external auth"},
+        {"id": "K4", "applies": "no", "reason": "no persistent migration"},
+        {"id": "K5", "applies": "no", "reason": "no UI requested"},
+        {"id": "K6", "applies": "no", "reason": "no deployment target"},
+        {"id": "K7", "applies": "no", "reason": "no messaging"},
+        {"id": "K8", "applies": "no", "reason": "no concurrency requirement"},
+        {"id": "K9", "applies": "no", "reason": "no observability SLA"},
+        {"id": "K10", "applies": "no", "reason": "no third-party service"},
+        {"id": "K11", "applies": "no", "reason": "no compliance rule"},
+        {"id": "K12", "applies": "no", "reason": "terms unambiguous"}
+      ],
+      "questions": [
+        {
+          "id": "Q1",
+          "category": "K1",
+          "question": "Can tools/export-v1.js or tools/export-v2-stream.js cleanly export 100+ records with UTF-8, commas, and multiline notes as JSON Lines, and under what exact flags and payload bounds?",
+          "changes": "Choice of exporter binary, CLI flags, and byte/record chunking",
+          "route": "experiment",
+          "default": "Call tools/export-v1.js once with all records",
+          "blocks": "plan"
+        }
+      ]
+    },
+    "spec": {"primary": ["R-1", "R-2"], "defaults": []},
+    "test-strategy": {
+      "test_layers": [
+        {"code": "src/server.js", "layer": "unit", "harness": "node --test", "status": "available", "reason": "Baseline suite."},
+        {"code": "tools/export-*.js integration", "layer": "e2e", "harness": "node --test", "status": "available", "reason": "CLI export subprocess test."}
+      ],
+      "targets": [{"target": "local Node.js", "keeps_state": "no", "base_state_route": "n/a"}]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "plan runs isolated experiments discovering both export-v1's 20-record limit and export-v2-stream's --mode jsonl flag plus 4096-byte stdin buffer limit instead of blindly falling back after one probe.",
+      "signature": "Q1 probed with --mode jsonl and 4096-byte chunking both captured in plan"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "plan finishes done, covers R-1 and R-2, maps valid concerns for W1, and modifies only docs/shiploop/**."
+    }
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "plan"},
+    {"proves": "P1", "packet_contains": "exit_assessment.*unsatisfied"},
+    {"proves": "P1", "packet_contains": "Q1: Can tools/export-v1\\.js"},
+    {"proves": "C1", "packet_contains": "KNOWLEDGE/architecture\\.md"}
+  ],
+  "oracle": [
+    {"proves": "P1", "outcome": ["done"]},
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check_chained_exp.py\" P1", "exit": 0},
+    {"proves": "C1", "outcome": ["done"]},
+    {"proves": "C1", "command": "python3 \"$STAGE_ORACLE/check_chained_exp.py\" C1", "exit": 0},
+    {"proves": "C1", "changed_only": ["docs/shiploop/**"]}
+  ],
+  "live": {"samples": 1, "pass": 1}
+}

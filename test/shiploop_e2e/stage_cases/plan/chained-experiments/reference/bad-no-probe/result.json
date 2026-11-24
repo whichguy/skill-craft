@@ -1,0 +1,32 @@
+{
+  "outcome": "done",
+  "headline": "Planned export-v1 without running any experiment.",
+  "summary": "Use export-v1 directly for all 100+ records.",
+  "evidence_refs": ["docs/shiploop/architecture.md"],
+  "work_items": [
+    {"id": "W1", "title": "Export via v1", "follows": ["R-1", "R-2", "AD-1"], "context": "Call export-v1 once."}
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "No UI"},
+      {"id": "api", "applies": "yes", "decision": "Expose helper", "anchor": "R-1", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "None"},
+      {"id": "state", "applies": "no", "reason": "None"},
+      {"id": "migrate-before", "applies": "no", "reason": "None"},
+      {"id": "migrate-after", "applies": "no", "reason": "None"},
+      {"id": "switchover", "applies": "no", "reason": "None"},
+      {"id": "concurrency", "applies": "no", "reason": "None"},
+      {"id": "platform-services", "applies": "no", "reason": "None"},
+      {"id": "scale", "applies": "no", "reason": "None"},
+      {"id": "security", "applies": "no", "reason": "None"},
+      {"id": "observability", "applies": "no", "reason": "None"},
+      {"id": "config", "applies": "no", "reason": "None"},
+      {"id": "performance", "applies": "no", "reason": "None"},
+      {"id": "accessibility", "applies": "no", "reason": "None"}
+    ]
+  },
+  "assumptions": [
+    {"id": "A1", "question": "Q1", "assumption": "v1 supports all payloads", "disposition": "open",
+     "settle": "test during W1", "reason": "skipped", "due_item": "W1"}
+  ]
+}

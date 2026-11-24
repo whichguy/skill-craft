@@ -2551,6 +2551,49 @@ class GateCountsTest(unittest.TestCase):
                 self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(caught.exception)), "defaults",
                                  str(caught.exception))
 
+    def test_planning_experiment_question_and_w1_deferred_refusals_and_observability(self) -> None:
+        scripts = str(ROOT / "skills/shiploop/scripts")
+        sys.path.append(scripts)
+        self.addCleanup(sys.path.remove, scripts)
+        import shiploop_assumptions as assumptions
+        import shiploop_concerns as concerns
+        with self.assertRaises(concerns.ConcernError) as c_err:
+            concerns.check_plan(concerns.canonical_plan({"W1": "deferred"}), ["W1"])
+        self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(c_err.exception)), "deferred_concerns_w1_gate")
+        with self.assertRaises(assumptions.AssumptionError) as a_err:
+            assumptions.check_experiment_questions([], [{"id": "Q1", "question": "Check cap"}])
+        self.assertEqual(metrics.refusal_gate("ShipLoop navigator: " + str(a_err.exception)), "experiment_questions_gate")
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp)
+            (run_dir / "experiments" / "exp-1").mkdir(parents=True)
+            (run_dir / "experiments" / "plan-iter-1.md").write_text("iter 1", encoding="utf-8")
+            (run_dir / "experiments" / "plan-iter-2.md").write_text("iter 2", encoding="utf-8")
+            (run_dir / "loops").mkdir(parents=True)
+            (run_dir / "loops" / "act-plan-terminal.json").write_text(json.dumps({"action_number": 2}), encoding="utf-8")
+            state = {
+                "history": [{"action": "act-in", "stage": "intake"}, {"action": "act-plan", "stage": "plan"}],
+                "accepted": {
+                    "act-in": {"questions": [{"id": "Q1", "route": "experiment", "question": "Cap?"}]},
+                    "act-plan": {
+                        "assumptions": [{"id": "A1", "question": "Q1", "disposition": "probed", "check": "cmd",
+                                         "evidence": ["e"], "effect": "Chunk <= 25"}],
+                        "work_items": [{"id": "W1", "title": "Spine", "slice": "spine"},
+                                       {"id": "W2", "title": "Enrich", "slice": "enrich"}],
+                        "concerns": {"W1": [], "W2": "deferred"},
+                    },
+                },
+                "work_items": [{"id": "W1", "title": "Spine", "slice": "spine"},
+                               {"id": "W2", "title": "Enrich", "slice": "enrich"}],
+            }
+            obs = metrics.planning_observability(run_dir, state)
+            self.assertEqual(obs["plan_loop_iterations"], 2)
+            self.assertEqual(obs["plan_experiment_dirs"], 1)
+            self.assertEqual(obs["plan_snapshots"], 2)
+            self.assertEqual((obs["plan_probed_assumptions"], obs["plan_probed_with_effect"]), (1, 1))
+            self.assertEqual((obs["intake_experiment_questions_total"], obs["intake_experiment_questions_covered"]), (1, 1))
+            self.assertEqual(obs["work_item_slices"], {"spine": 1, "enrich": 1})
+            self.assertEqual(obs["deferred_concerns_items"], ["W2"])
+
     def test_each_owner_notes_refusal_is_a_refusal_line_and_classifies_under_its_own_gate(self) -> None:
         """The owner-notes refusals, built by the gate's own functions, never typed (shiploop_owner_notes): for both
         commands their first line is a refusal line, and it names the notes gate."""

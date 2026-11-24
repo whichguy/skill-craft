@@ -1,0 +1,4 @@
+{
+  "fails": ["P1"],
+  "why": "Runs zero probes and assumes export-v1 handles 100+ records in one invocation."
+}

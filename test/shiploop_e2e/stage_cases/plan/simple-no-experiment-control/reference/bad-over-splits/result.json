@@ -1,0 +1,24 @@
+{
+  "outcome": "done",
+  "headline": "Split single-file currency bugfix into W1 and W2.",
+  "summary": "Fix padding in W1 then add tests in W2.",
+  "evidence_refs": ["docs/shiploop/architecture.md"],
+  "work_items": [
+    {"id": "W1", "title": "Fix src/currency.js", "slice": "spine", "follows": ["R-1", "AD-1"], "context": "Pad cents."},
+    {"id": "W2", "title": "Add unit tests", "slice": "enrich", "follows": ["R-2"], "context": "Test cents."}
+  ],
+  "concerns": {
+    "W1": [
+      {"id": "ui", "applies": "no", "reason": "None"}, {"id": "api", "applies": "yes", "decision": "Keep API", "anchor": "R-1", "owner_stage": "step-plan"},
+      {"id": "messaging", "applies": "no", "reason": "None"}, {"id": "state", "applies": "no", "reason": "None"},
+      {"id": "migrate-before", "applies": "no", "reason": "None"}, {"id": "migrate-after", "applies": "no", "reason": "None"},
+      {"id": "switchover", "applies": "no", "reason": "None"}, {"id": "concurrency", "applies": "no", "reason": "None"},
+      {"id": "platform-services", "applies": "no", "reason": "None"}, {"id": "scale", "applies": "no", "reason": "None"},
+      {"id": "security", "applies": "no", "reason": "None"}, {"id": "observability", "applies": "no", "reason": "None"},
+      {"id": "config", "applies": "no", "reason": "None"}, {"id": "performance", "applies": "no", "reason": "None"},
+      {"id": "accessibility", "applies": "no", "reason": "None"}
+    ],
+    "W2": "deferred"
+  },
+  "assumptions": [{"id": "A1", "assumption": "Standard Node runtime", "disposition": "evidenced", "evidence": ["docs/shiploop/environment.md"]}]
+}
