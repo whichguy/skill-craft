@@ -399,25 +399,45 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
 
 
 def workspace_completion_guard(root: Path, previous: Mapping[str, Any], updated: Mapping[str, Any]) -> None:
-    """A new isolated run cannot declare completion before verified return."""
-    if (previous.get("execution_mode") == "navigator-worktree"
-            and updated.get("status") == "done"):
-        import shiploop_workspace as workspace
-        try:
-            receipt = workspace.completed_receipt(root.parent, Path(previous["repo"]))
+    """Enforce decided return plans at ``release-check`` and verified returns at ``release`` and ``handoff``."""
+    if previous.get("execution_mode") != "navigator-worktree":
+        return
+    prev_history = previous.get("history") or ()
+    new_rows = [row for row in (updated.get("history") or ())[len(prev_history):] if isinstance(row, Mapping)]
+    need_plan = any(row.get("stage") == "release-check" and row.get("outcome") == "done" for row in new_rows)
+    need_release_receipt = any(row.get("stage") == "release" and row.get("outcome") == "done" for row in new_rows)
+    need_handoff_receipt = updated.get("status") == "done"
+    if not (need_plan or need_release_receipt or need_handoff_receipt):
+        return
+    import shiploop_workspace as workspace
+
+    cli = shlex.quote(str(Path(__file__).resolve().parent / "shiploop"))
+    where = shlex.quote(str(root.parent))
+    repo = Path(previous["repo"])
+    plan_cmds = (f"python3 {cli} workspace plan-return --workspace-root {where}, decide every undecided path "
+                 f"with python3 {cli} workspace review-return --workspace-root {where} --keep <paths> --exclude <paths>")
+    return_cmds = f"{plan_cmds}, then python3 {cli} workspace return --workspace-root {where}"
+    try:
+        if need_plan:
+            ready, reason = workspace.return_plan_ready(root.parent, repo)
+            if not ready:
+                need(False, f"release-check requires a current decided return plan ({reason}): run {plan_cmds}")
+        for required, stage_label, follow_note in (
+            (need_release_receipt, "release", ""),
+            (need_handoff_receipt, "handoff",
+             " (for example ShipLoop's own docs/shiploop/ commit at release-verify)"),
+        ):
+            if not required:
+                continue
+            receipt = workspace.completed_receipt(root.parent, repo)
             if receipt is None:
-                cli = shlex.quote(str(Path(__file__).resolve().parent / "shiploop"))
-                where = shlex.quote(str(root.parent))
-                commands = (f"python3 {cli} workspace plan-return --workspace-root {where}, record every decision "
-                            f"with python3 {cli} workspace review-return --workspace-root {where} --keep <paths> "
-                            f"--exclude <paths>, then python3 {cli} workspace return --workspace-root {where}")
                 if workspace.returned_before(root.parent):
-                    need(False, "handoff requires a current workspace return, and the recorded one is stale: "
-                         "the candidate or source changed after it (for example ShipLoop's own docs/shiploop/ "
-                         "commit at release-verify). Run a follow-up return: " + commands)
-                need(False, "handoff requires a verified workspace return: " + commands)
-        except workspace.WorkspaceError as exc:
-            raise ProtocolError(str(exc)) from exc
+                    need(False, f"{stage_label} requires a current workspace return, and the recorded one is stale: "
+                         f"the candidate or source changed after it{follow_note}. Run a follow-up return: "
+                         + return_cmds)
+                need(False, f"{stage_label} requires a verified workspace return: {return_cmds}")
+    except workspace.WorkspaceError as exc:
+        raise ProtocolError(str(exc)) from exc
 
 
 CALLBACK_ATTEMPTS = "callback-attempts"

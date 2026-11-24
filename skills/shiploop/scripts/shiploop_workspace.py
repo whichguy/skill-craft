@@ -108,6 +108,7 @@ __all__ = [
     "assert_binding",
     "binding_snapshot",
     "completed_receipt",
+    "return_plan_ready",
     "returned_before",
     "return_kind",
     "completed_receipt_snapshot",
@@ -2315,6 +2316,33 @@ def return_kind(workspace_root: Path) -> Optional[str]:
         return None
     kind = receipt.get("kind") if receipt and receipt.get("status") == "returned" else None
     return kind if kind in _RETURN_KINDS else None
+
+
+def return_plan_ready(workspace_root: Path, repo: Path) -> Tuple[bool, str]:
+    """Read-only gate for ``release-check``: True when a current return receipt already exists or ``return-plan.md``
+    matches the current candidate with zero pending path dispositions; else ``(False, diagnostic_reason)``."""
+    root = _resolved_directory(Path(workspace_root), label="workspace root")
+    manifest = _manifest(root)
+    worktree = _resolved_directory(Path(manifest["worktree"]), label="workspace worktree")
+    assert_binding(root, worktree)
+    source = _repo_root(Path(manifest["source_repo"]))
+    supplied = _repo_root(Path(repo))
+    if supplied not in {source, worktree}:
+        return False, "workspace source differs from this run"
+    if completed_receipt(root, repo) is not None:
+        return True, ""
+    if not (root / RETURN_PLAN).is_file():
+        return False, "missing return-plan.md"
+    try:
+        plan = _record(root, RETURN_PLAN, "return plan")
+        candidate, changes, history = _candidate(manifest, root)
+        _validate_plan(manifest, plan, candidate, changes, history, allow_pending=False)
+    except PendingDispositions as exc:
+        shown = ", ".join(exc.undecided[:5]) + ("..." if len(exc.undecided) > 5 else "")
+        return False, f"return plan still has {len(exc.undecided)} undecided path(s): {shown}"
+    except WorkspaceError as exc:
+        return False, str(exc)
+    return True, ""
 
 
 def completed_receipt(workspace_root: Path, repo: Path) -> Optional[Dict[str, Any]]:

@@ -2190,15 +2190,15 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertEqual((fresh_root / "run" / "state.md").read_bytes(), fresh_state_before)
 
     @staticmethod
-    def _advance_to_handoff(state: dict) -> dict:
-        """Build a valid terminal-adjacent navigator fixture without host work.
+    def _advance_to_stage(state: dict, target: str) -> dict:
+        """Build a valid stage-adjacent navigator fixture without host work.
 
         Improve checkpoints return through explicitly synthetic receipts; no
         Improve runtime or review runs.
         """
         while state["status"] != "done":
             action = navigator.current_action(state)
-            if action["stage"] == "handoff":
+            if action["stage"] == target:
                 return state
             result: dict[str, object] = {
                 "outcome": "done",
@@ -2224,7 +2224,108 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                         "lessons": "Only test workspace handoff gating.",
                     },
                 )
-        raise AssertionError("navigator reached done before handoff")
+        raise AssertionError("navigator reached done before " + target)
+
+    @classmethod
+    def _advance_to_handoff(cls, state: dict) -> dict:
+        return cls._advance_to_stage(state, "handoff")
+
+    def test_worktree_navigator_enforces_return_plan_at_release_check_and_receipt_at_release(self) -> None:
+        root = self.base / "guarded release stages"
+        self.cli(
+            "workspace",
+            "start",
+            "--repo",
+            str(self.repo),
+            "--workspace-root",
+            str(root),
+            "--prompt",
+            "Guard release-check and release in isolated workspace runs.",
+        )
+        run = (root / "run").resolve()
+        worktree = root / "worktree"
+        (worktree / "release-gated.txt").write_text("candidate file\n", encoding="utf-8")
+        self._commit_all(worktree, "candidate feature")
+
+        # 1. release-check refuses when return-plan.md is missing, pending, or stale.
+        state = self._advance_to_stage(store.read_record(run / "state.md"), "release-check")
+        navigator.save(run, state)
+        rc_action = navigator.current_action(state)["id"]
+        rc_result = run / "inbox" / f"{rc_action}.md"
+        store.write_record(rc_result, {"outcome": "done", "summary": "Release check."}, "ShipLoop navigator result")
+        refused_missing = self.cli(
+            "complete", "--run-dir", str(run), "--action", rc_action, "--result", str(rc_result), code=2,
+        )
+        self.assertIn("release-check requires a current decided return plan", refused_missing.stderr)
+        self.assertIn("missing return-plan.md", refused_missing.stderr)
+
+        self.cli("workspace", "plan-return", "--workspace-root", str(root))
+        refused_pending = self.cli(
+            "complete", "--run-dir", str(run), "--action", rc_action, "--result", str(rc_result), code=2,
+        )
+        self.assertIn("undecided path(s)", refused_pending.stderr)
+
+        self.cli("workspace", "review-return", "--workspace-root", str(root), "--keep", "release-gated.txt")
+        # Modifying the candidate invalidates the plan until plan-return refreshes it.
+        (worktree / "release-gated-extra.txt").write_text("extra\n", encoding="utf-8")
+        refused_stale = self.cli(
+            "complete", "--run-dir", str(run), "--action", rc_action, "--result", str(rc_result), code=2,
+        )
+        self.assertIn("stale", refused_stale.stderr)
+
+        self.cli("workspace", "plan-return", "--workspace-root", str(root))
+        self.cli("workspace", "review-return", "--workspace-root", str(root), "--keep", "release-gated-extra.txt")
+        self.cli("complete", "--run-dir", str(run), "--action", rc_action, "--result", str(rc_result))
+        state = store.read_record(run / "state.md")
+        self.assertEqual(state["stage"], "release")
+
+        # 2. release refuses without a verified return receipt and succeeds after workspace return.
+        rel_action = navigator.current_action(state)["id"]
+        rel_result = run / "inbox" / f"{rel_action}.md"
+        store.write_record(rel_result, {"outcome": "done", "summary": "Release."}, "ShipLoop navigator result")
+        refused_rel = self.cli(
+            "complete", "--run-dir", str(run), "--action", rel_action, "--result", str(rel_result), code=2,
+        )
+        self.assertIn("release requires a verified workspace return", refused_rel.stderr)
+        self.assertIn("workspace return --workspace-root", refused_rel.stderr)
+
+        self.cli("workspace", "return", "--workspace-root", str(root))
+        self.cli("complete", "--run-dir", str(run), "--action", rel_action, "--result", str(rel_result))
+        state = store.read_record(run / "state.md")
+        self.assertEqual(state["stage"], "release-verify")
+        self.assertEqual((self.repo / "release-gated.txt").read_text(encoding="utf-8"), "candidate file\n")
+
+        # 3. Post-release drift makes the receipt stale for handoff until a follow-up return completes.
+        state = self._advance_to_handoff(state)
+        navigator.save(run, state)
+        (worktree / "post-release-doc.txt").write_text("updated during release-verify\n", encoding="utf-8")
+        ho_action = navigator.current_action(state)["id"]
+        ho_result = run / "inbox" / f"{ho_action}.md"
+        store.write_record(
+            ho_result, {"outcome": "done", "summary": "Handoff.", "follow_on": []}, "ShipLoop navigator result",
+        )
+        refused_ho = self.cli(
+            "complete", "--run-dir", str(run), "--action", ho_action, "--result", str(ho_result), code=2,
+        )
+        self.assertIn("handoff requires a current workspace return, and the recorded one is stale", refused_ho.stderr)
+        self.cli("workspace", "plan-return", "--workspace-root", str(root))
+        self.cli("workspace", "review-return", "--workspace-root", str(root), "--keep", "post-release-doc.txt")
+        self.cli("workspace", "return", "--workspace-root", str(root))
+        self.cli("complete", "--run-dir", str(run), "--action", ho_action, "--result", str(ho_result))
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done")
+
+    def test_in_place_navigator_is_not_gated_at_release_check_or_release(self) -> None:
+        inplace_run = (self.base / "inplace-run").resolve()
+        self.cli("init", "--repo", str(self.repo), "--run-dir", str(inplace_run), "--prompt", "In-place run")
+        state = self._advance_to_stage(store.read_record(inplace_run / "state.md"), "release-check")
+        navigator.save(inplace_run, state)
+        for expected_next in ("release", "release-verify"):
+            action = navigator.current_action(state)["id"]
+            res_path = inplace_run / "inbox" / f"{action}.md"
+            store.write_record(res_path, {"outcome": "done", "summary": "In-place step."}, "ShipLoop navigator result")
+            self.cli("complete", "--run-dir", str(inplace_run), "--action", action, "--result", str(res_path))
+            state = store.read_record(inplace_run / "state.md")
+            self.assertEqual(state["stage"], expected_next)
 
     def test_worktree_navigator_cannot_complete_handoff_without_return_receipt(self) -> None:
         root = self.base / "guarded handoff"
