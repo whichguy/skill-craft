@@ -18,6 +18,7 @@ start` or `init` instructions and each returned command exactly.
 | Claude Code | `/skill-craft:shiploop` | `skill-craft@whichguy` |
 | Grok | Select the installed plugin's ShipLoop skill | Native marketplace package |
 | Cursor | Select the installed plugin's ShipLoop skill | Native marketplace package |
+| Antigravity | Select the installed ShipLoop skill (`.agents/skills/shiploop`) | Native skill/plugin package |
 | Hermes | Select the installed ShipLoop card | Host-supported materialized package |
 
 The marketplace name identifies the catalog; the plugin name supplies the
@@ -73,4 +74,5 @@ Grant the stable `.shiploop-runs` parent, not a single run's root, so one grant
 covers later runs. The script names the host from [host-bindings.json](host-bindings.json)
 (`CODEX_SANDBOX`/`CODEX_THREAD_ID`, then `GROK_AGENT`/`GROK_SESSION_ID`/`GROK_SANDBOX`,
 then `OPENCODE`, then `CLAUDECODE`, then `CURSOR_AGENT`/`CURSOR_CONVERSATION_ID`,
-innermost first, because a nested host inherits its launcher's variables). Granting is the user's decision.
+then `ANTIGRAVITY_AGENT`/`ANTIGRAVITY_CONVERSATION_ID`, innermost first, because a
+nested host inherits its launcher's variables). Granting is the user's decision.

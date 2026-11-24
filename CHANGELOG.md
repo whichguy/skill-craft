@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.13.1
+
+- Skills: ask-agent 0.12.1, shiploop 2.15.1
+
+### ask-agent 0.12.1
+
+- Add Antigravity (`agy` 1.1.2) host detection (`ANTIGRAVITY_AGENT`, `ANTIGRAVITY_CONVERSATION_ID`), `invoke_subagent` schema binding, and `host-capabilities.md#antigravity` reference section.
+
+### shiploop 2.15.1
+
+- Add Antigravity (`agy` 1.1.2) host detection (`ANTIGRAVITY_AGENT`, `ANTIGRAVITY_CONVERSATION_ID`), subagent binding (`invoke_subagent`, `TypeName="self"`, `Workspace="inherit"`, reactive wakeup), sandbox grant guidance, and host matrix entry.
+
 ### skill-craft 4.13.0
 
 - Skills: shiploop 2.15.0
