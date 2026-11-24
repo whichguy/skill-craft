@@ -2456,7 +2456,7 @@ class ContentsTests(LongHomeCase):
         self.assertEqual(navigator._cut_title("x" * 150), "x" * 97 + "...")
 
     def test_the_diff_of_a_new_file_is_a_pointer_that_lists_its_contents_once(self) -> None:
-        for stage in ("plan", "document"):  # each lists spec.md, environment.md and architecture.md (document: 2b-3)
+        for stage in ("plan", "document", "reflect-and-revise"):  # each lists spec.md, environment.md and architecture.md
             with self.subTest(stage=stage):
                 self._diff_of_a_new_file_lists_its_contents_once(stage)
 
@@ -2474,8 +2474,8 @@ class ContentsTests(LongHomeCase):
         self.assertEqual(sum(line.startswith("  | +") for line in lines), 0)
 
     def test_a_new_file_the_packet_does_not_list_is_a_pointer_with_its_contents(self) -> None:
-        # The stages that print the spec diff and list no living file (verify, which listed no spec, is retired).
-        for stage in ("reflect-and-revise", "release-verify"):
+        # The stage that prints the spec diff and lists no living file (verify is retired; reflect-and-revise reads them).
+        for stage in ("release-verify",):
             with self.subTest(stage=stage):
                 part = self.diff_part(self.block(stage))
                 spec = next(i for i, line in enumerate(part) if line.startswith("KNOWLEDGE/spec.md: new since"))
@@ -2677,14 +2677,14 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "21-implement": "84d5d7f4412f",
     "22-test": "47512f89e19d",
     "23-document": "a3f2ed5a00c3",
-    "25-reflect-and-revise": "1b56bb9895e1",
+    "25-reflect-and-revise": "8df4e52239af",
     "26-step-plan": "6d1756f3cf4b",
     "27-test-spec": "a6f458c2ef70",
     "28-validate-existing": "fd56ae387ab8",
     "29-implement": "7f5ec4c052ae",
     "30-test": "3aa81f32adf2",
     "31-document": "f58024eafdd1",
-    "33-reflect-and-revise": "fcf610ff5c20",
+    "33-reflect-and-revise": "b723f0a69882",
     "35-system-test-author": "9c09062ca617",
     "37-system-test": "5c1876049e88",
     "38-product-acceptance": "b6f629a51612",
