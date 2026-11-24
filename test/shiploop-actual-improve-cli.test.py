@@ -1854,6 +1854,34 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.import_the_review()
         self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
 
+    def test_improve_commit_refuses_dropped_decision_id_and_leaves_head_unchanged(self):
+        """Regression guard: improve-commit must check R-<n>/AD-<n> retention before committing docs/shiploop/ edits
+        so a dropped ID cannot become HEAD and bypass improve_import's retention check."""
+        if not self.inline():
+            self.skipTest("improve-commit is the inline route")
+        architecture = self.commit_architecture()
+        self._start_parent_at_stage("step-plan", [str(self.product_contract)])
+        self.finish_ephemeral()
+        head_before = self.home_git("rev-parse", "HEAD").strip()
+        architecture.write_text("# Architecture\n\nNode 22.\n\n### AD-1 In-memory board\n", encoding="utf-8")
+        message_path = bridge.receipt_path(self.bound).with_name("commit-message.md")
+        message_path.parent.mkdir(parents=True, exist_ok=True)
+        message_path.write_text("docs: drop AD-2 accidentally\n\nKey learnings: none.\n", encoding="utf-8")
+        refused = self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve,
+                              "--message", message_path, status=2)
+        lines = refused.stderr.splitlines()
+        self.assertEqual(lines[0].replace(str(architecture), "<file>"),
+                         "ShipLoop navigator: Restore AD-<n> in <file>, then run improve-commit again.")
+        self.assertIn("The architecture no longer mentions AD-2.", "\n".join(lines))
+        self.assertEqual(self.home_git("rev-parse", "HEAD").strip(), head_before)
+        # Restoring AD-2 under ## Superseded allows improve-commit and complete to succeed.
+        architecture.write_text(architecture.read_text(encoding="utf-8") + "\n## Superseded\n\nAD-2: replaced.\n",
+                                encoding="utf-8")
+        self.invoke(CLI, "improve-commit", "--run-dir", self.run, "--action", self.improve, "--message", message_path)
+        self.assertNotEqual(self.home_git("rev-parse", "HEAD").strip(), head_before)
+        self.import_the_review()
+        self.assertEqual(navigator.current_stage(store.read_record(self.run / "state.md")), "test-spec")
+
     def test_a_reviewed_stage_whose_summary_looks_like_a_credential_still_starts_its_improve_child(self):
         """CR-1 (owner decision 2026-10-16, no credential-pattern refusal): the Improve opening quotes the reviewed stage's
         summary, and a documentation line such as `Auth: sf login (alias de)` is what a run writes about its login. The

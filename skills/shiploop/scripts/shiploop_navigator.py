@@ -8415,6 +8415,10 @@ def improve_worker_brief_text(core: Any, root: Path, state: Mapping[str, Any]) -
         "Commit rule: if you edit files, commit ONLY through the handoff's `improve-commit` / `improve-pass` command "
         "(never raw `git commit`)."
     )
+    fork_read_lines = (
+        "   Because you inherited the parent conversation, avoid re-reading unchanged files already in your context; open only",
+        "   the handoff, changed/unseen files, and verification outputs needed to check the stage result.",
+    ) if mode == "fork" else ()
     return "\n".join([
         f"# ShipLoop {mode} review worker brief",
         "",
@@ -8432,6 +8436,7 @@ def improve_worker_brief_text(core: Any, root: Path, state: Mapping[str, Any]) -
         f'   (Invoke the host\'s Skill tool for "improve" when available—hosts with a Skill gate refuse `improve-pass` until it is called; otherwise read `{card}` directly and follow its ShipLoop whole-skill subcall section.)',
         f"2. Read `{handoff}` and `{route}` with a file-reading tool (not cat), then continue the",
         f"   already-started loop from `{receipt}`'s `next_argv` until `{receipt}` has status `complete` (or `stopped`/`blocked`).",
+        *fork_read_lines,
         f"3. You are a coding-capable reviewer and the exclusive writer in `{worktree}` until you return:",
         f"   inspect, run checks, make warranted in-scope fixes and tests, write `{reviews}/review-<n>.md`",
         f"   and `{reviews}/checks.md`, and end each pass with the handoff's `improve-pass` and `done` commands.",
@@ -9626,6 +9631,10 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
     _need(not refusal, refusal)
     refusal = _regression_refusal(repo, child, message, pending, message_path, command)
     _need(not refusal, refusal)
+    if any(p == knowledge.HOME or p.startswith(knowledge.HOME + "/") for p in pending):
+        verb = "improve-pass" if rerun and "improve-pass" in rerun else "improve-commit"
+        refusal = knowledge.check(state, child["stage"], verb)
+        _need(not refusal, refusal)
     store.atomic_write_text(message_path, message.strip() + "\n")  # what was checked is what is committed
     try:
         committed = shiploop_git.commit_paths(repo, pending, "", allow_empty=not pending, message_file=message_path)
