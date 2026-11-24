@@ -118,8 +118,10 @@ two beats: Beat 1 inspects the item's product diff (`RUN/fields/<action>-product
 tests and register newly added IDs in `added_tests`; Beat 2 runs every check, fixes
 local product defects (re-verifying the step Proof at `test` `done` whenever product
 code changed), and triages discoveries into `test_findings` (`none`, `local`,
-`amend-remaining`, `system-test`), open `assumptions`, or `send-back`. Only a final
-full pass after the last edit counts. The stage ends on `done`, `send-back`, or
-`blocked` (awaiting a person or service). ShipLoop's gates at `complete` (lint,
-the test runs, Proof re-check when product code changed, expectation checks) are
-the script-enforced part.
+`amend-remaining`, `system-test`), open `assumptions`, or `send-back`. Only a final full pass after the last edit counts. The stage ends on `done`,
+`send-back`, or, at `implement`, the same check still failing in the same way after
+a genuine fix that taught nothing new about why (`send-back`). A check that needs a
+tool, access or authority that is absent ends `blocked`, awaiting the person or
+service that must act. ShipLoop's gates at `complete` (lint, the test runs,
+Proof re-check when product code changed, expectation checks) are the
+script-enforced part.

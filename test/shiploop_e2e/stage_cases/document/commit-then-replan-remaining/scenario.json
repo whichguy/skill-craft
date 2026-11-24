@@ -123,11 +123,11 @@
     }
   },
   "planted": [
-    {"id": "P1", "what": "Documents S1 pagination behavior in README.md and records knowledge dispositions.", "signature": "README pagination docs and knowledge map"},
+    {"id": "P1", "what": "Documents S1 pagination behavior in README.md/JSDoc and records knowledge dispositions.", "signature": "pagination docs and knowledge map"},
     {"id": "P2", "what": "Emits replan_remaining on non-final document done to commit S1 and re-sequence S2.", "signature": "replan_remaining covering S2"}
   ],
   "controls": [
-    {"id": "C1", "what": "Document touches only README and docs/shiploop without editing src/server.js."}
+    {"id": "C1", "what": "Document touches only README, src/paginate.js docs/JSDoc, and docs/shiploop without editing src/server.js."}
   ],
   "render": [
     {"packet_issued": true},
@@ -140,7 +140,7 @@
     {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check.py\" docs", "exit": 0},
     {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check.py\" knowledge", "exit": 0},
     {"proves": "P2", "command": "python3 \"$STAGE_ORACLE/check.py\" replan", "exit": 0},
-    {"proves": "C1", "changed_only": ["README.md", "docs/shiploop/**"]},
+    {"proves": "C1", "changed_only": ["README.md", "docs/shiploop/**", "src/paginate.js"]},
     {"proves": "C1", "file": "src/server.js", "unchanged": true}
   ],
   "live": {

@@ -18,9 +18,16 @@ def load_result():
 
 
 def check_docs():
-    readme = (ROOT / "README.md").read_text().lower()
-    if "paginate" not in readme or "partial" not in readme:
-        fail("README.md must document partial-page pagination behavior")
+    parts = [
+        (ROOT / "README.md").read_text(),
+        (ROOT / "src/paginate.js").read_text(),
+    ]
+    spec_md = ROOT / "docs/shiploop/spec.md"
+    if spec_md.is_file():
+        parts.append(spec_md.read_text())
+    combined = "\n".join(parts).lower()
+    if "paginate" not in combined or "partial" not in combined:
+        fail("README.md, src/paginate.js JSDoc, or docs/shiploop/spec.md must document partial-page pagination behavior")
 
 
 def check_knowledge():

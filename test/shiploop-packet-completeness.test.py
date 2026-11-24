@@ -229,8 +229,8 @@ class PacketCompletenessTests(unittest.TestCase):
     # skill_na is gone with the skill stages.
     GATE_WORDS = {
         # The plan's assumptions, and the open items of the later stages (consumer contract X10, 2026-10-11).
-        "assumption": {"plan", "test-spec", "document", "reflect-and-revise", "system-test-author", "system-test",
-                       "release-plan", "release-verify"},
+        "assumption": {"test-strategy", "plan", "test-spec", "document", "reflect-and-revise", "system-test-author",
+                       "system-test", "release-plan", "release-verify"},
         "criterion": {"step-plan"},
         "deps": {"step-plan"},
         "system_commands": {"system-test-author"},

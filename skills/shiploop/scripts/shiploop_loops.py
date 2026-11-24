@@ -91,11 +91,11 @@ WORK: Mapping[str, str] = {
         "{run}/packets/{action}.md for it; then rerun every expectation's check."),
     "implement": WORK_STEP,
     "test": (
-        "Inspect the implementation diff and architecture against quoted test cases and `not_covered` (duty items "
-        "{items} of {run}/packets/{action}.md); build focused cases plus `not_covered` boundary/sub-cases and run "
-        "recorded commands; triage any discovery locally, to `test_findings` / `assumptions`, or to send-back; write "
-        "each test change's independent reason in {run}/notes/{action}.md; then " + _CHECK + " (it runs the base run, "
-        "candidate run and mutation check without counting)."),
+        "Do duty items {items} of {run}/packets/{action}.md for every test case quoted in the packet and every "
+        "`not_covered` edge (inspecting the implementation diff, running focused/regression commands, and triaging "
+        "discoveries into local fixes, `test_findings`, `assumptions`, or send-back) until every case is a passing "
+        "test the focused command runs; write each test change's independent reason in {run}/notes/{action}.md; then "
+        + _CHECK + " (it runs the base run, the candidate run and the mutation check without counting)."),
     "document": (
         "Do duty items {items} of {run}/packets/{action}.md; record each no-change reason in {run}/notes/{action}.md."),
     "reflect-and-revise": (
@@ -139,7 +139,7 @@ REPEAT: Mapping[str, str] = {
     "implement": REPEAT_STEP,
     "test": (
         "Repeat while a case or `not_covered` edge lacks a test, or the latest iteration found a failing command, a "
-        "missing ID, a count below the floor, a new ID passing on the base, a lint finding, a surviving mutant, or a "
+        "missing ID, a count below the floor, a new ID passing on the base, a surviving mutant, a lint finding or a "
         "refusal from the check, fixing defects (and re-running the step Proof if code changed) and triaging "
         "discoveries; "
         + _NO_LIMIT + " Stop blocked when a failure is proven unachievable in this step or item (contradicts the "

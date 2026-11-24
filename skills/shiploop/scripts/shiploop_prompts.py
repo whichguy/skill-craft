@@ -1438,8 +1438,8 @@ Change no product file in this stage.
    blocked (`awaiting` an answer: drop or keep) citing the superseding result; never skip the item
    or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
    widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
-2. **Test decisions.** Reopen the item's test decision, KNOWLEDGE/environment.md's harness/suite decisions, and any
-   `test_findings` / `assumptions` discoveries; plan against the Test layers and Test targets below; in the summary
+2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions, plus
+   any `test_findings` / `assumptions` discoveries; plan against the Test layers and Test targets below; in the summary
    say which you retain, refine or supersede and why, locators in evidence_refs. Revalidate harness, suite and browser
    tools for the changed surfaces (Repeatable test-suite guide). Code this item writes that no Test layers row names,
    or a refined layer/harness: add or supersede its rows in `test_layers` (same `code` + `layer` replaces earlier row);
@@ -1629,31 +1629,65 @@ preparatory commit); a mismatch there is a send-back.
     "test": """\
 1. **Reveal evidence & write the cases (Beat 1).** Before writing tests, read the item's product diff patch
    (`RUN/fields/<action>-product-diff.patch` or `git diff`), KNOWLEDGE/architecture.md, quoted `test_cases`, and
-   implement's `not_covered`. Map concrete changed branches, edge cases, state transitions and interfaces. Mocks first:
+   implement's `not_covered` to map concrete changed branches, edge cases, state transitions and interfaces. Mocks first:
    before a case's test, build the mock it names in `mock`, playing what it says the dependency does, slow, failing or
    out of order included. The mock's own header states what it stands in for and what it plays: a mock proves the code
-   only against the behaviour it simulates. Write focused tests (one clear behaviour per test, ID as its own word in
-   the title, asserting spec oracle—never implementation internals), reusing facilities and extending `not_covered`
-   into `<ID> (<letter>)` sub-cases; cover valid, boundary, invalid and error/debug paths. When runtime behaviour is
-   ambiguous, run diagnostic probes saved under `RUN/experiments/`. Register any newly added durable test IDs in
-   optional `added_tests` (`[{"id", "command"}]`) so document reruns them too. Write no case due at a later stage.
-2. **Test & harness decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md ## Harnesses and suites.
-   Record any changed harness/suite choice there and real-boundary decisions in KNOWLEDGE/architecture.md.
+   only against the behaviour it simulates. Each quoted test case becomes a test titled with its ID as its own word,
+   in the suite and command its case names (Repeatable test-suite guide, Target-native test selection), asserting the
+   spec's oracle, never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test
+   facilities). Build a missing facility within this item and validate it before the tests that use it; record it in
+   KNOWLEDGE/environment.md ## Harnesses and suites (locator, interface, readiness, owner, revalidation condition).
+   Use the plan concerns assigned to test that apply to this step. Write no case due at a later stage. Decide where
+   each new test belongs: a new suite (a recorded command must run it), the minimum suite (it runs at every step) or
+   the full suites (they run at the last step); the summary says which. Test the new code in detail with deterministic,
+   executable test scripts: unit and mock tests first, then any MCP server or skill this host offers where it observes
+   more (capture repeatable checks as scripts in the test suite rather than relying on interactive or prompt-driven tool
+   calls alone). Use each skill this packet lists for the stage. Register newly added durable test IDs in optional
+   `added_tests` (`[{"id", "command"}]`) so document reruns them too.
+2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions.
+   Record a harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary
+   decision in KNOWLEDGE/architecture.md ## Real-boundary checks.
    Summary: which decisions you retain, refine or supersede and why.
-3. **Run, fix & triage (Beat 2).** Run every recorded command, base check and lint command. Record any test change's
-   independent reason in `RUN/notes/<action>.md`; never weaken or skip a test to get green. If you edit product code
-   to fix a defect, re-run this step's Proof too (ShipLoop re-runs it at done). Triage each discovery into 4 tiers:
-   - *Local (`impact: "local"` or `"none"`):* defect inside this step -> fix code/test here; doc or minor risk -> `test_findings`.
-   - *Amend remaining (`impact: "amend-remaining"`):* evidence showing remaining planned steps `S(k+1)..Sn` need
+   A recorded completion does not prove a harness, fixture or target still works.
+3. **Gaps & probes.** Read the implement results' `not_covered`. A behaviour or rejection case the spec lacks becomes a
+   sub-case of the closest quoted case with its oracle from the spec (Test-case planning guidance), titled
+   `<ID> (<letter>)`; none fits: report send-back. Each new or changed public entry point gets a valid, a boundary
+   and an invalid case. Test a new error path or debug output, on and off, with safe diagnostic context. When runtime
+   behaviour is ambiguous, run bounded diagnostic probes saved under `RUN/experiments/`.
+4. **Run, fix & triage (Beat 2).** After each change run every recorded command, the red-check command and the lint
+   command. Find each failure's cause with one small observation (product defect, invalid test, environment) and fix
+   the product. Change a test, fixture, golden file or threshold only for an independent reason written in
+   RUN/notes/<action>.md. Never weaken, delete or skip a test to get green. A repeated unchanged failure is not
+   progress: change approach. If you edit product code to fix a defect, re-run this step's Proof too (ShipLoop re-runs
+   it at done). Triage each discovery into 4 tiers:
+   - Local (`impact: "local"` or `"none"`): defect inside this step -> fix code/test here; doc/minor risk -> `test_findings`.
+   - Amend remaining (`impact: "amend-remaining"`): evidence showing remaining planned steps `S(k+1)..Sn` need
      re-sequencing -> record in `test_findings` so document commits this step cleanly and emits `replan_remaining`.
-   - *Outer (`impact: "system-test"`):* cross-slice integration gap or `not-exercisable` mutant -> record in `test_findings`
-     and/or open `assumptions` (`due_stage`: `reflect-and-revise` or an outer stage).
-   - *Send-back / blocked:* failure proven unachievable in this step/item, missing tool/command or spec contradiction ->
-     report `send-back`; missing user decision/access -> `blocked` with `awaiting`.
-4. **End states & result fields.** End each case validated, validated another way (summary says why), or unachievable
-   (`send-back`). Optional fields on done: `test_findings` (`[{id, finding, evidence, impact, next_step}]`),
-   `added_tests`, `assumptions`, plus `red_na`, `retired_tests`, `lint_waivers`, `mutant_dispositions` (`equivalent`,
-   `out-of-scope`, `not-exercisable`—note `not-exercisable` forwards to system testing). Never commit or push; install nothing.
+   - Outer (`impact: "system-test"`): cross-slice integration gap or `not-exercisable` mutant -> record in
+     `test_findings` and/or open `assumptions` (`due_stage`: `reflect-and-revise` or an outer stage).
+   - Send-back / blocked: unachievable failure or missing requirement -> report `send-back`; user/access block -> `blocked`.
+5. **End states.** Each case ends as:
+   - validated: run, and the observation matches the oracle;
+   - validated another way: the first method could not observe it, another ran and passed, still titled with the ID;
+     the summary says what changed and why;
+   - unachievable: a named reason and the requirement left unverified; report send-back.
+   A case written but not run has no end state.
+6. **Result fields.** Optional evidence/triage fields on done: `test_findings` (`[{"id", "finding", "evidence", "impact", "next_step"}]`),
+   `added_tests`, `assumptions` (due at `reflect-and-revise` or a later outer stage). `red_na`: each new test passing
+   on the item base without this change, `[{"id", "reason"}]`. `retired_tests`: each test this item deliberately
+   retires, `[{"id", "reason": "<the R-<n> or AD-<n> that retires it>"}]` (any other drop below a command's floor is
+   refused). `lint_waivers`: `{"id": "<printed ID>", "reason": "<why>"}` per lint finding that must stay.
+   `mutant_dispositions`: `[{"mutant", "disposition", "evidence"}]` (`equivalent`, `out-of-scope`, or
+   `not-exercisable`, which forwards to system testing).
+7. **Proof limits.** A passing command proves only the cases it runs; a smoke or subset run never stands for a
+   recorded command; a local pass does not replace a required remote or real-boundary check (Real-boundary test
+   guidance). Probes and experiments go in RUN/scratch or RUN/experiments. Install, download or fetch nothing. Never commit or push.
+8. **Send back** (naming the case or command, why, the requirement left unverified, and every required command that
+   could not run) when: a failure is proven unachievable (contradicts the spec or another requirement, needs an
+   absent tool, access or authority, or would exceed the item); a recorded command is wrong or cannot run here; an
+   existing suite the changed paths now affect must join the regression command; the step plan recorded no test
+   command for code this item changes. Report blocked, with awaiting, only when the user, an access grant or an
+   outside dependency must unblock it.
 """,
     "document": """\
 1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results, the item's
@@ -1672,11 +1706,12 @@ preparatory commit); a mismatch there is a send-back.
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
    - KNOWLEDGE/environment.md: a command that worked under ## Commands; a harness or platform fact not yet recorded.
-   - Triage work the step or `test_findings` showed: defect in this step -> fix now; this step (`Sk`) itself wrong ->
-     report `send-back`; this step (`Sk`) valid and ready to commit while `S(k+1)..Sn` must re-sequence (and steps
-     remain after this one) -> emit `replan_remaining: {"reason": "...", "affects": ["S2", ...]}` on done so ShipLoop
-     commits `Sk` first then returns to `step-plan`; work a later step already holds -> leave it to that step; work
-     outside this item -> open item in `assumptions` due at `reflect-and-revise` (or the outer stage that settles it).
+   - Work the step or `test_findings` showed: a defect in its change, fix now; work this item's step plan lacks in this
+     step (`Sk`), report send-back; non-final `Sk` valid and ready to commit while `S(k+1)..Sn` must re-sequence (and
+     steps remain after this one), emit `replan_remaining: {"reason": "...", "affects": ["S2", ...]}` on done so
+     ShipLoop commits `Sk` first then returns to `step-plan`; work a later step already holds: leave it to that step;
+     work outside this item: an open item in `assumptions` due at reflect-and-revise. A system, release or real-boundary
+     check the criteria need is an open item due at the stage that makes it, with its owner.
    In `knowledge` give `spec`, `architecture` and `environment`: for each of those living files, what you changed in
    it or why it needed no change.
 4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
@@ -1684,9 +1719,9 @@ preparatory commit); a mismatch there is a send-back.
 5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
    behaviour needs no documentation, why the README did not change, or why an example cannot run here.
 6. **Commit nothing yourself.** """ + _ITEM_COMMIT + """
-7. Step (`Sk`) plan/criterion broken as observed -> report `send-back` naming it. Non-final `Sk` valid with
-   remaining steps needing re-sequencing -> report `done` with `replan_remaining`. Report `blocked` only when a
-   behaviour cannot be observed here, naming it.
+7. Plan or criterion wrong as observed: report send-back naming it. Non-final `Sk` valid with remaining steps needing
+   re-sequencing: report `done` with `replan_remaining`. Report blocked only when a behaviour cannot be observed here,
+   naming it.
 """,
     "reflect-and-revise": """\
 1. **Knowledge home.** Update in place under the sections named here, with no new ## heading for this item's results;

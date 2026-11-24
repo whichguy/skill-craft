@@ -7757,10 +7757,18 @@ def _stage_gates(stage: str, state: Mapping[str, Any], *, notes_owed: bool = Fal
                      "open assumption without a due_item naming a work item in this plan, or drops an intake "
                      "experiment-routed question")
     elif stage in assumptions.OPEN_ITEM_STAGES:
-        gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item due at "
-                     "a stage that is not a later outer stage"
-                     + (" or this item's reflect-and-revise" if stage in assumptions.REFLECT_AND_REVISE_PRODUCERS else "")
-                     + ", or evidence files that do not exist")
+        if stage in assumptions.OPTIONAL_OPEN_ITEM_STAGES:
+            gates.append("an assumptions open item due at a stage that is not a later outer stage"
+                         + (" or this item's reflect-and-revise"
+                            if stage in assumptions.REFLECT_AND_REVISE_PRODUCERS else "")
+                         + (", plan, or prepare" if stage == "test-strategy" else "")
+                         + ", or evidence files that do not exist")
+        else:
+            gates.append("a missing assumptions list (the open items this stage leaves, or []), an open item due at "
+                         "a stage that is not a later outer stage"
+                         + (" or this item's reflect-and-revise"
+                            if stage in assumptions.REFLECT_AND_REVISE_PRODUCERS else "")
+                         + ", or evidence files that do not exist")
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
         gates.append("a focused command that only reruns an earlier item's test IDs, starts with a file guard, or lacks "
