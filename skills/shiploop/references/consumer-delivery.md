@@ -49,11 +49,15 @@ makes the consumer, target/account, and necessary operation concrete. It is
 ordinary navigator guidance, not a consequence of selecting this pilot: ask
 promptly for missing authority and whether a user grant is run-only or standing.
 
-This pilot has **one activation target and operation per contract**. Multiple
-consumers/checks may share that update, and each required check must be satisfied.
-Distinct activation targets require separate scoped authority; do not silently
-select one or claim the whole delivery. Record that unsupported requirement and
-request direction rather than inventing a multi-target scheduler.
+When omitted, this pilot defaults to **one activation target and operation per
+contract** with separate checks sharing that target. When ordered multi-stage
+delivery (such as `dev` -> `staging` -> `prod`) applies, supply an optional
+non-empty `promotions` list (`[{"stage", "target", "operation", "authority"}]`)
+with unique stage and target names whose final entry matches the contract's
+top-level `target`, `operation`, and `authority`. Each stage keeps its own
+scoped `authority`; `release-plan` and `release-check` require `promotions[0]`
+approved, while later `effect`/`identity`/`behavior` observations enforce
+promotion stage order and per-target approval before advancing past `release`.
 
 The script does not decide whether the initial interpretation is correct. Improve
 must ask whether the plan would actually deliver the original user outcome.

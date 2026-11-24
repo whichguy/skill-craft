@@ -1449,5 +1449,215 @@ class ConsumerDeliveryTests(unittest.TestCase):
         state = self.advance(state, "handoff")
         self.assertEqual(state["status"], "done")
 
+    @staticmethod
+    def multistage_contract(*, prod_status: str = "unresolved") -> dict:
+        prod_auth = {"status": prod_status, "kind": "user-decision",
+                     "reference": "Promote to production after dev/staging verification."}
+        return {
+            "consumer": "service API consumer",
+            "target": "prod-app",
+            "behavior": "GET /healthz returns v2 across dev, staging, and prod",
+            "candidate": "candidate-v2",
+            "operation": "promote candidate-v2 to prod-app",
+            "necessity": "required",
+            "basis": "Multi-stage deployment request",
+            "exclusions": ["no DB drop"],
+            "authority": dict(prod_auth),
+            "promotions": [
+                {
+                    "stage": "dev",
+                    "target": "dev-app",
+                    "operation": "deploy candidate-v2 to dev-app",
+                    "authority": {"status": "approved", "kind": "request",
+                                  "reference": "Request approves dev deployment."},
+                },
+                {
+                    "stage": "staging",
+                    "target": "staging-app",
+                    "operation": "promote candidate-v2 to staging-app",
+                    "authority": {"status": "approved", "kind": "request",
+                                  "reference": "Request approves staging promotion."},
+                },
+                {
+                    "stage": "prod",
+                    "target": "prod-app",
+                    "operation": "promote candidate-v2 to prod-app",
+                    "authority": dict(prod_auth),
+                },
+            ],
+            "obligations": [
+                {"id": "pre-migrate", "consumer": "service API consumer", "target": "dev-app",
+                 "kind": "pre-update", "phase": "system-test",
+                 "expected": "migration rehearsal passes on isolated data", "required": True},
+                {"id": "eff-dev", "consumer": "service API consumer", "target": "dev-app",
+                 "kind": "effect", "phase": "release", "expected": "dev updated", "required": True},
+                {"id": "id-dev", "consumer": "service API consumer", "target": "dev-app",
+                 "kind": "identity", "phase": "release", "expected": "dev runs candidate-v2", "required": True},
+                {"id": "eff-staging", "consumer": "service API consumer", "target": "staging-app",
+                 "kind": "effect", "phase": "release", "expected": "staging updated", "required": True},
+                {"id": "id-staging", "consumer": "service API consumer", "target": "staging-app",
+                 "kind": "identity", "phase": "release", "expected": "staging runs candidate-v2", "required": True},
+                {"id": "eff-prod", "consumer": "service API consumer", "target": "prod-app",
+                 "kind": "effect", "phase": "release", "expected": "prod updated", "required": True},
+                {"id": "id-prod", "consumer": "service API consumer", "target": "prod-app",
+                 "kind": "identity", "phase": "release", "expected": "prod runs candidate-v2", "required": True},
+                {"id": "beh-staging", "consumer": "service API consumer", "target": "staging-app",
+                 "kind": "behavior", "phase": "release-verify", "expected": "staging /healthz shows v2", "required": True},
+                {"id": "beh-prod", "consumer": "service API consumer", "target": "prod-app",
+                 "kind": "behavior", "phase": "release-verify", "expected": "prod /healthz shows v2", "required": True},
+            ],
+        }
+
+    def test_multistage_promotions_validate_cold_round_trip_and_render_ladder(self) -> None:
+        state = self.accepted_contract(self.new_state(), self.multistage_contract(prod_status="approved"))
+        state = self.to_outer(state)
+        state_path = self.root / "state.md"
+        navigator.save(self.root, state)
+        recovered = navigator.store.read_record(state_path)
+        self.assertEqual(recovered, state)
+        packet = navigator.render(None, self.root, recovered)
+        self.assertIn("Delivery promotions: dev (dev-app; approved) -> staging (staging-app; approved) -> prod (prod-app; approved)", packet)
+
+    def test_multistage_contract_rejects_undeclared_effect_target(self) -> None:
+        state = self.to_plan(self.new_state())
+        invalid = self.multistage_contract()
+        next(row for row in invalid["obligations"] if row["id"] == "eff-staging")["target"] = "rogue-env"
+        action = navigator.current_action(state)
+        before = copy.deepcopy(state)
+        with self.assertRaisesRegex(navigator.NavigatorError, "not declared in promotions"):
+            navigator.apply(state, action["id"],
+                            self.result(delivery_assessment={"kind": "contract", "contract": invalid}))
+        self.assertEqual(state, before)
+
+    def test_multistage_promotions_enforce_stage_order_before_advancing(self) -> None:
+        state = self.accepted_contract(self.new_state(), self.multistage_contract(prod_status="approved"))
+        state = self.to_outer(state)
+        anchor = consumer_delivery.project(state)["anchor"]
+        state = self.advance(state, "system-test", delivery_assessment={
+            "kind": "observation", "contract_anchor": anchor,
+            "observations": [{"obligation_id": "pre-migrate", "status": "passed", "candidate": "candidate-v2",
+                              "target": "dev-app", "evidence_refs": ["synthetic://rehearsal"]}],
+        })
+        state = self.advance(state, "product-acceptance")
+        state = self.advance(state, "release-plan")
+        state = self.advance(state, "release-check")
+        action = navigator.current_action(state)["id"]
+        with self.assertRaisesRegex(navigator.NavigatorError, "promotion out of order"):
+            navigator.apply(
+                state, action,
+                self.result(delivery_assessment={
+                    "kind": "observation", "contract_anchor": anchor,
+                    "observations": [
+                        {"obligation_id": "eff-staging", "status": "passed", "candidate": "candidate-v2",
+                         "target": "staging-app", "evidence_refs": ["synthetic://staging"]},
+                    ],
+                }),
+            )
+
+    def test_multistage_authority_isolation_blocks_prod_until_approved_then_completes_cleanly(self) -> None:
+        initial = self.multistage_contract(prod_status="unresolved")
+        state = self.accepted_contract(self.new_state(), initial)
+        state = self.to_outer(state)
+        anchor = consumer_delivery.project(state)["anchor"]
+        state = self.advance(state, "system-test", delivery_assessment={
+            "kind": "observation", "contract_anchor": anchor,
+            "observations": [{"obligation_id": "pre-migrate", "status": "passed", "candidate": "candidate-v2",
+                              "target": "dev-app", "evidence_refs": ["synthetic://rehearsal"]}],
+        })
+        state = self.advance(state, "product-acceptance")
+        # release-plan & release-check succeed while dev/staging are approved and prod is unresolved.
+        state = self.advance(state, "release-plan")
+        state = self.advance(state, "release-check")
+        self.assertEqual(navigator.current_stage(state), "release")
+
+        # Attempting to mark prod effect passed while prod authority is unresolved is refused.
+        self.refused_at_apply(
+            state, "not approved",
+            delivery_assessment={
+                "kind": "observation", "contract_anchor": anchor,
+                "observations": [
+                    {"obligation_id": "eff-dev", "status": "passed", "candidate": "candidate-v2",
+                     "target": "dev-app", "evidence_refs": ["synthetic://dev"]},
+                    {"obligation_id": "id-dev", "status": "passed", "candidate": "candidate-v2",
+                     "target": "dev-app", "evidence_refs": ["synthetic://dev"]},
+                    {"obligation_id": "eff-staging", "status": "passed", "candidate": "candidate-v2",
+                     "target": "staging-app", "evidence_refs": ["synthetic://staging"]},
+                    {"obligation_id": "id-staging", "status": "passed", "candidate": "candidate-v2",
+                     "target": "staging-app", "evidence_refs": ["synthetic://staging"]},
+                    {"obligation_id": "eff-prod", "status": "passed", "candidate": "candidate-v2",
+                     "target": "prod-app", "evidence_refs": ["synthetic://prod"]},
+                ],
+            },
+        )
+        # Blocking at release after dev & staging succeed preserves partial dev/staging receipts.
+        blocked_state = self.advance(
+            state, "release", outcome="blocked", awaiting=self.service_wait(),
+            delivery_assessment={
+                "kind": "observation", "contract_anchor": anchor,
+                "observations": [
+                    {"obligation_id": "eff-dev", "status": "passed", "candidate": "candidate-v2",
+                     "target": "dev-app", "evidence_refs": ["synthetic://dev"]},
+                    {"obligation_id": "id-dev", "status": "passed", "candidate": "candidate-v2",
+                     "target": "dev-app", "evidence_refs": ["synthetic://dev"]},
+                    {"obligation_id": "eff-staging", "status": "passed", "candidate": "candidate-v2",
+                     "target": "staging-app", "evidence_refs": ["synthetic://staging"]},
+                    {"obligation_id": "id-staging", "status": "passed", "candidate": "candidate-v2",
+                     "target": "staging-app", "evidence_refs": ["synthetic://staging"]},
+                ],
+            },
+        )
+        self.refused_at_apply(
+            navigator.control(copy.deepcopy(blocked_state), "resume", observed=self.SERVICE_BACK),
+            "delivery authority is unresolved",
+        )
+        resumed = navigator.control(blocked_state, "resume", observed="User approved prod promotion.")
+        approved = self.multistage_contract(prod_status="approved")
+        state = self.advance(
+            resumed, "release",
+            delivery_assessment={
+                "kind": "contract",
+                "supersedes": anchor,
+                "correction": {"kind": "user-decision", "reference": "User explicitly approved prod promotion."},
+                "contract": approved,
+                "observations": [
+                    {"obligation_id": "eff-prod", "status": "passed", "candidate": "candidate-v2",
+                     "target": "prod-app", "evidence_refs": ["synthetic://prod"]},
+                    {"obligation_id": "id-prod", "status": "passed", "candidate": "candidate-v2",
+                     "target": "prod-app", "evidence_refs": ["synthetic://prod"]},
+                ],
+            },
+        )
+        proj = consumer_delivery.project(state)
+        self.assertIsNone(proj["replan_required"])
+        self.assertEqual(proj["observations"]["eff-dev"]["status"], "passed")
+        self.assertEqual(proj["observations"]["eff-prod"]["status"], "passed")
+        new_anchor = proj["anchor"]
+        # At release-verify, verifying prod behavior before staging behavior is refused, then ordered verification finishes.
+        self.refused_at_apply(
+            state, "promotion out of order",
+            delivery_assessment={
+                "kind": "observation", "contract_anchor": new_anchor,
+                "observations": [
+                    {"obligation_id": "beh-prod", "status": "passed", "candidate": "candidate-v2",
+                     "target": "prod-app", "evidence_refs": ["synthetic://prod-verify"]},
+                ],
+            },
+        )
+        state = self.advance(
+            state, "release-verify",
+            delivery_assessment={
+                "kind": "observation", "contract_anchor": new_anchor,
+                "observations": [
+                    {"obligation_id": "beh-staging", "status": "passed", "candidate": "candidate-v2",
+                     "target": "staging-app", "evidence_refs": ["synthetic://staging-verify"]},
+                    {"obligation_id": "beh-prod", "status": "passed", "candidate": "candidate-v2",
+                     "target": "prod-app", "evidence_refs": ["synthetic://prod-verify"]},
+                ],
+            },
+        )
+        state = self.advance(state, "operations")
+        state = self.advance(state, "handoff")
+        self.assertEqual((state["stage"], state["status"]), ("done", "done"))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
