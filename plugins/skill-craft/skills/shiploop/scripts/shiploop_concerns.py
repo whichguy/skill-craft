@@ -46,8 +46,10 @@ CONCERNS = (
 CONCERN_IDS = tuple(name for name, _ in CONCERNS)
 # The stages that can own an applicable concern: step-plan maps it to steps; a later stage delivers it there.
 OWNER_STAGES = ("step-plan", "test", "document", "system-test-author", "release-plan", "operations")
+# CD stages after release-plan that inspect or execute release-plan's decisions (migration, switchover, config, state).
+CD_FOLLOW_STAGES = ("release-check", "release", "release-verify")
 # Acceptance reconciles security decisions across owners; it does not own those decisions.
-HANDOFF_STAGES = (*OWNER_STAGES[1:], "product-acceptance")
+HANDOFF_STAGES = (*OWNER_STAGES[1:], "product-acceptance", *CD_FOLLOW_STAGES)
 # The print budget of one work item's applicable rows as a packet prints them (run-insights T-D2).  No gate
 # refuses longer rows (owner, 2026-10-28, plan F2): past the budget the packet prints the rows that fit and names the
 # run file that holds them all (shiploop_navigator._concern_lines, shiploop_fields).
@@ -119,11 +121,12 @@ def owned_rows(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: s
 
 def handoff_rows(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: str,
                  stage: str) -> List[Mapping[str, str]]:
-    """An item's applicable rows for its owner, or security rows across owners for acceptance."""
+    """An item's applicable rows for its owner, security rows for acceptance, or release-plan rows for CD follow-ons."""
     if stage not in HANDOFF_STAGES:
         return []
     return [row for row in plan_concerns.get(item, ()) if row.get("applies") == "yes"
-            and (row.get("id") == "security" if stage == "product-acceptance" else row.get("owner_stage") == stage)]
+            and (row.get("id") == "security" if stage == "product-acceptance"
+                 else row.get("owner_stage") == ("release-plan" if stage in CD_FOLLOW_STAGES else stage))]
 
 
 def canonical_step_plan(value: Any) -> List[Dict[str, Any]]:
@@ -171,6 +174,6 @@ def packet_lines(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item:
     return lines
 
 
-__all__ = ("CONCERNS", "CONCERN_IDS", "ConcernError", "HANDOFF_STAGES", "OWNER_STAGES", "ROWS_PRINT",
-           "canonical_plan", "canonical_step_plan", "check_plan", "check_step_plan", "handoff_rows", "owned_rows",
-           "packet_lines")
+__all__ = ("CD_FOLLOW_STAGES", "CONCERNS", "CONCERN_IDS", "ConcernError", "HANDOFF_STAGES", "OWNER_STAGES",
+           "ROWS_PRINT", "canonical_plan", "canonical_step_plan", "check_plan", "check_step_plan", "handoff_rows",
+           "owned_rows", "packet_lines")

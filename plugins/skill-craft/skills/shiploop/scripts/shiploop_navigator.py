@@ -7234,6 +7234,9 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
     if source.key == "concerns":
         if source.selection == "product-acceptance":
             heading = "Plan security decisions for " + str(source.workitem) + " (current plan; owners retained):"
+        elif source.selection in concerns.CD_FOLLOW_STAGES:
+            heading = ("Plan release decisions for " + str(source.workitem)
+                       + " (current plan; owned by release-plan):")
         else:
             heading = ("Applicable plan concerns for " + str(source.workitem) + " assigned to "
                        + str(source.selection) + " (current plan):")

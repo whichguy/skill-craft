@@ -941,8 +941,10 @@ DUTIES = {
 3. List discovery's source hints in `summary` (team or workspace, channels, internal sites and docs, private
    repositories, owners, ambiguous terms). A hint is a lead, not a verified fact. Put a sensitive locator only in an
    authorized private store, never in KNOWLEDGE/ (it is committed). Ask no questionnaire for what evidence can resolve.
-4. Name where the result must become usable; a request that names the target is the grant (Delivery authority
-   guidance).
+4. Name where the result must become usable, including ordered promotion targets (such as dev, staging or test, then
+   prod), per-environment settings or data/schema migration boundaries if applicable (invent no ladder for local-only
+   work); a request that names a target is the grant for non-destructive project delivery there, while later stages or
+   destructive data work require separate authority (Delivery authority guidance).
 5. Say where and when the outcome is visible: an isolated run's source checkout stays at its snapshot until the
    final return, and an outcome in a deployed target exists only after release.
 6. For an interactive product, list the open interaction and state questions: actors and how the runtime identifies
@@ -971,7 +973,8 @@ DUTIES = {
      (ports, environment variables, files).
    - K7 Structure: the modules or seams the behaviour needs so it can be tested and changed in isolation.
    - K8 Verification: the test framework, its command, and the check that observes each outcome at its real boundary.
-   - K9 Delivery: where the result must run or be delivered, and the access that needs.
+   - K9 Delivery: destination stage(s) (dev, staging/test, prod when multi-stage), per-environment settings/config,
+     migration constraints, and separate stage/data authorities.
    - K10 Quality attributes: performance, security, accessibility, interface polish or other bounds.
    - K11 Risks: what would most likely make this work fail or be rejected, and what would show it early.
    - K12 Terms and references: the names, skills, commands, products and community phrases in the request, and the
@@ -997,9 +1000,12 @@ DUTIES = {
    - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries,
      house style (House-style guidance).
    Install and provision nothing.
-4. Find how a change reaches its consumer (Environment and source-return discovery): whether the source-branch
-   return triggers CI, a deploy or a publication, and whether it must precede a consumer check. Record route and
-   uncertainty under ## Targets and runtimes. Inspecting a route authorizes no return, deploy or early handoff.
+4. Find how a change reaches its consumer (Environment and source-return discovery): inspect destination environments
+   and promotion order (e.g. dev -> staging/test -> prod where applicable), per-environment settings/config/secrets
+   wiring, persistent stores or migration tooling with existing-data compatibility constraints, and whether the
+   source-branch return triggers CI, a deploy or a publication before a consumer check. Record route, settings parity
+   differences and uncertainty under ## Targets and runtimes and ## Release and promotion. Inspecting a route
+   authorizes no return, deploy or early handoff.
 5. Locate existing specs and quality policies (scope, status in `summary`); screen the applicable non-functional
    requirements (Requirements definition guide).
    When asked to model another system, a new target still has a reference. Establish the requested fidelity:
@@ -1260,7 +1266,7 @@ DUTIES = {
    need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
    platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
-   `{id, applies: "no", reason}`; one clause each.
+   `{id, applies: "no", reason}`; one clause each; capture promotion, migration and settings choices in switchover, migrate-before/after and config.
    Carry each acceptance line's required surface and completion condition into the owning item's context. For a
    later or unavailable observation, retain its owner, due phase and unresolved status under the existing
    completion and unverified policies. Opt-in execution or a lower-layer pass does not close a stronger explicit
@@ -1277,8 +1283,8 @@ DUTIES = {
 5. Reuse, configure or extend an existing test facility before planning a new one (Reusable test facilities); plan
    each missing one as its own prerequisite item and record in the consuming item's `context` its definition
    locator, readiness gap and owner. Readiness is not test execution.
-6. Include environment preparation and delivery work as items; ask for delivery authority at the first concrete
-   boundary that needs it (Delivery authority guidance).
+6. Include environment setup, per-environment settings/migrations, and ordered promotion targets as items; ask per-target
+   delivery authority at the first concrete boundary (Delivery authority guidance).
 7. Code or stored data added: write the namespace and data entries in KNOWLEDGE/architecture.md ## Structure with an AD-<n> per
    decision; each item's entries go in its `context`:
    - every execution environment the code runs in or reaches (local checkout, remote runtime behind an MCP server,
@@ -1865,70 +1871,86 @@ preparatory commit); a mismatch there is a send-back.
    Backchain planning guide's dependency audit and route it as item 6 says.
 """,
     "release-plan": """\
-1. Revalidate the integrated test plan for the release target: the latest done system-test-author record after the
-   most recent accepted add-work, KNOWLEDGE/environment.md ## Harnesses and suites, the system-test result (OUTER
-   test-planning handshake); pending and blocked results are not plan authority. Use Target-native test
-   selection for this payload and its deploy or promotion operation, including any revised gate. Reuse applicable
-   tests and facilities (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and
-   record each new facility's locator, interface, readiness or gap, owner and revalidation condition. An unmet
-   earlier deployment or test prerequisite: report add-work with corrective work and evidence (ShipLoop reruns the
-   outer stages). Use the plan concerns assigned to release-plan when revalidating the target and its checks.
-2. Write the release steps in `summary`: target and candidate identity, permission, prerequisites, user impact,
-   monitoring, stop conditions. Keep the standing procedure any release repeats (steps, commands, rollback; no candidate
-   identity, commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already has,
-   updated in place, else in one new section. Every operation the user-visible outcome needs is a
-   named step with its exact command and authorization status: the deploy, each access or visibility change (for
-   example granting a role or permission, activating an app or menu entry), each browser session a consumer check needs with
-   its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact
-   publication, deployment, promotion and consumer verification as separate steps. Order the remaining schema,
-   data, service and cutover work with its durable execution owner, observations and recovery limits (Release
-   operation guidance, State and data assessment).
-3. Record each step's delivery authority in `summary`. A plan authorizes and performs no external operation; a
-   required target or authority gap is blocked.
-4. Write the rollback procedure in `summary` and KNOWLEDGE/environment.md ## Commands. Isolated run: write it for the
-   source return the packet states (return route and rollback recipes come from workspace.md), as plain `git`
-   commands with that route's SHAs and branch names, never this run's absolute paths, never for another route
-   (Workspace return guidance). Source return happens at release or handoff, not here. Use an authorized delivery
-   route from the execution checkout when available (Environment promotion guidance). If the return must precede
-   the consumer checks, record the ordering conflict and keep the disposition incomplete; never claim an earlier
-   check observed a future return-triggered effect.
-5. Write the release test plan in `summary` and KNOWLEDGE/environment.md ## Harnesses and suites: pre and post check
-   owners, commands or case selectors, independent expected outcomes, prerequisites, execution versus target
-   locations, remote test-definition revision, setup, test and teardown, fixture isolation, sharing and cost,
-   cleanup and stop conditions. State what release-check must establish before release, what release-verify
-   confirms after, and which observations and cleanup each owns. Name each check's claimed observation, expected
-   outcomes and independent positive and negative controls through an existing authorized isolated route, following
-   GUIDES/testing-and-documentation.md#release-entry-and-release-check.
+1. Revalidate the integrated test plan for the release target (across active destination stages): the latest done
+   system-test-author record
+   after the most recent accepted add-work, KNOWLEDGE/environment.md ## Harnesses and suites, the system-test result
+   (OUTER test-planning handshake); pending and blocked results are not plan authority. Use Target-native test
+   selection per target and promotion operation, including any revised gate. Reuse applicable tests and facilities
+   (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and record each new facility's
+   locator, interface, readiness or gap, owner and revalidation condition. An unmet earlier deployment, migration or test
+   prerequisite: report add-work with corrective work and evidence (ShipLoop reruns the outer stages). Account for all
+   plan concerns assigned to release-plan (`migrate-before`, `migrate-after`, `switchover`, `config`, `state`, etc.).
+2. Write the release steps in `summary`: ordered destination environments / promotion ladder (for example dev ->
+   test/staging -> prod when multi-stage, or the single/local target; state which hops already ran in INNER vs. remain),
+   exact candidate identity, per-environment settings/config/secrets/feature-flag parity (and whether config changes or
+   rebuilds invalidate earlier checks), permissions, per-hop promotion gates, prerequisites, user impact, monitoring,
+   and stop conditions. Keep the standing procedure any release repeats (steps, commands, rollback; no candidate
+   identity, commit IDs or dates) in KNOWLEDGE/environment.md ## Release and promotion (updated in place). Keep
+   promotion order and migration discipline there, and keep run-specific target/migration state in
+   RUN/notes/environment-lifecycle.md. Every operation the
+   user-visible outcome needs is a named step with its exact command and authorization status: deploy, settings/config
+   apply, migration action, each access or visibility change (for example granting a role or permission, activating an
+   app or menu entry), and each browser session a consumer check needs with its browser tool. A hop or operation no
+   approval covers is a pending approval named now. Keep source return, artifact publication, per-target deployment,
+   promotion and consumer verification as separate steps. When data or schema changes apply, explicitly order:
+   `migrate-before` (additive expand/backfill) -> code/config deploy -> verification -> `migrate-after` (contract/cleanup),
+   naming isolated rehearsal on realistic data, live reader/writer compatibility during rollout, idempotency/resume
+   checkpoints, backup/snapshot precondition, point-of-no-return, and rollback vs. forward-repair (Release operation
+   guidance, State and data assessment).
+3. Record each destination hop's and migration action's delivery authority in `summary`. Approval for dev or staging
+   never authorizes prod or destructive production data changes. A plan authorizes and performs no external operation; a
+   required target or authority gap for the active release path is blocked.
+4. Write the rollback and forward-repair procedure in `summary` and KNOWLEDGE/environment.md ## Release and promotion
+   (with exact commands under ## Commands). Isolated run: write it for the source return the packet states (return route
+   and rollback recipes come from workspace.md), as plain `git` commands with that route's SHAs and
+   branch names, never this run's absolute paths, never for another route (Workspace return guidance). Source return
+   happens at release or handoff, not here. Use an authorized delivery route from the execution checkout when available
+   (Environment promotion guidance). If the return must precede the consumer checks, record the ordering conflict and
+   keep the disposition incomplete; never claim an earlier check observed a future return-triggered effect.
+5. Write the release test plan in `summary` and KNOWLEDGE/environment.md ## Harnesses and suites: per-hop pre and post
+   check owners, commands or case selectors, independent expected outcomes, prerequisites, execution versus target
+   locations, remote test-definition revision, setup, test and teardown, fixture isolation, sharing and cost, cleanup
+   and stop conditions. State what release-check must establish before mutation (including settings parity and migration
+   preconditions), what release-verify confirms after (live target behavior, post-migration data integrity and
+   `migrate-after` cleanup), and which observations and cleanup each owns. Name each check's claimed observation,
+   expected outcomes and independent positive and negative controls through an existing authorized isolated route,
+   following GUIDES/testing-and-documentation.md#release-entry-and-release-check.
 6. Post-release consumer checks go in `consumer_checks`, shaped like test_commands (a `check` row is judged by exit
    code, no ids or min_tests; prefer a committed test or check script over a fragile inline shell pipeline for
-   multi-step consumer verification). ShipLoop runs every one when release-verify reports done and refuses unless each
-   passes: in an isolated run with a completed return, in a clean copy of the returned result (no Git history,
-   nothing the return plan excluded, no ignored or unmanaged file); with none yet, in the work area, and says so.
-   In the clean copy ShipLoop also runs each regression command of the last work item that records one, where no
-   check of yours is that command: the delivered suite must pass where a consumer gets it. A step the suite needs
-   there (install, build) is a check you record before.
-   Write paths relative to the starting directory, put what a fresh consumer needs (install, build) in the check,
-   and never write into the user's checkout by absolute path. A check only a person can make is an open item in
+   multi-step consumer verification). Keep checkout-clean packaging/build/regression `consumer_checks` distinct from live
+   target/post-migration checks (record live target/browser checks in the plan and `evidence_refs` when environment-specific).
+   ShipLoop runs every `consumer_checks` entry when release-verify reports done and refuses unless each passes: in an
+   isolated run with a completed return, in a clean copy of the returned result (no Git history, nothing the return plan
+   excluded, no ignored or unmanaged file); with none yet, in the work area, and says so. In the clean copy ShipLoop
+   also runs each regression command of the last work item that records one, where no check of yours is that command:
+   the delivered suite must pass where a consumer gets it. A step the suite needs there (install, build) is a check you
+   record before. Write paths relative to the starting directory, put what a fresh consumer needs (install, build) in the
+   check, and never write into the user's checkout by absolute path. A check only a person can make is an open item in
    `assumptions` (who, where, what to report) with release-verify or handoff as `due_stage`, not a command. None
    applies: empty list with `consumer_checks_na` and the reason.
 7. `consumer_entry`: `how` a person reaches the result (app or menu entry name and URL path, command, page) and the
    repository `sources` files that create that entry.
-8. Update KNOWLEDGE/environment.md: target under ## Targets and runtimes; deploy, dry-run, rollback and confirm commands
-   under ## Commands; approvals and accounts under ## Access and accounts.
-9. Cite KNOWLEDGE/environment.md in `evidence_refs`; the decisions and constraints the plan rests on go in `summary`.
+8. Update KNOWLEDGE/environment.md: destinations and runtimes under ## Targets and runtimes; deploy, migrate, dry-run,
+   rollback and confirm commands under ## Commands; approvals and accounts per environment under ## Access and accounts.
+9. Cite KNOWLEDGE/environment.md in `evidence_refs` (and RUN/notes/environment-lifecycle.md if created); the decisions
+   and constraints the plan rests on go in `summary`.
 """,
     "release-check": """\
 1. Name the release plan you check: the latest done release-plan and system-test-author records after the last
-   accepted add-work (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. Guess no
-   missing plan: recover it, or report blocked (`add-work` for missing product work).
-2. Against the current target, record in `summary` (evidence in `evidence_refs`): candidate identity and that its
-   evidence is current, the target and prerequisites, required approvals, rollback readiness, the execution owner's
-   readiness, any target concurrency condition (Release operation guidance). Rerun prepare's read-only probe that the
-   consumer can reach the entry (KNOWLEDGE/environment.md ## Access and accounts; the target's platform guide names one
-   where it has one) and save its output beside the dry run's. A gap this run may not fix stays open there with who
-   can grant it, for release-verify's step 1; create no grant.
-3. Run the dry-run form of the planned deploy (for example the deploy tool's validate or check-only mode) once; save the output in
-   RUN/notes/<action>-release-check.md and cite it in `evidence_refs`.
+   accepted add-work (OUTER test-planning handshake), and any `release-plan` plan concerns; action, result and plan
+   locators in `evidence_refs`. Guess no missing plan: recover it, or report blocked (`add-work` for missing product work).
+2. Against each active destination stage, record in `summary` (evidence in `evidence_refs`): candidate identity and
+   that its evidence is current, target and prerequisites, per-environment settings/config/secrets readiness and target
+   parity, per-hop required approvals, migration preconditions (isolated rehearsal evidence, target schema/data version
+   drift check, backup/snapshot precondition, live compatibility), rollback or forward-repair readiness, the execution
+   owner's readiness, and any target concurrency condition (Release operation guidance). Rerun prepare's read-only probe
+   that the consumer can reach the entry (KNOWLEDGE/environment.md ## Access and accounts; the target's platform guide
+   names one where it has one) and save its output beside the dry run's. A gap this run may not fix stays open there
+   with who can grant it, for release-verify's step 1; create no grant.
+3. Run the dry-run or preflight form of the planned deploy and migration (for example the deploy tool's validate or
+   check-only mode, plus schema/migration status/plan without mutating live data) once; save the output in
+   RUN/notes/<action>-release-check.md and cite it in `evidence_refs`. Keep checkout-clean checks separate from live
+   environment/target readiness checks.
 4. Run each `consumer_checks` post-release confirm command once against the current target; save actual target state,
    requested and observed candidate identities and remaining delta in `summary`, with output in the same file and
    `evidence_refs`. Failed, unreadable or inconclusive observation is indeterminate, never absence. Apply the planned
@@ -1940,29 +1962,36 @@ preparatory commit); a mismatch there is a send-back.
    rollback it prints (the keep rows filled in) with the procedure in KNOWLEDGE/environment.md; if they differ,
    correct the procedure and rerun plan-return.
 6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A
-   material change to code, tests, fixtures, configuration or target invalidates the observations it affects: rerun
-   those through the planned route, reuse the rest only with identity and relevance stated.
+   material change to code, tests, fixtures, configuration, migrations or target invalidates the observations it
+   affects: rerun those through the planned route, reuse the rest only with identity and relevance stated.
 7. External release N/A waives not items 2-4 for the local candidate (Delivery completion guidance); record a
    justified N/A in `summary` with what you assessed.
 """,
     "release": """\
-1. Name the release plan and release-check result you act on: the latest done release-plan and system-test-author
-   records after the last accepted add-work (OUTER test-planning handshake), and release-check's result; locators in
-   `evidence_refs`. Recover or report a missing plan (blocked, or `add-work` for missing product work); guess no command.
-2. Confirm the exact target, operation, authority (the recorded grant; Delivery authority mapping) and conditions
-   are current and release-check's dry run passed against this candidate. If code, tests, fixtures, configuration or
-   target changed since, rerun the affected checks first. Anything unmet: release nothing, report `blocked` or
-   `add-work` with the reason.
-3. Run each still-required authorized operation once; cite current evidence for effects already satisfied. An
-   already-present artifact does not make remaining access, visibility, publication or promotion work N/A. Save the
-   provider's receipt in RUN/notes/<action>-release.md and cite it in `evidence_refs`.
-   After release-verify sent the run back to release-plan, run only what the amended plan
-   changed: an operation it left as it was keeps its earlier receipt, cited, and runs no second time.
-4. Follow it to a terminal state (accepted or running is not done; Release operation guidance). Check postconditions
-   now and record in `summary`, separately, the operation's effect and the released artifact's identity.
-5. Uncertain outcome (lost reply, timeout, partial receipt): keep every receipt and reconcile with the provider's
-   lookup, retry, parameter-binding and conditional-mutation semantics before any retry. Never replay a merge, push,
-   deployment or promotion only to complete the graph.
+1. Name the release plan, `release-plan` plan concerns, and release-check result you act on: the latest done
+   release-plan and system-test-author records after the last accepted add-work (OUTER test-planning handshake), and
+   release-check's result; locators in `evidence_refs`. Recover or report a missing plan (blocked, or `add-work` for
+   missing product work); guess no command.
+2. Confirm for the active destination stage(s): target, operation, per-hop authority (the recorded grant; Delivery
+   authority mapping), per-environment settings parity, migration preconditions, and that release-check's dry run passed
+   against this candidate. If code, tests, fixtures, configuration, migrations or target changed since, rerun affected
+   checks first. Anything unmet for a hop (including missing prod or destructive-migration approval): stop, release no
+   unapproved hop, and report `blocked` or `add-work` with the reason.
+3. Execute hop-by-hop across planned destination stages in order (for example dev -> staging -> prod when multi-stage);
+   within each hop follow the planned migration order: `migrate-before` (expand/backfill) -> settings/code deploy ->
+   post-deploy verify/gate -> `migrate-after` cleanup when due (or leave deferred contraction explicitly tracked). Run
+   each still-required authorized operation once; cite current evidence for effects already satisfied. An already-present
+   artifact does not make remaining access, visibility, publication or promotion work, or data migrations, N/A. Save the
+   provider's receipt in RUN/notes/<action>-release.md and cite it in `evidence_refs`. After release-verify sent the run
+   back to release-plan, run only what the amended plan changed: an operation it left as it was keeps its earlier
+   receipt, cited, and runs no second time.
+4. Follow each operation to a terminal state (accepted or running is not done; Release operation guidance). Check
+   postconditions now and record in `summary`, separately per hop, the destination stage, migration and settings state,
+   and the operation's effect and the released artifact's identity.
+5. Uncertain outcome (lost reply, timeout, partial receipt or partial migration): keep every receipt and reconcile with
+   actual target/migration state and the provider's lookup, retry, checkpoint, parameter-binding and conditional-mutation
+   semantics before any retry. Never blindly replay a merge, push, non-idempotent migration, deployment or promotion only
+   to complete the graph.
 6. Isolated run only: return the candidate (Workspace return guidance): run the packet's plan-return, decide every
    undecided path with review-return, run the packet's return command; the receipt path goes in `evidence_refs`.
 7. Release not applicable: record the concrete reason and what you assessed in `summary`. Observe no consumer
@@ -1970,24 +1999,27 @@ preparatory commit); a mismatch there is a send-back.
 """,
     "release-verify": """\
 1. Name the plans you verify against: the latest done release-plan and system-test-author records after the last
-   accepted add-work (OUTER test-planning handshake); action, result and plan locators in `evidence_refs`. A release
-   plan that is wrong or missing a step, or a consumer check that cannot observe the clause it names, is a send-back:
-   release-plan amends it with this result as evidence, then release-check, release and this stage run again. Guess
-   no command, drop no required case, deploy to make no check available.
-2. Run each `consumer_checks` command the release-plan result recorded against the current target (Release operation
-   guidance). Keep source synchronization, artifact identity, operation receipt and real consumer behaviour as four
-   separate facts in `summary` (Consumer delivery evidence guidance). A source or local test pass does not discharge
-   a deployed interaction you did not observe.
+   accepted add-work (OUTER test-planning handshake), plus any `release-plan` concerns; action, result and plan locators
+   in `evidence_refs`. A release plan that is wrong or missing a step/hop, or a consumer check that cannot observe the
+   clause it names, is a send-back: release-plan amends it with this result as evidence, then release-check, release and
+   this stage run again. Guess no command, drop no required case, deploy to make no check available.
+2. Run each `consumer_checks` command the release-plan result recorded against the current checkout/target, and inspect
+   the live deployed destination stage(s) (Release operation guidance). Keep checkout-clean `consumer_checks` distinct
+   from live-target checks; keep source synchronization, artifact identity, operation/migration receipt and real consumer
+   behaviour as separate facts in `summary` (Consumer delivery evidence guidance). Where data or schema migrations ran,
+   verify post-migration data integrity, existing-data compatibility, and `migrate-after` cleanup (or record deferred
+   cleanup as an open item in `assumptions` with owner and due stage). A source or local test pass does not discharge a
+   deployed interaction you did not observe.
 3. Browser surface, per required clause record: the consumer entry reached after authentication, the account or
    target, the visible feature, the action and its outcome. Keep non-secret routing state. Require app chrome or
    branding only when the spec asks; an embedded feature can satisfy its accepted boundary.
 4. Classify every selected case in `summary` passed, failed, blocked, not-run or justified N/A (Deployment and
    handoff guidance); reconcile each affected requirement clause with its case, required surface and due phase,
-   checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
-   structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and
-   prerequisites. Check that no clause or case was dropped; claim no requirement met while a required observation
-   is unrun.
-5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release again blindly.
+   checked surface, candidate, status and evidence. A pass on another surface only supports (for example dev when prod
+   is required); source, HTTP or DOM structure alone cannot close a rendered interaction. A case not yet due keeps its phase,
+   owner and prerequisites. Check that no clause or case was dropped; claim no requirement met while a required
+   observation is unrun.
+5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release or rerun migrations blindly.
 6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Verify every
    other case first and record it as an open item in `assumptions` (who does what, where, and what they report). Only
    when the release cannot be accepted without it, report `blocked`, `awaiting` kind `present`, asked once: step 1
@@ -2002,21 +2034,21 @@ preparatory commit); a mismatch there is a send-back.
    nothing inside the user's checkout (a file there makes the return receipt stale and blocks handoff).
 8. Local-only work: verify the current local candidate and its consumer behaviour; external activation N/A does not
    make these checks N/A.
-9. A material change to code, tests, fixtures, configuration or target invalidates the observations it affects:
-   rerun those, reuse the rest only with identity and relevance stated.
+9. A material change to code, tests, fixtures, configuration, migrations or target invalidates the observations it
+   affects: rerun those, reuse the rest only with identity and relevance stated.
 10. `lessons`, each in detail: `learned`, `considerations` (decisions and risks that matter), `open_next` (what a
     later run should pick up). ShipLoop commits them as the run's learnings, read at intake.
 11. Update KNOWLEDGE/environment.md in place with any target, command or access fact the release showed that the file
     lacks or states wrongly (## Targets and runtimes, ## Commands, ## Access and accounts); the observations themselves
-    go in `summary`.
+    go in `summary`. Also update ## Release and promotion in place when promotion order, settings parity or migration steps changed.
 """,
     "operations": """\
 1. Reopen the observability coverage in KNOWLEDGE/environment.md and KNOWLEDGE/architecture.md; cite the sections used in
    `evidence_refs`. Use the plan concerns assigned to operations when checking the running system.
 2. Check each against the running system and record in `summary`: monitoring, alerting, log and diagnostic access,
-   recovery ownership (who restores and how; the rollback works), support documentation, cleanup, revalidation needs
-   (Deployment and handoff guidance). A plan or configuration file is not evidence the service is observed and
-   supported.
+   recovery ownership (who restores and how; rollback or forward-repair works across active destination stages and
+   migrated data), support documentation, deferred `migrate-after` or fixture cleanup, and revalidation needs (Deployment
+   and handoff guidance). A plan or configuration file is not evidence the service is observed and supported.
 3. Map each relevant event to its authoritative owner, existing sink and operator retrieval (Service discovery
    guidance), successful and failed logins included where the system authenticates. An inaccessible log is an
    evidence gap, not proof of no logging.

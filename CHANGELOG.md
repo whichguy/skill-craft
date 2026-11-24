@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.10.0
+
+- Skills: shiploop 2.12.0
+
+### shiploop 2.12.0
+
+- Strengthen ShipLoop multi-stage CD, per-environment settings, and data-migration planning and execution: carry `release-plan`-owned plan concerns (`migrate-before`, `migrate-after`, `switchover`, `config`, `state`) through `release-check`, `release`, and `release-verify`; enforce concern validation on Improve `--final-result` imports; add `## Release and promotion` to `KNOWLEDGE/environment.md` and reconcile run-note documentation; augment outer CD prompts, stage specs, and guides for ordered destination ladders (`dev` -> `staging`/`test` -> `prod`), per-hop authority, settings parity, and expand/deploy/contract migrations; and support optional multi-stage `promotions` in opt-in `--delivery-contract`.
+
 ### skill-craft 4.9.2
 
 - Skills: shiploop 2.11.2

@@ -215,16 +215,46 @@ def _obligations(value: Any) -> list[dict[str, Any]]:
     return rows
 
 
+def _promotions(value: Any) -> list[dict[str, Any]]:
+    """Validate optional ordered promotion stages on a delivery contract."""
+    _need(isinstance(value, list) and bool(value), "delivery promotions must be a nonempty list")
+    rows: list[dict[str, Any]] = []
+    stages: set[str] = set()
+    targets: set[str] = set()
+    for raw in value:
+        _need(isinstance(raw, Mapping), "delivery promotion entry must be an object")
+        _need(set(raw) == {"stage", "target", "operation", "authority"},
+              "delivery promotion entry must have stage, target, operation, and authority")
+        stage_name = _text(raw.get("stage"), "delivery promotion stage")
+        _need(stage_name not in stages, "delivery promotion stage repeats: " + stage_name)
+        stages.add(stage_name)
+        target_name = _text(raw.get("target"), "delivery promotion target")
+        _need(target_name not in targets, "delivery promotion target repeats: " + target_name)
+        targets.add(target_name)
+        operation_name = _text(raw.get("operation"), "delivery promotion operation")
+        authority = _authority(raw.get("authority"), target_name, operation_name)
+        _need(authority["target"] == target_name, "delivery promotion authority target does not match stage target")
+        _need(authority["operation"] == operation_name, "delivery promotion authority operation does not match stage operation")
+        rows.append({
+            "stage": stage_name,
+            "target": target_name,
+            "operation": operation_name,
+            "authority": authority,
+        })
+    return rows
+
+
 def _contract(value: Any) -> dict[str, Any]:
-    """Validate a delivery contract has exactly the required fields with valid values and return its canonical
-    form.
+    """Validate a delivery contract has the required fields (plus optional ``promotions``) with valid values and
+    return its canonical form.
     """
     _need(isinstance(value, Mapping), "delivery contract must be an object")
     required = {
         "consumer", "target", "behavior", "candidate", "operation", "necessity",
         "basis", "exclusions", "authority", "obligations",
     }
-    _need(set(value) == required, "delivery contract has unsupported or missing fields")
+    allowed = required | {"promotions"}
+    _need(required <= set(value) and set(value) <= allowed, "delivery contract has unsupported or missing fields")
     necessity = value.get("necessity")
     _need(isinstance(necessity, str) and necessity in _NECESSITIES,
           "delivery necessity is invalid: write " + ", ".join(sorted(_NECESSITIES)))
@@ -248,6 +278,13 @@ def _contract(value: Any) -> dict[str, Any]:
         "authority": authority,
         "obligations": obligations,
     }
+    promotions: list[dict[str, Any]] | None = None
+    if "promotions" in value:
+        promotions = _promotions(value.get("promotions"))
+        _need(promotions[-1]["target"] == target and promotions[-1]["operation"] == operation
+              and promotions[-1]["authority"] == authority,
+              "final delivery promotion entry must match contract target, operation, and authority")
+        result["promotions"] = promotions
     required_kinds = {
         row["kind"] for row in obligations if row["required"] is True
     }
@@ -262,10 +299,12 @@ def _contract(value: Any) -> dict[str, Any]:
             row["kind"] in {"effect", "identity"}
             for row in obligations
         ), "not-required delivery contract cannot retain effect or identity obligations")
+    declared_targets = {entry["target"] for entry in promotions} if promotions is not None else {authority["target"]}
     for row in obligations:
-        if row["kind"] in {"effect", "identity"}:
-            _need(row["target"] == authority["target"],
-                  "delivery contract supports one activation target bound to delivery authority")
+        if row["kind"] in {"effect", "identity"} and row["target"] not in declared_targets:
+            _need(False, "delivery contract supports one activation target bound to delivery authority"
+                  if promotions is None
+                  else f"delivery obligation target {row['target']!r} is not declared in promotions")
     return result
 
 
@@ -349,6 +388,40 @@ def _same_obligation(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
     return dict(left) == dict(right)
 
 
+def _authority_for_target(contract: Mapping[str, Any], target: str) -> Mapping[str, Any]:
+    for entry in contract.get("promotions") or ():
+        if entry["target"] == target:
+            return entry["authority"]
+    return contract["authority"]
+
+
+def _promotion_index(contract: Mapping[str, Any], target: str) -> int | None:
+    for idx, entry in enumerate(contract.get("promotions") or ()):
+        if entry["target"] == target:
+            return idx
+    return None
+
+
+def _is_promotion_authority_grant_only(prior: Mapping[str, Any], current: Mapping[str, Any]) -> bool:
+    """True when ``current`` only upgrades previously declared unresolved promotion authorities to approved."""
+    prior_promos = prior.get("promotions")
+    current_promos = current.get("promotions")
+    if not isinstance(prior_promos, list) or not isinstance(current_promos, list) or len(prior_promos) != len(current_promos):
+        return False
+    for key in ("candidate", "consumer", "target", "behavior", "operation", "necessity", "exclusions", "obligations"):
+        if prior[key] != current[key]:
+            return False
+    upgraded = False
+    for prev, cur in zip(prior_promos, current_promos):
+        if prev["stage"] != cur["stage"] or prev["target"] != cur["target"] or prev["operation"] != cur["operation"]:
+            return False
+        if prev["authority"] != cur["authority"]:
+            if not (prev["authority"]["status"] == "unresolved" and cur["authority"]["status"] == "approved"):
+                return False
+            upgraded = True
+    return upgraded
+
+
 def _requires_user_correction(prior: Mapping[str, Any], current: Mapping[str, Any]) -> bool:
     # Candidate changes describe a new artifact under the same requested
     # delivery outcome.  They can demand replanning, but are not themselves a
@@ -356,6 +429,8 @@ def _requires_user_correction(prior: Mapping[str, Any], current: Mapping[str, An
     for key in ("consumer", "target", "behavior", "operation", "necessity", "exclusions", "authority"):
         if prior[key] != current[key]:
             return True
+    if prior.get("promotions") != current.get("promotions"):
+        return True
     previous = {row["id"]: row for row in _required_rows(prior)}
     replacement = {row["id"]: row for row in _required_rows(current)}
     for identifier, row in previous.items():
@@ -368,10 +443,14 @@ def _requires_user_correction(prior: Mapping[str, Any], current: Mapping[str, An
 
 
 def _material_post_plan_change(prior: Mapping[str, Any], current: Mapping[str, Any]) -> bool:
+    if _is_promotion_authority_grant_only(prior, current):
+        return False
     if any(prior[key] != current[key] for key in (
         "candidate", "consumer", "target", "behavior", "operation", "necessity",
         "authority", "exclusions",
     )):
+        return True
+    if prior.get("promotions") != current.get("promotions"):
         return True
     previous = {row["id"]: row for row in _required_rows(prior)}
     replacement = {row["id"]: row for row in _required_rows(current)}
@@ -388,9 +467,11 @@ def _preserved_observations(
 ) -> dict[str, dict[str, Any]]:
     previous_by_id = {row["id"]: row for row in prior["obligations"]}
     current_by_id = {row["id"]: row for row in current["obligations"]}
-    if prior["candidate"] != current["candidate"] or any(
-        prior[key] != current[key]
-        for key in ("consumer", "target", "operation", "necessity", "authority", "exclusions")
+    if not _is_promotion_authority_grant_only(prior, current) and (
+        prior["candidate"] != current["candidate"] or any(
+            prior[key] != current[key]
+            for key in ("consumer", "target", "operation", "necessity", "authority", "exclusions")
+        ) or prior.get("promotions") != current.get("promotions")
     ):
         return {}
     behavior_changed = prior["behavior"] != current["behavior"]
@@ -405,6 +486,11 @@ def _preserved_observations(
     return retained
 
 
+def _is_satisfied_observation(observation: Mapping[str, Any] | None, kind: str) -> bool:
+    status = observation.get("status") if isinstance(observation, Mapping) else None
+    return status == "passed" or (status == "already-current" and kind in {"effect", "identity"})
+
+
 def _apply_observations(
     projection: dict[str, Any],
     rows: list[dict[str, Any]],
@@ -415,30 +501,46 @@ def _apply_observations(
     """Validates delivery observation ``rows`` against the accepted contract in ``projection`` and records each one
     in ``projection['observations']`` by obligation id, as a deep copy tagged with ``source_action`` and
     ``source_stage``. Returns ``None``. Raises ``ConsumerDeliveryError`` if there is no accepted contract, a row
-    names an unknown obligation, its status is not allowed for that obligation kind at ``stage``, or its
-    candidate or target does not match. Rows apply in order, so rows before a failing one stay recorded.
+    names an unknown obligation, its status is not allowed for that obligation kind at ``stage``, its candidate or
+    target does not match, its target lacks required approved authority, or it promotes past an unfinished earlier stage.
     """
     contract = projection.get("contract")
     _need(isinstance(contract, Mapping), "delivery observation has no accepted contract")
     by_id = {row["id"]: row for row in contract["obligations"]}
     positive_permitted = _OBSERVABLE_AT.get(stage, frozenset())
     negative_permitted = _NEGATIVE_OBSERVABLE_AT.get(stage, frozenset())
+    promotions = contract.get("promotions")
     for observation in rows:
         obligation = by_id.get(observation["obligation_id"])
         _need(obligation is not None, "delivery observation names an unknown obligation")
+        _need(observation["candidate"] == contract["candidate"],
+              "delivery observation candidate is not current")
+        _need(observation["target"] == obligation["target"],
+              "delivery observation target does not match its obligation")
         if observation["status"] in _POSITIVE_OBSERVATION_STATUSES:
             _need(obligation["kind"] in positive_permitted,
                   "positive delivery observation is not due at the current stage")
             if observation["status"] == "already-current":
                 _need(obligation["kind"] in {"effect", "identity"},
                       "already-current applies only to effect or identity obligations")
+            if obligation["kind"] in {"effect", "identity"} and contract["necessity"] == "required":
+                _need(_authority_for_target(contract, obligation["target"])["status"] == "approved",
+                      f"delivery authority for target {obligation['target']!r} is not approved")
+            if isinstance(promotions, list):
+                stage_idx = _promotion_index(contract, obligation["target"])
+                if stage_idx is not None and stage_idx > 0:
+                    needed_kinds = ({"effect", "identity", "behavior"} if obligation["kind"] == "behavior"
+                                    else {"effect", "identity"})
+                    earlier_targets = {promotions[i]["target"]: promotions[i]["stage"] for i in range(stage_idx)}
+                    for prev_row in contract["obligations"]:
+                        if (prev_row["required"] is True and prev_row["kind"] in needed_kinds
+                                and prev_row["target"] in earlier_targets):
+                            _need(_is_satisfied_observation(projection["observations"].get(prev_row["id"]), prev_row["kind"]),
+                                  f"promotion out of order: complete {earlier_targets[prev_row['target']]} "
+                                  f"({prev_row['id']}) before {promotions[stage_idx]['stage']}")
         else:
             _need(obligation["kind"] in negative_permitted,
                   "negative delivery observation is earlier than its due phase")
-        _need(observation["candidate"] == contract["candidate"],
-              "delivery observation candidate is not current")
-        _need(observation["target"] == obligation["target"],
-              "delivery observation target does not match its obligation")
         projection["observations"][obligation["id"]] = {
             **deepcopy(observation),
             "source_action": action,
@@ -616,19 +718,28 @@ def _late_unrepairable_rows(
     return [row for row in _pending(projection) if row["kind"] in earlier_kinds]
 
 
-def _require_settled(contract: Mapping[str, Any]) -> None:
+def _require_settled(contract: Mapping[str, Any], *, stage: str | None = None) -> None:
     """Refuse a contract whose necessity is unresolved, or required with its authority not approved (``_unsettled``)."""
     _need(contract["necessity"] != "unresolved",
           "delivery necessity is unresolved; submit blocked with the needed decision")
     if contract["necessity"] == "required":
-        _need(contract["authority"]["status"] == "approved",
-              "delivery authority is unresolved; submit blocked with the needed approval")
+        promotions = contract.get("promotions")
+        if isinstance(promotions, list):
+            if stage in ("release-plan", "release-check"):
+                _need(promotions[0]["authority"]["status"] == "approved",
+                      "delivery authority is unresolved; submit blocked with the needed approval")
+            else:
+                _need(all(entry["authority"]["status"] == "approved" for entry in promotions),
+                      "delivery authority is unresolved; submit blocked with the needed approval")
+        else:
+            _need(contract["authority"]["status"] == "approved",
+                  "delivery authority is unresolved; submit blocked with the needed approval")
 
 
-def _require_release_ready(projection: Mapping[str, Any]) -> None:
+def _require_release_ready(projection: Mapping[str, Any], *, stage: str | None = None) -> None:
     contract = projection.get("contract")
     _need(isinstance(contract, Mapping), "delivery contract is required before release planning")
-    _require_settled(contract)
+    _require_settled(contract, stage=stage)
     _need(not _pending(projection, phase="system-test"),
           "required pre-update obligations are not current")
 
@@ -646,7 +757,7 @@ def validate_settled(state: Mapping[str, Any], action_id: str, stage: str, resul
         return
     contract = _project_submission(state, action_id, stage, result).get("contract")
     if isinstance(contract, Mapping):
-        _require_settled(contract)
+        _require_settled(contract, stage=stage)
 
 
 # The stages whose done ``validate_transition`` refuses on the contract's necessity and authority
@@ -671,7 +782,7 @@ def validate_transition(
     elif stage in RELEASE_GATED_STAGES:
         if stage != "release-plan":
             _need(projection["replan_required"] is None, projection["replan_required"])
-        _require_release_ready(projection)
+        _require_release_ready(projection, stage=stage)
         if stage == "release":
             _need(not _pending(projection, phase="release"),
                   "required release obligations need effect and identity observations")
@@ -701,8 +812,13 @@ def validate_terminal(state: Mapping[str, Any]) -> None:
     _need(contract["necessity"] != "unresolved",
           "completed consumer-delivery run has unresolved delivery necessity")
     if contract["necessity"] == "required":
-        _need(contract["authority"]["status"] == "approved",
-              "completed consumer-delivery run has unresolved delivery authority")
+        promotions = contract.get("promotions")
+        if isinstance(promotions, list):
+            _need(all(entry["authority"]["status"] == "approved" for entry in promotions),
+                  "completed consumer-delivery run has unresolved delivery authority")
+        else:
+            _need(contract["authority"]["status"] == "approved",
+                  "completed consumer-delivery run has unresolved delivery authority")
     _need(not _pending(projection),
           "completed consumer-delivery run has unfinished required obligations")
 
@@ -775,8 +891,14 @@ def template_assessment(state: Mapping[str, Any], stage: str) -> dict[str, Any] 
 
 def _unsettled(contract: Mapping[str, Any]) -> bool:
     """Whether ``_require_release_ready`` refuses this contract for its necessity or authority (not its observations)."""
-    return contract["necessity"] == "unresolved" or (
-        contract["necessity"] == "required" and contract["authority"]["status"] != "approved")
+    if contract["necessity"] == "unresolved":
+        return True
+    if contract["necessity"] != "required":
+        return False
+    promotions = contract.get("promotions")
+    if isinstance(promotions, list):
+        return promotions[0]["authority"]["status"] != "approved"
+    return contract["authority"]["status"] != "approved"
 
 
 # The decisions a settling template leaves to the stage: the gate refuses the placeholder itself (an invalid necessity or
@@ -917,6 +1039,13 @@ def packet_lines(state: Mapping[str, Any], stage: str) -> list[str]:
                 if "approval_ref" in contract["authority"] else ""
             ),
             _exclusions_line(contract),
+            *(
+                ["Delivery promotions: " + " -> ".join(
+                    f"{_packet_text(p['stage'])} ({_packet_text(p['target'])}; {_packet_text(p['authority']['status'])})"
+                    for p in contract["promotions"]
+                )]
+                if "promotions" in contract else []
+            ),
             "For an observation, copy the script-provided contract anchor above; do not invent an anchor or a next stage.",
         ]
     )
@@ -1021,7 +1150,16 @@ def html_section(state: Mapping[str, Any]) -> str:
             f"<dt>Necessity</dt><dd>{html.escape(contract['necessity'])}</dd>"
             f"<dt>Basis</dt><dd>{html.escape(contract['basis'])}</dd>"
             f"<dt>Authority declaration</dt><dd>{html.escape(authority_text)}</dd>"
-            f"<dt>Exclusions</dt><dd>{html.escape('; '.join(contract['exclusions']) or 'none declared')}</dd>"
+            + (
+                "<dt>Promotions</dt><dd>"
+                + " -> ".join(
+                    f"{html.escape(p['stage'])} ({html.escape(p['target'])}; {html.escape(p['authority']['status'])})"
+                    for p in contract["promotions"]
+                )
+                + "</dd>"
+                if "promotions" in contract else ""
+            )
+            + f"<dt>Exclusions</dt><dd>{html.escape('; '.join(contract['exclusions']) or 'none declared')}</dd>"
             "</dl>",
             "<table><thead><tr><th>Obligation</th><th>Consumer</th><th>Target</th><th>Placement</th><th>Expected outcome</th><th>Status</th><th>Source stage</th><th>Evidence references</th></tr></thead><tbody>",
             *rows,

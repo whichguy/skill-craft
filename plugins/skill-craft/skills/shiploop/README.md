@@ -1,4 +1,4 @@
-# ShipLoop navigator 2.11.2
+# ShipLoop navigator 2.12.0
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
@@ -1604,8 +1604,9 @@ approval, release performs it when authorized, and release verification checks
 the production consumer. Sandbox success alone is not production success or
 permission. This is an illustrative sequence, not a report of a live deployment.
 
-Every packet prints the canonical run-note path `notes/environment-lifecycle.md`,
-even after later work items or a cold restart. When relevant, retain setup facts,
+`RUN/reference.md#policies` holds the canonical run-note path `notes/environment-lifecycle.md`
+across cold restarts, while standing environment facts live in `KNOWLEDGE/environment.md`.
+When relevant, retain setup facts,
 receipts and pending outer requirements there, or point it to adequate existing
 environment/deployment documentation without copying its body. Dependent
 results/work items also carry useful evidence locators. No empty note is needed
