@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.12.1
+
+- Skills: shiploop 2.14.1
+
+### shiploop 2.14.1
+
+- Refuse `classification: trivial` in `improve-pass` when that specific pass edited any code or test (`behavioural`) file, ensuring a confirmation pass verifies code/test edits while keeping doc-only and confirmation passes eligible for `trivial`.
+- Allow optional standing `## Delivery` headings in `docs/shiploop/environment.md` without false-positive placement notices (preserving `SECTIONS` compatibility alongside `## Release and promotion`) and emit a non-refusing placement notice when durable `docs/shiploop/` files introduce transient `.shiploop-runs/`, `.shiploop-improve/`, or `/tmp/shiploop-` paths.
+- Give `reflect-and-revise` living-file outlines (`spec.md`, `environment.md`, `architecture.md`) in `READS` and guard replaced `work_items` against dropping pending items that still own open `plan` assumptions (`due_item`).
+
 ### skill-craft 4.12.0
 
 - Skills: shiploop 2.14.0

@@ -3937,7 +3937,8 @@ def _check_submitted_concerns(state: Mapping[str, Any], stage: str, result: Any)
 
 
 def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: Any) -> None:
-    """Refuse a submitted done plan result without a complete assumption list.
+    """Refuse a submitted done plan result without a complete assumption list, or a reflect-and-revise queue
+    replacement that drops a pending work item still owning an open plan assumption.
 
     Runs at the CLI gates, the only route a host can submit through; the pure
     graph functions validate the field's shape when present but do not require
@@ -3945,9 +3946,43 @@ def _check_submitted_assumptions(state: Mapping[str, Any], stage: str, result: A
     must name a work item in the submitted queue.
     """
     # The open-item stages after the plan are checked by _handoff_gate, in the hand-off refusal form.
-    if stage != "plan" or not isinstance(result, Mapping):
+    if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
-    if result.get("outcome") != "done":
+    if stage == "reflect-and-revise":
+        if "work_items" not in result:
+            return
+        index = int(state.get("work_index", 0))
+        pending_old = {
+            row["id"] for row in (state.get("work_items") or ())[index + 1:]
+            if isinstance(row, Mapping) and isinstance(row.get("id"), str)
+        }
+        if not pending_old:
+            return
+        new_ids = {
+            row["id"] for row in (result.get("work_items") or ())
+            if isinstance(row, Mapping) and isinstance(row.get("id"), str)
+        }
+        carried = {
+            str(row.get("id")) for row in (result.get("assumptions") or ())
+            if isinstance(row, Mapping) and row.get("id")
+        }
+        orphaned = [
+            item for item in assumptions.open_items(state)
+            if item.stage == "plan"
+            and item.row.get("due_item") in pending_old
+            and item.row.get("due_item") not in new_ids
+            and str(item.row.get("id")) not in carried
+        ]
+        if orphaned:
+            names = ", ".join(str(item.row.get("id")) + " (due_item " + str(item.row.get("due_item")) + ")"
+                              for item in orphaned)
+            raise NavigatorError(
+                "reflect-and-revise work_items drops pending item(s) that own open plan assumption(s): "
+                + names + ". Keep each target item in work_items, or carry those assumption IDs forward in "
+                "this result's assumptions list."
+            )
+        return
+    if stage != "plan":
         return
     try:
         rows = assumptions.canonical(result.get("assumptions"), stage)
@@ -9917,6 +9952,21 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
           _small_pass_refusal(number, trend or [], child["stage"], review, command_again))
     repo = Path(state["repo"])
     changes = improve_changes.review_changes(root, repo, child["action_id"])
+    bind = store.read_record(root / improve_changes.bind_path(child["action_id"])) if changes is not None else {}
+    previous = reviews / ("pass-" + str(number - 1) + ".json")
+    if front["classification"] == "trivial":
+        try:
+            before_tree = (json.loads(previous.read_text(encoding="utf-8")).get("tree") if number > 1
+                           else bind.get("tree") if isinstance(bind, Mapping) else None)
+        except (OSError, ValueError, AttributeError):
+            before_tree = None
+        pre_now = improve_changes._snapshot(root, repo)
+        pass_paths = improve_changes.paths_between(repo, before_tree, pre_now["tree"] if pre_now else None)
+        behavioural = item_scope.behavioural_paths(pass_paths or ())
+        _need(not behavioural,
+              "Pass " + str(number) + " changed code or test file(s) (" + ", ".join(behavioural[:5])
+              + "), so it cannot be classified trivial: set `classification: non-trivial` in " + str(review)
+              + " so a confirmation pass verifies the edit, then run: " + command_again)
     committed = ""
     if not no_commit and improve_changes.uncommitted(changes, {}):
         message_path = improve_commit_message_path(child)
