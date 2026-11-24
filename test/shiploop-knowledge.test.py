@@ -1542,6 +1542,28 @@ class PlacementNoticeTests(HomeFixture):
             "ShipLoop placement notice: " + str(path) + " gained new headings 'Commands (release)' that match no named section "
             "or repeat one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
 
+    def test_optional_delivery_and_release_headings_are_allowed_unless_repeated(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n## Release procedure\n\nnpm run release\n")
+        self.assertEqual(self.notices(), [])
+        self.append("environment.md", "\n## Delivery\n\nnpm run deploy\n")
+        self.assertEqual(self.notices(), [])
+        path = self.append("environment.md", "\n## Delivery (extra)\n\nnpm run deploy:extra\n")
+        self.assertEqual(self.notices(), [
+            "ShipLoop placement notice: " + str(path) + " gained new headings 'Delivery (extra)' that match no named section "
+            "or repeat one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
+
+    def test_transient_run_paths_in_living_files_emit_placement_notice(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n- Helper: `/tmp/repo/.shiploop-runs/abc/worktree/app.py`\n")
+        found = self.notices()
+        self.assertEqual(len(found), 1)
+        self.assertIn("gained transient run path(s)", found[0])
+        self.assertIn(".shiploop-runs/abc/worktree/app.py", found[0])
+        # Clearing the transient path clears the notice.
+        self.put("environment.md", self.ENV + "\n- Helper: `app.py`\n")
+        self.assertEqual(self.notices(), [])
+
     def test_a_rename_of_a_named_section_in_place_is_not_a_repeat_and_the_first_copy_is_not_one(self) -> None:
         self.previous()
         self.edit("environment.md", "## Commands\n", "## Commands and tools\n")

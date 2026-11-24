@@ -785,6 +785,9 @@ _HEADING_FILES = ("environment.md", ARCHITECTURE)
 # Where a new requirement or decision that still holds belongs, and the heading an entry there is read as no longer holding.
 _LIVE_SECTION = {"spec.md": "Requirements", ARCHITECTURE: "Decisions"}
 _MOVED_SECTION = {name: section for name, _, _, _, section in _RETAINED}
+# Standing headings permitted in placement checks without making them mandatory in SECTIONS (17c7fa8ef X11).
+_OPTIONAL_SECTIONS: Dict[str, Tuple[str, ...]] = {"environment.md": ("Delivery", "Release")}
+_TRANSIENT_PATH_TOKEN = re.compile(r"\S*(?:\.shiploop-runs/|\.shiploop-improve/|/tmp/shiploop-)\S*")
 
 
 def _quoted(titles: Sequence[str]) -> str:
@@ -807,7 +810,7 @@ def _added_headings(name: str, before: str, now: str) -> List[str]:
     when another level-2 heading matches the same name (the section notice's prefix rule) and either held before or comes
     first; a rename in place is no repeat.
     """
-    named = SECTIONS[name]
+    named = SECTIONS[name] + _OPTIONAL_SECTIONS.get(name, ())
     kept = [title for _, level, title in _outline(before.splitlines()) if level == 2]
     headings: List[Tuple[str, bool, Optional[str]]] = []   # (title, added, the named section it matches)
     for _, level, title in _outline(now.splitlines()):
@@ -824,6 +827,18 @@ def _added_headings(name: str, before: str, now: str) -> List[str]:
             held = any(not headings[at][1] for at in same)
             flagged |= {at for position, at in enumerate(same) if headings[at][1] and (held or position > 0)}
     return [headings[at][0] for at in sorted(flagged)]
+
+
+def _added_transient_paths(before: str, now: str) -> List[str]:
+    """Distinct transient runtime/sandbox path tokens added in ``now`` that were not in ``before``."""
+    strip_chars = ".,;:'\"()[]`*"
+    old = {match.strip(strip_chars) for match in _TRANSIENT_PATH_TOKEN.findall(before)}
+    seen: List[str] = []
+    for raw in _TRANSIENT_PATH_TOKEN.findall(now):
+        token = raw.strip(strip_chars)
+        if token and token not in old and token not in seen:
+            seen.append(token)
+    return seen
 
 
 def placement_notices(state: Mapping[str, Any]) -> List[str]:
@@ -863,6 +878,10 @@ def placement_notices(state: Mapping[str, Any]) -> List[str]:
             clauses.append("new headings " + _quoted(added) + " that match no named section or repeat one")
             fixes.append("put each fact under the named section it belongs to (" + _quoted(SECTIONS[name]) + ") or in your "
                          "result, and keep a new heading only for standing content that fits none")
+        leaks = _added_transient_paths(before, now)
+        if leaks:
+            clauses.append("transient run path(s) " + _quoted(leaks[:3]))
+            fixes.append("replace transient run paths with repository-relative paths or durable command descriptions")
         if clauses:
             notices.append(PLACEMENT_PREFIX + str(path) + " gained " + " and ".join(clauses) + " " + _STAGE_ACCEPTED + "; "
                            + "; ".join(fixes) + ".")
