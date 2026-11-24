@@ -399,6 +399,10 @@ class EvidenceTestingTests(unittest.TestCase):
 
         state = self._complete(run_dir, {
             "outcome": "done", "summary": "Planned two items.",
+            "assumptions": [
+                {"id": "A1", "question": "Q1", "assumption": "mod.fn supports negative integers.",
+                 "disposition": "evidenced", "evidence": ["https://example.test/q1"]},
+            ],
             "work_items": [
                 {"id": "W1", "title": "First", "context": "fn"},
                 {"id": "W2", "title": "Second", "context": "fn2"},
