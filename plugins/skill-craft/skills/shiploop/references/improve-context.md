@@ -384,23 +384,40 @@ workspace helpers, or `host-owner.md`:
   reviews (`document` step review and final `reflect-and-revise`) always run in a
   strictly **fresh** coding-capable worker with no inherited conversation
   history (Codex passes `fork_turns="none"`).
+- **Optional read-only failure diagnosis (`implement`, `test`):** Routine
+  builds, clean lint passes, and obvious failures stay inline. Only when a lint
+  or test failure is ambiguous or noisy and prior conversation decisions matter
+  may the parent fork ONE strictly read-only native investigator inheriting
+  session model, effort, tools, and permissions (prefer blocking/foreground; if
+  async, one observation wait of at least 120 s with same-handle retry; no
+  second worktree or cloud VM). Give it the recorded failure output and relevant
+  diff; ask for the likely cause, exact `path:line` evidence, and one check that
+  could disprove it. If the host cannot inherit conversation, investigate
+  inline. The parent verifies the native return (never from files alone),
+  applies any fix itself, and alone submits `complete`.
 - **Single-hop dispatch:** ShipLoop writes `CHILD/worker-brief.md` beside
   `CHILD/handoff.md` and `CHILD/packet.json`, and prints a 2-line emit-time
   host hint from `references/host-bindings.json` (live tool schema wins). The
   parent launches one blocking/foreground worker where supported (or
   `spawn_agent` + `wait_agent(timeout_ms=120000)` on Codex), inheriting full
   model, effort, tools, and permissions, with no second worktree or cloud VM.
+  Prefer blocking/foreground; if async, one observation wait of at least 120 s;
+  on timeout wait again on the same handle; never launch a second concurrent
+  writer while the first is alive.
 - **Leaf-worker contract:** The worker verifies canonical `pwd` and Git root
   against `WORKTREE`, invokes the selected `improve/SKILL.md` with
   `ShipLoop Improve: <CHILD/handoff.md>`, drives `CHILD/packet.json`'s
   `next_argv` until terminal `complete` (`improve-pass` and `improve-commit`
   as printed; no commits during a `document` step review), spawns no subagents,
   and never runs `shiploop complete` or workspace return.
-- **Verification, fallback and recovery:** After collecting the native return,
-  the parent verifies `CHILD/packet.json` is `complete`, reviews the changes,
-  and runs the packet's `complete --action=<improve id> --review-mode=<fork|fresh>`
-  (Claude Code's `PostToolUse(Skill)` gate stays enforced because subagent
-  `Skill` calls record under the parent's `session_id` with `agent_id`). Replace
+- **Verification, fallback and recovery:** After collecting the worker's actual
+  native return (never from files alone), the parent reviews returned
+  findings/changes/checks, confirms `CHILD/packet.json` is `complete` and the
+  worker finished writing, and runs the packet's
+  `complete --action=<improve id> --review-mode=<fork|fresh>` (Claude Code's
+  `PostToolUse(Skill)` gate stays enforced because subagent `Skill` calls
+  record under the parent's `session_id` with `agent_id`). Collection and
+  semantic review quality remain prompt-followed, not machine-enforced. Replace
   that mode with `--review-mode=fresh` when a fork stage had to launch a fresh
   worker, or `--review-mode=inline-fallback` when no native subagent tool is
   available and the review ran inline. On crash recovery, `next` reprints the

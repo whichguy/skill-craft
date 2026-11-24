@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.9.0
+
+- Skills: shiploop 2.11.0
+
+### shiploop 2.11.0
+
+- Under `--delegation agents`, `implement` and `test` producer packets now permit forking one strictly read-only native investigator on ambiguous or noisy lint/test failures (inheriting session model, effort, tools, and permissions; coordinated wait and native-return verification; inline fallback when native fork is unavailable), and forked Improve packets now explicitly state session model and effort inheritance.
+- Agents Improve packets and context now require a coordinated wait (blocking preferred; async ≥120 s with same-handle retry) and interpreting the worker's native return before `complete`; F17 fan-out notes tell the parent to synthesize collected findings.
+
 ### skill-craft 4.8.1
 
 - Skills: rubric-eval 0.1.1, shiploop 2.10.1

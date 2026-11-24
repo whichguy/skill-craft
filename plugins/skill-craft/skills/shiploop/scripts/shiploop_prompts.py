@@ -79,12 +79,30 @@ READ_ONLY_FANOUT_NOTE = (
     "**Optional read-only fan-out (`delegation: agents`).** When 2 or more independent read-only questions each need "
     "substantial investigation (at least ~20-30 s of model work), you may launch up to host capacity fresh "
     "general-purpose read-only native subagents in one turn (prefer blocking/foreground calls; if async, wait with a "
-    "120 s timeout; never create a second git worktree or cloud VM; fall back inline if unavailable). Give every reader "
-    "five isolation rules: (1) write nothing inside WORKTREE or RUN (`PYTHONDONTWRITEBYTECODE=1`); (2) put any scratch "
-    "or writable probe copy in a private `mktemp -d` `TMPDIR` and delete it before returning; (3) bind local probe "
-    "servers to `127.0.0.1:0` only; (4) stop only exact PIDs you started (never `pkill -f` or `killall`); (5) leaf "
-    "worker only (spawn no subagents, run no ShipLoop callbacks) and return concise factual findings with `path:line` "
-    "locators."
+    "120 s timeout and retry the same handle on timeout; never create a second git worktree or cloud VM; fall back "
+    "inline if unavailable). Give every reader five isolation rules: (1) write nothing inside WORKTREE or RUN "
+    "(`PYTHONDONTWRITEBYTECODE=1`); (2) put any scratch or writable probe copy in a private `mktemp -d` `TMPDIR` and "
+    "delete it before returning; (3) bind local probe servers to `127.0.0.1:0` only; (4) stop only exact PIDs you "
+    "started (never `pkill -f` or `killall`); (5) leaf worker only (spawn no subagents, run no ShipLoop callbacks) and "
+    "return concise factual findings with `path:line` locators. After all workers return, collect every native return, "
+    "synthesize/reconcile findings, then write the stage result and run `complete`."
+)
+
+# Surface 2b: producer stages that may optionally fork one read-only investigator
+# on an ambiguous or noisy lint/test failure under ``delegation: agents``.
+FAILURE_DIAGNOSIS_FORK_STAGES = frozenset({"implement", "test"})
+FAILURE_DIAGNOSIS_FORK_NOTE = (
+    "**Optional read-only failure diagnosis (`delegation: agents`).** Routine builds, clean lint passes, and "
+    "obvious failures stay inline. Only when a lint or test failure is ambiguous or noisy and prior conversation "
+    "decisions matter may you fork this conversation into ONE read-only native worker to investigate the recorded "
+    "failure in the current worktree. Inherit this session's model, effort, tools and permissions (prefer "
+    "blocking/foreground; if async, one observation wait of at least 120 s and retry the same handle on timeout; "
+    "never create a second git worktree or cloud VM). Give it the recorded failure output and relevant diff, and "
+    "ask for the likely cause, exact `path:line` evidence, and one check that could disprove it. Keep it strictly "
+    "read-only (write nothing inside WORKTREE or RUN; spawn no subagents; run no ShipLoop callbacks; remove any "
+    "private `mktemp -d` probe scratch and stop only exact PIDs you started). Wait for its actual native return "
+    "(never read files alone), verify the diagnosis here, apply any fix yourself, and submit the ShipLoop "
+    "callback yourself. If this host cannot inherit this conversation, investigate inline."
 )
 
 # Improve runs after every result of a planning/contract stage and once after
@@ -130,12 +148,16 @@ plus a 2-line Conversation context note when fork is absent or after cold recove
 and run code and end-of-work reviews (`document`, `reflect-and-revise`) in one strictly
 fresh coding-capable native subagent with no inherited conversation history. Point
 the worker at CHILD/worker-brief.md (do not copy the full handoff into its prompt),
-inherit full model, tools and permissions, prefer blocking/foreground execution, and
-never create a second worktree or cloud VM. The parent verifies CHILD/packet.json is
-complete and alone submits the parent ShipLoop callback with the packet's
-`--review-mode` (fork or fresh). If the host forced a fresh fallback on a fork stage,
-pass `--review-mode=fresh`; if no native subagent tool is available, run the review
-inline and pass `--review-mode=inline-fallback`.
+inherit full model, effort, tools and permissions, prefer blocking/foreground execution (if
+async, one observation wait of at least 120 s; on timeout wait again on the same
+handle; never launch a second concurrent writer while the first is alive), and never
+create a second worktree or cloud VM. After collecting the worker's actual native
+return (never from files alone), review returned findings/changes/checks, confirm
+CHILD/packet.json is complete and the worker finished writing, then alone submit the
+parent ShipLoop callback with the packet's `--review-mode` (fork or fresh). If the
+host forced a fresh fallback on a fork stage, pass `--review-mode=fresh`; if no
+native subagent tool is available, run the review inline and pass
+`--review-mode=inline-fallback`.
 """
 
 
@@ -730,6 +752,10 @@ _IMPLEMENT_WORKER = """\
 _IMPLEMENT_INLINE = """\
 7. **Inline.** Do the one step of the packet's Step block (task, criteria, Proof, skills; the lint command) in this
    conversation. Bind no chain and dispatch no worker.
+"""
+_IMPLEMENT_AGENTS = """\
+7. **Inline.** Do the one step of the packet's Step block (task, criteria, Proof, skills; the lint command) in this
+   conversation. Bind no chain and dispatch no writing worker.
 """
 
 
@@ -2252,11 +2278,15 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
         text = text.replace(_BACKCHAIN_ITEM, _backchain_item(stage))
     if _ITEM_COMMIT in text:
         text = text.replace(_ITEM_COMMIT, _item_commit_rule(execution_mode))
-    if is_inline_producer(delegation) and stage in _INLINE_DUTY_PARAGRAPHS:
+    if delegation == AGENTS and stage == "implement":
+        text = text.replace(_IMPLEMENT_WORKER, _IMPLEMENT_AGENTS)
+    elif is_inline_producer(delegation) and stage in _INLINE_DUTY_PARAGRAPHS:
         for delegated, inline in _INLINE_DUTY_PARAGRAPHS[stage]:
             text = text.replace(delegated, inline)
     if delegation == AGENTS and stage in READ_ONLY_FANOUT_STAGES:
         text = text.rstrip("\n") + "\n\n" + READ_ONLY_FANOUT_NOTE + "\n"
+    if delegation == AGENTS and stage in FAILURE_DIAGNOSIS_FORK_STAGES:
+        text = text.rstrip("\n") + "\n\n" + FAILURE_DIAGNOSIS_FORK_NOTE + "\n"
     return _swapped(text, stage, planning_review)
 
 
@@ -2835,6 +2865,8 @@ __all__ = (
     "PROMPTS",
     "READ_ONLY_FANOUT_NOTE",
     "READ_ONLY_FANOUT_STAGES",
+    "FAILURE_DIAGNOSIS_FORK_NOTE",
+    "FAILURE_DIAGNOSIS_FORK_STAGES",
     "STAGE_PURPOSE",
     "STAGE_REFERENCES",
     "STAGES",
