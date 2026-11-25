@@ -1690,6 +1690,37 @@ class QualityReapTest(e2e.RealListeners, unittest.TestCase):
         self.assertTrue(e2e.answers(beside_port), "a server under <output> but outside <output>/quality is not the phase's to stop")
 
 
+class ListenersViewerExclusionTest(unittest.TestCase):
+    """Shared multi-run ShipLoop viewer servers are not owned or reaped by a run whose folder is passed to --runs-root."""
+
+    def test_under_and_stale_skip_external_multi_run_viewer_hubs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            folder = root / "live" / "run-02"
+            (folder / "work").mkdir(parents=True)
+            (folder / "invocation.json").write_text("{}", encoding="utf-8")
+            other_root = root / "dashboard"
+            other_root.mkdir()
+            viewer_argv = (
+                f"/usr/bin/python3 -B /repo/skills/shiploop/scripts/shiploop_progress.py --serve "
+                f"--port 41730 --runs-root {folder / '.shiploop-runs'} --runs-root {root / 'run-01' / '.shiploop-runs'}"
+            )
+            external_viewer = {"pid": 20735, "command": "Python", "ports": [41730], "cwd": str(other_root), "argv": viewer_argv}
+            in_cwd_viewer = {"pid": 20736, "command": "Python", "ports": [41731], "cwd": str(folder), "argv": viewer_argv}
+            single_run_viewer = {
+                "pid": 20737, "command": "Python", "ports": [41732], "cwd": str(other_root),
+                "argv": f"/usr/bin/python3 -B /repo/skills/shiploop/scripts/shiploop_progress.py --serve --run-dir={folder / '.shiploop-runs' / 'r1'}",
+            }
+            model_server = {"pid": 20738, "command": "node", "ports": [3000], "cwd": str(other_root), "argv": f"node {folder / 'work' / 'server.js'}"}
+
+            matched = listeners.under([external_viewer, in_cwd_viewer, single_run_viewer, model_server], folder)
+            self.assertEqual([item["pid"] for item in matched], [20736, 20737, 20738])
+            with mock.patch.object(listeners, "observe", return_value=[external_viewer, single_run_viewer]), \
+                    mock.patch.object(listeners, "protected_pids", return_value=set()):
+                stale_items = listeners.stale(root / "other-own")
+            self.assertEqual([item["pid"] for item in stale_items], [20737])
+
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Through run.main

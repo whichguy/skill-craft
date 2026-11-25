@@ -2307,6 +2307,11 @@ class MetricsTest(unittest.TestCase):
             "mkdir -p '/x/.shiploop-runs/a/run/notes' && cat > '/x/.shiploop-runs/a/run/notes/w1.md' <<'EOF'\nx\nEOF": [],
             "mkdir -p /x/.shiploop-runs/a/run/evidence": [],
             "mkdir -p /x/.shiploop-runs/a/run/scratch": [],
+            "mkdir -p /x/.shiploop-runs/a/run/inbox": [],
+            "mkdir -p '/x/.shiploop-runs/a/run/inbox'": [],
+            # a shell wrapper that parses packet.json to launch next_argv counts as glue
+            "python3 -c \"import json, subprocess; p=json.load(open('/x/.shiploop-improve/r/a/packet.json')); subprocess.run(p['next_argv'])\"": [
+                "shell wrapper launching receipt next_argv"],
             # a `>` in prose inside a quoted string is not a redirect, and run/scratch is the model's own
             "python3 -c 'import pathlib; pathlib.Path(\"/x/.shiploop-runs/a/run/scratch/r.json\").write_text(\"each > 0 must pass; see /x/.shiploop-runs/a/run/results\")'": [],
             'echo x > "/x/.shiploop-runs/a/run/state.md"': ["shell write into a ShipLoop-owned path"],
@@ -4828,6 +4833,38 @@ class TestingEvidenceAuditTests(unittest.TestCase):
                 "auto-subcases 2, added-tests 1, not-exercisable 1 (1 outer), test-proof-rechecks 1" == line
                 for line in lines
             ), lines)
+
+
+class CodexContextSummaryCompactionTest(unittest.TestCase):
+    """Codex rollout compaction timestamps map to event lines so context_window_rows matches compactions."""
+
+    def test_codex_compaction_points_split_context_windows_and_count_in_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            run_dir = out / ".shiploop-runs" / "r1" / "run"
+            run_dir.mkdir(parents=True)
+            (out / "invocation.json").write_text(json.dumps({
+                "host": "codex", "started": 100.0, "run_dir": str(run_dir),
+            }), encoding="utf-8")
+            events = [
+                {"type": "thread.started", "thread_id": "t1"},
+                {"type": "item.completed", "item": {"type": "agent_message", "text": "before"}},
+                {"type": "item.completed", "item": {"type": "agent_message", "text": "after"}},
+                {"type": "turn.completed"},
+            ]
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+            stamps = {0: 100.0, 1: 110.0, 2: 120.0, 3: 130.0}
+            (out / "timeline.jsonl").write_text(
+                "".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in stamps.items()),
+                encoding="utf-8",
+            )
+            lines = metrics._compaction_event_lines([{"host": "codex", "t": 115.0}], stamps)
+            self.assertEqual(lines, [2])
+            rows = metrics.context_window_rows(out, run_dir, stamps=stamps, accepted=[], pending=None,
+                                               sessions=[], compaction_lines=lines)
+            self.assertEqual(len(rows), 2)
+            self.assertEqual((rows[0]["compacted"], rows[1]["compacted"]), (True, False))
+            self.assertEqual(metrics.context_summary(rows)["compactions"], 1)
 
 
 if __name__ == "__main__":

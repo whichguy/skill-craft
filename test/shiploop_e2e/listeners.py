@@ -18,6 +18,7 @@ import fcntl
 import os
 from pathlib import Path
 import re
+import shlex
 import signal
 import subprocess
 import time
@@ -147,12 +148,35 @@ def _inside(place: str, spellings: set[str]) -> bool:
     return any(place == folder or place.startswith(folder + os.sep) for folder in spellings)
 
 
+def _is_external_shiploop_viewer(item: dict) -> bool:
+    """Whether ``item`` is a shared multi-run ``shiploop view --serve --runs-root ...`` server.
+
+    An external read-only progress hub passed multiple ``--runs-root`` paths (such as the owner's dashboard)
+    is not owned by any single case folder whose run directory appears in its ``--runs-root`` flags. Single-run
+    ``--run-dir`` viewers stay scoped to that folder, and any listener whose ``cwd`` is inside ``folder`` still matches.
+    """
+    raw = item.get("argv") or ""
+    try:
+        tokens = shlex.split(raw)
+    except ValueError:
+        tokens = raw.split()
+    if "--serve" not in tokens:
+        return False
+    if not any(tok == "--runs-root" or tok.startswith("--runs-root=") for tok in tokens):
+        return False
+    if any(tok == "--run-dir" or tok.startswith("--run-dir=") for tok in tokens):
+        return False
+    basenames = {os.path.basename(tok) for tok in tokens}
+    return "shiploop_progress.py" in basenames or (("shiploop" in basenames or "shiploop.py" in basenames) and "view" in tokens)
+
+
 def under(items: list[dict], folder, protected=frozenset()) -> list[dict]:
     """The listeners whose working directory, or a command-line path, lies in `folder` (the folder itself or below it).
 
     The match is on a path boundary, never a bare prefix: `.../case-1` does not contain `.../case-10`. A working directory
     is a real path, so it is compared with the folder's real path; a command line spells the folder as it was given, so
-    its words are compared with both spellings (`--root=<path>` counts as the path). Pid 1 and `protected` are skipped.
+    its words are compared with both spellings (`--root=<path>` counts as the path). Pid 1, `protected`, and external
+    shared multi-run ShipLoop viewer hubs (whose cwd is outside `folder`) are skipped.
     """
     real = os.path.realpath(folder)
     spellings = {real, str(folder)}
@@ -160,7 +184,10 @@ def under(items: list[dict], folder, protected=frozenset()) -> list[dict]:
     for item in items:
         if item["pid"] <= 1 or item["pid"] in protected:
             continue
-        if (item.get("cwd") and _inside(item["cwd"], {real})) or any(_inside(word, spellings) for word in _words(item)):
+        if item.get("cwd") and _inside(item["cwd"], {real}):
+            chosen.append(item)
+            continue
+        if not _is_external_shiploop_viewer(item) and any(_inside(word, spellings) for word in _words(item)):
             chosen.append(item)
     return chosen
 
@@ -380,7 +407,8 @@ def stale(own) -> list[dict]:
     for item in items:
         if item["pid"] <= 1 or item["pid"] in protected:
             continue
-        folder = next((case_folder(place) for place in (item.get("cwd"), *_words(item))
+        places = [item.get("cwd")] if _is_external_shiploop_viewer(item) else [item.get("cwd"), *_words(item)]
+        folder = next((case_folder(place) for place in places
                        if place and os.path.isabs(place) and case_folder(place)), None)
         if folder and os.path.realpath(folder) != mine and not case_alive(folder):
             found.append(dict(item, case=str(folder)))
