@@ -272,6 +272,19 @@ class PackageTests(unittest.TestCase):
         self.assertEqual({"scripts/dispatch.js": "node"}, CHECK.NATIVE_SCRIPT_ENTRYPOINTS["plan-dispatcher"])
         self.assertEqual([], CHECK.validate_package(PLUGINS / "skill-craft"))
 
+    def test_skill_card_bodies_fit_antigravity_load_limit(self):
+        # Antigravity loads only the first 24,000 bytes of each SKILL.md body.
+        for card in sorted((ROOT / "skills").glob("*/SKILL.md")):
+            text = card.read_text(encoding="utf-8")
+            self.assertTrue(text.startswith("---\n"), f"{card.parent.name}: missing frontmatter")
+            _, _, body = text.partition("\n---\n")
+            size = len(body.encode("utf-8"))
+            self.assertLessEqual(
+                size,
+                24000,
+                f"{card.parent.name}: SKILL.md body is {size} bytes (> 24000 Antigravity load limit)",
+            )
+
     def test_antigravity_manifest_and_root_hooks_validation(self):
         self.write_manifest(".antigravity-plugin", dict(self.manifest, version="9.9.9"))
         self.assert_bad(".antigravity-plugin/plugin.json: manifest version differs")

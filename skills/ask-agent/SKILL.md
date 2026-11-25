@@ -240,200 +240,102 @@ operation, acceptance or delivery.
 
 ## Helper-managed route: prepare, launch, continue, collect
 
-The six steps in this section document the legacy direct-helper workflow used
-by orchestrated helper-managed callers. They do not describe the compact
-standalone worktree interface, the consumer-owned route, or current-workspace
-tasks; use each route's dedicated reference. For compact worktree tasks, the
-task interface performs preparation, worker checks and returned verification;
-do not repeat those operations. Native launch/collection, semantic acceptance,
-integration and eligible cleanup remain the parent's responsibility.
+This six-step legacy direct-helper flow serves orchestrated helper-managed
+callers (`Plan Dispatcher`, `ShipLoop`, standalone `improve-agent`); compact
+worktree tasks instead use `ask_agent_task.py` (`prepare`, `worker-start`,
+`worker-finish`, `verify-return`) without repeating helper preparation or
+checks.
 
 1. **Prepare through the skill.** Read [Workspace operations](references/workspace-operations.md)
-   and [Git integration](references/git-integration.md). Obtain the host-selected,
-   absolute logical `SKILL.md` path, bind its helper, and run `identity --skill-card`
-   before `prepare`. Record the returned logical and resolved card/helper paths,
-   skill version, and both SHA-256 values with the pending job. This proves the
-   selected card and executing helper are one package; it does not discover a skill
-   from the task cwd, `PATH`, or a cache. Stop on identity failure; do not call
-   `prepare`. Coordinate source writers, then call
-   `prepare --source` with the actual caller checkout, including a linked worktree.
-   The helper creates and verifies a new workspace from that checkout's HEAD,
-   applies its staged and unstaged binary Git patches, and copies non-ignored
-   untracked inputs. Always preserve repository-root `.gitignore` and
-   `.claspignore` when present, including ignored/untracked copies; preserve
-   their absence or deletion when absent. The caller must not supply a worktree or
-   reproduce the Git recipe. Do not begin independent caller edits until the
-   snapshot returns. Keep the verified receipt and baseline in the pending job.
-   Immediately before dispatch, record `inspect --phase prepared --receipt ...`
-   for each receipt and stop if its inherited baseline has drifted. For a batch
-   sharing the same snapshot, prepare each separate receipt while writers remain
-   quiescent, verify every prepared state, then launch the batch.
-   Non-Git or unsupported state is a concrete limitation, not permission to use
-   an empty/default-branch checkout. An explicit ban on all filesystem writes
-   also prohibits setup; an ordinary review permits isolated setup and reports.
-
-   Orchestrated Git work requires this managed flow. Before preparation the
-   parent checks the selected helper's `identity` and its
-   `capabilities --skill-card` response, which must declare the
-   `shiploop-chain-ask-agent-managed-worktree/v1` schema with the full current
-   capability set: `helper-managed-worktree`, `prepared-inspection`,
-   `returned-commit-delivery`, `fingerprint-bound-close` and
-   `ignored-output-report`. The capability set is the gate, not a version
-   number; a helper missing any of them, or a caller-worktree contract, is
-   refused and is not a fallback. Serial orchestration uses the same workspace
-   helper while executing the bounded task in the main context instead of
-   launching a worker.
-
-   A coordinating Dispatcher or ShipLoop parent may perform this preparation
-   before freezing its execution context. Continue that same attempt with the
-   selected package identity and verified receipt it already recorded; compare
-   the receipt's worktree with the frozen context workspace. Do not run a second
-   fresh preparation when the parent grants native launch. This is continuation
-   of this skill's preparation, not adoption of an arbitrary caller-created
-   worktree. A different attempt requires a fresh receipt.
-
-2. **Give a fresh worker a complete assignment.** Put the objective, relevant
-   inputs, allowed actions, expected output, recorded package identity (logical
-   card, resolved card/helper, version, and card/helper SHA-256 values), and the filled
+   and [Git integration](references/git-integration.md). Obtain the host-selected
+   absolute logical `SKILL.md` path, bind `scripts/ask_agent_workspace.py`, and
+   run `identity --skill-card`. For orchestrated Git work, also run
+   `capabilities --skill-card` and require
+   `shiploop-chain-ask-agent-managed-worktree/v1` with all five capabilities
+   (`helper-managed-worktree`, `prepared-inspection`, `returned-commit-delivery`,
+   `fingerprint-bound-close`, `ignored-output-report`) — never infer
+   compatibility from versions or adopt caller worktrees. Run
+   `prepare --source <actual checkout>` once source writers quiesce (preserving
+   snapshot layers and root `.gitignore`/`.claspignore`), keep the receipt and
+   identity with the pending job, and record `inspect --phase prepared` before
+   dispatch (stopping on baseline drift or non-Git/unsupported/no-write limits).
+   A Dispatcher or ShipLoop parent that already prepared before freezing context
+   continues that same verified receipt and identity rather than preparing twice.
+2. **Give a fresh worker a complete assignment.** Put the objective, inputs,
+   allowed actions, expected output, recorded package identity, and filled
    [delivery clause](references/git-integration.md#reusable-fresh-worker-launch-clause)
-   directly in the native launch prompt. Do not create a prompt transport file.
-   Choose `patch`, `commits`, or `report-only` before launch. Read
-   [Result handoff](references/result-handoff.md) for the report and return
-   contract. Omit resume handles and explicitly exclude inherited conversation
-   history where supported; if only inherited forks exist, report the limitation.
-   Normal host/project instructions may still load.
-
-3. **Bind and verify the workspace.** Use native launch cwd when exposed;
-   otherwise follow the host's explicit operation-directory recipe. Do not add
-   another native-created worktree after the helper has prepared one. Require
-   the worker to run `check-context --receipt ...` from its assigned operation
-   directory before task work and to stop on failure. This checks real process
-   cwd and Git root; reading a receipt or using `git -C` does not set shell cwd.
-   Set directory scope on every subsequent command and absolute paths for file
-   tools. Include the recorded package identity in the worker's self-contained
-   return so the parent can prove which selected package created the workspace.
-   Disclose operation-only binding; it is not native startup binding or
-   operating-system isolation. Follow the target's project instructions.
-
-4. **Launch and continue.** Immediately before every launch/retry/follow-up
-   turn, publish its task label, assignment and current completed/pending state.
-   A batch notice may name multiple tasks. Select native background mode where
-   exposed; confirm launch before reporting RUNNING. Retain the native handle,
-   receipt, delivery mode and route. Start independent workers within host
-   capacity (the host binding's `capacity`, where it names one) before collection. After launch confirmation, take useful parent
-   action in a separate step; do not duplicate the delegated work or invent
-   busywork. Handle new user input while other tasks remain pending.
-
+   inline in the native prompt (never a prompt transport file). Choose `patch`,
+   `commits`, or `report-only` before launch per
+   [Result handoff](references/result-handoff.md) and omit inherited history
+   where supported.
+3. **Bind and verify the workspace.** Use native launch `cwd` or the host's
+   per-operation recipe without adding another native worktree. Require the worker
+   to run `check-context --receipt ...` from its assigned command directory before
+   task work, stop on failure, set directory scope on every shell command and
+   absolute paths on file tools, and echo package identity in its return.
+4. **Launch and continue.** Publish the task label, assignment, and
+   completed/pending state right before each launch, retry, or follow-up turn.
+   Use native background execution where supported within host capacity (the host
+   binding's `capacity`, where it names one), retain the native handle/receipt/route/mode, confirm launch before reporting
+   RUNNING, continue useful parent work, and handle new user input concurrently.
 5. **Receive native results.** Read [Native lifecycle](references/native-lifecycle.md)
-   before waiting. Keep any required collection in the same live parent session.
-   A headless process must not exit with required results uncollected. Use native
-   notification or wait/join; distinguish them in reporting. A later resume is
-   recovery, not automatic delivery. Immediately announce every return, including
-   failures, before unrelated work or dispatch, and update the pending jobs.
-   Fetch actual output if the notification provides only status. A worker's
-   success label or an existing result file is not independent verification.
-
-6. **Accept and preserve.** Read the returned handoff and required artifacts.
-   Inspect the workspace with its declared delivery mode, verify and integrate
-   the worker-only contribution: an ordinary code-change request authorizes this
-   integration. If the caller explicitly requests code returned unmerged, or
-   code integration is blocked, return the ready-to-use handoff and retain the
-   worktree. Report-only work requires consumption of its results. Archive reports
-   and call `close` only when
-   the worker/delegates/consumers are stopped and acceptance is complete. The
-   acceptance and close are per receipt; one worker's return or accepted result
-   does not establish another worker's completion or acceptance. The
-   helper retains work without valid acceptance. Keep blocked or cancelled work
-   and give its next action. Use retained artifact paths after cleanup.
-   Under a dependency dispatcher, settle the verified attempt and refill safe
-   ready capacity before cleanup; retain this receipt as cleanup-pending until
-   its owning helper confirms close. A cleanup refusal does not undo acceptance.
+   before waiting, collect required results in the same live parent session via
+   native notification or wait/join (never treating a status-only notice or
+   worker label as verification), announce every return promptly, and update
+   pending jobs.
+6. **Accept and preserve.** Read returned artifacts, inspect and verify the
+   worker-only contribution per delivery mode, and integrate ordinary code changes
+   (retaining worktrees only for unmerged requests, blockers, cancelled/failed
+   work, or pending cleanup refilling ready dispatcher capacity). Archive reports
+   and call `close` only after workers/delegates stop and acceptance completes;
+   see [Workspace operations](references/workspace-operations.md#close-after-acceptance).
 
 ## Result and continuation by route
 
 ### Compact standalone worktree
 
-For worktree `mode: edit`, the worker returns the observed worktree and branch,
-the verified commit base `S`, every contribution SHA in order, residual paths,
-checks, and its next action. The parent collects the actual native result
-before `verify-return`. If `snapshot.source_dirty` is false and the parent
-remains clean at the captured `HEAD`, it may cherry-pick the complete verified
-contribution range. If the captured source was dirty, apply only the verified
-`contribution_patch`, preserving the parent's `HEAD` and index and excluding
-any private `S` from parent history. Revalidate the target and run combined
-checks before acceptance. The helper's `integration_strategy` is guidance
-bound to the captured state; the parent still checks the current target.
-After successful integration and combined checks, the parent closes the
-worker's worktree through the selected helper's
-[acceptance-bound close](references/workspace-operations.md#close-after-acceptance),
-once the worker and any delegates have stopped. Keep referenced evidence outside
-the removable tree. Retain branches and commits; report a refused close as
-cleanup-pending. Failed, unmerged and return-only worktrees remain intact.
-
-For `mode: ephemeral`, `verify-return` reports
-`workspace_evidence.ephemeral_audit` with `status: ephemeral-audit`,
-`findings_only: true`, changed paths, baseline/current fingerprints, HEAD and
-branch, and `scratch_retained`. It has no inspection, delivery, patch, commit or
-integration fields. Return findings only; do not integrate its scratch changes.
-`report-only` has no filesystem edits. These findings-only modes have no merge
-event and keep their worktrees unless cleanup is separately requested. The task
-scripts do not collect native results, integrate changes or remove worktrees;
-the parent invokes the workspace helper for eligible cleanup.
+For `mode: edit`, return the observed worktree, branch, base `S`, ordered
+contribution SHAs (or dirty-source `contribution_patch`), residual paths,
+checks, and next action. After collecting the native result and running
+`verify-return`, the parent integrates cleanly (cherry-picking the verified range
+when `snapshot.source_dirty` is false and the parent stays at captured `HEAD`,
+else applying `contribution_patch` without importing private `S`), revalidates the
+combined target, and calls [acceptance-bound close](references/workspace-operations.md#close-after-acceptance)
+once the worker and delegates stop, retaining branches/commits and external
+evidence (or reporting refused close as `cleanup-pending`; failed/unmerged/return-only
+worktrees stay intact). For `mode: ephemeral`, `verify-return` emits findings-only
+`ephemeral_audit` (`findings_only: true`, `scratch_retained`) with no commit/patch
+integration; `report-only` makes no filesystem edits.
 
 ### Helper-managed route
 
-Workers finish normally with their task label, assignment reminder,
-SUCCEEDED/BLOCKED/FAILED, result or blocker, observed workspace, receipt,
-delivery mode, selected-package identity (logical card, resolved card/helper,
-version, card/helper SHA-256 values), context-check output or tool locator,
-handoff/report paths, and next action/owner. They leave their
-worktree intact. Return enough detail to be useful; put bulky evidence in reports.
-Do not guess missing values or bury workspace and lifecycle information only in
-a report the parent may not open.
+Workers leave their worktree intact and return inline: task label, assignment
+reminder, `SUCCEEDED`/`BLOCKED`/`FAILED`, summary/blocker, observed workspace,
+receipt, delivery mode, package identity, context-check evidence, artifact paths,
+and next action/owner. Keep the self-contained
+[caller handoff](references/result-handoff.md#caller-facing-handoff) inline in
+both worker and parent responses so the caller can review or integrate without
+opening helper JSON. The parent's final response also lists each task's outcome,
+actual workspace, native agent type/substitution, retained references,
+integration/retention state, next owner, and collection/pending notes.
 
-Return the self-contained [caller handoff](references/result-handoff.md#caller-facing-handoff)
-inline in both the worker return and the parent's final response. It names the
-selected package identity, actual worktree and branch, outcome and checks, exact patch or ordered commit
-SHAs, target checkout, integration state, and concrete integration/retention
-directive. The caller must be able to review or integrate using that response
-without opening a helper receipt, baseline JSON, or internal state directory.
-Internal evidence may be linked separately; it is not the integration interface.
-
-The parent's final result also includes, for each task: Task; Status; Result or
-blocker; Native agent type; Role substitution; actual workspace; retained
-references; integration/retention/removal state and next owner. Derive the type
-from actual dispatch. Distinguish worker completion, verified success and
-integration. End with collection notes: notification or join, rejected calls
-and recovery, and any remaining pending work. Keep this complete after late
-returns too; internal handles stay private when the host requires it.
-
-Honor caller-supplied continuation instructions. Carry the exact continuation
-and helper receipt in the worker's final native response without executing the
-parent's continuation in the worker. When a timed return is explicitly requested,
-use a native current-session wakeup or wait timeout if the host exposes one, as
-described in [Native lifecycle](references/native-lifecycle.md); otherwise say
-that timed return is unavailable. Ordinary delegation does not require a timer.
-Do not promise notification after the current parent session exits.
+Honor caller-supplied continuation instructions and carry the exact continuation
+and receipt without executing parent continuation inside the worker. When a
+timed return is explicitly requested, use a native current-session wakeup or
+wait timeout if exposed ([Native lifecycle](references/native-lifecycle.md));
+otherwise state it is unavailable and never promise post-session notifications.
 
 ### Current workspace
 
-For compact standalone work, the worker returns its result inline with
-`workspace: current`, `mode`, root, branch, HEAD before and after, and paths it
-changed. The parent runs `verify-return` after native collection. It accepts
-only unchanged state for `report-only`, or changes within the declared write
-set for `edit`, after checking the requested result. Current edits are not
-committed automatically; there is nothing to close. The final answer names the
-workspace, mode, verdict and changed paths. Legacy current-workspace callers
-that use `workspace_route: current` and `in-place` retain that wording and use
-the underlying `current-state` contract.
+Compact workers return `workspace: current`, `mode`, root, branch, HEAD
+before/after, and changed paths; the parent runs `verify-return` and accepts
+unchanged state (`report-only`) or scoped edits (`edit`), without auto-committing
+or closing. Legacy `workspace_route: current` / `in-place` callers follow
 [Current workspace](references/current-workspace.md#return-and-acceptance).
 
 ### Consumer-owned workspace
 
-Use the in-place handoff in
-[Consumer-owned workspace](references/consumer-owned-workspace.md). It carries
-the consumer's binding, candidate and evidence instead of a helper receipt,
-patch, commit range, or helper close outcome. The parent verifies the returned
-edits and evidence, records acceptance, and then lets the consumer perform its
-separate final-delivery continuation. The worker never executes that continuation
-or consumer cleanup.
+Follow [Consumer-owned workspace](references/consumer-owned-workspace.md): carry
+the consumer's binding, candidate, and evidence instead of helper receipts/closes;
+the parent verifies and records in-place acceptance and leaves final caller
+delivery and cleanup to the consumer.
