@@ -16,8 +16,7 @@ A scenario folder holds ``scenario.json`` and, optionally:
     reference/bad-<slug>/ the same, plus meta.json {"fails": ["P1", ...], "why": "..."}: the ids this output must make the
                          oracle FAIL. A name in deleted.txt (one path per line) is removed from the tree.
 
-scenario.json keys (unknown keys are rejected): stage (a stage_spec stage, or ``improve@<stage>``, which loads and validates but
-does not build yet), about, tags, tiers (verify, render, live; default all three), fixture (a folder of test/shiploop_e2e/
+scenario.json keys (unknown keys are rejected): stage (a stage_spec stage, or ``improve@<stage>``), about, tags, tiers (verify, render, live; default all three), fixture (a folder of test/shiploop_e2e/
 fixtures/), request_from (a key of step_cases.json: prompt, work_item and checks), optional request_text (a nonblank prompt
 override), or inline request {prompt, work_item, checks} (mutually exclusive with both), options {delegation, seed_home},
 seed_records, seed_route [{stage, result, overlay}], worktree_mode, planted [{id P<n>, what, signature}], controls
@@ -374,11 +373,16 @@ def validate(data: Any, scenario_dir: Path) -> list[str]:
     if not isinstance(options, dict):
         problems.append("options must be an object")
     else:
-        problems += [f"options: unknown key {key!r}" for key in options if key not in ("delegation", "seed_home")]
+        problems += [f"options: unknown key {key!r}" for key in options
+                     if key not in ("delegation", "seed_home", "planning_review", "improve_skill")]
         if "delegation" in options and options["delegation"] not in DELEGATIONS:
             problems.append(f"options.delegation must be one of {', '.join(DELEGATIONS)}")
         if "seed_home" in options and not isinstance(options["seed_home"], bool):
             problems.append("options.seed_home must be a boolean")
+        if "planning_review" in options and options["planning_review"] not in stage_spec.PLANNING_REVIEW_MODES:
+            problems.append(f"options.planning_review must be one of {', '.join(stage_spec.PLANNING_REVIEW_MODES)}")
+        if "improve_skill" in options and not isinstance(options["improve_skill"], str):
+            problems.append("options.improve_skill must be a string")
     records = data.get("seed_records", {})
     if not isinstance(records, dict):
         problems.append("seed_records must be an object of {stage: fields}")
@@ -625,12 +629,14 @@ from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 import shiploop_lint as lint, shiploop_navigator as nav, shiploop_store as store
 run_dir, stop = Path(sys.argv[2]), sys.argv[3]
+park_stage = stop[len("improve@"):] if stop.startswith("improve@") else None
+stop_stage = park_stage or stop
 item = json.loads(sys.argv[4]) if len(sys.argv) > 4 else {"id": "seeded-request", "title": "The whole request"}
 records = json.loads(sys.argv[5]) if len(sys.argv) > 5 else {}  # {stage: fields merged into that stage's synthetic result}
 overlay = os.environ.get("STAGE_SUITE_WORKTREE")  # a folder laid into the execution checkout (what earlier stages left)
 route_file = os.environ.get("STAGE_SUITE_ROUTE")  # seed_route: entries applied in order after the default seed
 route = json.loads(Path(route_file).read_text())["entries"] if route_file else []
-target = route[0]["stage"] if route else stop  # where the default seed stops
+target = route[0]["stage"] if route else stop_stage  # where the default seed stops
 core = types.SimpleNamespace(PACKAGE_ROOT=Path(sys.argv[1]).parent)  # read only for the names an Improve stage's files carry
 state = store.read_record(run_dir / "state.md")
 skipped, settled, laid = [], False, False
@@ -643,7 +649,19 @@ def lay():
         shutil.copytree(overlay, state["repo"], symlinks=True, dirs_exist_ok=True)
 
 
-def record(stage, extra):  # record the current stage with a synthetic result, `extra` merged over it
+def _first_repo_file(repo):
+    root = Path(repo)
+    if (root / "README.md").is_file():
+        return ["README.md"]
+    for path in sorted(root.rglob("*")):
+        if ".git" in path.parts:
+            continue
+        if path.is_file():
+            return [path.relative_to(root).as_posix()]
+    return ["README.md"]
+
+
+def record(stage, extra, *, park_improve=False):  # record the current stage with a synthetic result, `extra` merged over it
     global state
     action = str(nav.current_action(state)["id"])
     result = {"outcome": "done", "summary": "Synthetic: recorded by the stage suite's seed without doing it; "
@@ -660,12 +678,28 @@ def record(stage, extra):  # record the current stage with a synthetic result, `
         result.setdefault("follows", [])
         result.setdefault("steps", [{"id": "S1", "task": "Make the planned change.", "paths": list(result["paths"]),
                                      "skills": [], "proof": "true"}])
+    if stage == "system-test-author":
+        result.setdefault("system_commands", [])
+        if not result["system_commands"]:
+            result.setdefault("system_commands_na", "Synthetic: the stage suite's seed records no system commands.")
+    if stage == "release-plan":
+        result.setdefault("consumer_checks", [])
+        if not result["consumer_checks"]:
+            result.setdefault("consumer_checks_na", "Synthetic: the stage suite's seed records no consumer checks.")
+        result.setdefault("consumer_entry", {
+            "how": "Synthetic: recorded by the stage suite's seed.",
+            "sources": _first_repo_file(state["repo"]),
+        })
     before = state
     state = nav.apply(before, action, result)
-    if state["active_improve"] is not None:
+    if park_improve:
+        if state["active_improve"] is None:
+            raise SystemExit("stage " + stage + " did not park at an Improve stage")
+    elif state["active_improve"] is not None:
         state = nav.finish_improve(state, action, {"summary": "Synthetic Improve receipt from the stage suite's seed."})
     effect_stdout, effect_stderr = io.StringIO(), io.StringIO()
     diagnostic_stderr = sys.stderr
+    saved_safe = os.environ.pop("PYTHONSAFEPATH", None) if park_improve else None
     try:
         with contextlib.redirect_stdout(effect_stdout), contextlib.redirect_stderr(effect_stderr):
             state = nav.accept_effects(core, run_dir, before, state, action_id=action)
@@ -678,6 +712,9 @@ def record(stage, extra):  # record the current stage with a synthetic result, `
         except BaseException:
             pass
         raise
+    finally:
+        if saved_safe is not None:
+            os.environ["PYTHONSAFEPATH"] = saved_safe
     skipped.append(stage)
     return before
 
@@ -694,6 +731,7 @@ for _ in range(60):
         break
 else:
     raise SystemExit("the seed did not reach " + target)
+parked_by_route = False
 for index, entry in enumerate(route):  # a seed_route entry: its overlay laid first, then its stage recorded
     if settled:
         raise SystemExit("the seed settled " + target + " by script, so seed_route cannot start there")
@@ -702,13 +740,27 @@ for index, entry in enumerate(route):  # a seed_route entry: its overlay laid fi
         raise SystemExit("seed_route[" + str(index) + "] expects " + entry["stage"] + ", but the run is at " + stage)
     if entry.get("overlay"):
         shutil.copytree(entry["overlay"], state["repo"], symlinks=True, dirs_exist_ok=True)
-    record(stage, entry.get("result"))
-if route and nav.current_stage(state) != stop:
-    raise SystemExit("seed_route ends at " + nav.current_stage(state) + ", not at " + stop)
-if not laid:
+    should_park = park_stage is not None and index == len(route) - 1 and stage == park_stage
+    record(stage, entry.get("result"), park_improve=should_park)
+    if should_park:
+        parked_by_route = True
+if route and nav.current_stage(state) != stop_stage:
+    raise SystemExit("seed_route ends at " + nav.current_stage(state) + ", not at " + stop_stage)
+if park_stage is not None and not parked_by_route:
+    if settled:
+        raise SystemExit("the seed settled " + park_stage + " by script, so " + stop + " cannot start")
+    if nav.current_stage(state) != park_stage:
+        raise SystemExit("the seed stands at " + nav.current_stage(state) + ", not at " + park_stage)
+    if not laid:
+        lay()
+    record(park_stage, None, park_improve=True)
+elif not laid:
     lay()
 bases = [ident for ident in sorted(state.get("inner_loops") or {}) if lint.read_base(run_dir, ident) is not None]
-print(json.dumps({"skipped": skipped, "stage": nav.current_stage(state), "action": str(nav.current_action(state)["id"]),
+active_imp = state.get("active_improve")
+reported_stage = f"improve@{active_imp['stage']}" if active_imp else nav.current_stage(state)
+reported_action = str(active_imp["improve_action"]) if active_imp else str(nav.current_action(state)["id"])
+print(json.dumps({"skipped": skipped, "stage": reported_stage, "action": reported_action,
                   "delegation": state.get("delegation"), "item_bases": bases, "settled": settled,
                   "history_length": len(state["history"])}))
 """
@@ -748,10 +800,6 @@ def seam_seed(overlay: Path | None = None, route: Path | None = None) -> Iterato
 
 def _buildable(sc: Scenario) -> dict:
     """The step case a scenario requests, or the reason it cannot be built yet."""
-    if sc.stage.startswith(IMPROVE):
-        raise NotImplementedError("improve@ scenarios arrive with wave 2")
-    if sc.stage in stage_spec.OUTER:
-        raise NotImplementedError("outer-stage scenarios arrive with wave 3")
     if sc.data.get("worktree_mode", "uncommitted") != "uncommitted":
         raise NotImplementedError("worktree_mode committed is reserved: only uncommitted is built")
     if "request" in sc.data:
@@ -783,6 +831,11 @@ def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
     fixture = _compose(sc, material / "fixture", ("repo",))
     overlay = sc.dir / "worktree"
     options = sc.data.get("options") or {}
+    default_improve_skill = (
+        str(ROOT / "skills" / "improve" / "SKILL.md")
+        if sc.stage.startswith(IMPROVE) and (ROOT / "skills" / "improve" / "SKILL.md").is_file() else ""
+    )
+    improve_skill = options.get("improve_skill", default_improve_skill)
     route = None
     if sc.data.get("seed_route"):
         route = material / "route.json"
@@ -794,7 +847,10 @@ def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
         seeded = run.seed_run(cli, work, out, case["prompt"], sc.stage, fixture=fixture, work_item=case["work_item"],
                               delegation=options.get("delegation", "inline"), checks=case["checks"],
                               home=options.get("seed_home", True),
-                              records=sc.data.get("seed_records") or None)
+                              planning_review=options.get("planning_review"),
+                              improve_skill=improve_skill,
+                              records=sc.data.get("seed_records") or None,
+                              release_slice_mode=False)
     run_dir = Path(seeded["run_dir"])
     state = store.read_record(run_dir / "state.md")
     if (sc.dir / "notes").is_dir():
@@ -811,6 +867,14 @@ def _trace(run_dir: Path) -> list | None:
     """The rows of RUN/trace.jsonl, or None when the run wrote none."""
     path = run_dir / "trace.jsonl"
     return store.read_jsonl(path) if path.is_file() else None
+
+
+def stage_of(state: dict) -> str:
+    """The stage-suite stage name for ``state``: ``improve@<stage>`` while parked at Improve, else ``navigator.current_stage(state)``."""
+    active_imp = state.get("active_improve")
+    if isinstance(active_imp, dict) and active_imp.get("stage"):
+        return f"{IMPROVE}{active_imp['stage']}"
+    return navigator.current_stage(state)
 
 
 def render(sc: Scenario, out: Path, *, cli: Path | None = None) -> stage_oracle.Bundle:
@@ -830,13 +894,14 @@ def render(sc: Scenario, out: Path, *, cli: Path | None = None) -> stage_oracle.
                           capture_output=True, text=True, check=False, timeout=NEXT_SECONDS, env={**os.environ, **quiet})
     if done.returncode:
         raise RuntimeError(f"{sc.id}: shiploop next exited {done.returncode}: {(done.stderr or done.stdout)[-1500:]}")
+    state = store.read_record(built.run_dir / "state.md")
     packet = None
     if built.issued:
-        file = built.run_dir / "packets" / (built.seeded["action"] + ".md")
+        file = navigator.packet_path(built.run_dir, state)
         if not file.is_file():  # the head is not the packet: a check on one must not quietly read the other
             raise RuntimeError(f"{sc.id}: shiploop next issued no packet file at {file}")
         packet = file.read_text(encoding="utf-8")
-    state = store.read_record(built.run_dir / "state.md")
+    current = stage_of(state)
     return stage_oracle.Bundle(result=None, tree=built.worktree, seed_tree=snapshot, run_dir=built.run_dir,
                                trace=_trace(built.run_dir), packet=packet, packet_head=done.stdout, issued=built.issued,
-                               settled=built.settled, current_stage=navigator.current_stage(state), scenario_dir=sc.dir)
+                               settled=built.settled, current_stage=current, scenario_dir=sc.dir)

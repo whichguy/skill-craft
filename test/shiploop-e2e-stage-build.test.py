@@ -1087,17 +1087,56 @@ class Builds(unittest.TestCase):
         with mock.patch.object(sb, "subprocess", fake), self.assertRaisesRegex(RuntimeError, "issued no packet file at .*packets"):
             sb.render(sc, self.temp / "no-packet")
 
-    def test_an_improve_stage_and_an_outer_stage_load_but_do_not_build_yet(self):
-        for sid, wanted in (("improve@spec/later", "improve@ scenarios arrive with wave 2"),
-                            ("release/later", "outer-stage scenarios arrive with wave 3")):
-            sc = sb.load(sid, self.cases)
-            for function in (sb.build, sb.render):
-                with self.subTest(sid, function=function.__name__):
-                    out = self.temp / "not-built" / sid.replace("/", "-") / function.__name__
-                    with self.assertRaisesRegex(NotImplementedError, wanted):
-                        function(sc, out)
-                    self.assertFalse(out.exists(), "nothing was written")
-        self.assertEqual(sb.load("improve@spec/later", self.cases).stage, "improve@spec")
+    def test_committed_worktree_mode_loads_while_improve_and_outer_waves_build_and_render(self):
+        unbuildable = self.temp / "unbuildable-cases"
+        scenario(unbuildable, "validate-existing", "committed",
+                 {"about": "x", "fixture": "node-base", "request_from": "node-fix-bug",
+                  "tiers": ["render"], "worktree_mode": "committed",
+                  "planted": [{"id": "P1", "what": "w"}], "render": [{"proves": "P1", "packet_contains": "x"}]},
+                 {})
+        sc = sb.load("validate-existing/committed", unbuildable)
+        for function in (sb.build, sb.render):
+            with self.subTest(sid="validate-existing/committed", function=function.__name__):
+                out = self.temp / "not-built" / function.__name__
+                with self.assertRaisesRegex(NotImplementedError, "worktree_mode committed is reserved"):
+                    function(sc, out)
+                self.assertFalse(out.exists(), "nothing was written")
+
+        # Wave 2 (improve@) and Wave 3 (@outer) scenarios build and render cleanly.
+        wave_cases = self.temp / "wave-2-3-cases"
+        base = {"about": "wave test", "fixture": "node-base", "request_from": "node-fix-bug", "tiers": ["render"],
+                "planted": [{"id": "P1", "what": "w"}], "render": [{"proves": "P1", "packet_contains": "improve"}]}
+        for st in ("improve@spec", "improve@plan", "improve@document", "improve@reflect-and-revise",
+                   "improve@system-test-author", "improve@release-plan",
+                   "system-test-author", "system-test", "product-acceptance", "release-plan",
+                   "release-check", "release", "release-verify", "operations", "handoff"):
+            files = {"worktree/src/added.js": "module.exports = 2;\n"} if st == "improve@document" else {}
+            scenario(wave_cases, st, "smoke", base, files)
+        scenario(wave_cases, "improve@spec", "agents", {**base, "options": {"delegation": "agents"}}, {})
+
+        for st in ("improve@spec", "improve@plan", "improve@document", "improve@reflect-and-revise",
+                   "improve@system-test-author", "improve@release-plan",
+                   "system-test-author", "system-test", "product-acceptance", "release-plan",
+                   "release-check", "release", "release-verify", "operations", "handoff"):
+            sid = f"{st}/smoke"
+            with self.subTest(sid=sid):
+                bundle = sb.render(sb.load(sid, wave_cases), self.temp / "waves" / sid.replace("/", "-"))
+                self.assertTrue(bundle.issued)
+                self.assertEqual(bundle.current_stage, st)
+                self.assertIsNotNone(bundle.packet)
+                if st.startswith("improve@"):
+                    self.assertIn("handoff.md", bundle.packet)
+                    self.assertIn("improve-pass", bundle.packet)
+                    self.assertNotIn("ShipLoop could not start this review", bundle.packet)
+                    packets = list((bundle.tree / ".shiploop-improve").glob("*/packet.json"))
+                    self.assertEqual(len(packets), 1, packets)
+                    self.assertEqual(json.loads(packets[0].read_text())["status"], "active")
+
+        agents_bundle = sb.render(sb.load("improve@spec/agents", wave_cases), self.temp / "waves" / "improve@spec-agents")
+        self.assertEqual(agents_bundle.current_stage, "improve@spec")
+        self.assertIn("worker-brief.md", agents_bundle.packet)
+        briefs = list((agents_bundle.tree / ".shiploop-improve").glob("*/worker-brief.md"))
+        self.assertEqual(len(briefs), 1, briefs)
 
     def test_a_scenario_that_names_no_request_cannot_be_built(self):
         cases = self.temp / "verify-cases"

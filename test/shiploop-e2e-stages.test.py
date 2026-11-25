@@ -169,7 +169,8 @@ class Catalog(Temp):
         scenario(self.cases, "validate-existing", "repaired", REPAIRED, REPAIRED_FILES)
         scenario(self.cases, "spec", "outcome-dropped", None, None, tiers=["verify"], request_from=None, render=[], tags=["catch"])
         scenario(self.cases, "handoff", "leftovers", None, None, tiers=["verify"], request_from=None, render=[], tags=["control"])
-        scenario(self.cases, "improve@spec", "missing-outcome", None, None, tags=["catch", "improve"])
+        scenario(self.cases, "improve@spec", "missing-outcome", None, None, tags=["catch", "improve"],
+                 worktree_mode="committed")
         self.found = sb.discover(self.cases)
 
     def ids(self, *tokens: str) -> list[str]:
@@ -518,7 +519,8 @@ class Render(unittest.TestCase):
                          {"proves": "C1", "packet_not_contains": "E2 works[^\\n]*DOES NOT MATCH"}])
         scenario(cls.cases, "validate-existing", "refused-by-the-engine", None, {}, **render,
                  seed_records={"step-plan": {"expectations": [{**E1, "state": "not-a-state"}]}})
-        scenario(cls.cases, "improve@spec", "later", None, GOOD_FILES, render=GOOD["render"])
+        scenario(cls.cases, "improve@spec", "later", None, GOOD_FILES, render=GOOD["render"],
+                 worktree_mode="committed")
         scenario(cls.cases, "spec", "verify-only", None, GOOD_FILES, tiers=["verify"], request_from=None, render=[])
         cls.digest = boundary.fingerprint(HARNESS, None)
         cls.seed_script = run.SEED_SCRIPT
@@ -560,7 +562,7 @@ class Render(unittest.TestCase):
 
     def test_what_the_builder_cannot_build_yet_and_what_has_no_render_tier_are_skipped_not_failed(self):
         self.assertEqual((self.rows["improve@spec/later"]["result"], self.rows["improve@spec/later"]["reason"]),
-                         ("skipped", "not buildable yet: improve@ scenarios arrive with wave 2"))
+                         ("skipped", "not buildable yet: worktree_mode committed is reserved: only uncommitted is built"))
         self.assertEqual((self.rows["spec/verify-only"]["result"], self.rows["spec/verify-only"]["reason"]), ("skipped", "tier off"))
 
     def test_a_render_scenario_with_no_render_check_fails_and_is_never_a_pass(self):
@@ -887,7 +889,7 @@ class LiveSelection(NoLaunch):
         code, out, err = cli("live", "--dry-run", "--cases-dir", str(self.cases))
         self.assertEqual(code, 0, err)
         self.assertNotIn("  improve@spec/missing-outcome: ", out)
-        self.assertRegex(out, r"skipped, not buildable yet: improve@spec/missing-outcome \(improve@ scenarios arrive")
+        self.assertRegex(out, r"skipped, not buildable yet: improve@spec/missing-outcome \(worktree_mode committed")
 
     def test_nothing_with_the_live_tier_on_is_exit_3_and_says_so(self):
         for tokens in (("validate-existing/repaired",), ("@outer",), ("improve@spec",)):

@@ -323,6 +323,17 @@ class AcceptedReached(unittest.TestCase):
         self.assertEqual(live.seeded_result(self.state(active_improve=child), "B"), (None, None))
         self.assertEqual(live.seeded_result(None, "A"), (None, None))
 
+    def test_improve_action_stops_only_after_import_not_while_parked(self):
+        parked = {"action_id": "A", "improve_action": "IMP-1", "stage": "spec", "seed_result": {"outcome": "done"}}
+        self.assertFalse(live.accepted_reached(self.state(active_improve=parked), "IMP-1"))
+        imported_state = self.state(
+            accepted={"A": {"outcome": "done", "summary": "reviewed"}},
+            improve_results={"A": {"improve_action": "IMP-1", "summary": "ok"}},
+        )
+        self.assertTrue(live.accepted_reached(imported_state, "IMP-1"))
+        self.assertEqual(live.seeded_result(imported_state, "IMP-1"),
+                         ({"outcome": "done", "summary": "reviewed"}, "accepted"))
+
 
 # --------------------------------------------------------------------------------------------------------- a good sample
 
