@@ -297,7 +297,8 @@ def _question_match(q_id: str, rows: Sequence[Mapping[str, Any]]) -> Mapping[str
             return row
     pattern = re.compile(rf"\b{re.escape(q_id)}\b")
     for row in rows:
-        if pattern.search(str(row.get("statement") or "")) or pattern.search(str(row.get("check") or "")):
+        statement_text = str(row.get("statement") or row.get("assumption") or "")
+        if pattern.search(statement_text) or pattern.search(str(row.get("check") or "")):
             return row
     return None
 
@@ -319,11 +320,26 @@ def plan_observability(root: Path | None, state: Mapping[str, Any]) -> dict[str,
     accepted = state.get("accepted") or {}
     plan_result = accepted.get(plan_action) if isinstance(plan_action, str) else None
     plan_accepted = isinstance(plan_result, Mapping)
+    draft_result = (
+        plan_result
+        if plan_accepted
+        else (
+            improve.get("seed_result")
+            if isinstance(improve, Mapping) and improve.get("stage") == "plan"
+            and isinstance(improve.get("seed_result"), Mapping)
+            else None
+        )
+    )
+    draft_present = isinstance(draft_result, Mapping)
 
     loop_info = read_loop_state(Path(root), plan_action) if root is not None and isinstance(plan_action, str) else None
     experiments, snapshots = scan_experiments(Path(root), state) if root is not None else ([], [])
 
-    raw_assumptions = plan_result.get("assumptions") if plan_accepted and isinstance(plan_result.get("assumptions"), list) else []
+    raw_assumptions = (
+        draft_result.get("assumptions")
+        if draft_present and isinstance(draft_result.get("assumptions"), list)
+        else []
+    )
     probed_rows: list[dict[str, Any]] = []
     evidenced_count = 0
     open_count = 0
@@ -340,7 +356,7 @@ def plan_observability(root: Path | None, state: Mapping[str, Any]) -> dict[str,
             probed_rows.append({
                 "id": _clean_text(row.get("id"), 32) or "A?",
                 "question": _clean_text(row.get("question"), 32) or None,
-                "statement": _clean_text(row.get("statement"), 200),
+                "statement": _clean_text(row.get("statement") or row.get("assumption"), 200),
                 "check": _clean_text(row.get("check"), 200),
                 "effect": effect,
                 "evidence_count": len(ev) if isinstance(ev, list) else 0,
@@ -353,7 +369,7 @@ def plan_observability(root: Path | None, state: Mapping[str, Any]) -> dict[str,
     questions_out: list[dict[str, Any]] = []
     for item in assumptions.experiment_questions(state):
         q_id = _clean_text(item.get("id"), 32)
-        matched = _question_match(q_id, raw_assumptions) if plan_accepted else None
+        matched = _question_match(q_id, raw_assumptions) if draft_present else None
         if matched is not None:
             q_status = _clean_text(matched.get("disposition"), 32) or "pending"
             assumption_id = _clean_text(matched.get("id"), 32) or None
@@ -371,9 +387,14 @@ def plan_observability(root: Path | None, state: Mapping[str, Any]) -> dict[str,
             "effect": effect,
         })
 
-    concerns_map = plan_result.get("concerns") if plan_accepted and isinstance(plan_result.get("concerns"), Mapping) else {}
+    concerns_map = draft_result.get("concerns") if draft_present and isinstance(draft_result.get("concerns"), Mapping) else {}
+    raw_items = (
+        draft_result.get("work_items")
+        if not plan_accepted and draft_present and isinstance(draft_result.get("work_items"), list) and draft_result.get("work_items")
+        else state.get("work_items") or ()
+    )
     work_items_out: list[dict[str, Any]] = []
-    for item in state.get("work_items") or ():
+    for item in raw_items:
         if not isinstance(item, Mapping):
             continue
         item_id = _clean_text(item.get("id"), 32)

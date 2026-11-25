@@ -621,6 +621,49 @@ class PlanningLoopStatusAndObservabilityTests(PlanningLoopCliBase):
         self.assertIn("Plan Until Loop iterations: 2; sandboxes: 1; draft snapshots: 2; probed assumptions: 1.", report_html)
         self.assertIn("Use 25-record chunks.", report_html)
 
+    def test_parked_plan_improve_surfaces_seed_result_slices_and_probed_assumptions(self) -> None:
+        import shiploop_planning_status as planning_status
+
+        state = {
+            "status": "active",
+            "stage": "plan",
+            "action": {"id": "plan-seed", "stage": "plan"},
+            "work_items": [{"id": "W1", "title": "Intake placeholder"}],
+            "accepted": {
+                "intake-1": {
+                    "questions": [{"id": "Q1", "route": "experiment", "question": "Check payload limit?"}],
+                },
+            },
+            "history": [{"stage": "intake", "action": "intake-1", "outcome": "done"}],
+            "active_improve": {
+                "stage": "plan",
+                "action_id": "plan-seed",
+                "seed_result": {
+                    "work_items": [
+                        {"id": "W1", "title": "Thin spine", "slice": "spine"},
+                        {"id": "W2", "title": "Enrich filters", "slice": "enrich"},
+                    ],
+                    "concerns": {"W1": [{"id": "api", "applies": "no"}], "W2": "deferred"},
+                    "assumptions": [{
+                        "id": "A1", "disposition": "probed", "question": "Q1",
+                        "assumption": "Q1 payload limit confirmed at 25",
+                        "effect": "Batch writes in 25-record chunks",
+                        "evidence": ["experiments/cap/decision.md"],
+                    }],
+                },
+            },
+        }
+        obs = planning_status.plan_observability(None, state)
+        self.assertFalse(obs["plan_accepted"])
+        self.assertEqual(obs["assumptions_summary"]["probed"], 1)
+        self.assertEqual(obs["probed_rows"][0]["statement"], "Q1 payload limit confirmed at 25")
+        self.assertEqual(obs["experiment_questions"][0]["status"], "probed")
+        self.assertEqual(obs["experiment_questions"][0]["assumption_id"], "A1")
+        self.assertEqual(obs["work_items"], [
+            {"id": "W1", "title": "Thin spine", "slice": "spine", "concerns_mode": "mapped"},
+            {"id": "W2", "title": "Enrich filters", "slice": "enrich", "concerns_mode": "deferred"},
+        ])
+
 
 if __name__ == "__main__":
     unittest.main()
