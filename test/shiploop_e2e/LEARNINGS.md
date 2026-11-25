@@ -9994,3 +9994,20 @@ Standing harness notes: kept `CODEX_DEFAULT_EFFORT = "xhigh"` in `test/shiploop_
 
 Limits: Bounded live inference ran 1 sample per `plan/` scenario on `codex/gpt-6.2-sol` (`xhigh` and `medium`); multi-sample variance and Claude Sonnet / Grok live convergence on the new `plan` cadence were not re-measured.
 
+## 2026-11-24 — Planning observability polish, `intake/route-experiment-unknown`, and full `codex/gpt-6.2-sol/medium` `user-listing` validation (`f23d5005e`, `870dd6e32`)
+
+Implemented the observability polish identified during `4.14.0` live `medium` runs (`f23d5005ea86ab3dbe80982e00391944b4513c5a`, `changes/shiploop/planning-observability-polish.md` `patch`) and added `intake/route-experiment-unknown` (`870dd6e32f514ddd687459c6c3f7c458d1f525bd`), rebased cleanly onto `origin/main` (`7f073ed45`).
+
+- **Live `intake/route-experiment-unknown #1` (`codex/gpt-6.2-sol/medium`, `--samples 1`, `stages-live-20261124-211509-5e3512`): `PASS 1.00` (`P1 1/1`, `C1 1/1`, `overshoot 0/1`)**
+  - Cleanly categorized `K1`..`K12`, cited `S1..`, inspected static contracts (`route: "inspect"`), kept operational defaults (`route: "default"`), and routed both empirical unknowns of `tools/legacy-batch.js` (`Q4` truncation & line breaks; `Q8` silent data loss) via `route: "experiment"` with zero `person` misroutes.
+- **Live full-lifecycle `user-listing` (`codex/gpt-6.2-sol/medium`, `--source checkout --delegation agents`, external `--baseline`, `/tmp/shiploop-exp-2.16.1-medium-user-listing`): `PASS`**
+  - Completed `stage: done` (`status: done`, `returncode: 0`) in `1,669.5 s` (`163` turns, `0` compactions, `0` unverified, `HEAD ddd8f19f`, `15` files in `HEAD`, `9` commits, `0` untracked files, `5` requirements in `docs/shiploop/spec.md`).
+  - **Checks & held-out quality:** `3/3` checks pass (`base_tests.py suite`, `base_tests.py pristine`, live HTTP `/users` & `/users?page=1&size=2`), **`11/11` held-out acceptance checks pass (`held_out_seen: 0`)**, `left_behind` clean.
+  - **Delegation, planning & settlement telemetry:** `fork completeness: 8/8 completed (7/8 order_ok, 0 interrupted, 0 abandoned)`, `Improve children 8` (`14` review passes), `0` test-quality dodges, `metrics.planning_observability`: `plan_loop_iterations=1` (`non-trivial`, `satisfied`, `0` unnecessary sandboxes, `4` evidenced assumptions, `plan-iter-1.md` `5,973 B`, `work_item_count=1` `concerns_mode='mapped'`), `open_item_settlement`: `0/0`.
+- **Hermetic & CI verification:**
+  - `--group quick --changed-from origin/main --jobs 4`: **78/78 suites PASS** (`1,038.2 s` wall; before final zero-overlap rebase onto `7f073ed45`).
+  - `stages.py verify intake` & `render intake` (`2/2 PASS`), `shiploop-planning-loop` (`12/12`), `shiploop-progress-data` (`46/46`), `shiploop-progress-render` (`39/39`), `shiploop-progress` (`46/46`), `shiploop-packet-bounds` (`21/21`), `shiploop-seed-seam` (`14/14`), `shiploop-e2e-stage-oracle` (`117/117`), `shiploop-e2e-stage-build` (`65/65`), `ruff check --select E9`, and `scripts/check-release-boundary.py --base origin/main` (`OK`).
+
+Limits: Full-lifecycle `user-listing` was a single cohesive item with no `tools/` runtime probe or multi-item `"deferred"` concerns; full cross-stage `Q1 (intake) -> plan experiment loop -> W1 spine -> W2 enrich` inside one continuous non-seeded live run remains an optional future end-to-end check.
+
+
