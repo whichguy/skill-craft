@@ -1,4 +1,4 @@
-# ShipLoop navigator 2.18.0
+# ShipLoop navigator 2.18.1
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
@@ -107,7 +107,7 @@ What happens next, in order:
 Watch it without interrupting:
 
 ```sh
-python3 "$SKILL_ROOT/scripts/shiploop" runs                                # list all concurrent runs
+python3 "$SKILL_ROOT/scripts/shiploop" runs [--active] [--prune]           # list concurrent runs (or prune missing)
 python3 "$SKILL_ROOT/scripts/shiploop" status --run-dir "$RUN" [--watch]   # where it is, what is done, what is next
 open "$RUN/progress.html"                                                  # live page; no server needed
 python3 "$SKILL_ROOT/scripts/shiploop" view --serve [--background]         # multi-run hub in a browser at 127.0.0.1:41730
