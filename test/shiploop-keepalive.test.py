@@ -1622,18 +1622,55 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
             self.assertIn(sid, calls[1])
             self.assertIn(sid, calls[2])
 
+    def test_drive_main_applies_built_in_defaults_unless_opted_out(self) -> None:
+        import contextlib
+        import io
+        import shiploop_model_routing as model_routing
+
+        for host in ("claude", "codex", "antigravity"):
+            with self.subTest(host=host), mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
+                rc = keepalive.drive_main(["--host", host, "--run-dir", str(self.run_dir), "--", "--dangerously-skip-permissions"])
+            self.assertEqual(rc, 0)
+            self.assertEqual(m_drive.call_args.kwargs["routing"], model_routing.default_routing(host))
+
+        for host in ("cursor", "opencode", "grok"):
+            with self.subTest(unrouted_host=host), mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
+                rc = keepalive.drive_main(["--host", host, "--run-dir", str(self.run_dir)])
+            self.assertEqual(rc, 0)
+            self.assertIsNone(m_drive.call_args.kwargs["routing"])
+
+        with mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
+            keepalive.drive_main(["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing"])
+            self.assertIsNone(m_drive.call_args.kwargs["routing"])
+
+        for extra in (["-m", "gpt-6.2-sol"], ["--model", "haiku"]):
+            with mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
+                keepalive.drive_main(["--host", "codex", "--run-dir", str(self.run_dir), "--", *extra])
+                self.assertIsNone(m_drive.call_args.kwargs["routing"])
+
+        with mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
+            keepalive.drive_main(["--host", "antigravity", "--run-dir", str(self.run_dir), "--routing", "default"])
+            self.assertEqual(m_drive.call_args.kwargs["routing"], model_routing.load_config(model_routing.DEFAULT_ROUTING))
+
+        for bad_args in (
+            ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--routing", "default"],
+            ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--planning-model", "sonnet"],
+        ):
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                keepalive.drive_main(bad_args)
+
 
 class ThreeHostSmokeMatrixTests(unittest.TestCase):
     """Hermetic 3-host integration matrix exercising real `drive` + `observe`/`stop`/`session-end` + `grade_run`."""
 
     _SPECS = {
         "claude": {
-            "planning": ("sonnet", "high", "claude-sonnet-5-5"),
-            "execution": ("haiku", "low", "claude-haiku-5-5"),
+            "planning": ("claude-opus-5-5", "high", "claude-opus-5-5"),
+            "execution": ("claude-sonnet-5-5", "high", "claude-sonnet-5-5"),
         },
         "codex": {
             "planning": ("gpt-6.2-astra", "high", "gpt-6.2-astra"),
-            "execution": ("gpt-6.2-sol", "medium", "gpt-6.2-sol"),
+            "execution": ("gpt-6.2-sol", "xhigh", "gpt-6.2-sol"),
         },
         "antigravity": {
             "planning": ("gemini-4-neon-high", "high", "gemini-4-neon-high"),
@@ -1830,6 +1867,90 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                 mode="unrouted", expected_planning=("gpt-6.2-sol", "medium"), expected_execution=("gpt-6.2-sol", "medium"),
             )
             self.assertTrue(ok["pass"], ok)
+
+    def test_default_antigravity_orchestrator_runs_single_session_without_boundary_stops(self) -> None:
+        import shiploop_model_routing as routing
+
+        run_dir, ka_home, base = self._init_run("agy-orchestrator")
+        repo = base / "repo"
+        env_patch = {
+            "SHIPLOOP_KEEPALIVE_HOME": str(ka_home),
+            "SHIPLOOP_PROGRESS": "off",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+        }
+        with mock.patch.dict(os.environ, env_patch), mock.patch.object(keepalive, "host_process", return_value=None):
+            st0 = keepalive.run_status(str(run_dir))
+            run_id = st0["run_id"]
+            marker = f"SHIPLOOP-RUN run={run_id} rev=0 dir={run_dir}"
+            sid = "agy-orch-thread"
+            invocations: list[list[str]] = []
+            statuses = [
+                {**st0, "stage": "system-test-author", "profile": "planning", "revision": 1},
+                {**st0, "stage": "done", "profile": None, "status": "done", "revision": 2, "completion": ""},
+            ]
+            idx = [0]
+
+            def runner(argv, **kwargs):
+                invocations.append(argv)
+                with mock.patch.dict(os.environ, kwargs.get("env", {})):
+                    for obs_m in ("gemini-4-neon-high", "gemini-4-carbon-medium"):
+                        keepalive.run_hook("observe", "antigravity", json.dumps(self._make_payload(
+                            "antigravity", "observe", sid, marker, run_dir,
+                            effort=None, obs_model=obs_m, transcript=base / "t.jsonl",
+                        )))
+                    raw_out = keepalive.run_hook("stop", "antigravity", json.dumps(self._make_payload(
+                        "antigravity", "stop", sid, marker, run_dir,
+                        effort=None, obs_model="gemini-4-neon-high", transcript=base / "t.jsonl",
+                    )))
+                # Even on execution boundary check inside same Orchestrator config, active_boundary is None; once done -> allow.
+                idx[0] = 1
+                if raw_out:
+                    self.assertEqual(json.loads(raw_out)["decision"], "allow")
+                return subprocess.CompletedProcess(argv, 0, "ok", "")
+
+            # Inside session: simulate Neon -> Carbon without boundary stop, then pause/done.
+            with mock.patch.object(keepalive, "run_status", side_effect=lambda _d: dict(statuses[idx[0]])):
+                # Force stop to see done when idx increments after stop? Patch stop's status cleanly:
+                pass
+            idx[0] = 0
+
+            def orch_runner(argv, **kwargs):
+                invocations.append(argv)
+                with mock.patch.dict(os.environ, kwargs.get("env", {})):
+                    keepalive.run_hook("observe", "antigravity", json.dumps(self._make_payload(
+                        "antigravity", "observe", sid, marker, run_dir,
+                        effort=None, obs_model="gemini-4-neon-high", transcript=base / "t.jsonl",
+                    )))
+                    with mock.patch.object(keepalive, "run_status", return_value={**st0, "stage": "system-test", "profile": "execution", "revision": 2}):
+                        exec_stop = json.loads(keepalive.run_hook("stop", "antigravity", json.dumps(self._make_payload(
+                            "antigravity", "stop", sid, marker, run_dir,
+                            effort=None, obs_model="gemini-4-carbon-medium", transcript=base / "t.jsonl",
+                        ))))
+                        # Orchestrator has identical planning & execution targets -> stop returns continue, not allow!
+                        self.assertEqual(exec_stop["decision"], "continue")
+                idx[0] = 1
+                return subprocess.CompletedProcess(argv, 0, "ok", "")
+
+            invocations.clear()
+            with mock.patch.object(keepalive, "run_status", side_effect=lambda _d: dict(statuses[idx[0]])):
+                code = keepalive.drive(
+                    "antigravity", str(run_dir), session_timeout=60, extra=[], cwd=str(repo),
+                    routing=routing.default_routing("antigravity"), out=lambda _m: None, runner=orch_runner, clock=lambda: 5.0,
+                )
+            self.assertEqual(code, keepalive.EXIT_DONE)
+            self.assertEqual(len(invocations), 1)
+            self.assertIn("gemini-pro-orchestrator-neon", invocations[0])
+            self._write_history(run_dir / "state.md", ["system-test-author", "system-test", "product-acceptance"])
+            verdict = self.probe.grade_run(
+                "antigravity", run_dir, ka_home / "drive" / run_id / "drive.log",
+                mode="routed",
+                expected_planning=("gemini-pro-orchestrator-neon", None),
+                expected_execution=("gemini-pro-orchestrator-neon", None),
+            )
+            self.assertTrue(verdict["pass"], verdict)
+            self.assertTrue(verdict["checks"]["single_session_ok"])
+            self.assertEqual(len(verdict["boundary_stops"]), 0)
 
 
 if __name__ == "__main__":

@@ -150,6 +150,31 @@ class ModelRoutingResolutionTests(unittest.TestCase):
             self.assertIsNone(routing.active_boundary("implement", "other-run", env))
             self.assertIsNone(routing.active_boundary("implement", "run-1", {**env, "SHIPLOOP_DRIVE_ROUTING": "/nonexistent"}))
 
+    def test_default_routing_preset_and_extra_model_detection(self) -> None:
+        cfg = routing.load_config("default")
+        self.assertEqual(cfg, routing.default_routing())
+        for host, exp_plan, exp_exec in (
+            ("claude", ("claude-opus-5-5", "high"), ("claude-sonnet-5-5", "high")),
+            ("codex", ("gpt-6.2-astra", "high"), ("gpt-6.2-sol", "xhigh")),
+            ("antigravity", ("gemini-pro-orchestrator-neon", None), ("gemini-pro-orchestrator-neon", None)),
+        ):
+            p = routing.resolve(cfg, "plan", host)
+            e = routing.resolve(cfg, "implement", host)
+            self.assertEqual((p.model, p.effort), exp_plan, host)
+            self.assertEqual((e.model, e.effort), exp_exec, host)
+        # Antigravity Orchestrator maps both profiles to one target key -> no driver boundary stop.
+        self.assertEqual(routing.resolve(cfg, "plan", "agy").target_key, routing.resolve(cfg, "implement", "agy").target_key)
+        # Hosts without built-in defaults return None.
+        for other in ("cursor", "opencode", "grok"):
+            self.assertIsNone(routing.default_routing(other), other)
+        # Pass-through CLI model detection.
+        self.assertTrue(routing.extra_sets_model(["--model", "haiku"]))
+        self.assertTrue(routing.extra_sets_model(["--model=haiku"]))
+        self.assertTrue(routing.extra_sets_model(["-m", "gpt-6.2-sol"]))
+        self.assertTrue(routing.extra_sets_model(["-c", "model=o3"]))
+        self.assertTrue(routing.extra_sets_model(["--config=model=o3"]))
+        self.assertFalse(routing.extra_sets_model(["--dangerously-skip-permissions", "-c", "model_reasoning_effort=high"]))
+
 
 def _load_smoke_probe():
     path = ROOT / "test" / "shiploop_e2e" / "probes" / "model_routing_smoke.py"
@@ -165,12 +190,12 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
 
     _SPECS = {
         "claude": {
-            "planning": ("sonnet", "high", "claude-sonnet-5-5"),
-            "execution": ("haiku", "low", "claude-haiku-5-5"),
+            "planning": ("claude-opus-5-5", "high", "claude-opus-5-5"),
+            "execution": ("claude-sonnet-5-5", "high", "claude-sonnet-5-5"),
         },
         "codex": {
             "planning": ("gpt-6.2-astra", "high", "gpt-6.2-astra"),
-            "execution": ("gpt-6.2-sol", "medium", "gpt-6.2-sol"),
+            "execution": ("gpt-6.2-sol", "xhigh", "gpt-6.2-sol"),
         },
         "antigravity": {
             "planning": ("gemini-4-neon-high", "high", "gemini-4-neon-high"),
@@ -251,23 +276,65 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         )
         bad_res = self.probe.grade_run(
             "claude", run_no_res, dl_no_res, mode="routed",
-            expected_planning=("sonnet", "high"), expected_execution=("haiku", "low"),
+            expected_planning=("claude-opus-5-5", "high"), expected_execution=("claude-sonnet-5-5", "high"),
         )
         self.assertFalse(bad_res["pass"])
         self.assertFalse(bad_res["checks"]["warm_resume_ok"])
+
+        # Single-session Antigravity Orchestrator grading (Neon plan <-> Carbon execute inside one unbroken session).
+        agy_orch = self.temp / "agy-orch"
+        orch_run = agy_orch / "run"
+        orch_dl = agy_orch / "drive.log"
+        orch_run.mkdir(parents=True)
+        store.write_record(orch_run / "state.md", {
+            "run_id": "nav-agy-orch", "status": "paused", "stage": "release-plan",
+            "history": [{"stage": s, "outcome": "done", "summary": "ok", "workitem": None, "action": f"nav-{i}"}
+                        for i, s in enumerate(stages)],
+        })
+        orch_dl.write_text(
+            json.dumps({"session": 1, "host": "antigravity", "resumed": None, "model": "gemini-pro-orchestrator-neon"}) + "\n",
+            encoding="utf-8",
+        )
+        (orch_run / "trace.jsonl").write_text("\n".join([
+            json.dumps({"kind": "hook", "hook": "model", "host": "antigravity", "model": "gemini-4-neon-high", "effort": "high", "stage": "system-test-author"}),
+            json.dumps({"kind": "hook", "hook": "model", "host": "antigravity", "model": "gemini-4-carbon-medium", "effort": "medium", "stage": "system-test"}),
+        ]) + "\n", encoding="utf-8")
+        ok_orch = self.probe.grade_run(
+            "antigravity", orch_run, orch_dl, mode="routed",
+            expected_planning=("gemini-pro-orchestrator-neon", None),
+            expected_execution=("gemini-pro-orchestrator-neon", None),
+        )
+        self.assertTrue(ok_orch["pass"], ok_orch)
+        self.assertTrue(ok_orch["checks"]["single_session_ok"])
+        self.assertTrue(ok_orch["checks"]["target_recorded_ok"])
+        self.assertTrue(ok_orch["checks"]["observed_models_ok"])
+
+        # Spurious boundary stop fails single-session Orchestrator check.
+        (orch_run / "trace.jsonl").write_text(
+            (orch_run / "trace.jsonl").read_text(encoding="utf-8")
+            + json.dumps({"kind": "hook", "hook": "stop", "host": "antigravity", "decision": "allow", "why": "profile boundary reached"}) + "\n",
+            encoding="utf-8",
+        )
+        bad_orch = self.probe.grade_run(
+            "antigravity", orch_run, orch_dl, mode="routed",
+            expected_planning=("gemini-pro-orchestrator-neon", None),
+            expected_execution=("gemini-pro-orchestrator-neon", None),
+        )
+        self.assertFalse(bad_orch["pass"])
+        self.assertFalse(bad_orch["checks"]["single_session_ok"])
 
         run_unrouted, dl_unrouted = self._write_synthetic_artifacts(
             self.temp / "codex-unrouted", host="codex", spec=self._SPECS["codex"], stages=stages, routed=False,
         )
         ok_unrouted = self.probe.grade_run(
             "codex", run_unrouted, dl_unrouted, mode="unrouted",
-            expected_planning=("gpt-6.2-sol", "medium"), expected_execution=("gpt-6.2-sol", "medium"),
+            expected_planning=("gpt-6.2-sol", "xhigh"), expected_execution=("gpt-6.2-sol", "xhigh"),
         )
         self.assertTrue(ok_unrouted["pass"], ok_unrouted)
 
         bad_routed = self.probe.grade_run(
             "codex", run_unrouted, dl_unrouted, mode="routed",
-            expected_planning=("gpt-6.2-astra", "high"), expected_execution=("gpt-6.2-sol", "medium"),
+            expected_planning=("gpt-6.2-astra", "high"), expected_execution=("gpt-6.2-sol", "xhigh"),
         )
         self.assertFalse(bad_routed["pass"])
         self.assertFalse(bad_routed["checks"]["warm_resume_ok"])
@@ -290,14 +357,31 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
             for host in ("claude", "codex", "antigravity"):
                 p = self.probe.DEFAULT_ROUTES[host]["planning"]
                 e = self.probe.DEFAULT_ROUTES[host]["execution"]
-                staged = self.probe.stage_host(
-                    host=host, mode="routed", out_dir=self.temp / "smoke-dry" / host,
+                staged_def = self.probe.stage_host(
+                    host=host, mode="routed", out_dir=self.temp / "smoke-dry" / f"{host}-default",
                     pkg_dir=pkg, product_dir=product_dir, home_fix_dir=home_fix_dir,
                     source="checkout", planning=(p["model"], p["effort"]), execution=(e["model"], e["effort"]),
-                    session_timeout=300, max_minutes=12,
+                    session_timeout=300, max_minutes=12, use_default_routing=True,
                 )
-                self.assertEqual(store.read_record(Path(staged["run_dir"]) / "state.md")["stage"], "system-test-author")
-                self.assertIn("--routing", staged["argv"])
+                self.assertEqual(store.read_record(Path(staged_def["run_dir"]) / "state.md")["stage"], "system-test-author")
+                self.assertNotIn("--routing", staged_def["argv"])
+                self.assertNotIn("--no-routing", staged_def["argv"])
+
+                staged_ov = self.probe.stage_host(
+                    host=host, mode="routed", out_dir=self.temp / "smoke-dry" / f"{host}-override",
+                    pkg_dir=pkg, product_dir=product_dir, home_fix_dir=home_fix_dir,
+                    source="checkout", planning=(p["model"], p["effort"]), execution=(e["model"], e["effort"]),
+                    session_timeout=300, max_minutes=12, use_default_routing=False,
+                )
+                self.assertIn("--routing", staged_ov["argv"])
+
+            staged_unr = self.probe.stage_host(
+                host="codex", mode="unrouted", out_dir=self.temp / "smoke-dry" / "codex-unrouted",
+                pkg_dir=pkg, product_dir=product_dir, home_fix_dir=home_fix_dir,
+                source="checkout", planning=("gpt-6.2-sol", "xhigh"), execution=("gpt-6.2-sol", "xhigh"),
+                session_timeout=300, max_minutes=12,
+            )
+            self.assertIn("--no-routing", staged_unr["argv"])
 
 
 if __name__ == "__main__":

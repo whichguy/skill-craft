@@ -1576,7 +1576,10 @@ def drive_main(argv: list[str] | None = None) -> int:
                         help="optional wall-clock ceiling for the whole drive; none unless given")
     parser.add_argument("--session-timeout", type=_positive_int, default=3600, help="seconds per host session")
     parser.add_argument("--cwd", help="directory to run the host in (default: the run's repository)")
-    parser.add_argument("--routing", help="optional JSON file or inline JSON mapping planning/execution profiles to models")
+    parser.add_argument("--routing",
+                        help="optional JSON file, inline JSON, or 'default' preset mapping planning/execution profiles to models")
+    parser.add_argument("--no-routing", action="store_true",
+                        help="disable built-in per-host default routing and inherit host/CLI flags after --")
     parser.add_argument("--planning-model", help="optional model for planning stages")
     parser.add_argument("--planning-effort", help="optional reasoning effort for planning stages")
     parser.add_argument("--planning-host", choices=(*HOSTS, "agy"), help="optional host override for planning stages")
@@ -1608,20 +1611,22 @@ def drive_main(argv: list[str] | None = None) -> int:
     )
     if args.routing and cli_routing is not None:
         parser.error("pass either --routing or --planning-*/--execution-* flags, not both")
+    if args.no_routing and (args.routing or cli_routing is not None):
+        parser.error("pass --no-routing without --routing or --planning-*/--execution-*/--review-*/--resume-mode")
     try:
-        routing = model_routing.load_config(args.routing) if args.routing else cli_routing
+        explicit_routing = model_routing.load_config(args.routing) if args.routing else cli_routing
     except (OSError, ValueError) as exc:
         parser.error(f"invalid routing configuration: {exc}")
     host = args.host
     if not host:
-        if routing and args.planning_host and args.execution_host:
+        if explicit_routing and args.planning_host and args.execution_host:
             host = args.planning_host
-        elif routing:
+        elif explicit_routing:
             # Allow omitting --host when both planning and execution resolve to explicit hosts.
-            p_res = model_routing.resolve(routing, "plan", "claude")
-            e_res = model_routing.resolve(routing, "implement", "claude")
-            p_bucket = routing.get("planning")
-            e_bucket = routing.get("execution")
+            p_res = model_routing.resolve(explicit_routing, "plan", "claude")
+            e_res = model_routing.resolve(explicit_routing, "implement", "claude")
+            p_bucket = explicit_routing.get("planning")
+            e_bucket = explicit_routing.get("execution")
             if (isinstance(p_bucket, Mapping) and p_bucket.get("host")
                     and isinstance(e_bucket, Mapping) and e_bucket.get("host")
                     and p_res is not None and e_res is not None):
@@ -1630,6 +1635,12 @@ def drive_main(argv: list[str] | None = None) -> int:
                 parser.error("--host is required unless routing specifies explicit hosts for both planning and execution")
         else:
             parser.error("--host is required")
+    if explicit_routing is not None:
+        routing = explicit_routing
+    elif args.no_routing or model_routing.extra_sets_model(extra):
+        routing = None
+    else:
+        routing = model_routing.default_routing(host)
     return drive(host, str(Path(args.run_dir).expanduser().resolve()),
                  max_minutes=args.max_minutes, session_timeout=args.session_timeout,
                  extra=extra, cwd=args.cwd, routing=routing)

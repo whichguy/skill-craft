@@ -238,23 +238,34 @@ ceiling by default: runs are meant to go on for a long time. It keeps one JSON l
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/drive/<run id>/`, never in
 the run directory.
 
-### Optional harness-to-model routing (`shiploop-drive`)
+### Harness-to-model routing (`shiploop-drive`)
 
-By default `shiploop-drive` runs every stage with the host and flags after `--`.
-To use different models or reasoning efforts for **planning** stages (`intake`..`prepare`,
-`step-plan`, `test-spec`, `reflect-and-revise`, `system-test-author`, `product-acceptance`,
-`release-plan`, `handoff`, and `improve`) versus **execution** stages (`validate-existing`,
-`implement`, `test`, `document`, `system-test`, `release-check`, `release`,
-`release-verify`, `operations`), pass either `--routing routing.json` or the
-shorthand `--planning-model` / `--planning-effort` / `--execution-model` /
+For `claude`, `codex`, and `antigravity`, `shiploop-drive` applies built-in per-host
+**planning** (`intake`..`prepare`, `step-plan`, `test-spec`, `reflect-and-revise`,
+`system-test-author`, `product-acceptance`, `release-plan`, `handoff`, `improve`) vs.
+**execution** (`validate-existing`, `implement`, `test`, `document`, `system-test`,
+`release-check`, `release`, `release-verify`, `operations`) defaults automatically unless
+you pass `--no-routing` or set `--model` / `-m` after `--`:
+
+| Host | Planning profile | Execution profile | Boundary behavior |
+|------|------------------|-------------------|-------------------|
+| `claude` | `claude-opus-5-5` (`high`) | `claude-sonnet-5-5` (`high`) | Pauses at profile change, warm-resumes `--resume` |
+| `codex` | `gpt-6.2-astra` (`high`) | `gpt-6.2-sol` (`xhigh`) | Pauses at profile change, warm-resumes `exec resume` |
+| `antigravity` | `gemini-pro-orchestrator-neon` | `gemini-pro-orchestrator-neon` | Single unbroken Orchestrator session (Neon plan ↔ Carbon execute) |
+
+To override the built-in defaults, pass `--routing routing.json` (or `--routing default`),
+or the shorthand `--planning-model` / `--planning-effort` / `--execution-model` /
 `--execution-effort` (plus optional `--review-*` for `improve` and `--*-host` for
-cross-harness runs):
+cross-harness runs). Pass `--no-routing` (or `-- --model ...` / `-m ...`) to inherit
+the host's unrouted CLI configuration instead:
 
 ```sh
-scripts/shiploop-drive --host antigravity --run-dir RUN --routing routing.json -- --dangerously-skip-permissions
+scripts/shiploop-drive --host claude --run-dir RUN -- --dangerously-skip-permissions
+scripts/shiploop-drive --host antigravity --run-dir RUN --routing default -- --dangerously-skip-permissions
+scripts/shiploop-drive --host codex --run-dir RUN --no-routing -- -m gpt-6.2-sol
 scripts/shiploop-drive --host codex --run-dir RUN \
   --planning-model gpt-6.2-astra --planning-effort high \
-  --execution-model gpt-6.2-sol --execution-effort low -- --dangerously-bypass-approvals-and-sandbox
+  --execution-model gpt-6.2-sol --execution-effort xhigh -- --dangerously-bypass-approvals-and-sandbox
 ```
 
 `routing.json` supports both a flat model spec (applies to whichever `--host` is active)
