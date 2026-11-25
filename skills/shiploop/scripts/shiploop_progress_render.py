@@ -136,6 +136,49 @@ def _supporting_copy(value: Any, reason: str, *, limit: int | None = None) -> st
     return _escape_html(_excerpt(text, limit) if limit is not None else text)
 
 
+def _compact_tokens(tokens: Any) -> str:
+    """Format a normalized token summary for story metadata, or empty when unmeasured."""
+    if not isinstance(tokens, Mapping):
+        return ""
+    total = tokens.get("total")
+    if not isinstance(total, int) or isinstance(total, bool) or total <= 0:
+        return ""
+    if total >= 1_000_000:
+        label = f"{total / 1_000_000:.2f}".rstrip("0").rstrip(".") + "M"
+    elif total >= 1_000:
+        label = f"{total / 1_000:.1f}".rstrip("0").rstrip(".") + "k"
+    else:
+        label = str(total)
+    details = [f"total: {total:,}"]
+    for key, name in (("input", "in"), ("cached_input", "cached"), ("cache_write", "cache write"),
+                      ("output", "out"), ("peak_context", "peak")):
+        val = tokens.get(key)
+        if isinstance(val, int) and not isinstance(val, bool) and val > 0:
+            details.append(f"{name}: {val:,}")
+    return '<span title="' + _escape_html(", ".join(details)) + '">' + _escape_html(label) + '</span>'
+
+
+def _visit_telemetry(row: Mapping[str, Any]) -> str:
+    paused = row.get("paused_seconds")
+    if isinstance(paused, (int, float)) and not isinstance(paused, bool) and paused > 0:
+        active = row.get("active_seconds") if row.get("active_seconds") is not None else row.get("duration_seconds")
+        timing = ("Active: " + _duration(active)
+                  + " (paused " + _duration(paused)
+                  + ("; wall " + _duration(row.get("wall_seconds")) if row.get("wall_seconds") is not None else "") + ")")
+    else:
+        timing = "Elapsed: " + _duration(row.get("duration_seconds"))
+    parts = [timing, "Basis: " + _escape_html(row.get("duration_basis"), "unknown")]
+    tok_html = _compact_tokens(row.get("tokens"))
+    if tok_html:
+        parts.append("Tokens: " + tok_html)
+    model = row.get("model")
+    if isinstance(model, str) and model:
+        effort = row.get("effort")
+        spec = f"{model}/{effort}" if isinstance(effort, str) and effort and not model.endswith(f"-{effort}") else model
+        parts.append("Model: " + _escape_html(spec))
+    return " · ".join(parts)
+
+
 def _duration(value: Any, unit: str = "s") -> str:
     """Readable elapsed time, with the exact recorded number retained in the label/tooltip."""
     if value is None:
@@ -967,9 +1010,8 @@ def _story(snapshot: Mapping[str, Any]) -> str:
                  + '" data-state-key="' + _escape_html(key) + '"><summary><span>'
                  + _escape_html(where) + '</span><strong>'
                  + _escape_html(row.get("status"), "unknown") + '</strong><small>'
-                 + _supporting_copy(row.get("summary") or "No summary recorded.", reason, limit=190) + '</small><small>Elapsed: '
-                 + _duration(row.get("duration_seconds")) + ' · Basis: '
-                 + _escape_html(row.get("duration_basis"), "unknown") + '</small></summary><div class="visit-body">'
+                 + _supporting_copy(row.get("summary") or "No summary recorded.", reason, limit=190) + '</small><small>'
+                 + _visit_telemetry(row) + '</small></summary><div class="visit-body">'
                  '<small>Action: ' + _escape_html(row.get("action"), "unknown")
                  + ' · Started: ' + _escape_html(row.get("started_at"), "unknown")
                  + ' · Ended: ' + _escape_html(row.get("ended_at"), "not recorded")

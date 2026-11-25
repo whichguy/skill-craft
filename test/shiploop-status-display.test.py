@@ -710,6 +710,37 @@ class DisplayStateAndStepProgressTests(StatusBlockTests):
         self.assertIn("TF1", ev_report)
         self.assertIn("amend-remaining", ev_report)
 
+    def test_status_block_includes_telemetry_when_requested_or_traced(self) -> None:
+        from unittest import mock
+
+        state = self.state()
+        clean = navigator.status_block(state)
+        self.assertNotIn("Telemetry:", clean)
+
+        root = (Path(self.temp.name) / "telemetry-status").resolve()
+        root.mkdir()
+        with mock.patch.object(navigator, "_utc_now", return_value="2026-01-01T10:00:00Z"):
+            navigator.save(root, state)
+        # Without trace.jsonl or include_telemetry, status_block(state, root) keeps legacy shape.
+        self.assertEqual(navigator.status_block(state, root), clean)
+        # With include_telemetry=True, active stage duration appears cleanly.
+        explicit = navigator.status_block(state, root, include_telemetry=True)
+        self.assertIn("Telemetry: stage active ", explicit)
+        # With trace.jsonl usage/model events, status_block(state, root) appends Telemetry line automatically.
+        import shiploop_trace as trace_mod
+        action_id = navigator.current_action(state)["id"]
+        self.assertTrue(trace_mod.record_model(str(root), "codex", "s1", model="gpt-5.4", effort="high", stage="intake"))
+        self.assertTrue(trace_mod.record_usage(
+            str(root), "codex", "s1",
+            usage={"input": 10000, "cached_input": 8000, "output": 2400, "total": 12400},
+            action=action_id, stage="intake", model="gpt-5.4", effort="high",
+        ))
+        traced = navigator.status_block(state, root)
+        tline = line(traced, "Telemetry")
+        self.assertIn("stage active ", tline)
+        self.assertIn("tokens 12.4k", tline)
+        self.assertIn("model gpt-5.4/high", tline)
+
 
 if __name__ == "__main__":
     unittest.main()

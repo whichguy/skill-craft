@@ -305,6 +305,13 @@ function bootTrace(TRACE) {
     return node;
   }
   const num = (n) => (n || 0).toLocaleString("en-US");
+  const compactTokens = (n) => {
+    if (n === null || n === undefined || !Number.isFinite(Number(n)) || Number(n) <= 0) return "";
+    const v = Number(n);
+    if (v >= 1000000) return (v / 1000000).toFixed(2).replace(/\.?0+$/, "") + "M";
+    if (v >= 1000) return (v / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return String(Math.round(v));
+  };
   const count = (n, noun) => num(n) + " " + noun + (n === 1 ? "" : "s");
   // Every time is shown in the viewer's own time zone; the data stays UTC.
   function toDate(stamp) {
@@ -385,6 +392,16 @@ function bootTrace(TRACE) {
       ["Refused", counts.refusals, "", counts.refusals > 0, true], ["Hook continuations", counts.continuations, "", false, true],
       ["Skill calls", counts.skills], ["Commands", counts.commands, "", false, true],
     ];
+    if (run.tokens && run.tokens.total) {
+      const subParts = [];
+      if (run.tokens.cached_input) subParts.push("cached " + compactTokens(run.tokens.cached_input));
+      if (run.tokens.output) subParts.push("out " + compactTokens(run.tokens.output));
+      if (run.tokens.peak_context) subParts.push("peak " + compactTokens(run.tokens.peak_context));
+      tiles.push(["Tokens", compactTokens(run.tokens.total), subParts.join(" · "), false, true]);
+    }
+    const spanText = runSpanLabel(run.status) + ": " + span(["done", "halted"].includes(run.status) && !run.last_event ? null : run.elapsed)
+      + (run.paused_seconds > 0 && run.active_seconds !== null && run.active_seconds !== undefined
+         ? " (active " + span(run.active_seconds) + ", paused " + span(run.paused_seconds) + ")" : "");
     return el("header", {},
       el("div", {class: "meta"}, "ShipLoop run trace"),
       el("h1", {}, run.goal || "ShipLoop run"),
@@ -392,7 +409,7 @@ function bootTrace(TRACE) {
         run.started ? el("span", {title: run.started}, "started " + when(run.started)) : null, el("span", {
           title: ["done", "halted"].includes(run.status)
             ? "Recorded start to last recorded event when available; not measured execution duration."
-            : "Wall-clock run age at capture; not measured execution duration."}, runSpanLabel(run.status) + ": " + span(["done", "halted"].includes(run.status) && !run.last_event ? null : run.elapsed)),
+            : "Wall-clock run age at capture; not measured execution duration."}, spanText),
         run.last_event ? el("span", {title: run.last_event}, "last event " + when(run.last_event)) : null,
         el("span", {title: TRACE.generated}, "page written " + when(TRACE.generated)), el("span", {}, "times in " + ZONE),
         watchable ? el("label", {}, el("input", {type: "checkbox", checked: ui.live, onchange: (e) => { ui.live = e.target.checked; save(); LIVE.on = ui.live; liveSchedule(); }}), " live updates (checks every 5 s, no reload)") : null),
@@ -418,7 +435,11 @@ function bootTrace(TRACE) {
         el("div", {}, now.purpose || ""),
         stopped ? el("div", {class: "tag red"}, run.status + ": " + (run.status_reason || "")) : null,
         el("div", {class: "meta"}, el("span", {class: "mono"}, now.action || ""),
-          now.since ? el("span", {}, "first packet " + clock(now.since)) : null,
+          now.started_at ? el("span", {title: now.started_at}, "entered " + clock(now.started_at))
+            : (now.since ? el("span", {}, "first packet " + clock(now.since)) : null),
+          now.paused_seconds ? el("span", {}, "paused " + span(now.paused_seconds)) : null,
+          now.tokens && now.tokens.total ? el("span", {}, compactTokens(now.tokens.total) + " tokens") : null,
+          now.model ? el("span", {}, now.model + (now.effort ? "/" + now.effort : "")) : null,
           now.packets ? el("span", {}, count(now.packets, "packet")) : null, now.refusals ? el("span", {}, now.refusals + " refused") : null),
         el("div", {class: "row-actions"},
           packetFile ? el("button", {class: "primary", onclick: () => openPacket(packetFile, "Current packet: " + where(now))}, "Open current packet") : null,
@@ -596,9 +617,21 @@ function bootTrace(TRACE) {
       body.push(el("button", {onclick: () => openPacket(ev.file, "Packet: " + where(ev), clock(ev.at) + " · " + num(ev.chars) + " chars")}, "view packet"));
       if (ev.head_file) body.push(" ", el("button", {onclick: () => openPacket(ev.head_file, "Printed head: " + where(ev))}, "view printed head"));
     } else if (ev.kind === "hook") {
-      body.push(ev.hook + " → ", el("span", {class: "tag " + (ev.decision === "continue" ? "violet" : "")}, ev.decision), " " + (ev.why || ""));
-      if (ev.host) body.push(el("span", {class: "tag"}, ev.host));
-      if (ev.text) body.push(el("pre", {}, ev.text));
+      if (ev.hook === "usage" && ev.usage) {
+        const u = ev.usage;
+        const parts = [];
+        if (u.total) parts.push("total " + compactTokens(u.total));
+        if (u.input) parts.push("in " + compactTokens(u.input));
+        if (u.cached_input) parts.push("cached " + compactTokens(u.cached_input));
+        if (u.output) parts.push("out " + compactTokens(u.output));
+        body.push("usage ", el("span", {class: "tag"}, parts.join(" · ") || "observed"));
+        if (ev.host) body.push(" ", el("span", {class: "tag"}, ev.host));
+        if (ev.model) body.push(" ", el("span", {class: "tag"}, ev.model + (ev.effort ? "/" + ev.effort : "")));
+      } else {
+        body.push(ev.hook + " → ", el("span", {class: "tag " + (ev.decision === "continue" ? "violet" : "")}, ev.decision), " " + (ev.why || ""));
+        if (ev.host) body.push(el("span", {class: "tag"}, ev.host));
+        if (ev.text) body.push(el("pre", {}, ev.text));
+      }
     } else if (ev.kind === "skill") {
       body.push(ev.gate ? "gate " + ev.gate + ": " + (ev.why || "") : el("span", {class: "mono"}, ev.skill), ev.args ? " “" + ev.args + "”" : "");
     } else if (ev.kind === "accepted") {
@@ -654,7 +687,7 @@ function bootTrace(TRACE) {
       const step = steps.get(group.action);
       const packet = group.events.find((e) => e.kind === "packet");
       const refused = group.events.filter(isRefusal).length;
-      const hooks = group.events.filter((e) => e.kind === "hook").length;
+      const hooks = group.events.filter((e) => e.kind === "hook" && !["model", "usage"].includes(e.hook)).length;
       const packets = group.events.filter((e) => e.kind === "packet").length;
       const isNow = group.action === nowAction;
       let title, n, headline = "";
@@ -667,7 +700,14 @@ function bootTrace(TRACE) {
       if (step) tags.push(el("span", {class: "tag " + (step.outcome === "done" ? "green" : "amber")}, step.outcome));
       if (isNow) tags.push(el("span", {class: "tag amber"}, "current"));
       if (step && step.improve) tags.push(el("span", {class: "tag violet"}, "Improve reviewed"));
-      if (step && step.seconds !== null && step.seconds !== undefined) tags.push(el("span", {class: "tag"}, span(step.seconds)));
+      if (step && step.seconds !== null && step.seconds !== undefined) {
+        const title = [step.duration_basis ? "basis: " + step.duration_basis : "",
+          step.wall_seconds !== null && step.wall_seconds !== undefined ? "wall: " + span(step.wall_seconds) : "",
+          step.paused_seconds ? "paused: " + span(step.paused_seconds) : ""].filter(Boolean).join(" · ");
+        tags.push(el("span", {class: "tag", title: title || null}, span(step.seconds)));
+      }
+      if (step && step.tokens && step.tokens.total) tags.push(el("span", {class: "tag", title: "Attributed stage tokens"}, compactTokens(step.tokens.total) + " tok"));
+      if (step && step.model) tags.push(el("span", {class: "tag"}, step.model + (step.effort ? "/" + step.effort : "")));
       if (packets) tags.push(el("span", {class: "tag"}, packets + " packet" + (packets > 1 ? "s" : "")));
       if (refused) tags.push(el("span", {class: "tag red"}, refused + " refused"));
       if (hooks) tags.push(el("span", {class: "tag violet"}, hooks + " hook"));

@@ -1229,5 +1229,109 @@ setImmediate(() => { gc(); assert.equal(weak.deref(), undefined, 'the replaced m
 """, gc=True)
 
 
+class StageLifecycleAndUsageTelemetryTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name).resolve()
+
+    def test_stage_entry_pause_active_duration_and_no_packet_stage_attribution(self) -> None:
+        import shiploop_navigator as nav
+        import shiploop_story as story_mod
+        from unittest import mock
+
+        repo = self.base / "repo"
+        repo.mkdir()
+        run_dir = self.base / "run"
+        run_dir.mkdir()
+        state = nav.new_state(str(repo), "Stage timing fixture.", improve_skill="")
+        first = nav.current_action(state)["id"]
+        with mock.patch.object(nav, "_utc_now", return_value="2026-01-01T10:00:00Z"):
+            nav.save(run_dir, state)
+        paused = nav.control(state, "pause", "Owner pause")
+        with mock.patch.object(nav, "_utc_now", return_value="2026-01-01T10:01:00Z"):
+            nav.save(run_dir, paused)
+        resumed = nav.control(paused, "resume", "")
+        with mock.patch.object(nav, "_utc_now", return_value="2026-01-01T10:03:00Z"):
+            nav.save(run_dir, resumed)
+        # Advance without writing any packet event (models validate-existing no-packet transition).
+        accepted = nav.apply(resumed, first, {"outcome": "done", "summary": "Completed without packet"})
+        second = nav.current_action(accepted)["id"]
+        with mock.patch.object(nav, "_utc_now", return_value="2026-01-01T10:05:00Z"):
+            nav.save(run_dir, accepted)
+
+        tl = nav.load_timeline(run_dir)
+        self.assertEqual(tl["entered"][first], "2026-01-01T10:00:00Z")
+        self.assertEqual(tl["entered"][second], "2026-01-01T10:05:00Z")
+        self.assertAlmostEqual(tl["paused_seconds"][first], 120.0)
+        self.assertNotIn("paused_since", tl)
+
+        trace.record(str(run_dir), "hook", hook="model", host="codex", session="s1",
+                     model="gpt-5.4", effort="high", stage="intake", action=first)
+        trace.record_usage(str(run_dir), "codex", "s1",
+                           usage={"input": 5000, "cached_input": 4000, "output": 1000, "total": 6000, "context_tokens": 3000},
+                           action=first, stage="intake", model="gpt-5.4", effort="high")
+        # Next snapshot in same session increases totals cleanly via monotonic delta.
+        trace.record_usage(str(run_dir), "codex", "s1",
+                           usage={"input": 8000, "cached_input": 6000, "output": 1500, "total": 9500, "context_tokens": 4100},
+                           action=second, stage="discovery", model="gpt-5.4", effort="high")
+
+        model = trace.build(run_dir, now=1767262200.0)
+        step = model["steps"][0]
+        self.assertEqual(step["duration_basis"], "recorded_entry")
+        self.assertEqual(step["wall_seconds"], 300.0)
+        self.assertEqual(step["paused_seconds"], 120.0)
+        self.assertEqual(step["active_seconds"], 180.0)
+        self.assertEqual(step["seconds"], 180)
+        self.assertEqual(step["tokens"]["total"], 6000)
+        self.assertEqual(step["model"], "gpt-5.4")
+        self.assertEqual(step["effort"], "high")
+        self.assertEqual(model["now"]["tokens"]["total"], 3500)
+        self.assertEqual(model["run"]["tokens"]["total"], 9500)
+        self.assertEqual(model["run"]["tokens"]["peak_context"], 4100)
+        self.assertEqual(model["counts"]["continuations"], 0)
+        self.assertEqual(step["hooks"], 0)
+
+        story, _ = story_mod.build(run_dir, accepted, tl, observed_at="2026-01-01T10:06:00Z")
+        v0 = story["visits"][0]
+        self.assertEqual(v0["duration_basis"], "recorded entry to accept")
+        self.assertEqual(v0["paused_seconds"], 120.0)
+        self.assertEqual(v0["active_seconds"], 180.0)
+        self.assertEqual(v0["tokens"]["total"], 6000)
+
+        text_digest = trace.digest(model, now=1767262200.0)
+        self.assertIn("Tokens:   total 9,500", text_digest)
+        self.assertIn("6,000 tok", text_digest)
+        html_path = trace.write_html(run_dir, now=1767262200.0)
+        html_text = html_path.read_text(encoding="utf-8")
+        self.assertIn("9500", html_text)
+        self.assertIn("recorded_entry", html_text)
+
+    def test_legacy_two_key_timeline_still_builds_without_usage_or_entered(self) -> None:
+        import shiploop_navigator as nav
+
+        repo = self.base / "legacy-repo"
+        repo.mkdir()
+        run_dir = self.base / "legacy-run"
+        run_dir.mkdir()
+        state = nav.new_state(str(repo), "Legacy timeline fixture.", improve_skill="")
+        first = nav.current_action(state)["id"]
+        accepted = nav.apply(state, first, {"outcome": "done", "summary": "Legacy accepted"})
+        (run_dir / "state.md").write_text(
+            nav.store.dumps(accepted, "ShipLoop navigator state"),
+            encoding="utf-8",
+        )
+        (run_dir / "timeline.json").write_text(json.dumps({
+            "started": "2026-01-01T10:00:00Z",
+            "accepted": {first: "2026-01-01T10:02:00Z"},
+        }), encoding="utf-8")
+
+        model = trace.build(run_dir, now=1767261780.0)
+        self.assertEqual(model["steps"][0]["seconds"], 120)
+        self.assertEqual(model["steps"][0]["duration_basis"], "accept_delta")
+        self.assertIsNone(model["steps"][0]["tokens"])
+        self.assertIsNone(model["run"]["tokens"])
+
+
 if __name__ == "__main__":
     unittest.main()

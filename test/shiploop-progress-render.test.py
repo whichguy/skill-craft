@@ -1124,6 +1124,27 @@ q.schedule(); assert(!q.scheduled());
         self.assertIn("Not-exercisable mutants: src/server.js:18:3 (open)", page)
         self.assertIn("test Proof re-checks: 1", page)
 
+    def test_visit_telemetry_renders_active_paused_tokens_and_model(self) -> None:
+        data = story_snapshot()
+        data["story"]["visits"][0].update({
+            "duration_seconds": 120,
+            "active_seconds": 120,
+            "paused_seconds": 45,
+            "wall_seconds": 165,
+            "duration_basis": "recorded entry to accept",
+            "tokens": {"total": 24500, "input": 20000, "cached_input": 15000, "output": 4500},
+            "model": "gpt-5.4<script>",
+            "effort": "high",
+        })
+        page = progress_render.render(data)
+        self.assertIn("Active:", page)
+        self.assertIn("paused ", page)
+        self.assertIn("wall ", page)
+        self.assertIn("Tokens: <span", page)
+        self.assertIn(">24.5k</span>", page)
+        self.assertIn("Model: gpt-5.4&lt;script&gt;/high", page)
+        self.assertNotIn("gpt-5.4<script>", page)
+
 
 if __name__ == "__main__":
     unittest.main()

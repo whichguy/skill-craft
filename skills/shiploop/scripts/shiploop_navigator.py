@@ -6438,7 +6438,131 @@ def status_line(state: Mapping[str, Any]) -> str:
     return f"Where: {_status_where(state)} · {label}: {text} · Goal: {goal}"
 
 
-def status_block(state: Mapping[str, Any], root: Path | None = None) -> str:
+def _parse_utc(stamp: Any) -> datetime | None:
+    """Parse a timezone-bearing ISO-8601 UTC timestamp, returning None if invalid."""
+    if not isinstance(stamp, str) or not stamp:
+        return None
+    try:
+        parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo is not None else None
+    except ValueError:
+        return None
+
+
+def _active_action_id(state: Mapping[str, Any]) -> str | None:
+    """Action id of the currently running stage or bound Improve child, or None when terminal."""
+    if state.get("status") in ("done", "halted"):
+        return None
+    child = state.get("active_improve")
+    if isinstance(child, Mapping):
+        improve_action = child.get("improve_action")
+        if isinstance(improve_action, str) and improve_action:
+            return improve_action
+    try:
+        _, action, _ = _active_cursor(state)
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    action_id = action.get("id") if isinstance(action, Mapping) else None
+    return action_id if isinstance(action_id, str) and action_id else None
+
+
+def _format_compact_duration(seconds: float | None) -> str:
+    if seconds is None or seconds < 0:
+        return "?"
+    total = int(round(seconds))
+    if total < 60:
+        return f"{total}s"
+    if total < 3600:
+        return f"{total // 60}m{total % 60:02d}s"
+    return f"{total // 3600}h{(total % 3600) // 60:02d}m"
+
+
+def _format_compact_count(count: int | float | None) -> str:
+    if count is None or isinstance(count, bool) or count < 0:
+        return "?"
+    value = float(count)
+    if value >= 1_000_000:
+        return f"{value / 1_000_000:.2f}".rstrip("0").rstrip(".") + "M"
+    if value >= 1_000:
+        return f"{value / 1_000:.1f}k"
+    return str(int(round(value)))
+
+
+def _telemetry_status_line(
+    state: Mapping[str, Any],
+    root: Path,
+    *,
+    timeline: Mapping[str, Any] | None = None,
+) -> str | None:
+    """One concise status line summarizing active/paused stage time, tokens, and model when observed."""
+    tl = timeline if isinstance(timeline, Mapping) else load_timeline(root)
+    now_dt = datetime.now(timezone.utc)
+    parts: list[str] = []
+    active_id = _active_action_id(state)
+    entered_map = tl.get("entered") if isinstance(tl.get("entered"), Mapping) else {}
+    paused_map = tl.get("paused_seconds") if isinstance(tl.get("paused_seconds"), Mapping) else {}
+    paused_since_dt = _parse_utc(tl.get("paused_since"))
+    paused_action = tl.get("paused_action")
+
+    if active_id:
+        entered_dt = _parse_utc(entered_map.get(active_id)) or _parse_utc(tl.get("started"))
+        paused_sec = 0.0
+        raw_paused = paused_map.get(active_id)
+        if isinstance(raw_paused, (int, float)) and not isinstance(raw_paused, bool) and raw_paused > 0:
+            paused_sec = float(raw_paused)
+        if paused_since_dt is not None and (paused_action is None or paused_action == active_id):
+            paused_sec += max(0.0, (now_dt - paused_since_dt).total_seconds())
+        if entered_dt is not None:
+            wall_sec = max(0.0, (now_dt - entered_dt).total_seconds())
+            active_sec = max(0.0, wall_sec - paused_sec)
+            text = f"stage active {_format_compact_duration(active_sec)}"
+            if paused_sec >= 1.0:
+                text += f" (paused {_format_compact_duration(paused_sec)})"
+            parts.append(text)
+    elif state.get("status") in ("done", "halted"):
+        started_dt = _parse_utc(tl.get("started"))
+        accepted_map = tl.get("accepted") if isinstance(tl.get("accepted"), Mapping) else {}
+        accepted_dts = [dt for stamp in accepted_map.values() for dt in [_parse_utc(stamp)] if dt is not None]
+        if started_dt is not None and accepted_dts:
+            total_wall = max(0.0, (max(accepted_dts) - started_dt).total_seconds())
+            total_paused = sum(
+                float(v) for v in paused_map.values()
+                if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+            )
+            parts.append(f"run active {_format_compact_duration(max(0.0, total_wall - total_paused))}")
+
+    try:
+        summary = trace.telemetry_summary(root, state, timeline=tl)
+    except Exception:  # noqa: BLE001 - trace projection must never break status rendering
+        summary = None
+    if isinstance(summary, Mapping):
+        run_tokens = summary.get("run_tokens")
+        stage_tokens = (summary.get("by_action_tokens") or {}).get(active_id) if active_id else None
+        if isinstance(run_tokens, Mapping) and isinstance(run_tokens.get("total"), int) and run_tokens["total"] > 0:
+            tok_text = f"tokens {_format_compact_count(run_tokens['total'])}"
+            if (isinstance(stage_tokens, Mapping) and isinstance(stage_tokens.get("total"), int)
+                    and stage_tokens["total"] > 0 and stage_tokens["total"] != run_tokens["total"]):
+                tok_text += f" (stage {_format_compact_count(stage_tokens['total'])})"
+            parts.append(tok_text)
+        model_info = (summary.get("by_action_model") or {}).get(active_id) if active_id else None
+        if isinstance(model_info, Mapping) and isinstance(model_info.get("model"), str) and model_info["model"]:
+            model_text = _status_text(model_info["model"], 48)
+            effort = model_info.get("effort")
+            if isinstance(effort, str) and effort and not model_text.endswith(f"-{effort}"):
+                model_text = f"{model_text}/{_status_text(effort, 16)}"
+            parts.append(f"model {model_text}")
+    if not parts:
+        return None
+    return "Telemetry: " + " · ".join(parts)
+
+
+def status_block(
+    state: Mapping[str, Any],
+    root: Path | None = None,
+    *,
+    timeline: Mapping[str, Any] | None = None,
+    include_telemetry: bool = False,
+) -> str:
     """Render the fixed user-facing status block from saved state (and bounded run files when ``root`` is given).
 
     Host-written titles, summaries and reasons are cleaned and capped; the block
@@ -6530,6 +6654,10 @@ def status_block(state: Mapping[str, Any], root: Path | None = None) -> str:
         lines.extend(planning_status.status_lines(obs))
     testing_obs = testing_status.testing_observability(root, state)
     lines.extend(testing_status.status_lines(testing_obs))
+    if root is not None and (include_telemetry or (Path(root) / trace.TRACE_FILE).is_file()):
+        telemetry_line = _telemetry_status_line(state, Path(root), timeline=timeline)
+        if telemetry_line:
+            lines.append(telemetry_line)
     lines.append(STATUS_END)
     return "\n".join(lines)
 
@@ -9956,14 +10084,31 @@ def load_timeline(root: Path) -> dict[str, Any]:
     if not (isinstance(value, dict) and isinstance(value.get("started"), str)
             and isinstance(value.get("accepted"), dict)):
         return {}
-    return value
+    result: dict[str, Any] = {"started": value["started"], "accepted": value["accepted"]}
+    if isinstance(value.get("entered"), dict):
+        entered = {k: v for k, v in value["entered"].items() if isinstance(k, str) and isinstance(v, str)}
+        if entered:
+            result["entered"] = entered
+    if isinstance(value.get("paused_since"), str):
+        result["paused_since"] = value["paused_since"]
+    if isinstance(value.get("paused_action"), str):
+        result["paused_action"] = value["paused_action"]
+    if isinstance(value.get("paused_seconds"), dict):
+        paused_seconds = {
+            k: round(float(v), 1)
+            for k, v in value["paused_seconds"].items()
+            if isinstance(k, str) and isinstance(v, (int, float)) and not isinstance(v, bool) and v >= 0
+        }
+        if paused_seconds:
+            result["paused_seconds"] = paused_seconds
+    return result
 
 
 def _updated_timeline(root: Path, state: Mapping[str, Any]) -> dict[str, Any]:
-    """Stamp every newly accepted step with the current time.
+    """Stamp every newly accepted step and active stage entry/pause intervals.
 
     The timeline is derived display data like status.md, not workflow state:
-    the pace line reads it, and nothing validates or resumes from it.
+    the pace and telemetry displays read it, and nothing validates or resumes from it.
     """
     now = _utc_now()
     timeline = load_timeline(root) or {"started": now, "accepted": {}}
@@ -9972,7 +10117,53 @@ def _updated_timeline(root: Path, state: Mapping[str, Any]) -> dict[str, Any]:
                 if action in history_ids and isinstance(stamp, str)}
     for action in history_ids:
         accepted.setdefault(action, now)
-    return {"started": timeline["started"], "accepted": accepted}
+
+    raw_entered = timeline.get("entered") if isinstance(timeline.get("entered"), Mapping) else {}
+    # Preserve all previously recorded entry timestamps (including Improve child and send-back actions).
+    entered = {action: stamp for action, stamp in raw_entered.items()
+               if isinstance(action, str) and isinstance(stamp, str)}
+    active_id = _active_action_id(state)
+    if active_id:
+        entered.setdefault(active_id, now)
+
+    raw_paused = timeline.get("paused_seconds") if isinstance(timeline.get("paused_seconds"), Mapping) else {}
+    paused_seconds: dict[str, float] = {
+        action: round(float(secs), 1)
+        for action, secs in raw_paused.items()
+        if isinstance(action, str) and isinstance(secs, (int, float)) and not isinstance(secs, bool) and secs > 0
+    }
+    paused_since = timeline.get("paused_since") if isinstance(timeline.get("paused_since"), str) else None
+    paused_action = timeline.get("paused_action") if isinstance(timeline.get("paused_action"), str) else None
+    is_paused = state.get("status") in ("paused", "blocked")
+
+    now_dt = _parse_utc(now)
+    since_dt = _parse_utc(paused_since) if paused_since else None
+    if since_dt is not None and now_dt is not None and (not is_paused or (paused_action and active_id != paused_action)):
+        target_action = paused_action or active_id
+        delta = max(0.0, (now_dt - since_dt).total_seconds())
+        if target_action and delta > 0:
+            paused_seconds[target_action] = round(paused_seconds.get(target_action, 0.0) + delta, 1)
+        paused_since = None
+        paused_action = None
+
+    if is_paused and active_id:
+        if paused_since is None:
+            paused_since = now
+            paused_action = active_id
+    elif not is_paused:
+        paused_since = None
+        paused_action = None
+
+    updated: dict[str, Any] = {"started": timeline["started"], "accepted": accepted}
+    if entered:
+        updated["entered"] = entered
+    if paused_since is not None:
+        updated["paused_since"] = paused_since
+        if paused_action is not None:
+            updated["paused_action"] = paused_action
+    if paused_seconds:
+        updated["paused_seconds"] = paused_seconds
+    return updated
 
 
 def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] | None = None) -> None:
@@ -10000,7 +10191,7 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     timeline = _updated_timeline(root, state)
     writes[TIMELINE_FILE] = json.dumps(timeline, indent=2, sort_keys=True) + "\n"
     # Derived display copy of the status block; refreshed only by transitions.
-    writes["status.md"] = "```text\n" + status_block(state, root) + "\n```\n"
+    writes["status.md"] = "```text\n" + status_block(state, root, timeline=timeline) + "\n```\n"
     # Derived index of everything the run has accepted, for every stage to read.
     writes[context_index.INDEX_FILE] = context_index.render(state, root, current_stage(state))
     # Derived run reference: the run-wide detail packets name by section (shiploop_reference).
@@ -11191,7 +11382,10 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
         print(render(core, root, state) + HEAD_END + "\n", end="")
         return 0
     if command == "status":
-        print(status_block(state, root))
+        tl = load_timeline(root)
+        show_telemetry = ((root / trace.TRACE_FILE).is_file()
+                          or bool(tl.get("paused_seconds")) or bool(tl.get("paused_since")))
+        print(status_block(state, root, timeline=tl or None, include_telemetry=show_telemetry))
         return 0
     if command == "report":
         print(_render_report(state, root), end="")
