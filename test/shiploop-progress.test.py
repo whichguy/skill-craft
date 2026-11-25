@@ -13,10 +13,12 @@ from pathlib import Path
 import re
 import select
 import shlex
+import shutil
 import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest import mock
@@ -1049,6 +1051,420 @@ class ObservationGenerationTests(unittest.TestCase):
             self.assertFalse(registry.register_run(self.root, self.state))
             self.assertIsNone(registry.active_viewer())
             self.assertEqual(registry.prune_registry(), [])
+
+
+class HubModelAndServerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-hub-model-")
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name).resolve()
+        self.state_home = self.base / "state-home"
+        env_patch = mock.patch.dict(os.environ, {
+            "SHIPLOOP_STATE_HOME": str(self.state_home),
+            "XDG_STATE_HOME": str(self.state_home),
+            "SHIPLOOP_KEEPALIVE_HOME": str(self.state_home / "keepalive"),
+        })
+        env_patch.start()
+        self.addCleanup(env_patch.stop)
+        self.repo = self.base / "demo-repo"
+        self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
+
+    def _make_run(self, name: str, prompt: str, *, run_id: str | None = None, improve_skill: str = "") -> tuple[Path, dict]:
+        rdir = self.base / name
+        rdir.mkdir(parents=True, exist_ok=True)
+        (rdir / ".lock").touch()
+        st = navigator.new_state(str(self.repo), prompt, improve_skill=improve_skill)
+        if run_id:
+            st["run_id"] = run_id
+        navigator.save(rdir, st)
+        return rdir, st
+
+    def _start_hub(self):
+        server = viewer.bind_hub(port=0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        return server, server.server_address[1]
+
+    def _http(self, port: int, path: str, *, method: str = "GET", host: str | None = None):
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        try:
+            conn.request(method, path, headers={"Host": host or f"127.0.0.1:{port}"})
+            resp = conn.getresponse()
+            return resp.status, dict(resp.getheaders()), resp.read()
+        finally:
+            conn.close()
+
+    def test_registry_captures_model_effort_and_uses_state_cache(self):
+        import shiploop_registry as registry
+        rdir, st = self._make_run("r-cache", "Add billing webhook handler", run_id="run-cache-1")
+        bindings = self.state_home / "keepalive" / "bindings"
+        bindings.mkdir(parents=True)
+        (bindings / "b1.json").write_text(json.dumps({
+            "run_dir": str(rdir),
+            "host": "claude",
+            "observed_model": "claude-opus-4-5",
+            "observed_effort": "high",
+            "updated_at": "2026-11-25T10:00:00Z",
+        }))
+        registry.register_run(rdir, st, host="claude")
+        state_cache: dict = {}
+        first = registry.discover_runs(state_cache=state_cache)
+        self.assertEqual(len(first), 1)
+        self.assertEqual(first[0]["model"], "claude-opus-4-5")
+        self.assertEqual(first[0]["effort"], "high")
+        self.assertIn(str(rdir), state_cache)
+
+        with mock.patch.object(registry.store, "loads", side_effect=AssertionError("should use state_cache")):
+            second = registry.discover_runs(state_cache=state_cache)
+        self.assertEqual(second[0]["run_id"], "run-cache-1")
+
+        aid = navigator.current_action(st)["id"]
+        st2 = navigator.apply(st, aid, {"outcome": "done", "summary": "Scoped webhook handler."})
+        navigator.save(rdir, st2)
+        os.utime(rdir / "state.md", ns=(os.stat(rdir / "state.md").st_mtime_ns + 5_000_000,) * 2)
+        third = registry.discover_runs(state_cache=state_cache)
+        self.assertEqual(third[0]["state"]["revision"], st2["revision"])
+
+    def test_default_cwd_roots_disabled_when_isolated(self):
+        import shiploop_registry as registry
+        self.assertEqual(registry.default_cwd_roots(), ())
+
+    def test_build_run_detail_captures_transitions_commits_gates_notes_and_artifacts(self):
+        import shiploop_hub_model as hub_model
+        import shiploop_observation_io as obs_io
+        import shiploop_trace as trace
+
+        rdir, st = self._make_run(
+            "r-rich",
+            "Implement webhook signing. Add verification tests.",
+            run_id="run-rich-1",
+            improve_skill="improve",
+        )
+        a_intake = navigator.current_action(st)["id"]
+        trace.record(rdir, "packet", action=a_intake, stage="intake", item=None, rev=st["revision"],
+                     chars=20, printed=20, whole=True)
+        trace.record_model(str(rdir), "codex", "sess1", model="gpt-5.4", effort="xhigh", stage="intake")
+        st = navigator.apply(st, a_intake, {
+            "outcome": "done",
+            "headline": "Mapped webhook signing request",
+            "summary": "S1: webhook signing. S2: verification tests.",
+            "evidence_refs": ["S1"],
+        })
+
+        (rdir / "owner-notes").mkdir(exist_ok=True)
+        (rdir / "owner-notes" / "N1.md").write_text("Reuse stdlib hmac; no extra dependency.\n")
+        a_disc = navigator.current_action(st)["id"]
+        trace.record(rdir, "packet", action=a_disc, stage="discovery", item=None, rev=st["revision"],
+                     chars=20, printed=20, whole=True)
+        trace.record(rdir, "command", verb="complete", action=a_disc, exit=2, error="Missing notes row for N1")
+        st = navigator.apply(st, a_disc, {
+            "outcome": "done",
+            "headline": "Found existing webhook module",
+            "summary": "Located webhook router in src/hooks.py.",
+            "notes": [{"note": "N1", "did": "applied", "detail": "Recorded stdlib hmac constraint."}],
+        })
+
+        a_res = navigator.current_action(st)["id"]
+        st = navigator.apply(st, a_res, {"outcome": "done", "summary": "Researched webhook patterns."})
+        a_spec = navigator.current_action(st)["id"]
+        st = navigator.apply(st, a_spec, {
+            "outcome": "done",
+            "headline": "Defined webhook signing spec",
+            "summary": "Specifying HMAC-SHA256 verification.",
+            "defaults": [],
+        })
+        st = navigator.finish_improve(st, a_spec, {
+            "summary": "Reviewed spec.",
+            "review_refs": ["ok"],
+            "check_refs": ["ok"],
+            "lessons": "Verified HMAC timing-safe compare.",
+        })
+        (rdir / "commits").mkdir(exist_ok=True)
+        (rdir / "commits" / f"{a_spec}.txt").write_text("abc1234deadbeef\n")
+        (rdir / "tests").mkdir(exist_ok=True)
+        (rdir / "tests" / f"{a_spec}-verify1.md").write_text(store.dumps({
+            "schema": "shiploop-test-run-1",
+            "kind": "verify",
+            "action": a_spec,
+            "stage": "spec",
+            "passed": True,
+            "reused": False,
+            "runs": [{"command": "pytest", "count": 12, "status": "passed"}],
+        }, "Test run"))
+        (rdir / "checks").mkdir(exist_ok=True)
+        (rdir / "checks" / f"{a_spec}.md").write_text(store.dumps({
+            "schema": "shiploop-check-answer-1",
+            "action": a_spec,
+            "stage": "spec",
+            "answer": "yes",
+            "gate_lines": ["tests: pytest 12 passed"],
+        }, "Check answer"))
+        (rdir / "improve" / a_spec).mkdir(parents=True, exist_ok=True)
+        (rdir / "improve" / a_spec / "receipt.md").write_text(store.dumps({
+            "passes": 2,
+            "runtime_phase": "done",
+            "lessons": "Verified HMAC timing-safe compare.",
+        }, "Improve receipt"))
+
+        a_cur = navigator.current_action(st)["id"]
+        (rdir / "notes").mkdir(exist_ok=True)
+        (rdir / "notes" / f"{a_cur}.md").write_text("Pass 1: inspecting routes\nPass 2: checking tests\n")
+        (rdir / "loops").mkdir(exist_ok=True)
+        (rdir / "loops" / f"{a_cur}-terminal.json").write_text(json.dumps({
+            "status": "running",
+            "progress": {"action_number": 2},
+            "last_report": {"exit_assessment": "continue", "handoff": "Checking auth middleware next."},
+        }))
+        (rdir / "checks" / f"{a_cur}.md").write_text(store.dumps({
+            "schema": "shiploop-check-answer-1",
+            "action": a_cur,
+            "stage": "test-strategy",
+            "answer": "yes",
+            "created_at": "2026-11-25T11:00:00Z",
+            "gate_lines": ["lint: 0 issues (ok)"],
+        }, "Check answer"))
+        navigator.save(rdir, st)
+
+        detail = hub_model.build_run_detail(rdir)
+        self.assertEqual(detail["schema"], hub_model.SCHEMA)
+        self.assertEqual(detail["run"]["model"], "gpt-5.4")
+        self.assertEqual(detail["run"]["effort"], "xhigh")
+        self.assertEqual(detail["live_now"]["loop"]["iteration"], 2)
+        self.assertIn("Checking auth middleware", detail["live_now"]["loop"]["handoff"])
+        self.assertTrue(detail["live_now"]["last_check"]["yes"])
+        self.assertIn("Pass 2: checking tests", detail["live_now"]["pass_log"]["tail"])
+
+        cards = detail["story_cards"]
+        self.assertEqual(len(cards), 5)
+        c_disc = cards[1]
+        self.assertEqual(c_disc["headline"], "Found existing webhook module")
+        self.assertEqual(c_disc["owner_notes_handled"][0]["did"], "applied")
+        self.assertIn("1 refused callback", c_disc["transition_note"]["text"])
+        c_spec = cards[3]
+        self.assertEqual(c_spec["commit_sha"], "abc1234deadbeef")
+        self.assertEqual(c_spec["improve"]["passes"], 2)
+        self.assertIn("timing-safe", c_spec["improve"]["lessons"])
+        self.assertEqual(cards[0]["model_label"], "codex:gpt-5.4/xhigh")
+        self.assertTrue(any(g["kind"] == "verify" and g["passed"] for g in c_spec["gates"]))
+
+        art = hub_model.read_run_artifact(rdir, st, "run", f"notes/{a_cur}.md")
+        self.assertIn("Pass 2: checking tests", art["content"])
+        (rdir / "notes" / "secret.md").write_text("OPENAI_API_KEY=sk-1234567890abcdefghijklmnop\n")
+        redacted = hub_model.read_run_artifact(rdir, st, "run", "notes/secret.md")
+        self.assertTrue(redacted["withheld"])
+        self.assertNotIn("sk-1234567890", redacted["content"])
+        with self.assertRaises(PermissionError):
+            hub_model.read_run_artifact(rdir, st, "run", "state.md")
+        with self.assertRaises(ValueError):
+            hub_model.read_run_artifact(rdir, st, "run", "../etc/passwd")
+        link = rdir / "notes" / "sym.md"
+        link.symlink_to(rdir / "state.md")
+        with self.assertRaises((OSError, obs_io._UnsafeSource, ValueError)):
+            hub_model.read_run_artifact(rdir, st, "run", "notes/sym.md")
+
+    def test_hub_transition_notes_repo_artifacts_and_token_stats(self):
+        import shiploop_hub_model as hub_model
+        import shiploop_observation_io as obs_io
+
+        sb = hub_model._transition_note(
+            {"stage": "test", "outcome": "send-back", "workitem": "W1"},
+            {"summary": "Flaky assertion on timeout."},
+            None,
+            is_last_history=True,
+            current_stage="implement",
+            current_status="active",
+            refusals=0,
+            decision_answer=None,
+        )
+        self.assertEqual(sb["kind"], "send-back")
+        self.assertIn("Sent back", sb["text"])
+        self.assertIn("Flaky assertion", sb["text"])
+
+        aw = hub_model._transition_note(
+            {"stage": "reflect-and-revise", "outcome": "add-work"},
+            {"work_items": [{"id": "W3"}, {"id": "W4"}]},
+            None,
+            is_last_history=True,
+            current_stage="implement",
+            current_status="active",
+            refusals=0,
+            decision_answer=None,
+        )
+        self.assertEqual(aw["kind"], "add-work")
+        self.assertIn("W3, W4", aw["text"])
+
+        rp = hub_model._transition_note(
+            {"stage": "test", "outcome": "done"},
+            {"replan_remaining": {"affects": ["W2"], "reason": "Split schema migration"}},
+            None,
+            is_last_history=False,
+            current_stage="test",
+            current_status="active",
+            refusals=0,
+            decision_answer=None,
+        )
+        self.assertEqual(rp["kind"], "replan")
+        self.assertIn("W2", rp["text"])
+
+        bl = hub_model._transition_note(
+            {"stage": "spec", "outcome": "blocked"},
+            {"summary": "Need API quota tier."},
+            None,
+            is_last_history=True,
+            current_stage="spec",
+            current_status="blocked",
+            refusals=0,
+            decision_answer="Use standard tier.",
+        )
+        self.assertEqual(bl["kind"], "blocked")
+        self.assertIn("Use standard tier.", bl["text"])
+
+        rdir, st = self._make_run("r-repo-art", "Verify repo artifacts and token telemetry", run_id="run-repo-art")
+        (self.repo / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (self.repo / "docs" / "shiploop" / "spec.md").write_text("# Spec\n")
+        (self.repo / "evidence").mkdir(parents=True, exist_ok=True)
+        (self.repo / "evidence" / "rel.txt").write_text("relative proof ok\n")
+        abs_ref = self.repo / "evidence" / "abs.json"
+        abs_ref.write_text('{"ok":true}\n')
+        (self.repo / "secret.py").write_text("SECRET='nope'\n")
+
+        aid = navigator.current_action(st)["id"]
+        st = navigator.apply(st, aid, {
+            "outcome": "done",
+            "headline": "Mapped request",
+            "summary": "Captured evidence.",
+            "evidence_refs": ["evidence/rel.txt", str(abs_ref)],
+        })
+        navigator.save(rdir, st)
+
+        (rdir / "trace.jsonl").write_text(
+            json.dumps({
+                "v": 1, "ts": 1000, "at": "2026-11-25T10:00:00Z",
+                "kind": "command", "action": aid, "verb": "complete", "exit": 0,
+                "duration_ms": 1450,
+                "usage": {"input_tokens": 1200, "output_tokens": 300, "cached_tokens": 400},
+            }) + "\n"
+        )
+        detail = hub_model.build_run_detail(rdir)
+        self.assertEqual(detail["run"]["token_usage"]["total_tokens"], 1500)
+        self.assertEqual(detail["story_cards"][0]["token_usage"]["input_tokens"], 1200)
+        self.assertEqual(detail["story_cards"][0]["events"][0]["ms"], 1450)
+        self.assertEqual(detail["story_cards"][0]["events"][0]["usage"]["output_tokens"], 300)
+
+        spec_art = hub_model.read_run_artifact(rdir, st, "repo", "docs/shiploop/spec.md")
+        self.assertEqual(spec_art["content"], "# Spec\n")
+        rel_art = hub_model.read_run_artifact(rdir, st, "repo", "evidence/rel.txt")
+        self.assertEqual(rel_art["content"], "relative proof ok\n")
+        abs_art = hub_model.read_run_artifact(rdir, st, "repo", "evidence/abs.json")
+        self.assertEqual(abs_art["content"], '{"ok":true}\n')
+        with self.assertRaises(PermissionError):
+            hub_model.read_run_artifact(rdir, st, "repo", "secret.py")
+
+        orig = rdir / "notes" / "orig.md"
+        orig.parent.mkdir(exist_ok=True)
+        orig.write_text("one copy\n")
+        hard = rdir / "notes" / "hard.md"
+        os.link(orig, hard)
+        with self.assertRaises((OSError, obs_io._UnsafeSource, ValueError)):
+            hub_model.read_run_artifact(rdir, st, "run", "notes/hard.md")
+
+    def test_hub_auto_poll_cache_invalidation_and_eviction(self):
+        import shiploop_hub_model as hub_model
+        import shiploop_registry as registry
+
+        rdir, st = self._make_run("r-auto", "Test auto poll and cache lifecycle", run_id="run-auto-1")
+        registry.register_run(rdir, st)
+
+        sig_alive = hub_model.detail_watch_signature(rdir, st, entry={"host": "codex", "model": "gpt-5.4", "effort": "high", "owner_alive": True})
+        sig_dead = hub_model.detail_watch_signature(rdir, st, entry={"host": "codex", "model": "gpt-5.4", "effort": "high", "owner_alive": False})
+        sig_model = hub_model.detail_watch_signature(rdir, st, entry={"host": "codex", "model": "gpt-5.5", "effort": "high", "owner_alive": True})
+        self.assertNotEqual(sig_alive, sig_dead)
+        self.assertNotEqual(sig_alive, sig_model)
+
+        server, port = self._start_hub()
+        s1, _, b1 = self._http(port, "/api/poll?auto=1&run=&runs_v=&run_v=")
+        self.assertEqual(s1, 200)
+        p1 = json.loads(b1)
+        self.assertEqual(p1["selected_run"], "run-auto-1")
+        self.assertIn("runs_payload", p1)
+        self.assertEqual(p1["detail"]["run"]["run_id"], "run-auto-1")
+        self.assertIn(str(rdir), server.detail_cache)
+
+        shutil.rmtree(rdir)
+        s2, _, _ = self._http(port, "/api/runs")
+        self.assertEqual(s2, 200)
+        self.assertNotIn(str(rdir), server.detail_cache)
+
+    def test_hub_sort_order_poll_delta_and_artifact_http_endpoints(self):
+        import shiploop_registry as registry
+        import shiploop_trace as trace
+
+        r_old, st_old = self._make_run("r-old", "Older active run", run_id="run-old")
+        r_new, st_new = self._make_run("r-new", "Newer active run", run_id="run-new")
+        trace.record(r_old, "command", verb="init", exit=0)
+        (r_old / "timeline.json").write_text(json.dumps({"started": "2026-11-25T08:00:00Z", "accepted": {}}))
+        (r_new / "timeline.json").write_text(json.dumps({"started": "2026-11-25T10:00:00Z", "accepted": {}}))
+        (r_old / "trace.jsonl").write_text(json.dumps({"v": 1, "ts": 1000, "at": "2026-11-25T08:00:00Z", "kind": "packet", "action": navigator.current_action(st_old)["id"]}) + "\n")
+        (r_new / "trace.jsonl").write_text(json.dumps({"v": 1, "ts": 2000, "at": "2026-11-25T10:00:00Z", "kind": "packet", "action": navigator.current_action(st_new)["id"]}) + "\n")
+        registry.register_run(r_old, st_old)
+        registry.register_run(r_new, st_new)
+
+        _, port = self._start_hub()
+        s1, _, b1 = self._http(port, "/api/poll?run=run-new&runs_v=&run_v=")
+        self.assertEqual(s1, 200)
+        p1 = json.loads(b1)
+        self.assertFalse(p1["unchanged"])
+        self.assertEqual([r["run_id"] for r in p1["runs_payload"]["runs"]], ["run-new", "run-old"])
+
+        rv, dv = p1["runs_version"], p1["run_version"]
+        s2, _, b2 = self._http(port, f"/api/poll?run=run-new&runs_v={rv}&run_v={dv}")
+        self.assertEqual(s2, 200)
+        p2 = json.loads(b2)
+        self.assertTrue(p2["unchanged"])
+        self.assertNotIn("runs_payload", p2)
+        self.assertNotIn("detail", p2)
+        self.assertLess(len(b2), 250)
+
+        sd, _, bd = self._http(port, "/api/runs/run-new/detail")
+        self.assertEqual(sd, 200)
+        self.assertEqual(json.loads(bd)["run"]["run_id"], "run-new")
+        self.assertEqual(self._http(port, "/api/runs/missing/detail")[0], 404)
+
+        (r_new / "notes").mkdir(exist_ok=True)
+        (r_new / "notes" / "check.md").write_text("hello artifact\n")
+        sa, _, ba = self._http(port, "/api/runs/run-new/artifact?scope=run&path=notes/check.md")
+        self.assertEqual(sa, 200)
+        self.assertEqual(json.loads(ba)["content"], "hello artifact\n")
+        self.assertEqual(self._http(port, "/api/runs/run-new/artifact?scope=run&path=state.md")[0], 403)
+        self.assertEqual(self._http(port, "/api/runs/run-new/artifact?scope=run&path=notes/missing.md")[0], 404)
+        self.assertEqual(self._http(port, "/api/poll", method="POST")[0], 405)
+        self.assertEqual(self._http(port, "/api/poll", host="evil.example")[0], 403)
+
+    def test_hub_html_enforces_2_second_polling_floor_and_csp_invariants(self):
+        import shiploop_hub_page as hub_page
+
+        html = hub_page.HUB_HTML
+        self.assertIn("const MIN_POLL_MS = 2000;", html)
+        self.assertNotIn("border-color:dashed", html)
+        self.assertNotIn("<iframe", html.lower())
+        for match in re.finditer(r"setInterval\s*\(([\s\S]{0,400}?)\)", html):
+            self.assertNotIn("fetch", match.group(1))
+            self.assertNotIn("doPoll", match.group(1))
+        cleaned_html = html.replace("http://www.w3.org/2000/svg", "")
+        self.assertNotIn("https://", cleaned_html)
+        self.assertNotIn("http://", cleaned_html)
+        self.assertNotIn("innerHTML", html)
+        node_bin = shutil.which("node")
+        if node_bin:
+            js = html.split("<script>", 1)[1].rsplit("</script>", 1)[0]
+            with tempfile.NamedTemporaryFile("w", suffix=".js") as tmp_js:
+                tmp_js.write(js)
+                tmp_js.flush()
+                res = subprocess.run([node_bin, "--check", tmp_js.name], capture_output=True, text=True)
+                self.assertEqual(res.returncode, 0, res.stderr)
 
 
 if __name__ == "__main__":

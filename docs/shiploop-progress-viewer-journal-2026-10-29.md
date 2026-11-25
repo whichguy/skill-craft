@@ -161,3 +161,21 @@ Owner request, 2026-11-24: organize ShipLoop's status reporting and browser serv
   - Uncached full `sample()` + `_refresh_trace()` + `publish()`: `46.39 ms` wall, `40.63 ms` CPU (`2.03%` of 1 core at a 2 s interval).
   - Stat-gated idle `sample(previous=last, previous_sig=sig)` + `announce()`: `1.10 ms` wall, `0.90 ms` CPU (`0.04%` of 1 core at a 2 s interval — ~45x lower CPU per idle tick).
   - 10 concurrent runs via `hub_runs_payload(cache=...)`: `7.60 ms` uncached -> `1.81 ms` cached.
+
+## 2026-11-25 (later): Gemini Material 3 Multi-Run Studio Hub, Story Cards & Unified >=2s Poller
+
+Owner request, 2026-11-25: upgrade the live status web server to tell and illustrate the full ShipLoop story (durations, outcomes, transition notes, commits, gates, Improve passes, pass logs, model telemetry), clearly surface the running prompt, allow toggling smoothly across concurrent sessions on a single server, use a Google Gemini / Material Design 3 aesthetic, and enforce a strict hard ceiling of at most one poll every 2 seconds.
+
+### Changes and measurements
+
+- **Single-port Hub SPA (`shiploop_hub_page.py`, zero external dependencies):** Replaced the basic card grid with an offline, CSP-compliant Gemini / Material Design 3 two-pane Studio workspace (`data-theme="dark"|"light"` toggle, persistent collapsible session rail + `All Runs` Overview grid, Gemini Prompt Hero with verbatim prompt drawer, 6 segmented tabs: `Story & Flow`, `Prompt & Plan`, `Gates & Evidence`, `Trace & Packets`, `Notes`, `Report`, and a slide-over artifact/packet inspector drawer). Zero `innerHTML` on untrusted text.
+- **Hard `>= 2000 ms` single poller (`GET /api/poll`):** Consolidated polling into one sequential `setTimeout` loop (`MIN_POLL_MS = 2000`, selectable `2s`/`3s`/`5s`/`10s`/`Paused`, `10s` hidden-tab backoff, `Date.now() - lastPollStart >= MIN_POLL_MS` cooldown guard, pauses DOM swaps while selecting or typing). Idle polls return `{"unchanged": true}` (`155 B`).
+- **Rich read-only story model (`shiploop_hub_model.py`, `shiploop_registry.py`, `shiploop_progress_serve.py`):**
+  - Captured `observed_model`/`observed_effort` from keepalive bindings and `trace.jsonl` (`hook="model"`), added stat-gated `state_cache` and `detail_cache` on `_HubServer`, and fixed newest-activity-first sorting inside each `priority_bucket`.
+  - Surfaced per-stage dwell durations (`first_packet -> accepted`) + proportional phase/item dwell strip, deterministic transition notes (`send-back`, `add-work`, `replan_remaining`, `blocked` + `decisions/`, `owner-notes` accounting, callback refusal counts), `commits/<action>.txt`, `tests/`/`checks/`/`expectations/`/`lint/` gate verdicts, `improve/` receipts & lessons, `loops/` handoffs, and live `notes/<action>.md` pass logs.
+  - Added read-only `GET /api/runs/<key>/detail` and `GET /api/runs/<key>/artifact?scope=run|repo&path=...` with `O_NOFOLLOW`, allowlisted paths (`state.md`/`.lock`/symlinks refused), and credential screening.
+- **Measured 4-run live benchmark & headless Chrome DOM check (`scratch/bench_hub.py`, disposable `/tmp/shiploop-hub-bench-*`):**
+  - Initial uncached `GET /api/poll?run=run-oauth-active`: `19.51 ms` (`27,533 B`).
+  - Average cached idle `GET /api/poll` (10 trials): `1.57 ms` (`155 B`, `unchanged: true`).
+  - Headless Chrome `--dump-dom` (`--virtual-time-budget=2500`): `111,642 B` DOM rendered cleanly (`ShipLoop Hub`, active prompt, session rail, `Pipeline Map`, `Accomplishments & Transitions` present).
+- **Quality-review hardening pass:** Added `auto=1` single-request initial detail paint, `RLock` thread safety on `_HubServer`, `state_cache` reuse and `detail_cache` eviction, live `entry` metadata in `detail_watch_signature`, `trace.jsonl` mtime+size in `_run_cache_key`, in-place search filtering preserving input focus, persisted `<details>` open state and per-run Owner Note drafts, DAG cycle guard, forward-compatible optional `token_usage`/`duration_ms` display, unconditional `MIN_POLL_MS` guard in `doPoll()`, expanded `54`-test `shiploop-progress.test.py`, and `ruff` clean check.

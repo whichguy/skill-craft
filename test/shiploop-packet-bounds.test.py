@@ -351,6 +351,8 @@ LIMIT_KINDS = {
     "shiploop_trace.ANSWER_LIMIT": "display cut",
     "shiploop_lint.MAX_FILE_BYTES": "guard",
     "shiploop_lint.DIFF_CELL_CAP": "guard",
+    "shiploop_hub_model._MAX_ARTIFACT_BYTES": "guard",
+    "shiploop_hub_model._MAX_SMALL_RECORD_BYTES": "guard",
     "shiploop_mutation.MAX_FILE_BYTES": "guard",
     "shiploop_planning_revision._MAX_ARCHIVE_BYTES": "guard",
     "shiploop_planning_status._MAX_META_BYTES": "guard",
