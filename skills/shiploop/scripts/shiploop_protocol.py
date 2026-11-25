@@ -499,8 +499,10 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         retired = navigator.retired_run_reason(state)
         need(retired is None, retired or "")
         navigator.validate(state)
-        stage = navigator.current_stage(state)
-        profile = navigator.stage_spec.stage_profile(stage)
+        stage = navigator.sequence_stage(state)
+        child = state.get("active_improve")
+        reviewed_stage = child.get("stage") if stage == "improve" and isinstance(child, Mapping) else None
+        profile = navigator.stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
         action = navigator.current_action(state)
         iteration = _loop_iteration(root, state)
     except SystemExit:
@@ -521,6 +523,7 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         "awaiting": (navigator.awaiting(state) or (None, {}))[1].get("kind", ""),
         "stage": stage,
         "profile": profile,
+        "reviewed_stage": reviewed_stage,
         "action": (action or {}).get("id"),
         "revision": state["revision"],
         # Keepalive progress: the revision, callback attempts (a refused callback is

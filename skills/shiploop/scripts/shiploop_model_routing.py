@@ -17,8 +17,9 @@ EFFORT_SUFFIXES = ("-low", "-medium", "-high", "-xhigh", "-max")
 RESUME_MODES = ("warm", "fresh")
 DEFAULT_RESUME = "warm"
 
-_TOP_KEYS = frozenset({"planning", "execution", "review", "stages", "resume"})
+_TOP_KEYS = frozenset({"planning", "execution", "review", "stages", "resume", "plan_reflect_and_improve"})
 _ENTRY_KEYS = frozenset({"host", "model", "effort", "args", "resume"})
+_REFLECT_AND_IMPROVE_STAGES = frozenset({"reflect-and-revise", "improve"})
 
 # Default built-in per-host profiles applied by `shiploop-drive` unless opted out (`--no-routing`,
 # explicit routing config/flags, or an explicit model flag after `--`). Antigravity assigns both
@@ -158,6 +159,10 @@ def load_config(source: str | Path | Mapping[str, Any]) -> dict[str, Any]:
         if data["resume"] not in RESUME_MODES:
             raise ValueError(f"routing config resume must be one of {RESUME_MODES}")
         normalized["resume"] = data["resume"]
+    if "plan_reflect_and_improve" in data and data["plan_reflect_and_improve"] is not None:
+        if not isinstance(data["plan_reflect_and_improve"], bool):
+            raise ValueError("routing config plan_reflect_and_improve must be a boolean")
+        normalized["plan_reflect_and_improve"] = data["plan_reflect_and_improve"]
     for bucket_name in ("planning", "execution", "review"):
         if bucket_name in data and data[bucket_name] is not None:
             normalized[bucket_name] = _normalize_bucket(data[bucket_name], where=bucket_name)
@@ -185,6 +190,7 @@ def from_cli_flags(
     review_effort: str | None = None,
     review_host: str | None = None,
     resume_mode: str | None = None,
+    plan_reflect_and_improve: bool = False,
 ) -> dict[str, Any] | None:
     """Build a normalized routing config from CLI shorthand flags, or None when none are set."""
     raw: dict[str, Any] = {}
@@ -206,6 +212,8 @@ def from_cli_flags(
         return None
     if resume_mode:
         raw["resume"] = resume_mode
+    if plan_reflect_and_improve:
+        raw["plan_reflect_and_improve"] = True
     return load_config(raw)
 
 
@@ -257,16 +265,35 @@ def _select_entry(bucket: Any, default_host: str) -> Mapping[str, Any] | None:
     return None
 
 
+def _effective_profile(
+    stage: str,
+    config: Mapping[str, Any] | None,
+    *,
+    reviewed_stage: str | None = None,
+) -> str | None:
+    profile = stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
+    if (
+        profile is not None
+        and config is not None
+        and config.get("plan_reflect_and_improve") is True
+        and stage in _REFLECT_AND_IMPROVE_STAGES
+    ):
+        return "planning"
+    return profile
+
+
 def resolve(
     config: Mapping[str, Any] | None,
     stage: str | None,
     default_host: str,
+    *,
+    reviewed_stage: str | None = None,
 ) -> RouteTarget | None:
     """Resolve the effective RouteTarget for ``stage`` under ``default_host``."""
     if not stage:
         return None
     norm_host = normalize_host(default_host)
-    profile = stage_spec.stage_profile(stage)
+    profile = _effective_profile(stage, config, reviewed_stage=reviewed_stage)
     if profile is None:
         return None
     default_resume = str((config or {}).get("resume") or DEFAULT_RESUME)
@@ -329,6 +356,8 @@ def active_boundary(
     stage: str | None,
     run_id: str | None,
     env: Mapping[str, str] | None = None,
+    *,
+    reviewed_stage: str | None = None,
 ) -> dict[str, str] | None:
     """Return boundary metadata when an active driver session crossed into a different target."""
     env = os.environ if env is None else env
@@ -342,7 +371,7 @@ def active_boundary(
         return None
     try:
         config = load_config(Path(routing_path))
-        next_target = resolve(config, stage, default_host)
+        next_target = resolve(config, stage, default_host, reviewed_stage=reviewed_stage)
     except (OSError, ValueError, TypeError):
         return None
     if next_target is None or next_target.target_key == assigned_key:
@@ -353,3 +382,29 @@ def active_boundary(
         "stage": stage,
         "profile": next_target.profile,
     }
+
+
+def active_profile(
+    stage: str | None,
+    run_id: str | None = None,
+    env: Mapping[str, str] | None = None,
+    *,
+    reviewed_stage: str | None = None,
+) -> str | None:
+    """Return the effective routing profile for ``stage`` from ``SHIPLOOP_DRIVE_ROUTING`` if active, else stage_spec."""
+    env = os.environ if env is None else env
+    routing_path = env.get("SHIPLOOP_DRIVE_ROUTING", "").strip()
+    default_host = env.get("SHIPLOOP_DRIVE_HOST", "").strip()
+    expected_run_id = env.get("SHIPLOOP_DRIVE_RUN_ID", "").strip()
+    if routing_path and default_host and stage and (not expected_run_id or not run_id or expected_run_id == run_id):
+        try:
+            config = load_config(Path(routing_path))
+            target = resolve(config, stage, default_host, reviewed_stage=reviewed_stage)
+            if target is not None:
+                return target.profile
+        except (OSError, ValueError, TypeError):
+            pass
+    try:
+        return stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
+    except ValueError:
+        return None

@@ -32,16 +32,20 @@ class StageProfileTests(unittest.TestCase):
         self.assertIsNone(stage_spec.stage_profile(None))
         self.assertIsNone(stage_spec.stage_profile(""))
         self.assertIsNone(stage_spec.stage_profile("done"))
-        self.assertEqual(stage_spec.stage_profile("improve"), "planning")
+        # Default prelude-only profile: prelude improves stay planning; inner/outer/unscoped improve stays execution.
+        self.assertEqual(stage_spec.stage_profile("improve"), "execution")
+        self.assertEqual(stage_spec.stage_profile("improve", reviewed_stage="spec"), "planning")
+        self.assertEqual(stage_spec.stage_profile("improve", reviewed_stage="plan"), "planning")
+        self.assertEqual(stage_spec.stage_profile("improve", reviewed_stage="document"), "execution")
+        self.assertEqual(stage_spec.stage_profile("improve", reviewed_stage="system-test-author"), "execution")
         for name in stage_spec.STAGES:
             profile = stage_spec.stage_profile(name)
             self.assertIn(profile, stage_spec.ACTIVITY_PROFILES, name)
-        for name in ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare",
-                     "step-plan", "test-spec", "reflect-and-revise",
-                     "system-test-author", "product-acceptance", "release-plan", "handoff"):
+        for name in ("intake", "discovery", "research", "spec", "test-strategy", "plan", "prepare"):
             self.assertEqual(stage_spec.stage_profile(name), "planning", name)
-        for name in ("validate-existing", "implement", "test", "document",
-                     "system-test", "release-check", "release", "release-verify", "operations"):
+        for name in ("step-plan", "test-spec", "validate-existing", "implement", "test", "document",
+                     "reflect-and-revise", "system-test-author", "system-test", "product-acceptance",
+                     "release-plan", "release-check", "release", "release-verify", "operations", "handoff"):
             self.assertEqual(stage_spec.stage_profile(name), "execution", name)
         with self.assertRaises(ValueError):
             stage_spec.stage_profile("unknown-stage")
@@ -175,6 +179,39 @@ class ModelRoutingResolutionTests(unittest.TestCase):
         self.assertTrue(routing.extra_sets_model(["--config=model=o3"]))
         self.assertFalse(routing.extra_sets_model(["--dangerously-skip-permissions", "-c", "model_reasoning_effort=high"]))
 
+    def test_plan_reflect_and_improve_opt_in(self) -> None:
+        default_cfg = routing.default_routing("codex")
+        opt_cfg = routing.load_config({**default_cfg, "plan_reflect_and_improve": True})
+        # By default (prelude-only), inner/outer stages + reflect + non-prelude improve stay execution.
+        for stage_name, rev_stage in (
+            ("step-plan", None),
+            ("implement", None),
+            ("reflect-and-revise", None),
+            ("system-test-author", None),
+            ("handoff", None),
+            ("improve", "document"),
+            ("improve", "system-test-author"),
+        ):
+            self.assertEqual(
+                routing.resolve(default_cfg, stage_name, "codex", reviewed_stage=rev_stage).profile,
+                "execution",
+                (stage_name, rev_stage),
+            )
+            exp_prof = "planning" if stage_name in ("reflect-and-revise", "improve") else "execution"
+            self.assertEqual(
+                routing.resolve(opt_cfg, stage_name, "codex", reviewed_stage=rev_stage).profile,
+                exp_prof,
+                (stage_name, rev_stage),
+            )
+        # Prelude stages + prelude improve always stay planning.
+        self.assertEqual(routing.resolve(default_cfg, "prepare", "codex").profile, "planning")
+        self.assertEqual(routing.resolve(default_cfg, "improve", "codex", reviewed_stage="spec").profile, "planning")
+        # from_cli_flags forwards plan_reflect_and_improve and invalid non-bool values fail.
+        cli_cfg = routing.from_cli_flags(planning_model="gpt-6.2-astra", execution_model="gpt-6.2-sol", plan_reflect_and_improve=True)
+        self.assertIs(cli_cfg["plan_reflect_and_improve"], True)
+        with self.assertRaises(ValueError):
+            routing.load_config({"planning": "m", "plan_reflect_and_improve": "yes"})
+
 
 def _load_smoke_probe():
     path = ROOT / "test" / "shiploop_e2e" / "probes" / "model_routing_smoke.py"
@@ -219,6 +256,7 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         include_resume: bool = True,
         include_boundaries: bool = True,
         routed: bool = True,
+        plan_reflect_and_improve: bool = False,
     ) -> tuple[Path, Path]:
         run_dir = base / "run"
         drive_log = base / "drive.log"
@@ -226,7 +264,7 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         store.write_record(run_dir / "state.md", {
             "run_id": f"nav-{host}",
             "status": "paused",
-            "stage": "release-plan",
+            "stage": "product-acceptance" if plan_reflect_and_improve else "test-spec",
             "history": [
                 {"stage": s, "outcome": "done", "summary": "ok", "workitem": None, "action": f"nav-{i}"}
                 for i, s in enumerate(stages)
@@ -234,33 +272,44 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         })
         p_m, p_e, p_obs = spec["planning"]
         e_m, e_e, e_obs = spec["execution"]
-        if routed:
+        if routed and plan_reflect_and_improve:
+            sid = f"{host}-thread-optin"
+            rows = [
+                {"session": 1, "host": host, "resumed": None, "profile": "execution", "model": e_m, "effort": e_e},
+                {"session": 2, "host": host, "resumed": sid if include_resume else None, "profile": "planning", "model": p_m, "effort": p_e},
+                {"session": 3, "host": host, "resumed": sid if include_resume else None, "profile": "execution", "model": e_m, "effort": e_e},
+            ]
+            trace_rows = [
+                {"kind": "hook", "hook": "model", "host": host, "model": e_obs, "effort": e_e, "stage": "system-test-author", "profile": "execution"},
+                *([{"kind": "hook", "hook": "stop", "host": host, "decision": "allow", "why": f"profile boundary reached ({host}:{e_m} -> {host}:{p_m} at improve)"}] if include_boundaries else []),
+                {"kind": "hook", "hook": "model", "host": host, "model": p_obs, "effort": p_e, "stage": "improve", "profile": "planning"},
+                *([{"kind": "hook", "hook": "stop", "host": host, "decision": "allow", "why": f"profile boundary reached ({host}:{p_m} -> {host}:{e_m} at system-test)"}] if include_boundaries else []),
+                {"kind": "hook", "hook": "model", "host": host, "model": e_obs, "effort": e_e, "stage": "system-test", "profile": "execution"},
+            ]
+        elif routed:
             sid = f"{host}-thread-1"
             rows = [
                 {"session": 1, "host": host, "resumed": None, "profile": "planning", "model": p_m, "effort": p_e},
                 {"session": 2, "host": host, "resumed": sid if include_resume else None, "profile": "execution", "model": e_m, "effort": e_e},
-                {"session": 3, "host": host, "resumed": sid if include_resume else None, "profile": "planning", "model": p_m, "effort": p_e},
             ]
             trace_rows = [
-                {"kind": "hook", "hook": "model", "host": host, "model": p_obs, "effort": p_e, "stage": "system-test-author", "profile": "planning"},
-                *([{"kind": "hook", "hook": "stop", "host": host, "decision": "allow", "why": f"profile boundary reached ({host}:{p_m} -> {host}:{e_m} at system-test)"}] if include_boundaries else []),
-                {"kind": "hook", "hook": "model", "host": host, "model": e_obs, "effort": e_e, "stage": "system-test", "profile": "execution"},
-                *([{"kind": "hook", "hook": "stop", "host": host, "decision": "allow", "why": f"profile boundary reached ({host}:{e_m} -> {host}:{p_m} at product-acceptance)"}] if include_boundaries else []),
-                {"kind": "hook", "hook": "model", "host": host, "model": p_obs, "effort": p_e, "stage": "product-acceptance", "profile": "planning"},
+                {"kind": "hook", "hook": "model", "host": host, "model": p_obs, "effort": p_e, "stage": "prepare", "profile": "planning"},
+                *([{"kind": "hook", "hook": "stop", "host": host, "decision": "allow", "why": f"profile boundary reached ({host}:{p_m} -> {host}:{e_m} at step-plan)"}] if include_boundaries else []),
+                {"kind": "hook", "hook": "model", "host": host, "model": e_obs, "effort": e_e, "stage": "step-plan", "profile": "execution"},
             ]
         else:
             rows = [{"session": 1, "host": host, "resumed": None, "exit": 0}]
-            trace_rows = [{"kind": "hook", "hook": "model", "host": host, "model": e_obs, "effort": e_e, "stage": "system-test-author", "profile": "planning"}]
+            trace_rows = [{"kind": "hook", "hook": "model", "host": host, "model": e_obs, "effort": e_e, "stage": "prepare", "profile": "planning"}]
         drive_log.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
         (run_dir / "trace.jsonl").write_text("\n".join(json.dumps(r) for r in trace_rows) + "\n", encoding="utf-8")
         return run_dir, drive_log
 
     def test_routed_grader_accepts_all_three_hosts_and_rejects_broken_runs(self) -> None:
-        stages = ["system-test-author", "system-test", "product-acceptance"]
+        prelude_stages = ["prepare", "step-plan"]
         for host, spec in self._SPECS.items():
             with self.subTest(host=host):
                 run_dir, drive_log = self._write_synthetic_artifacts(
-                    self.temp / f"{host}-ok", host=host, spec=spec, stages=stages,
+                    self.temp / f"{host}-ok", host=host, spec=spec, stages=prelude_stages,
                 )
                 ok = self.probe.grade_run(
                     host, run_dir, drive_log, mode="routed",
@@ -268,11 +317,25 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
                     expected_execution=(spec["execution"][0], spec["execution"][1]),
                 )
                 self.assertTrue(ok["pass"], ok)
-                self.assertEqual(len(ok["boundary_stops"]), 2, ok)
+                self.assertEqual(len(ok["boundary_stops"]), 1, ok)
+
+        # Opt-in --plan-reflect-and-improve grading (system-test-author -> improve -> system-test).
+        opt_run, opt_dl = self._write_synthetic_artifacts(
+            self.temp / "codex-optin-ok", host="codex", spec=self._SPECS["codex"],
+            stages=["system-test-author", "system-test"], plan_reflect_and_improve=True,
+        )
+        ok_opt = self.probe.grade_run(
+            "codex", opt_run, opt_dl, mode="routed",
+            expected_planning=("gpt-6.2-astra", "high"),
+            expected_execution=("gpt-6.2-sol", "xhigh"),
+            plan_reflect_and_improve=True,
+        )
+        self.assertTrue(ok_opt["pass"], ok_opt)
+        self.assertEqual(len(ok_opt["boundary_stops"]), 2, ok_opt)
 
         # Negative routed checks: unresumed sessions, missing boundaries, or flat unrouted run must fail.
         run_no_res, dl_no_res = self._write_synthetic_artifacts(
-            self.temp / "claude-no-resume", host="claude", spec=self._SPECS["claude"], stages=stages, include_resume=False,
+            self.temp / "claude-no-resume", host="claude", spec=self._SPECS["claude"], stages=prelude_stages, include_resume=False,
         )
         bad_res = self.probe.grade_run(
             "claude", run_no_res, dl_no_res, mode="routed",
@@ -281,23 +344,23 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         self.assertFalse(bad_res["pass"])
         self.assertFalse(bad_res["checks"]["warm_resume_ok"])
 
-        # Single-session Antigravity Orchestrator grading (Neon plan <-> Carbon execute inside one unbroken session).
+        # Single-session Antigravity Orchestrator grading (Neon plan <-> Hydrogen/Carbon execute inside one unbroken session).
         agy_orch = self.temp / "agy-orch"
         orch_run = agy_orch / "run"
         orch_dl = agy_orch / "drive.log"
         orch_run.mkdir(parents=True)
         store.write_record(orch_run / "state.md", {
-            "run_id": "nav-agy-orch", "status": "paused", "stage": "release-plan",
+            "run_id": "nav-agy-orch", "status": "paused", "stage": "test-spec",
             "history": [{"stage": s, "outcome": "done", "summary": "ok", "workitem": None, "action": f"nav-{i}"}
-                        for i, s in enumerate(stages)],
+                        for i, s in enumerate(prelude_stages)],
         })
         orch_dl.write_text(
             json.dumps({"session": 1, "host": "antigravity", "resumed": None, "model": "gemini-pro-orchestrator-neon"}) + "\n",
             encoding="utf-8",
         )
         (orch_run / "trace.jsonl").write_text("\n".join([
-            json.dumps({"kind": "hook", "hook": "model", "host": "antigravity", "model": "gemini-4-neon-high", "effort": "high", "stage": "system-test-author"}),
-            json.dumps({"kind": "hook", "hook": "model", "host": "antigravity", "model": "gemini-4-carbon-medium", "effort": "medium", "stage": "system-test"}),
+            json.dumps({"kind": "hook", "hook": "model", "host": "antigravity", "model": "gemini-4-neon-high", "effort": "high", "stage": "prepare"}),
+            json.dumps({"kind": "hook", "hook": "model", "host": "antigravity", "model": "gemini-4-hydrogen-high", "effort": "high", "stage": "step-plan"}),
         ]) + "\n", encoding="utf-8")
         ok_orch = self.probe.grade_run(
             "antigravity", orch_run, orch_dl, mode="routed",
@@ -324,7 +387,7 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         self.assertFalse(bad_orch["checks"]["single_session_ok"])
 
         run_unrouted, dl_unrouted = self._write_synthetic_artifacts(
-            self.temp / "codex-unrouted", host="codex", spec=self._SPECS["codex"], stages=stages, routed=False,
+            self.temp / "codex-unrouted", host="codex", spec=self._SPECS["codex"], stages=prelude_stages, routed=False,
         )
         ok_unrouted = self.probe.grade_run(
             "codex", run_unrouted, dl_unrouted, mode="unrouted",
@@ -363,17 +426,21 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
                     source="checkout", planning=(p["model"], p["effort"]), execution=(e["model"], e["effort"]),
                     session_timeout=300, max_minutes=12, use_default_routing=True,
                 )
-                self.assertEqual(store.read_record(Path(staged_def["run_dir"]) / "state.md")["stage"], "system-test-author")
+                self.assertEqual(store.read_record(Path(staged_def["run_dir"]) / "state.md")["stage"], "prepare")
                 self.assertNotIn("--routing", staged_def["argv"])
                 self.assertNotIn("--no-routing", staged_def["argv"])
+                self.assertNotIn("--plan-reflect-and-improve", staged_def["argv"])
 
                 staged_ov = self.probe.stage_host(
                     host=host, mode="routed", out_dir=self.temp / "smoke-dry" / f"{host}-override",
                     pkg_dir=pkg, product_dir=product_dir, home_fix_dir=home_fix_dir,
                     source="checkout", planning=(p["model"], p["effort"]), execution=(e["model"], e["effort"]),
                     session_timeout=300, max_minutes=12, use_default_routing=False,
+                    plan_reflect_and_improve=True,
                 )
+                self.assertEqual(store.read_record(Path(staged_ov["run_dir"]) / "state.md")["stage"], "system-test-author")
                 self.assertIn("--routing", staged_ov["argv"])
+                self.assertTrue(json.loads(Path(staged_ov["routing_path"]).read_text(encoding="utf-8"))["plan_reflect_and_improve"])
 
             staged_unr = self.probe.stage_host(
                 host="codex", mode="unrouted", out_dir=self.temp / "smoke-dry" / "codex-unrouted",
