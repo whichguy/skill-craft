@@ -1423,6 +1423,7 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
             "planning": {"antigravity": {"model": "gemini-4-neon-high"}},
             "execution": {"antigravity": {"model": "gemini-4-carbon-medium"}},
             "plan_reflect_and_improve": True,
+            "resume": "warm",
         }
         calls = []
         statuses = [
@@ -1612,7 +1613,10 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
             ("claude", {"model": "sonnet", "effort": "high"}, {"model": "haiku", "effort": "low"}),
             ("codex", {"model": "gpt-6.2-astra", "effort": "high"}, {"model": "gpt-6.2-sol", "effort": "medium"}),
         ):
-            routing_cfg = {"planning": {host: planning}, "execution": {host: execution}, "plan_reflect_and_improve": True}
+            routing_cfg = {
+                "planning": {host: planning}, "execution": {host: execution},
+                "plan_reflect_and_improve": True, "resume": "warm",
+            }
             statuses = [
                 {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
                  "status": "active", "stage": "plan", "revision": 1, "completion": "c1", "next": "n1"},
@@ -1652,6 +1656,68 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
                 self.assertIn("--resume", calls[2])
             self.assertIn(sid, calls[1])
             self.assertIn(sid, calls[2])
+
+    def test_drive_fresh_on_model_switch_and_warm_on_same_target_timeout(self) -> None:
+        run_id = self.status()["run_id"]
+        for host, planning, execution in (
+            ("claude", {"model": "claude-opus-5-5", "effort": "high"}, {"model": "claude-sonnet-5-5", "effort": "high"}),
+            ("codex", {"model": "gpt-6.2-astra", "effort": "high"}, {"model": "gpt-6.2-sol", "effort": "xhigh"}),
+        ):
+            with self.subTest(host=host):
+                # Clean binding state between subtests on this shared self.run_dir.
+                for p in (keepalive.home() / "bindings").glob(f"{host}-*.json"):
+                    p.unlink()
+                routing_cfg = {"planning": {host: planning}, "execution": {host: execution}}
+                statuses = [
+                    {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                     "status": "active", "stage": "prepare", "revision": 1, "completion": "c1", "next": "n1"},
+                    # Same-target timeout on prepare -> should warm-resume planning session.
+                    {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                     "status": "active", "stage": "prepare", "revision": 1, "completion": "c1", "next": "n1"},
+                    # Model switch prepare -> step-plan -> must start fresh (no --resume / exec resume).
+                    {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                     "status": "active", "stage": "step-plan", "revision": 2, "completion": "c2", "next": "n2"},
+                    # Same-target timeout on step-plan -> should warm-resume execution session.
+                    {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                     "status": "active", "stage": "step-plan", "revision": 2, "completion": "c2", "next": "n2"},
+                    {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                     "status": "done", "stage": "done", "revision": 3, "completion": "", "next": "n3"},
+                ]
+                sids = [f"{host}-plan-1", f"{host}-plan-1", f"{host}-exec-1", f"{host}-exec-1"]
+                idx = [0]
+                calls: list[list[str]] = []
+
+                def fake_status(_run_dir):
+                    return dict(statuses[min(idx[0], len(statuses) - 1)])
+
+                def runner(argv, **kwargs):
+                    cur = idx[0]
+                    calls.append(argv)
+                    sid = sids[cur]
+                    self.hook("observe", host, self.payload(host, "observe", sid))
+                    self.hook("session-end", host, {"session_id": sid, "reason": "other"})
+                    idx[0] += 1
+                    return DriverTests.done(argv)
+
+                with mock.patch.object(keepalive, "run_status", side_effect=fake_status):
+                    code = keepalive.drive(host, str(self.run_dir), session_timeout=60, extra=[], cwd=None,
+                                           routing=routing_cfg, out=lambda _m: None, runner=runner, clock=lambda: 10.0)
+                self.assertEqual(code, keepalive.EXIT_DONE)
+                self.assertEqual(len(calls), 4)
+                if host == "codex":
+                    self.assertNotEqual(calls[0][:3], ["codex", "exec", "resume"])
+                    self.assertEqual(calls[1][:3], ["codex", "exec", "resume"])
+                    self.assertIn(f"{host}-plan-1", calls[1])
+                    self.assertNotEqual(calls[2][:3], ["codex", "exec", "resume"])
+                    self.assertEqual(calls[3][:3], ["codex", "exec", "resume"])
+                    self.assertIn(f"{host}-exec-1", calls[3])
+                else:
+                    self.assertNotIn("--resume", calls[0])
+                    self.assertIn("--resume", calls[1])
+                    self.assertIn(f"{host}-plan-1", calls[1])
+                    self.assertNotIn("--resume", calls[2])
+                    self.assertIn("--resume", calls[3])
+                    self.assertIn(f"{host}-exec-1", calls[3])
 
     def test_drive_main_applies_built_in_defaults_unless_opted_out(self) -> None:
         import contextlib
@@ -1855,11 +1921,9 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                     self.assertEqual(code, keepalive.EXIT_DONE)
                     self.assertEqual(len(invocations), 2)
                     self.assertNotIn("--resume", invocations[0][0])
+                    self.assertNotIn("--resume", invocations[1][0])
                     if host == "codex":
-                        self.assertEqual(invocations[1][0][:3], ["codex", "exec", "resume"])
-                    else:
-                        self.assertIn("--resume", invocations[1][0])
-                    self.assertIn(sid, invocations[1][0])
+                        self.assertNotEqual(invocations[1][0][:3], ["codex", "exec", "resume"])
 
                     self._write_history(run_dir / "state.md", ["prepare", "step-plan"])
                     verdict = self.probe.grade_run(
@@ -1871,6 +1935,7 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                         expected_execution=(spec["execution"][0], spec["execution"][1]),
                     )
                     self.assertTrue(verdict["pass"], verdict)
+                    self.assertTrue(verdict["checks"]["fresh_handoff_ok"], verdict)
                     self.assertEqual(len(verdict["boundary_stops"]), 1, verdict)
 
         # 2. Opt-in plan_reflect_and_improve=True (system-test-author -> improve -> system-test, 2 boundary stops).
@@ -1934,6 +1999,8 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                                                routing=routing_cfg, out=lambda _m: None, runner=runner, clock=lambda: 5.0)
                     self.assertEqual(code, keepalive.EXIT_DONE)
                     self.assertEqual(len(invocations), 3)
+                    self.assertNotIn("--resume", invocations[1][0])
+                    self.assertNotIn("--resume", invocations[2][0])
                     self._write_history(run_dir / "state.md", ["system-test-author", "system-test"])
                     verdict = self.probe.grade_run(
                         host,
@@ -1945,6 +2012,7 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                         plan_reflect_and_improve=True,
                     )
                     self.assertTrue(verdict["pass"], verdict)
+                    self.assertTrue(verdict["checks"]["fresh_handoff_ok"], verdict)
                     self.assertEqual(len(verdict["boundary_stops"]), 2, verdict)
 
     def test_unrouted_codex_matrix_control(self) -> None:
