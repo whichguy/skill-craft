@@ -58,11 +58,11 @@ python3 -B test/shiploop-e2e-ticket-semantics.test.py
 
 `model_routing_smoke.py` verifies `shiploop-drive` built-in default routing across **Claude, Codex, and Antigravity**:
 
-- **Default Prelude-Only (`prepare` → `step-plan`, 1 switch):** starts at `prepare` (`planning`), switches once to `execution` at `step-plan`, and pauses at `test-spec`:
-  - **Claude** (default): `claude-opus-5-5` (`high`) → `claude-sonnet-5-5` (`high`) (`warm --resume`)
-  - **Codex** (default): `gpt-6.2-astra` (`high`) → `gpt-6.2-sol` (`xhigh`) (`warm exec resume`)
+- **Default Prelude-Only (`prepare` → `step-plan`, 1 switch):** starts at `prepare` (`planning`), switches once to `execution` at `step-plan` (fresh cross-model session by default, warm resume preserved for same-target restarts), and pauses at `test-spec`:
+  - **Claude** (default): `claude-opus-5-5` (`high`) → `claude-sonnet-5-5` (`high`) (fresh execution handoff)
+  - **Codex** (default): `gpt-6.2-astra` (`high`) → `gpt-6.2-sol` (`xhigh`) (fresh execution handoff)
   - **Antigravity** (default): `gemini-pro-orchestrator-neon` single unbroken session (`0` boundary stops)
-- **Opt-in `--plan-reflect-and-improve` (`system-test-author` → `improve` → `system-test`, 2 switches):** pass `--plan-reflect-and-improve` to verify `execution` → `planning` (`improve`) → `execution` toggling and warm `--resume`.
+- **Opt-in `--plan-reflect-and-improve` (`system-test-author` → `improve` → `system-test`, 2 switches):** pass `--plan-reflect-and-improve` to verify `execution` → `planning` (`improve`) → `execution` toggling.
 
 ```sh
 python3 -B test/shiploop_e2e/probes/model_routing_smoke.py --hosts claude,codex,antigravity --mode routed --dry-run

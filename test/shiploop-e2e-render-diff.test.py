@@ -113,7 +113,7 @@ class TextRenderTests(unittest.TestCase):
                 self.assertFalse(row["head"])
                 # Exact equality proves no source-selected head or dropped middle; the marker alone cannot.
                 self.assertEqual(printed, whole + navigator.HEAD_END + "\n")
-        self.assertTrue(any(row["whole"] > navigator.PRINT_LIMIT for row in manifest["packets"]))
+        self.assertTrue(any(row["whole"] > 20_000 for row in manifest["packets"]))
         self.assertEqual(set(manifest["source"]), {"commit", "dirty"})
 
     def test_the_run_directory_has_exactly_the_stated_length_wherever_a_packet_prints_it(self):

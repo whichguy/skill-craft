@@ -249,12 +249,12 @@ class PrintedPacketTests(unittest.TestCase):
                     self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
                     self.assertFalse(row["head"])
                     self.assertEqual(row["printed"].splitlines().count(navigator.HEAD_END), 1)
-                    if len(row["whole"]) > navigator.PRINT_LIMIT:
+                    if len(row["whole"]) > 20_000:
                         long_packets += 1
                     if not key.endswith("-improve"):
                         self.assertIn("Current stage guidance:", row["printed"])
                         self.assertIn("\nRULES ", row["printed"])
-        self.assertGreaterEqual(long_packets, 4, "the case no longer exercises full output over the legacy threshold")
+        self.assertGreaterEqual(long_packets, 4, "the case no longer exercises full output over the retired host cut")
 
     def test_the_progress_block_ends_inside_the_status_hooks_window_and_leads_the_duties(self) -> None:
         import shiploop_status_hook as hook

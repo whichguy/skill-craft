@@ -3527,5 +3527,23 @@ class MultiStageCDAndMigrationPromptTests(unittest.TestCase):
         self.assertIn("Authority is **per destination stage and operation**", auth_doc)
 
 
+class Phase3ChecklistAndInvariantPromptTests(unittest.TestCase):
+    """Statically known checklist reminders and intermediate-state invariant guidance."""
+
+    def test_prompts_and_testing_guide_include_phase3_checklists(self) -> None:
+        self.assertIn("All authored code (including UI/client modules, not e2e alone) has a unit or component row",
+                      normalized(prompts.prompt("test-strategy")))
+        self.assertIn("either `{id, applies: \"yes\", decision, anchor, owner_stage}` or `{id, applies: \"no\", reason}`",
+                      normalized(prompts.prompt("plan")))
+        self.assertIn("readable summary reporter or plain TAP stream", normalized(prompts.prompt("prepare")))
+        self.assertIn("including any newly created standalone `proof` script", normalized(prompts.prompt("step-plan")))
+        self.assertIn("Preserve intermediate observable conditions", normalized(prompts.prompt("test-spec")))
+        self.assertIn("ShipLoop's mutation check samples changed product files", normalized(prompts.prompt("test")))
+        self.assertIn("plan-return` command (producing `return-plan.md`)", normalized(prompts.prompt("release-check")))
+        self.assertIn("open `assumptions` (`A<n>`)", normalized(prompts.prompt("handoff")))
+        guide = normalized((REFERENCES / "testing-and-documentation.md").read_text(encoding="utf-8"))
+        self.assertIn("Preserve intermediate observable conditions", guide)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

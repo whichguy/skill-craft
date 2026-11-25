@@ -71,6 +71,25 @@ class ImproveChangesTests(unittest.TestCase):
         self.assertEqual(found, (["app.py", "new_test.py"], []))
         self.assertEqual(changes.uncommitted(found, {}), [])
 
+    def test_committed_review_edits_reverted_to_bind_tree_are_refused_and_counted(self) -> None:
+        self.bind()
+        (self.repo / "app.py").write_text("x = 2\n")
+        git(self.repo, "add", "app.py")
+        git(self.repo, "commit", "-qm", "review edits")
+        # Overwrite app.py back to the bound tree content without moving HEAD.
+        (self.repo / "app.py").write_text("x = 1\n")
+        found = changes.review_changes(self.run, self.repo, "A1")
+        self.assertEqual(found, (["app.py"], ["app.py"]))
+        self.assertEqual(changes.uncommitted(found, {}), ["app.py"])
+        state = dict(self.state(), active_improve={"action_id": "A1", "stage": "reflect-and-revise", "improve_action": "IMP1"})
+        with mock.patch.object(nav, "improve_commit_message_path", return_value=self.run / "commit-message.md"), \
+                self.assertRaisesRegex(nav.NavigatorError, r"(?s)did not commit them.*app\.py"):
+            nav._improve_change_gate(None, self.run, state, "A1", {"stage": "reflect-and-revise"}, {})
+        (self.repo / "app.py").write_text("x = 3\n")
+        git(self.repo, "commit", "-qam", "review re-commit")
+        nav._improve_change_gate(None, self.run, state, "A1", {"stage": "reflect-and-revise"}, {})
+        self.assertTrue(store.read_record(self.run / "tests" / "A1-verify1.md")["passed"])
+
     def test_no_bind_snapshot_means_unknown(self) -> None:
         self.assertIsNone(changes.review_changes(self.run, self.repo, "missing"))
         self.assertEqual(changes.uncommitted(None, {}), [])

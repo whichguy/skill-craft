@@ -885,8 +885,9 @@ class FirstItemReviewTests(unittest.TestCase):
         self.assertIsNone(state["active_improve"])
         self.assertEqual((nav.current_stage(state), nav._current_work_item(state)), ("test-spec", "W2"))
 
-    def test_deferred_concerns_and_corrective_items_trigger_step_plan_review(self):
-        # Deferred concerns on W2 at plan trigger step-plan review for W2 while non-deferred W3 stays unreviewed.
+    def test_deferred_concerns_do_not_trigger_extra_step_plan_review_while_corrective_items_still_do(self):
+        # Deferred concerns on W2 stay unreviewed at step-plan (reviewed per step at document and
+        # surfaced as a checklist at product-acceptance / release-verify), while W1 still reviews.
         state = advance_to(self.new(), "plan")
         plan_action = nav.current_action(state)["id"]
         state = nav.apply(state, plan_action, dict(
@@ -896,7 +897,7 @@ class FirstItemReviewTests(unittest.TestCase):
         state = nav.finish_improve(state, plan_action, receipt("plan"))
         state, reviewed = walk(state)
         self.assertEqual([entry for entry in reviewed if entry[0] == "step-plan"],
-                         [("step-plan", "W1"), ("step-plan", "W2")])
+                         [("step-plan", "W1")])
         nav.validate(state)
 
         # W3 added at reflect-and-revise triggers step-plan review even when W2 was skipped.

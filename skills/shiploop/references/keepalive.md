@@ -257,8 +257,8 @@ unrouted CLI configuration instead:
 
 | Host | Planning profile | Execution profile | Boundary behavior |
 |------|------------------|-------------------|-------------------|
-| `claude` | `claude-opus-5-5` (`high`) | `claude-sonnet-5-5` (`high`) | Pauses at `prepare -> step-plan` (default 1 switch), warm-resumes `--resume` |
-| `codex` | `gpt-6.2-astra` (`high`) | `gpt-6.2-sol` (`xhigh`) | Pauses at `prepare -> step-plan` (default 1 switch), warm-resumes `exec resume` |
+| `claude` | `claude-opus-5-5` (`high`) | `claude-sonnet-5-5` (`high`) | Pauses at `prepare -> step-plan` (default 1 switch), starts fresh execution session (warm `--resume` on same-model timeout or `--resume-mode warm`) |
+| `codex` | `gpt-6.2-astra` (`high`) | `gpt-6.2-sol` (`xhigh`) | Pauses at `prepare -> step-plan` (default 1 switch), starts fresh execution session (warm `exec resume` on same-model timeout or `--resume-mode warm`) |
 | `antigravity` | `gemini-pro-orchestrator-neon` | `gemini-pro-orchestrator-neon` | Single unbroken Orchestrator session (Neon plan ↔ internal worker execution) |
 
 To override the built-in defaults, pass `--routing routing.json` (or `--routing default`),
@@ -291,8 +291,11 @@ and a per-harness selector (`antigravity`/`agy`, `codex`, `claude`, `grok`, `cur
 
 When the active driver session finishes a stage whose successor resolves to a different
 target, `shiploop complete` prints a `Profile boundary reached` receipt (withholding the
-next packet) and `shiploop-hook stop` allows the turn to end. `shiploop-drive` then
-warm-resumes that host's session (`--resume` / `codex exec resume`, or starts fresh with
-`--resume-mode fresh` or on a cross-harness switch) using the new target's flags and a
-`next` recovery prompt. Keepalive hooks also passively log observed `(model, effort)`
-transitions to `RUN/trace.jsonl` whenever the host reports them.
+next packet) and `shiploop-hook stop` allows the turn to end. By default (`--resume-mode fresh`),
+`shiploop-drive` starts a fresh session on a model/target switch (avoiding a full
+transcript cold-cache write on the new model while keeping durable `docs/shiploop/` and
+the recovery packet) and still warm-resumes (`--resume` / `codex exec resume`) when
+restarting the same target after a timeout. Pass `--resume-mode warm` (or `"resume": "warm"`
+in `routing.json`) to warm-resume across model switches as well. Keepalive hooks also
+passively log observed `(model, effort)` transitions to `RUN/trace.jsonl` whenever the host
+reports them.

@@ -431,7 +431,7 @@ PACKAGE_TAIL = "/skills/shiploop"
 CANONICAL_PYTHON = "/usr/bin/python3"
 # The fixed roots (under /home so that packet_anatomy's path statistics count them as the absolute paths they stand for).
 INSTALL_BASE, WORK_BASE = "/home/install", "/home/render"
-HOST_CUT = 20_000  # historical Grok shell-output observation (2026-09-27); not an emission cutoff
+HOST_CUT = 30_000  # lowest common stdout ceiling across Claude Code / Codex / Antigravity; not an emission cutoff
 
 
 def padded_path(base: str, length: int, fill: str = "p") -> str:

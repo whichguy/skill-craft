@@ -1100,7 +1100,11 @@ class PacketContractTests(DelegationStateTests):
         started = next(line for line in lines
                        if line.startswith("ShipLoop started this review when the Improve stage began"))
         self.assertRegex(started, r"it wrote the opening \S+/opening\.md from the run's state")
-        self.assertRegex("\n".join(lines[:12]), r"(?m)^Run the receipt CHILD/packet\.json's next_argv once")
+        self.assertRegex(
+            "\n".join(lines[:12]),
+            r"(?m)^(?:Continue the already-started review once \(run directly; do not parse CHILD/packet\.json\): |"
+            r"Run the receipt CHILD/packet\.json's next_argv once)",
+        )
         self.assertIn("Do not write the opening or start the runtime yourself", started)
         self.assertNotIn("--opening", packet)
         self.assertNotIn("improve-complete", packet)

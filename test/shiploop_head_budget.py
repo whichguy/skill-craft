@@ -1,9 +1,10 @@
 """Reference path-length measurements and historical compact-head budgets.
 
 Current emission prints every packet in full, independent of length. The normalizers below still make packet
-measurements comparable across checkouts. HOST_CUT records the 2026-10-17 Grok head/tail display observation;
-it is a host simulation threshold, not permission to omit packet content. The journaled head/whole table remains
-historical evidence and supports explicit compact-head diagnostics; it is not a cutoff for normal emission.
+measurements comparable across checkouts. HOST_CUT records the 30,000-character lowest common stdout ceiling across
+supported harnesses (Claude Code's Bash stdout limit; Codex and Antigravity allow more); it is a host simulation
+threshold, not permission to omit packet content. The journaled head/whole table remains historical evidence and
+supports explicit compact-head diagnostics; it is not a cutoff for normal emission.
 """
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TABLE = json.loads((ROOT / "test/shiploop_e2e/head_table.json").read_text(encoding="utf-8"))
 
-HOST_CUT = 20_000
+HOST_CUT = 30_000
 REFERENCE_RUN_DIR_LENGTH = TABLE["reference"]["run_dir_length"]    # the run directory: <tmp>/shiploop-step-packets-xxxxxxxx/run
 REFERENCE_ROOT_LENGTH = TABLE["reference"]["root_length"]          # the skill's package root in a plugin cache
 REFERENCE_CLI_LENGTH = TABLE["reference"]["cli_path_length"]       # <root>/skills/shiploop/scripts/shiploop

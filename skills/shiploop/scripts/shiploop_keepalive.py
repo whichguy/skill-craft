@@ -1632,6 +1632,8 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
     if routing is not None:
         _write_json(routing_file, routing)
         sessions = _load_sessions(sessions_file)
+        if isinstance(sessions.get("_last_target"), str):
+            last_target_key = sessions["_last_target"]
     while deadline is None or clock() < deadline:
         number += 1
         before = run_status(run_dir)
@@ -1649,7 +1651,9 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
         active_host = target.host if target is not None else host
         session = None
         if target is not None:
-            if target.resume == "warm":
+            same_target = last_target_key is not None and last_target_key == target.target_key
+            should_resume = (target.resume == "warm") or same_target
+            if should_resume:
                 session = sessions.get(active_host)
                 if not session and active_host in RESUMING_HOSTS:
                     bound = bindings_for_run(active_host, run_dir)
@@ -1695,15 +1699,15 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
         except OSError as exc:
             out(f"shiploop-drive: cannot start {argv[0]}: {exc}")
             return EXIT_NEEDS_USER
-        if target is not None and target.resume == "warm":
+        if target is not None:
             captured = _capture_session(
                 active_host, run_dir, wall_started, session, run_id=str(before.get("run_id") or "")
             )
             if captured:
                 sessions[active_host] = captured
-                _write_json(sessions_file, sessions)
-        if target is not None:
             last_target_key = target.target_key
+            sessions["_last_target"] = last_target_key
+            _write_json(sessions_file, sessions)
         # The session is over however it ended; let the next one own the run.
         release_owner(run_dir)
         session_log = logs / f"session-{number}.log"
@@ -1819,7 +1823,7 @@ def drive_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--review-effort", help="optional reasoning effort override for improve stages")
     parser.add_argument("--review-host", choices=(*HOSTS, "agy"), help="optional host override for improve stages")
     parser.add_argument("--resume-mode", choices=model_routing.RESUME_MODES,
-                        help="with routing enabled: warm (default, --resume same host thread) or fresh session per switch")
+                        help="with routing enabled: fresh (default, fresh session on model switch, warm on same-target restart) or warm (--resume across model switches)")
     raw = list(sys.argv[1:] if argv is None else argv)
     extra: list[str] = []
     if "--" in raw:

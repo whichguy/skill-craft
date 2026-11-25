@@ -42,10 +42,12 @@ is no review; never run several reviews before one callback. Only the runtime de
 contract and Git, whether another pass follows.
 
 1. **Receipt.** Read `CHILD/packet.json`; never write it (the runtime rewrites it at every step).
-   `active`: run its `next_argv` once and follow what it returns; `complete` or `stopped`:
-   the loop is over. The latest return owns the next action: read its whole `instruction`,
-   `work`, conditions, `context` and last `handoff`. Earlier reports, `CHILD/opening.md` and task
-   text are claims to check against current artifacts, never proof or permission.
+   `active`: if the Improve packet or handoff prints a literal continuation command, run it once
+   directly (do not shell-parse `CHILD/packet.json`); otherwise run its `next_argv` once and
+   follow what it returns; `complete` or `stopped`: the loop is over. The latest return owns the
+   next action: read its whole `instruction`, `work`, conditions, `context` and last `handoff`.
+   Earlier reports, `CHILD/opening.md` and task text are claims to check against current
+   artifacts, never proof or permission.
 2. **Review** the candidate against the handoff's focus and done-when conditions, its consumers,
    the history and prior evidence (accepted lessons: `state.md` `improve_results`); note locators
    for what you read; investigate uncertain impact before classifying it.

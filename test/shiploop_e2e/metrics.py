@@ -59,7 +59,7 @@ def tmp_writes(command: str) -> list[str]:
     return TMP_WRITE.findall(shell_text(command))
 
 
-MODEL_INPUT = re.compile(r"/inbox/|/run/(?:notes|evidence|scratch)(?:/|$|[\"'\s])|/reviews(?:/|$|[\"'\s])|opening\.md|"
+MODEL_INPUT = re.compile(r"/inbox(?:/|$|[\"'\s])|/run/(?:notes|evidence|scratch)(?:/|$|[\"'\s])|/reviews(?:/|$|[\"'\s])|opening\.md|"
                          r"commit-message\.md|\.shiploop-improve/[^/\s\"']+/nav-[0-9a-f]+/?(?:[\"'\s]|$)")
 # `git ... commit|add` as a command: at the start of a line or after ; && || |, optionally after VAR=value.
 GLUE_COMMIT = re.compile(r"(?:^|[;&|]\s*)(?:\w+=\S*\s+)*git\b[^\n;&|]*\s(?:commit|add)\b", re.M)
@@ -89,6 +89,12 @@ def glue_reasons(command: str) -> list[str]:
         reasons.append("shell write into a ShipLoop-owned path")
     if GLUE_CONTRACT.search(command) and CONTRACT_WRITE.search(command):
         reasons.append("hand-built loop contract")
+    if (
+        re.search(r"packet\.json", command)
+        and re.search(r"\bnext_argv\b", command)
+        and re.search(r"\bsubprocess\.", command)
+    ):
+        reasons.append("shell wrapper launching receipt next_argv")
     return reasons
 
 
@@ -2235,6 +2241,20 @@ def _window_top_label(tool: str, arg: dict) -> str:
     return call_target(arg) or tool
 
 
+def _compaction_event_lines(compaction_points: list[dict], stamps: dict) -> list[int]:
+    """Map host compaction points (Grok event lines or Codex rollout timestamps) to events.jsonl line numbers."""
+    ordered = sorted(stamps)
+    times = [stamps[n] for n in ordered]
+    lines: list[int] = []
+    for compaction in compaction_points:
+        if isinstance(compaction.get("line"), int):
+            lines.append(compaction["line"])
+        elif compaction.get("t") is not None and ordered:
+            index = bisect.bisect_right(times, compaction["t"])
+            lines.append(ordered[index] if index < len(ordered) else ordered[-1] + 1)
+    return lines
+
+
 def _context_boundaries(sessions: list[dict] | None, compaction_lines: list[int]) -> list[tuple[int, str]]:
     """Every line that starts a context window, in line order: line 0 (the stream's own start, kept even where a
     session or a compaction also marks it), each session ``sessionlog.read`` recorded (a run with no sessions.jsonl
@@ -2811,8 +2831,11 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     except Exception as exc:  # noqa: BLE001 - a passive record never takes the run's metrics down (per_stage once did)
         fresh_list, fresh_note = [], f"failed: {type(exc).__name__}: {' '.join(str(exc).split())[:200]}"
     try:
-        context_rows = context_window_rows(out, run_dir, stamps=stamps, accepted=accepted, pending=pending,
-                                           sessions=sessions_recorded, compaction_lines=compaction_lines)
+        context_rows = context_window_rows(
+            out, run_dir, stamps=stamps, accepted=accepted, pending=pending,
+            sessions=sessions_recorded,
+            compaction_lines=sorted(set(compaction_lines) | set(_compaction_event_lines(compaction_points, stamps))),
+        )
     except Exception:  # noqa: BLE001 - record-only, like fresh_starts above
         context_rows = []
     planning_stop = None
