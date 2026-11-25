@@ -295,11 +295,25 @@ class TimelineAndPacketTests(unittest.TestCase):
             navigator.save(root, state)
         second = navigator.current_action(state)["id"]
         state = driver.produce(state)
+        third = navigator.current_action(state)["id"]
         with mock.patch.object(navigator, "_utc_now", return_value="2026-01-01T10:09:00Z"):
             navigator.save(root, state)
         self.assertEqual(navigator.load_timeline(root), {
             "started": "2026-01-01T10:00:00Z",
-            "accepted": {first: "2026-01-01T10:05:00Z", second: "2026-01-01T10:09:00Z"}})
+            "accepted": {first: "2026-01-01T10:05:00Z", second: "2026-01-01T10:09:00Z"},
+            "entered": {
+                first: "2026-01-01T10:00:00Z",
+                second: "2026-01-01T10:05:00Z",
+                third: "2026-01-01T10:09:00Z",
+            }})
+        # Legacy two-key timelines still load cleanly.
+        (root / navigator.TIMELINE_FILE).write_text(json.dumps({
+            "started": "2026-01-01T10:00:00Z",
+            "accepted": {first: "2026-01-01T10:05:00Z"},
+        }))
+        self.assertEqual(navigator.load_timeline(root), {
+            "started": "2026-01-01T10:00:00Z",
+            "accepted": {first: "2026-01-01T10:05:00Z"}})
         (root / navigator.TIMELINE_FILE).write_text("not json")
         self.assertEqual(navigator.load_timeline(root), {})
 

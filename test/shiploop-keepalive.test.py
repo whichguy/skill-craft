@@ -1953,5 +1953,102 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
             self.assertEqual(len(verdict["boundary_stops"]), 0)
 
 
+class TokenUsageObservationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name).resolve()
+
+    def test_observed_usage_parses_codex_claude_generic_and_fails_open(self) -> None:
+        codex_log = self.base / "codex-rollout.jsonl"
+        codex_log.write_text(
+            json.dumps({"type": "turn_context", "payload": {"effort": "high"}}) + "\n"
+            + json.dumps({"type": "event_msg", "payload": {
+                "type": "token_count",
+                "info": {
+                    "total_token_usage": {
+                        "input_tokens": 12000, "cached_input_tokens": 9000,
+                        "output_tokens": 1500, "reasoning_output_tokens": 400, "total_tokens": 13500,
+                    },
+                    "last_token_usage": {"total_tokens": 4200},
+                },
+            }}) + "\n",
+            encoding="utf-8",
+        )
+        codex_got = keepalive.observed_usage("codex", {"transcript_path": str(codex_log)})
+        self.assertIsNotNone(codex_got)
+        assert codex_got is not None
+        self.assertEqual(codex_got[1], "session_cumulative")
+        self.assertEqual(codex_got[0]["total"], 13500)
+        self.assertEqual(codex_got[0]["cached_input"], 9000)
+        self.assertEqual(codex_got[0]["context_tokens"], 4200)
+
+        # Claude deduplicates assistant message.id and sums cumulative usage cleanly.
+        claude_log = self.base / "claude-session.jsonl"
+        claude_log.write_text(
+            json.dumps({"type": "assistant", "message": {"id": "m1", "role": "assistant", "usage": {
+                "input_tokens": 100, "cache_read_input_tokens": 800, "cache_creation_input_tokens": 50, "output_tokens": 20,
+            }}}) + "\n"
+            + json.dumps({"type": "assistant", "message": {"id": "m1", "role": "assistant", "usage": {
+                "input_tokens": 100, "cache_read_input_tokens": 800, "cache_creation_input_tokens": 50, "output_tokens": 40,
+            }}}) + "\n"
+            + json.dumps({"type": "assistant", "message": {"id": "m2", "role": "assistant", "usage": {
+                "input_tokens": 120, "cache_read_input_tokens": 900, "cache_creation_input_tokens": 0, "output_tokens": 60,
+            }}}) + "\n",
+            encoding="utf-8",
+        )
+        claude_got = keepalive.observed_usage("claude", {"transcript_path": str(claude_log)})
+        self.assertIsNotNone(claude_got)
+        assert claude_got is not None
+        self.assertEqual(claude_got[0]["turns"], 2)
+        self.assertEqual(claude_got[0]["input"], 220)
+        self.assertEqual(claude_got[0]["cached_input"], 1700)
+        self.assertEqual(claude_got[0]["output"], 100)
+        self.assertEqual(claude_got[0]["total"], 2070)
+        self.assertEqual(claude_got[0]["context_tokens"], 1020)
+
+        # Generic normalized usage payload works without transcripts.
+        gen = keepalive.observed_usage("antigravity", {
+            "usage": {"input_tokens": 500, "output_tokens": 120},
+            "usage_basis": "delta",
+        })
+        self.assertEqual(gen, ({"input": 500, "output": 120}, "delta"))
+
+        # Missing/corrupt transcripts fail open with None (never fake 0).
+        bad = self.base / "bad.jsonl"
+        bad.write_text("{corrupt\n", encoding="utf-8")
+        self.assertIsNone(keepalive.observed_usage("codex", {"transcript_path": str(bad)}))
+        self.assertIsNone(keepalive.observed_usage("codex", {"transcript_path": str(self.base / "missing.jsonl")}))
+
+    def test_record_observed_usage_deduplicates_and_traces(self) -> None:
+        import shiploop_navigator as nav
+        import shiploop_trace as trace_mod
+        run_dir = self.base / "run"
+        run_dir.mkdir()
+        repo = self.base / "repo"
+        repo.mkdir()
+        state = nav.new_state(str(repo), "Token usage trace test.", improve_skill="")
+        nav.save(run_dir, state)
+        action_id = nav.current_action(state)["id"]
+        binding = {
+            "host": "codex",
+            "session": "sess-1",
+            "run_dir": str(run_dir),
+            "observed_model": "gpt-5.4",
+            "observed_effort": "high",
+        }
+        payload = {"usage": {"input": 1000, "cached_input": 800, "output": 200, "total": 1200}}
+        self.assertTrue(keepalive._record_observed_usage("codex", "sess-1", binding, payload, action=action_id, stage="intake"))
+        # Unchanged cumulative snapshot is deduplicated.
+        self.assertFalse(keepalive._record_observed_usage("codex", "sess-1", binding, payload, action=action_id, stage="intake"))
+        # Growth emits a second event and aggregates via monotonic deltas.
+        payload2 = {"usage": {"input": 2500, "cached_input": 1800, "output": 450, "total": 2950}}
+        self.assertTrue(keepalive._record_observed_usage("codex", "sess-1", binding, payload2, action=action_id, stage="intake"))
+        model = trace_mod.build(run_dir)
+        self.assertEqual(model["run"]["tokens"]["total"], 2950)
+        self.assertEqual(model["now"]["tokens"]["total"], 2950)
+        self.assertEqual(model["counts"]["continuations"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

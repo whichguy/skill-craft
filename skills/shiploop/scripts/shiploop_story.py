@@ -70,7 +70,7 @@ def _timestamp(value):
 def normalise_timeline(value):
     """Return recorded timezone-bearing timestamps or unknown, with a diagnostic bit."""
     if not isinstance(value, dict) or not isinstance(value.get("accepted", {}), dict):
-        return {"started": None, "accepted": {}}, True
+        return {"started": None, "accepted": {}, "entered": {}, "paused_since": None, "paused_action": None, "paused_seconds": {}}, True
     malformed = value.get("_display_malformed") is True
     def stamp(raw):
         nonlocal malformed
@@ -80,8 +80,25 @@ def normalise_timeline(value):
             malformed = True
             return None
         return raw
+    raw_entered = value.get("entered")
+    entered = {}
+    if isinstance(raw_entered, dict):
+        entered = {action: stamp(at) for action, at in raw_entered.items() if isinstance(action, str)}
+    elif raw_entered is not None:
+        malformed = True
+    raw_paused = value.get("paused_seconds")
+    paused_seconds = {}
+    if isinstance(raw_paused, dict):
+        for action, secs in raw_paused.items():
+            if isinstance(action, str) and isinstance(secs, (int, float)) and not isinstance(secs, bool) and secs >= 0:
+                paused_seconds[action] = round(float(secs), 1)
+    paused_action = value.get("paused_action") if isinstance(value.get("paused_action"), str) else None
     return {"started": stamp(value.get("started")),
-            "accepted": {action: stamp(at) for action, at in value.get("accepted", {}).items()}}, malformed
+            "accepted": {action: stamp(at) for action, at in value.get("accepted", {}).items()},
+            "entered": entered,
+            "paused_since": stamp(value.get("paused_since")),
+            "paused_action": paused_action,
+            "paused_seconds": paused_seconds}, malformed
 
 
 def _observation_activity(row):
@@ -203,6 +220,7 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
     captures = dict(captured or {})
     sources, events, evidence, observations, warnings = [value["source"] for value in captures.values()], [], [], [], []
     activity_records = []
+    raw_trace_events = []
     timeline, malformed_timeline = normalise_timeline(timeline)
     if malformed_timeline:
         warnings.append("Malformed optional timeline timestamps; unknown timestamps withheld.")
@@ -340,6 +358,8 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
             binding = "explicit" if action else "contextual" if contextual else "unbound"
             if kind == "packet":
                 contextual = action
+            if name == "trace.jsonl":
+                raw_trace_events.append(dict(row))
             refs = []
             if kind == "packet":
                 for field in ("file", "head_file"):
@@ -377,11 +397,15 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
     # State owns acceptance. Commands remain attempts; arrival never adds a second acceptance.
     visits = []
     accepted_at = timeline.get("accepted") if isinstance(timeline.get("accepted"), dict) else {}
+    entered_at = timeline.get("entered") if isinstance(timeline.get("entered"), dict) else {}
+    paused_map = timeline.get("paused_seconds") if isinstance(timeline.get("paused_seconds"), dict) else {}
     previous_end = timeline.get("started")
     for ordinal, entry in enumerate(state.get("history", []), 1):
         action = entry.get("action")
         action = action if isinstance(action, str) and action else None
         identity = action if action is not None else "history-row:" + str(ordinal)
+        entered = entered_at.get(action) if action is not None else None
+        started_at = entered or previous_end
         ended = accepted_at.get(action) if action is not None else None
         result = state.get("accepted", {}).get(action, {}) if action is not None else {}
         activity_records.append(["state.md", {"action": action, "history": entry, "result": result, "at": ended}])
@@ -389,15 +413,21 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
                        "stage": entry.get("stage"), "summary": result.get("summary", entry.get("summary", "Accepted from state.")),
                        "status": entry.get("outcome"), "duration_ms": None, "binding": "explicit" if action else "unbound",
                        "source": {"path": "state.md", "line": None, "sha256": hashlib.sha256(core["state_raw"]).hexdigest() if core else None}, "evidence": []})
+        paused_sec = round(float(paused_map.get(action, 0.0)), 1) if action is not None else 0.0
+        wall_sec = None
+        active_sec = None
+        begin_seconds, end_seconds = _timestamp(started_at), _timestamp(ended)
+        if begin_seconds is not None and end_seconds is not None and end_seconds >= begin_seconds:
+            wall_sec = round(end_seconds - begin_seconds, 1)
+            active_sec = round(max(0.0, wall_sec - paused_sec), 1)
+        basis = "recorded entry to accept" if entered and ended else "inferred visit dwell"
         visits.append({"id": "visit:" + identity, "action": action, "stage": entry.get("stage"),
                        "item": entry.get("workitem"), "status": entry.get("outcome") or result.get("outcome") or "unknown",
                        "callback_accepted": True, "summary": result.get("summary", ""),
-                       "started_at": previous_end, "ended_at": ended, "duration_seconds": None,
-                       "duration_basis": "inferred visit dwell", "events": [], "evidence": []})
-        begin_seconds, end_seconds = _timestamp(previous_end), _timestamp(ended)
-        if begin_seconds is not None and end_seconds is not None:
-            seconds = end_seconds - begin_seconds
-            visits[-1]["duration_seconds"] = seconds if seconds >= 0 else None
+                       "started_at": started_at, "ended_at": ended,
+                       "duration_seconds": active_sec if paused_sec > 0 else wall_sec,
+                       "wall_seconds": wall_sec, "active_seconds": active_sec, "paused_seconds": paused_sec,
+                       "duration_basis": basis, "events": [], "evidence": []})
         previous_end = ended or previous_end
     import shiploop_navigator as navigator
     try:
@@ -413,11 +443,17 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
         warnings.append("Current action is unknown in retained state; no active visit or action-bound evidence inferred.")
     if current and current not in {v["action"] for v in visits}:
         reviewed = improve.get("action_id") if improve else None
+        entered = entered_at.get(current)
+        cur_started = entered or previous_end
+        cur_paused = round(float(paused_map.get(current, 0.0)), 1)
+        cur_basis = "recorded entry (in progress)" if entered else "inferred visit dwell"
         visits.append({"id": "visit:" + current, "action": current, "stage": stage, "parent_stage": parent_stage, "item": item,
                        "reviewed_action": reviewed if isinstance(reviewed, str) and reviewed else None,
                        "status": state.get("status"), "summary": state.get("status_reason", "Current visit."),
-                       "started_at": previous_end, "ended_at": None, "duration_seconds": None,
-                       "duration_basis": "inferred visit dwell", "events": [], "evidence": []})
+                       "started_at": cur_started, "ended_at": None,
+                       "duration_seconds": None,
+                       "wall_seconds": None, "active_seconds": None, "paused_seconds": cur_paused,
+                       "duration_basis": cur_basis, "events": [], "evidence": []})
     # Plan preview priorities independently of chronological visit presentation.
     # Current gates first, then all recent/prior Until receipts, then checks and
     # other structured records, and finally prompt copies. Missing files do not
@@ -586,6 +622,11 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
     for event in events:
         if event.get("action") in improve_parent:
             event["improve_of"] = improve_parent[event["action"]]
+    import shiploop_trace as trace_mod
+    normalized_trace = [trace_mod._normal_event(r) for r in raw_trace_events if isinstance(r.get("kind"), str)]
+    normalized_trace.sort(key=lambda r: float(r.get("ts") or 0))
+    trace_mod._resolve_action_owners(normalized_trace)
+    by_action_tokens, run_tokens, by_action_model = trace_mod.aggregate_usage_events(normalized_trace)
     for visit in visits:
         # Unknown actions are separate history rows, never a common null join key.
         # The stage an active Improve pass is reviewing has no history row yet: its packet, checks and callback
@@ -597,6 +638,27 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
             e for e in events if e["id"] == "accepted:" + visit["id"][len("visit:"):]]
         visit["events"] = [e["id"] for e in own]
         visit["evidence"] = list(dict.fromkeys(visit["evidence"] + [ref for e in own for ref in e["evidence"]]))
+        visit_actions = [a for a in (
+            visit.get("action"),
+            (visit.get("improve") or {}).get("action") if isinstance(visit.get("improve"), dict) else None,
+            reviewed,
+        ) if isinstance(a, str) and a]
+        merged_tok: dict[str, int] = {}
+        for act in visit_actions:
+            tok = by_action_tokens.get(act)
+            if tok:
+                for k, v in tok.items():
+                    if k == "peak_context":
+                        merged_tok[k] = max(merged_tok.get(k, 0), v)
+                    else:
+                        merged_tok[k] = merged_tok.get(k, 0) + v
+        visit["tokens"] = merged_tok or None
+        mmeta = None
+        for act in visit_actions:
+            if by_action_model.get(act):
+                mmeta = by_action_model[act]
+        visit["model"] = (mmeta or {}).get("model")
+        visit["effort"] = (mmeta or {}).get("effort")
     timed = [(stamp, event) for event in events for stamp in [_timestamp(event.get("at"))] if stamp is not None]
     timed += [(stamp, {"at": row["event_at"], "summary": row["summary"]}) for row in observations
               for stamp in [_timestamp(row.get("event_at"))] if stamp is not None]
@@ -618,6 +680,7 @@ def build(root, state, timeline, *, previous=None, observed_at=None, captured=No
              "lifecycle": lifecycle, "observations": observations,
              "last_event_at": latest["at"] if latest else None,
              "last_knowledge_at": last_knowledge_at,
+             "telemetry": {"tokens": run_tokens} if run_tokens else {},
              "coverage": {"preview_candidates": len(evidence_by_path), "previews_read": loaded, "previews_not_read": omitted_previews, "previews_not_embedded": len(not_embedded),
                           "scope": "Registered source candidates only; not an inventory of every on-disk artifact."},
              "warnings": list(dict.fromkeys(warnings))}

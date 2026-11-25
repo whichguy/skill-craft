@@ -219,6 +219,171 @@ def record_model(run_dir: Any, host: str, session: str | None, *, model: str | N
                   model=model, effort=effort, stage=stage, profile=profile)
 
 
+_USAGE_KEYS = ("input", "cached_input", "cache_write", "output", "reasoning_output", "total", "context_tokens", "turns")
+_CUMULATIVE_USAGE_KEYS = ("input", "cached_input", "cache_write", "output", "reasoning_output", "total", "turns")
+
+
+def _normalize_usage_fields(raw: Mapping[str, Any]) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for key in _USAGE_KEYS:
+        val = raw.get(key)
+        if isinstance(val, int) and not isinstance(val, bool) and val >= 0:
+            out[key] = val
+    if "total" not in out:
+        sum_parts = sum(out[k] for k in ("input", "cached_input", "cache_write", "output") if k in out)
+        if sum_parts > 0:
+            out["total"] = sum_parts
+    return out
+
+
+def record_usage(run_dir: Any, host: str, session: str | None, *, usage: Mapping[str, Any],
+                 action: str | None = None, stage: str | None = None, item: str | None = None,
+                 model: str | None = None, effort: str | None = None,
+                 basis: str = "session_cumulative") -> bool:
+    """Record an observed host token/context snapshot in the bound run's trace; fail open."""
+    if not isinstance(run_dir, str) or not run_dir or current_state(run_dir) is None:
+        return False
+    if not isinstance(usage, Mapping):
+        return False
+    normalized = _normalize_usage_fields(usage)
+    if not any(v > 0 for v in normalized.values()):
+        return False
+    extra: dict[str, Any] = {
+        "hook": "usage",
+        "decision": "observe",
+        "host": host,
+        "session": session,
+        "basis": basis if basis in ("session_cumulative", "delta") else "session_cumulative",
+        "usage": normalized,
+    }
+    if action:
+        extra["action"] = action
+    if stage:
+        extra["stage"] = stage
+    if item:
+        extra["item"] = item
+    if model:
+        extra["model"] = model
+    if effort:
+        extra["effort"] = effort
+    return record(run_dir, "hook", **extra)
+
+
+def _resolve_action_owners(events: Sequence[dict[str, Any]], *, track_repeats: bool = False) -> None:
+    """Attribute each contextual event in order to its owning action."""
+    current = None
+    seen: set[tuple[Any, Any]] = set()
+    for index, event in enumerate(events):
+        event["i"] = index
+        event.setdefault("binding", "explicit" if event.get("action") else "contextual" if current else "unbound")
+        if event["kind"] == "packet":
+            current = event.get("action")
+            if track_repeats:
+                event["repeat"] = (current, event.get("sha")) in seen
+                seen.add((current, event.get("sha")))
+        elif not event.get("action"):
+            cursor = event.get("cursor") if event["kind"] == "command" else None
+            event["for_action"] = (cursor[0] if isinstance(cursor, list) and isinstance(cursor[0], str)
+                                   else current)
+            event["binding"] = "contextual" if event["for_action"] else "unbound"
+        cursor = event.get("cursor") if event["kind"] == "command" and event.get("exit") == 0 else None
+        if isinstance(cursor, list) and len(cursor) == 2 and cursor[1]:
+            current = cursor[1]
+
+
+def aggregate_usage_events(
+    events: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, dict[str, int]], dict[str, int] | None, dict[str, dict[str, Any]]]:
+    """Compute monotonic per-(host, session) token deltas, run totals, and observed model/effort per action."""
+    by_action_tokens: dict[str, dict[str, int]] = {}
+    by_action_model: dict[str, dict[str, Any]] = {}
+    run_totals: dict[str, int] = {}
+    last_by_stream: dict[tuple[str, str], dict[str, int]] = {}
+    has_usage = False
+    for event in events:
+        if event.get("kind") != "hook":
+            continue
+        owner = event.get("action") or event.get("for_action")
+        hook_name = event.get("hook")
+        if hook_name in ("model", "usage") and isinstance(owner, str) and owner:
+            model = event.get("model")
+            effort = event.get("effort")
+            if model or effort:
+                cur_meta = by_action_model.setdefault(owner, {"model": None, "effort": None})
+                if isinstance(model, str) and model:
+                    if cur_meta["model"] != model:
+                        cur_meta["effort"] = effort if isinstance(effort, str) and effort else None
+                    cur_meta["model"] = model
+                if isinstance(effort, str) and effort:
+                    cur_meta["effort"] = effort
+        if hook_name != "usage" or not isinstance(event.get("usage"), Mapping):
+            continue
+        norm = _normalize_usage_fields(event["usage"])
+        if not any(v > 0 for v in norm.values()):
+            continue
+        has_usage = True
+        basis = event.get("basis") or "session_cumulative"
+        deltas: dict[str, int] = {}
+        if basis == "delta":
+            for key in _CUMULATIVE_USAGE_KEYS:
+                if key in norm and norm[key] > 0:
+                    deltas[key] = norm[key]
+        else:
+            stream = (str(event.get("host") or ""), str(event.get("session") or ""))
+            prev = last_by_stream.setdefault(stream, {})
+            for key in _CUMULATIVE_USAGE_KEYS:
+                if key in norm:
+                    cur = norm[key]
+                    old = prev.get(key, 0)
+                    delta = cur - old if cur >= old else 0
+                    if delta > 0:
+                        deltas[key] = delta
+                    prev[key] = max(old, cur)
+        for key, value in deltas.items():
+            run_totals[key] = run_totals.get(key, 0) + value
+        ctx = norm.get("context_tokens")
+        if isinstance(ctx, int) and ctx > 0:
+            run_totals["peak_context"] = max(run_totals.get("peak_context", 0), ctx)
+        if isinstance(owner, str) and owner and (deltas or (isinstance(ctx, int) and ctx > 0)):
+            bucket = by_action_tokens.setdefault(owner, {})
+            for key, value in deltas.items():
+                bucket[key] = bucket.get(key, 0) + value
+            if isinstance(ctx, int) and ctx > 0:
+                bucket["peak_context"] = max(bucket.get("peak_context", 0), ctx)
+    return by_action_tokens, (run_totals if has_usage and run_totals else None), by_action_model
+
+
+def telemetry_summary(
+    run_dir: str | Path,
+    state: Mapping[str, Any] | None = None,
+    *,
+    timeline: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Non-locking bounded trace reader returning token deltas and model metadata (safe inside save())."""
+    run = Path(run_dir)
+    if state is None:
+        state = current_state(run) or {}
+    run_id = state.get("run_id") if isinstance(state, Mapping) else None
+    try:
+        cap = observation_io.capture(run, TRACE_FILE, TRACE_LIMIT, _iso(time.time()) or "")
+    except Exception:  # noqa: BLE001 - fail open
+        return {"by_action_tokens": {}, "run_tokens": None, "by_action_model": {}}
+    rows = [
+        _normal_event(dict(row))
+        for _, row in observation_io.stream(cap)
+        if run_id is None or row.get("run_id", run_id) == run_id
+    ]
+    events = [row for row in rows if isinstance(row.get("kind"), str)]
+    events.sort(key=lambda row: float(row.get("ts") or 0))
+    _resolve_action_owners(events)
+    by_action_tokens, run_tokens, by_action_model = aggregate_usage_events(events)
+    return {
+        "by_action_tokens": by_action_tokens,
+        "run_tokens": run_tokens,
+        "by_action_model": by_action_model,
+    }
+
+
 def _flag(argv: Sequence[str], name: str) -> str | None:
     for index, value in enumerate(argv):
         if value == name and index + 1 < len(argv):
@@ -354,23 +519,7 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
 
     # Attribute each event to an action: its own, or (``for_action``) the action current when it happened, which is
     # the last packet's.  A command records after the packet it printed, so its new cursor is already current.
-    current = None
-    seen: set[tuple[Any, Any]] = set()
-    for index, event in enumerate(events):
-        event["i"] = index
-        event.setdefault("binding", "explicit" if event.get("action") else "contextual" if current else "unbound")
-        if event["kind"] == "packet":
-            current = event.get("action")
-            event["repeat"] = (current, event.get("sha")) in seen
-            seen.add((current, event.get("sha")))
-        elif not event.get("action"):
-            cursor = event.get("cursor") if event["kind"] == "command" else None
-            event["for_action"] = (cursor[0] if isinstance(cursor, list) and isinstance(cursor[0], str)
-                                   else current)
-            event["binding"] = "contextual" if event["for_action"] else "unbound"
-        cursor = event.get("cursor") if event["kind"] == "command" and event.get("exit") == 0 else None
-        if isinstance(cursor, list) and len(cursor) == 2 and cursor[1]:
-            current = cursor[1]
+    _resolve_action_owners(events, track_repeats=True)
 
     def owner(event: Mapping[str, Any]) -> Any:
         return event.get("action") or event.get("for_action")
@@ -380,6 +529,7 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
         if owner(event):
             by_action[owner(event)].append(event)
     packets = {event.get("action"): event for event in events if event["kind"] == "packet"}
+    by_action_tokens, run_tokens, by_action_model = aggregate_usage_events(events)
 
     def tally(action: Any) -> dict[str, int]:
         rows = by_action.get(action, [])
@@ -387,7 +537,7 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
             "packets": sum(row["kind"] == "packet" for row in rows),
             "reprints": sum(row["kind"] == "packet" and row.get("repeat") for row in rows),
             "refusals": sum(refused(row) for row in rows),
-            "hooks": sum(row["kind"] == "hook" for row in rows),
+            "hooks": sum(row["kind"] == "hook" and row.get("hook") not in ("model", "usage") for row in rows),
         }
 
     improve_results = state.get("improve_results") or {}
@@ -396,18 +546,45 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
     for event in events:
         if event["kind"] == "packet" and event.get("action") not in first_packet:
             first_packet[event.get("action")] = float(event.get("ts") or 0)
+    entered_at = {action: _parse(stamp) for action, stamp in (timeline.get("entered") or {}).items()}
+    paused_map = timeline.get("paused_seconds") if isinstance(timeline.get("paused_seconds"), Mapping) else {}
+    paused_since = _parse(timeline.get("paused_since"))
+    paused_action = timeline.get("paused_action")
     started = _parse(timeline.get("started")) or (float(events[0].get("ts") or 0) if events else None)
     steps = []
     previous = started
     for number, entry in enumerate(history, 1):
         action = entry.get("action")
         at = accepted_at.get(action)
-        begin = first_packet.get(action, previous)
+        entered = entered_at.get(action)
+        pkt_begin = first_packet.get(action)
+        begin = entered if entered is not None else (pkt_begin if pkt_begin is not None else previous)
+        if at is not None and begin is not None and at >= begin:
+            basis = ("recorded_entry" if entered is not None
+                     else "first_packet" if pkt_begin is not None
+                     else "accept_delta")
+            wall_sec = round(at - begin, 1)
+            raw_paused = paused_map.get(action) if action is not None else None
+            paused_sec = round(float(raw_paused), 1) if isinstance(raw_paused, (int, float)) and raw_paused > 0 else 0.0
+            active_sec = round(max(0.0, wall_sec - paused_sec), 1)
+            seconds = round(active_sec)
+        else:
+            basis = "unmeasured"
+            wall_sec = None
+            raw_paused = paused_map.get(action) if action is not None else None
+            paused_sec = round(float(raw_paused), 1) if isinstance(raw_paused, (int, float)) and raw_paused > 0 else 0.0
+            active_sec = None
+            seconds = None
         result = (state.get("accepted") or {}).get(action) or {}
+        model_meta = by_action_model.get(action) or {}
         steps.append({
             "n": number, "action": action, "stage": entry.get("stage"), "item": entry.get("workitem"),
-            "outcome": entry.get("outcome"), "at": _iso(at),
-            "seconds": round(at - begin) if at is not None and begin is not None and at >= begin else None,
+            "outcome": entry.get("outcome"), "started_at": _iso(begin) if basis != "unmeasured" else None,
+            "at": _iso(at), "seconds": seconds,
+            "wall_seconds": wall_sec, "paused_seconds": paused_sec, "active_seconds": active_sec,
+            "duration_basis": basis,
+            "tokens": by_action_tokens.get(action),
+            "model": model_meta.get("model"), "effort": model_meta.get("effort"),
             "headline": _headline(result, entry.get("summary")), "improve": action in improve_results,
             "result": f"results/{action}.md" if action and (run / "results" / f"{action}.md").is_file() else None,
             **tally(action),
@@ -423,6 +600,14 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
     if packet_file is None and now_action and (run / "packets" / f"{now_action}.md").is_file():
         packet_file = f"packets/{now_action}.md"
     since = first_packet.get(now_action)
+    now_entered = entered_at.get(now_action) or since
+    now_paused = 0.0
+    if now_action and isinstance(paused_map.get(now_action), (int, float)) and paused_map[now_action] > 0:
+        now_paused = round(float(paused_map[now_action]), 1)
+    if (state.get("status") in ("paused", "blocked") and paused_since is not None
+            and clock >= paused_since and (paused_action is None or paused_action == now_action)):
+        now_paused = round(now_paused + (clock - paused_since), 1)
+    now_model = by_action_model.get(now_action) or {}
     now_block = None
     if state.get("status") != "done":
         now_block = {
@@ -430,7 +615,10 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
             "reviewing": improve.get("stage") if improve else None,
             "purpose": (f"the improve skill is reviewing the {improve.get('stage')} result" if improve
                         else guidance.STAGE_PURPOSE.get(stage or "", "")),
-            "since": _iso(since), "packet": packet_file, **tally(now_action),
+            "since": _iso(since), "started_at": _iso(now_entered), "paused_seconds": now_paused,
+            "tokens": by_action_tokens.get(now_action),
+            "model": now_model.get("model"), "effort": now_model.get("effort"),
+            "packet": packet_file, **tally(now_action),
         }
 
     plan = _plan(state, accepted_at, improve_results, tally)
@@ -443,12 +631,16 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
         _READ_ROOTS.reset(token)
     counts = Counter(event["kind"] for event in events)
     commands = [event for event in events if event["kind"] == "command"]
-    hooks = [event for event in events if event["kind"] == "hook"]
+    hooks = [event for event in events if event["kind"] == "hook" and event.get("hook") not in ("model", "usage")]
     last_ts = max([float(event.get("ts") or 0) for event in events]
                   + [stamp for stamp in accepted_at.values() if stamp is not None], default=0)
     size = len(captures[TRACE_FILE]["raw"])
     # A finished run's elapsed time ends at its last event, not at the moment of reading.
     end = (last_ts or clock) if state.get("status") in ("done", "halted") else clock
+    total_paused = round(sum(float(v) for v in paused_map.values() if isinstance(v, (int, float)) and v > 0)
+                         + (max(0.0, end - paused_since)
+                            if state.get("status") in ("paused", "blocked") and paused_since is not None and end >= paused_since
+                            else 0.0), 1)
     story, captures = story_data.build(run, state, timeline, captured=captures, core=core,
                                        observed_at=core["observed_at"])
     return observation_io.screen({
@@ -463,6 +655,9 @@ def build(root: str | Path, *, now: float | None = None, core=None, captures=Non
             "status_reason": state.get("status_reason"), "revision": state.get("revision"),
             "started": _iso(started), "last_event": _iso(last_ts or None),
             "elapsed": round(end - started) if started else None,
+            "active_seconds": round(max(0.0, (end - started) - total_paused), 1) if started else None,
+            "paused_seconds": total_paused,
+            "tokens": run_tokens,
             "traced": traced, "traced_since": _iso(traced_since), "untraced_steps": outside_trace,
             "trace_bytes": size, "capped": size >= TRACE_LIMIT,
             "work_items": len(state.get("work_items") or []), "work_index": state.get("work_index"),
@@ -874,6 +1069,20 @@ def event_line(event: Mapping[str, Any]) -> str:
             where = f" at {event['stage']}" if event.get("stage") else ""
             prof = f" ({event['profile']})" if event.get("profile") else ""
             return f"{head}model {event.get('host') or '?'} {spec}{where}{prof}"
+        if event.get("hook") == "usage":
+            u = event.get("usage") if isinstance(event.get("usage"), Mapping) else {}
+            parts = []
+            if isinstance(u.get("total"), int):
+                parts.append(f"total={u['total']:,}")
+            if isinstance(u.get("input"), int):
+                parts.append(f"in={u['input']:,}")
+            if isinstance(u.get("cached_input"), int):
+                parts.append(f"cached={u['cached_input']:,}")
+            if isinstance(u.get("output"), int):
+                parts.append(f"out={u['output']:,}")
+            model_name = event.get("model")
+            spec = f" · {model_name}" + (f"/{event['effort']}" if event.get("effort") and not str(model_name).endswith(f"-{event['effort']}") else "") if model_name else ""
+            return f"{head}usage {event.get('host') or '?'} {', '.join(parts)}{spec}"
         text = f"{event.get('hook')} → {event.get('decision')} ({event.get('why')})"
         if event.get("text"):
             text += f": “{_one_line(event.get('text'), 140)}”"
@@ -896,7 +1105,16 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
     if run.get("status_reason") and run["status"] != "active":
         lines.append(f"Stopped:  {_one_line(run['status_reason'], 200)}")
     lines.append(f"Time:     started {run.get('started') or '?'} · elapsed {_span(run.get('elapsed'))}"
+                 + (f" (active {_span(round(run['active_seconds']))}, paused {_span(round(run['paused_seconds']))})"
+                    if run.get("paused_seconds") and run.get("active_seconds") is not None else "")
                  + (f" · last event {_ago(run.get('last_event'), clock)}" if run.get("last_event") else ""))
+    if isinstance(run.get("tokens"), Mapping) and run["tokens"].get("total"):
+        t = run["tokens"]
+        tparts = [f"total {t['total']:,}"]
+        for key, label in (("input", "in"), ("cached_input", "cached"), ("output", "out"), ("peak_context", "peak")):
+            if isinstance(t.get(key), int) and t[key] > 0:
+                tparts.append(f"{label} {t[key]:,}")
+        lines.append("Tokens:   " + ", ".join(tparts))
     now_block = model.get("now")
     if now_block:
         where = f"{(now_block['item'] + ' ') if now_block.get('item') else ''}{now_block['stage']}"
@@ -940,8 +1158,12 @@ def digest(model: Mapping[str, Any], *, last: int = 15, now: float | None = None
     lines.append("")
     lines.append(f"Steps run ({len(shown)} of {len(steps)} shown):" if steps else "Steps run: none yet")
     for step in shown:
+        tok = step.get("tokens")
+        tok_label = f"{tok['total']:,} tok" if isinstance(tok, Mapping) and isinstance(tok.get("total"), int) and tok["total"] > 0 else None
         extras = [part for part in (
             _span(step["seconds"]) if step.get("seconds") is not None else None,
+            tok_label,
+            step.get("model"),
             f"{step['refusals']} refused" if step.get("refusals") else None,
             _count(step["reprints"], "reprint") if step.get("reprints") else None,
             "Improve" if step.get("improve") else None) if part]

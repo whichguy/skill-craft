@@ -2450,6 +2450,20 @@ class CoverageLineTests(Fixture):
         self.assertNotIn("\nCoverage:", packet)
         self.assertIn(payload["result_line"] + "\n" + expected, packet)
 
+    def test_large_unlinted_buckets_compact_by_extension_count(self):
+        base_files = {"a.py": "x = 1\n", "b.html": "<p>0</p>\n", "c.html": "<p>0</p>\n", "notes": "0\n"}
+        for i in range(6):
+            base_files[f"docs/f{i}.md"] = f"# {i}\n"
+        self.commit(base_files)
+        self.base()
+        edits = {path: text + "1\n" for path, text in base_files.items() if path != "a.py"}
+        edits["a.py"] = "x = 2\n"
+        self.edit(edits)
+        payload = self.run_pass(mode="report")
+        line = payload["coverage_line"]
+        self.assertIn("9 files (6 .md, 2 .html, 1 (no ext); not in scope:", line)
+        self.assertNotIn("docs/f0.md", line)
+
     def test_the_coverage_line_says_when_a_tool_is_unavailable_timed_out_or_did_not_run(self):
         self.commit({"a.py": "x = 1\n", "eslint.config.js": "export default []\n", ".prettierrc": "{}\n",
                      "b.js": "var b = 1\n"})

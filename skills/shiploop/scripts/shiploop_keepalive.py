@@ -520,6 +520,192 @@ def _record_observed_model(
     return True
 
 
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def _extract_codex_usage(path_value: Any) -> dict[str, int] | None:
+    """Latest session-cumulative token_count snapshot from a Codex rollout JSONL; fail open."""
+    for row in reversed(_tail_jsonl(path_value)):
+        if row.get("type") != "event_msg" or not isinstance(row.get("payload"), Mapping):
+            continue
+        pl = row["payload"]
+        if pl.get("type") != "token_count" or not isinstance(pl.get("info"), Mapping):
+            continue
+        info = pl["info"]
+        tot = info.get("total_token_usage")
+        if not isinstance(tot, Mapping):
+            continue
+        usage: dict[str, int] = {}
+        for src, dst in (
+            ("input_tokens", "input"),
+            ("cached_input_tokens", "cached_input"),
+            ("cache_write_input_tokens", "cache_write"),
+            ("output_tokens", "output"),
+            ("reasoning_output_tokens", "reasoning_output"),
+            ("total_tokens", "total"),
+        ):
+            val = _int_or_none(tot.get(src))
+            if val is not None:
+                usage[dst] = val
+        last = info.get("last_token_usage") if isinstance(info.get("last_token_usage"), Mapping) else {}
+        ctx = _int_or_none(last.get("total_tokens"))
+        if ctx is None:
+            ctx = _int_or_none(last.get("input_tokens"))
+        if ctx is not None:
+            usage["context_tokens"] = ctx
+        if any(v > 0 for v in usage.values()):
+            return usage
+    return None
+
+
+def _extract_claude_usage(path_value: Any, max_bytes: int = 8 * 1024 * 1024) -> dict[str, int] | None:
+    """Deduplicated cumulative assistant message.usage totals from a Claude Code JSONL; fail open."""
+    if not isinstance(path_value, str) or not path_value:
+        return None
+    path = Path(path_value)
+    if not path.is_file():
+        return None
+    try:
+        size = path.stat().st_size
+        if size <= 0 or size > max_bytes:
+            return None
+        by_msg: dict[str, tuple[int, int, int, int]] = {}
+        order = 0
+        last_ctx: int | None = None
+        with path.open("r", encoding="utf-8", errors="ignore") as handle:
+            for raw_line in handle:
+                line = raw_line.strip()
+                if not line.startswith("{"):
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                msg = row.get("message")
+                if not isinstance(msg, Mapping) or msg.get("role") != "assistant":
+                    continue
+                raw_usage = msg.get("usage")
+                if not isinstance(raw_usage, Mapping):
+                    continue
+                inp = _int_or_none(raw_usage.get("input_tokens")) or 0
+                cache_read = _int_or_none(raw_usage.get("cache_read_input_tokens")) or 0
+                cache_create = _int_or_none(raw_usage.get("cache_creation_input_tokens")) or 0
+                out = _int_or_none(raw_usage.get("output_tokens")) or 0
+                if inp + cache_read + cache_create + out <= 0:
+                    continue
+                msg_id = msg.get("id") if isinstance(msg.get("id"), str) and msg.get("id") else (
+                    row.get("uuid") if isinstance(row.get("uuid"), str) and row.get("uuid") else f"row:{order}"
+                )
+                order += 1
+                by_msg[msg_id] = (inp, cache_read, cache_create, out)
+                last_ctx = inp + cache_read + cache_create
+    except OSError:
+        return None
+    if not by_msg:
+        return None
+    inp_sum = sum(v[0] for v in by_msg.values())
+    cached_sum = sum(v[1] for v in by_msg.values())
+    write_sum = sum(v[2] for v in by_msg.values())
+    out_sum = sum(v[3] for v in by_msg.values())
+    usage: dict[str, int] = {
+        "input": inp_sum,
+        "cached_input": cached_sum,
+        "cache_write": write_sum,
+        "output": out_sum,
+        "total": inp_sum + cached_sum + write_sum + out_sum,
+        "turns": len(by_msg),
+    }
+    if last_ctx is not None and last_ctx > 0:
+        usage["context_tokens"] = last_ctx
+    return usage
+
+
+def observed_usage(host: str, payload: Mapping[str, Any]) -> tuple[dict[str, int], str] | None:
+    """Extract normalized ``(usage, basis)`` from a hook payload or host transcript; fail open."""
+    if not isinstance(payload, Mapping):
+        return None
+    raw_usage = payload.get("usage")
+    if isinstance(raw_usage, Mapping):
+        mapped: dict[str, int] = {}
+        for src, dst in (
+            ("input", "input"), ("input_tokens", "input"), ("prompt_tokens", "input"),
+            ("cached_input", "cached_input"), ("cached_input_tokens", "cached_input"), ("cache_read_input_tokens", "cached_input"),
+            ("cache_write", "cache_write"), ("cache_write_input_tokens", "cache_write"), ("cache_creation_input_tokens", "cache_write"),
+            ("output", "output"), ("output_tokens", "output"), ("completion_tokens", "output"),
+            ("reasoning_output", "reasoning_output"), ("reasoning_output_tokens", "reasoning_output"),
+            ("total", "total"), ("total_tokens", "total"),
+            ("context_tokens", "context_tokens"), ("turns", "turns"),
+        ):
+            val = _int_or_none(raw_usage.get(src))
+            if val is not None and dst not in mapped:
+                mapped[dst] = val
+        if any(v > 0 for v in mapped.values()):
+            basis = str(payload.get("usage_basis") or raw_usage.get("basis") or "session_cumulative")
+            if basis not in ("session_cumulative", "delta"):
+                basis = "session_cumulative"
+            return mapped, basis
+    transcript = payload.get("transcript_path")
+    if not isinstance(transcript, str) or not transcript:
+        return None
+    norm = model_routing.normalize_host(host)
+    if norm == "codex":
+        codex_usage = _extract_codex_usage(transcript)
+        return (codex_usage, "session_cumulative") if codex_usage else None
+    if norm == "claude":
+        claude_usage = _extract_claude_usage(transcript)
+        return (claude_usage, "session_cumulative") if claude_usage else None
+    # Unknown/other hosts with transcripts may use either format; try Codex tail then Claude lines fail-open.
+    found = _extract_codex_usage(transcript) or _extract_claude_usage(transcript)
+    return (found, "session_cumulative") if found else None
+
+
+def _record_observed_usage(
+    host: str,
+    session: str,
+    binding: dict[str, Any],
+    payload: Mapping[str, Any],
+    *,
+    action: str | None = None,
+    stage: str | None = None,
+    item: str | None = None,
+) -> bool:
+    """Update ``binding`` and append a trace usage row when cumulative usage changed; fail open."""
+    try:
+        extracted = observed_usage(host, payload)
+    except Exception:  # noqa: BLE001
+        return False
+    if extracted is None:
+        return False
+    usage, basis = extracted
+    sig = [usage.get("total"), usage.get("output"), usage.get("turns"), usage.get("context_tokens")]
+    if basis != "delta" and binding.get("observed_usage") == sig:
+        return False
+    binding["observed_usage"] = sig
+    run_dir = binding.get("run_dir")
+    if not isinstance(run_dir, str) or not run_dir:
+        return False
+    try:
+        session_hash = hashlib.sha256(session.encode()).hexdigest()[:12]
+        trace.record_usage(
+            run_dir,
+            host,
+            session_hash,
+            usage=usage,
+            action=action,
+            stage=stage,
+            item=item,
+            model=binding.get("observed_model"),
+            effort=binding.get("observed_effort"),
+            basis=basis,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    return True
+
+
 def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     """Bind the session to the run named by a marker in this tool output.
 
@@ -550,8 +736,12 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             path = _binding_path(host, session)
             with _locked(path):
                 current = load_binding(host, session)
-                if current is not None and _record_observed_model(host, session, current, payload):
-                    _write_json(path, current)
+                if current is not None:
+                    changed_model = _record_observed_model(host, session, current, payload)
+                    changed_usage = _record_observed_usage(host, session, current, payload,
+                                                            action=current.get("observed_action"))
+                    if changed_model or changed_usage:
+                        _write_json(path, current)
             owner = _load_owner(existing["run_dir"])
             if owner.get("owner") == _owner_id(host, session):
                 claim_owner(existing["run_dir"], host, session)
@@ -578,6 +768,14 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             binding.update({key: previous[key] for key in STOP_MEMORY if key in previous})
         _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
                                profile=status.get("profile"))
+        prev_action = previous.get("observed_action") if previous.get("run_id") == status["run_id"] else None
+        cur_action = status.get("action")
+        usage_action = (prev_action if isinstance(prev_action, str) and prev_action and cur_action
+                        and prev_action != cur_action and command and re.search(r"\bcomplete\b", command)
+                        else cur_action)
+        _record_observed_usage(host, session, binding, payload, action=usage_action, stage=status.get("stage"))
+        if isinstance(cur_action, str) and cur_action:
+            binding["observed_action"] = cur_action
         _write_json(path, binding)
     _record_seen_session(status.get("run_id"), host, session)
     claim_owner(status["run_dir"], host, session)
@@ -660,7 +858,8 @@ def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool
 # Hosts that force a turn to end after this many stop-hook continuations.
 CONTINUATION_CAPS = {"grok": 8}
 # What a stop remembers about the last refusal; a re-bind of the same run keeps it (``observe``).
-STOP_MEMORY = ("last_block_progress", "turn_blocks", "observed_model", "observed_effort")
+STOP_MEMORY = ("last_block_progress", "turn_blocks", "observed_model", "observed_effort",
+               "observed_usage", "observed_action")
 # A refused callback counts as progress so the host fixes and resubmits it.  No
 # count of continuations without an accepted result releases the turn (owner
 # 2026-10-24: no run caps); only a host's own cap above ends one.
@@ -752,6 +951,11 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False,
     if payload is not None:
         _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
                                profile=status.get("profile"))
+        _record_observed_usage(host, session, binding, payload,
+                               action=status.get("action") or binding.get("observed_action"),
+                               stage=status.get("stage"))
+        if isinstance(status.get("action"), str) and status["action"]:
+            binding["observed_action"] = status["action"]
     if status["status"] != "active":
         reason = status.get("status_reason")
         waiting = ((" (waiting on an outside service)" if status.get("awaiting") == "service" else " (waiting on the user)")

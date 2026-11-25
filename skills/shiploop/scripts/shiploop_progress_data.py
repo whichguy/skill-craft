@@ -516,7 +516,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
     facts = navigator.narrative_facts(state, timeline, root=run_root)
     facts = _redact_tree(facts)
     try:
-        status_block = navigator.status_block(state, run_root)
+        status_block = navigator.status_block(state, run_root, timeline=timeline)
     except Exception as exc:
         raise ValueError("navigator status projection failed") from exc
     if privacy.sensitive_text(status_block):
@@ -619,6 +619,8 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
     import shiploop_story as story_data
     story, captures = story_data.build(run_root, state, timeline, previous=optional_cache, observed_at=observed_at, core=core, captured=document_captures)
     snapshot["story"] = story
+    if isinstance(story.get("telemetry"), Mapping) and story["telemetry"]:
+        snapshot["run"]["telemetry"] = story["telemetry"]
     snapshot["activity_fingerprint"] = _sha256_hex(_canonical([_redact_tree(state), story["activity_fingerprint"], inflight]))
     snapshot["source_fingerprint"] = _sha256_hex(_canonical([snapshot["source_fingerprint"], story["content_fingerprint"]]))
     from shiploop_observation_io import screen
