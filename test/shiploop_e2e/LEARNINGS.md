@@ -10010,4 +10010,20 @@ Implemented the observability polish identified during `4.14.0` live `medium` ru
 
 Limits: Full-lifecycle `user-listing` was a single cohesive item with no `tools/` runtime probe or multi-item `"deferred"` concerns; full cross-stage `Q1 (intake) -> plan experiment loop -> W1 spine -> W2 enrich` inside one continuous non-seeded live run remains an optional future end-to-end check.
 
+## 2026-11-24 — Post-Tier-3 open-item settlement traceability & `release-plan` regression visibility (`eaf953109`..`4e00d3eef`)
+
+Root-cause sampling of unsettled `open_item_settlement` entries from the `4.13.2` Phase B1 telemetry census (`gpt-6.2-sol` `19%` settled `7/36`; `claude-sonnet-5-5` `51%` settled `47/93`) identified two low-overhead fixes without changing core inner-loop defaults:
+
+- **Traceability + `handoff` accounting (`eaf953109`, `09ca75ff8`):**
+  - Unsettled items on `gpt-6.2-sol` came primarily from due stages (`system-test`, `product-acceptance`, inner items) executing the check in prose without citing `A<n>` in `summary` or `assumptions`, while `15/46` (`33%`) of `claude-sonnet-5-5`'s unsettled items targeted `due_stage: "handoff"`, where `handoff` writes `follow_on` rather than `assumptions`.
+  - Updated `skills/shiploop/scripts/shiploop_navigator.py` (`_source_lines` + `_test_evidence_lines`) to print explicit due-stage settlement hints (`follow_on (source: "assumption:<id>")` at `handoff`; ID citation or carry-forward elsewhere), updated `skills/shiploop/scripts/shiploop_follow_on.py:check_submitted` to refuse done `handoff` results leaving `due_stage == "handoff"` open assumptions absent from both `follow_on` (`assumption:<id>`) and word-bounded `summary`, and extended `test/shiploop_e2e/metrics.py:open_item_settlement` to count `handoff.follow_on`. Checked: `30/30` `shiploop-e2e-packet-anatomy`, `21/21` `shiploop-packet-bounds`, `174/174` `shiploop-handoff`, `128/128` `shiploop-navigator-contract`, `3/3` `OpenItemSettlementTests`.
+- **Multi-item `release-plan` narrowed-regression visibility (`4e00d3eef`):**
+  - Added `dropped_regression_commands(state)` in `skills/shiploop/scripts/shiploop_test_loop.py` and rendered non-blocking hints inside `_test_evidence_lines` at `release-plan` whenever an earlier item's local regression command is omitted from the last item recording regression commands, preserving `release_commands(..., last_item=True)`. Checked: `3/3` `shiploop-evidence-testing`, `36/36` `shiploop-head-order`.
+- **Slow-suite Tier 3 A2 test updates (`77950fb76` & `test/shiploop-test-loop.test.py`):** Adapted `PrimaryRequirementRouteTests.test_a_reflect_and_revise_whose_queue_drops_the_work_item_serving_a_primary_requirement_is_refused` (`4/4 OK`) and `TestLoopTests.test_a_created_skill_must_exist_with_frontmatter_and_repeat_evidence` (`1/1 OK`) for `7ab5dad09` mid-run `reflect-and-revise` Improve behavior.
+- **Isolated empty-repo CLI verification:** Verified end-to-end through `skills/shiploop/scripts/shiploop` inside fresh `git init -b main` repos (`Check 1`: `system-test` renders `A1` + hint, `handoff` refuses empty `follow_on`, accepts `source: "assumption:A2"`, `metrics.open_item_settlement` reports `2/2` settled; `Check 2`: multi-item `release-plan` displays dropped `W1` regression command when narrowed and omits hint when carried).
+
+Standing evaluation questions: measure `open_item_settlement` and zero-edit Improve wall-clock shares on fresh post-`4.14.1` live `gpt-6.2-sol` and `claude-sonnet-5-5` multi-item runs before deciding on any due-stage settlement refusal outside `handoff`.
+
+Limits: Verification covers hermetic unit suites, isolated empty-repo CLI checks, `ruff`, `check-release-boundary.py`, slow contract suites (`shiploop-callback-contract`, `shiploop-test-loop`), and the `--group quick` sweep; live E2E subject runs were not re-executed.
+
 
