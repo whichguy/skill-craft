@@ -2424,6 +2424,8 @@ def open_item_settlement(state: dict | None) -> dict:
             parts = [str(d_res.get("summary") or "")]
             if d_res.get("assumptions") is not None:
                 parts.append(json.dumps(d_res.get("assumptions"), sort_keys=True))
+            if d_res.get("follow_on") is not None:
+                parts.append(json.dumps(d_res.get("follow_on"), sort_keys=True))
             if token.search("\n".join(parts)):
                 matched = True
                 break

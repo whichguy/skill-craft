@@ -4611,6 +4611,42 @@ class OpenItemSettlementTests(unittest.TestCase):
             lines = metrics.summary_lines(m)
             self.assertIn("open items settled 2/3 (total 3) (unsettled: A3@product-acceptance)", lines)
 
+    def test_handoff_follow_on_counts_as_settled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = {
+                "history": [
+                    {"stage": "release-verify", "outcome": "done", "workitem": None, "action": "a-rv"},
+                    {"stage": "handoff", "outcome": "done", "workitem": None, "action": "a-hf"},
+                ],
+                "accepted": {
+                    "a-rv": {"outcome": "done", "summary": "rv", "assumptions": [
+                        {"id": "A1", "assumption": "user check", "disposition": "open", "settle": "ask",
+                         "reason": "defer", "due_stage": "handoff"},
+                        {"id": "A2", "assumption": "second check", "disposition": "open", "settle": "ask",
+                         "reason": "defer", "due_stage": "handoff"},
+                    ]},
+                    "a-hf": {
+                        "outcome": "done",
+                        "summary": "Delivered cleanly.",
+                        "follow_on": [{
+                            "class": "person",
+                            "statement": "User check remaining.",
+                            "source": "assumption:A1",
+                            "request_sentence": "",
+                            "needs": "Operator confirmation",
+                        }],
+                    },
+                },
+            }
+            m = self._run_with_state(tmp, state)
+            self.assertEqual(m["open_item_settlement"], {
+                "total": 2,
+                "due_completed": 2,
+                "settled": 1,
+                "unsettled": [{"id": "A2", "source_stage": "release-verify", "due_stage": "handoff",
+                               "due_item": None}],
+            })
+
 
 class StateSummaryTests(unittest.TestCase):
     """metrics.delegation and metrics.state_summary read state.md, tests/, and return-receipt.md honestly."""
