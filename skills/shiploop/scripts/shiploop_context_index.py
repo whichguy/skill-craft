@@ -291,6 +291,23 @@ def _latest_check_line(root: Path, action_id: str) -> str | None:
     return None
 
 
+def _load_timeline_entered(root: Path, action_id: str) -> str | None:
+    raw = _safe_text(root / "timeline.json")
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(data, Mapping):
+        return None
+    entered = data.get("entered")
+    if not isinstance(entered, Mapping):
+        return None
+    stamp = entered.get(action_id)
+    return stamp if isinstance(stamp, str) and stamp else None
+
+
 def _in_progress_lines(
     state: Mapping[str, Any],
     root: Path,
@@ -305,6 +322,7 @@ def _in_progress_lines(
     row = stage_spec.stage(stage)
     entered_at = (timeline.get("entered", {}).get(action_id)
                   if isinstance(timeline, Mapping) and isinstance(timeline.get("entered"), Mapping)
+                  else _load_timeline_entered(root, action_id) if timeline is None
                   else None)
     entered_note = f"; entered {entered_at}" if isinstance(entered_at, str) and entered_at else ""
     lines = ["## In progress", "",

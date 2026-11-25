@@ -307,10 +307,10 @@ class PacketTests(unittest.TestCase):
             (root / "checks" / f"{action}.md").write_text(
                 "# Check failure\nExit 1: missing unit test assertion.\n", encoding="utf-8",
             )
-            rendered = context_index.render(
-                state, root, nav.current_stage(state),
-                timeline={"started": "2026-01-01T10:00:00Z", "accepted": {}, "entered": {action: "2026-01-01T10:15:00Z"}},
-            )
+            tl = {"started": "2026-01-01T10:00:00Z", "accepted": {}, "entered": {action: "2026-01-01T10:15:00Z"}}
+            (root / "timeline.json").write_text(json.dumps(tl), encoding="utf-8")
+            rendered = context_index.render(state, root, nav.current_stage(state), timeline=tl)
+            self.assertEqual(context_index.render(state, root, nav.current_stage(state)), rendered)
             self.assertIn(f"- Action {action} (implement); entered 2026-01-01T10:15:00Z", rendered)
             self.assertIn("[status=open, pass=3]", rendered)
             self.assertIn("Latest check (", rendered)
