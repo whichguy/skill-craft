@@ -197,9 +197,10 @@ def runs_root(out) -> Path:
     """The folder whose run folders are this run's neighbours: ``$SHIPLOOP_E2E_RUNS_ROOT`` when set, else the output's
     grandparent, so ``<runs>/<day>/<run>`` sees every day's runs and the folders an experiment nests its slices in
     (2026-10-24: chess run 5 under ``<runs>/20261024/`` and sixteen E6 slices under ``<runs>/e6-r1-20261024/…/slice`` ran
-    together, and a same-parent rule saw none of them).  The grandparent is never the home folder, the temporary folder or
-    the file system root, which hold far more than runs: there the parent is the root (the default output folder
-    ``$TMPDIR/shiploop-e2e/<run>`` gives ``$TMPDIR/shiploop-e2e``)."""
+    together, and a same-parent rule saw none of them).  The grandparent is never the home folder, the temporary folder
+    (including ``/tmp`` and ``/var/tmp`` alongside ``tempfile.gettempdir()``, which on macOS points to ``/var/folders/.../T``
+    rather than ``/private/tmp``), or the file system root, which hold far more than runs: there the parent is the root
+    (the default output folder ``$TMPDIR/shiploop-e2e/<run>`` gives ``$TMPDIR/shiploop-e2e``)."""
     named = os.environ.get(RUNS_ROOT_ENV)
     if named:
         return Path(named).expanduser()
@@ -207,7 +208,7 @@ def runs_root(out) -> Path:
     if (parent / "suite-result.json").is_file():
         return runs_root(parent)  # a finished suite's case: its suite folder's root, as run_suite set it during the run
     grand = parent.parent
-    too_wide = {os.path.realpath(place) for place in (Path.home(), tempfile.gettempdir(), grand.anchor)}
+    too_wide = {os.path.realpath(place) for place in (Path.home(), tempfile.gettempdir(), "/tmp", "/var/tmp", grand.anchor)}
     return parent if grand == parent or os.path.realpath(grand) in too_wide else grand
 
 

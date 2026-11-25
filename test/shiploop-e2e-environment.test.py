@@ -1088,6 +1088,11 @@ class OverlapTest(unittest.TestCase):
         self.assertEqual(root(Path("/x/runs/20261024/run")), Path("/x/runs"))
         self.assertEqual(root(Path("/x/run")), Path("/x"), "the file system root is too wide: the parent")
         self.assertEqual(root(Path(tempfile.gettempdir()) / "shiploop-e2e" / "hello-1"), Path(tempfile.gettempdir()) / "shiploop-e2e")
+        self.assertEqual(root(Path("/tmp/exp/run")), Path("/tmp/exp"))
+        self.assertEqual(root(Path("/var/tmp/exp/run")), Path("/var/tmp/exp"))
+        real_tmp = os.path.realpath("/tmp")
+        if real_tmp != "/tmp":
+            self.assertEqual(root(Path(real_tmp) / "exp" / "run"), Path(real_tmp) / "exp")
         with mock.patch.object(self.environment.Path, "home", return_value=self.parent):
             self.assertEqual(root(self.parent / "e2e-runs" / "run"), self.parent / "e2e-runs", "the home folder is too wide")
         with mock.patch.dict(os.environ, {self.environment.RUNS_ROOT_ENV: str(self.parent / "named")}):
