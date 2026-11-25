@@ -9025,14 +9025,22 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
     inline = delegation(state) == guidance.INLINE
     done = _callback(core, root, "complete", action=improve_id(state))
     next_cmd = _improve_next_command(child)
-    continue_line = (
-        "Run the receipt CHILD/packet.json's next_argv once"
-        + (": " + next_cmd + " —" if next_cmd else ",")
-        + " then follow each returned instruction until the runtime "
-        "returns complete (ShipLoop started it: start nothing). You write "
-        + ("" if child["stage"] in stage_spec.with_improve("item") else "CHILD/commit-message.md, ")
-        + "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json."
-    )
+    if next_cmd:
+        continue_line = (
+            "Continue the already-started review once (run directly; do not parse CHILD/packet.json): "
+            + next_cmd
+            + " — then follow each returned instruction until the runtime "
+            "returns complete (ShipLoop started it: start nothing). You write "
+            + ("" if child["stage"] in stage_spec.with_improve("item") else "CHILD/commit-message.md, ")
+            + "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json."
+        )
+    else:
+        continue_line = (
+            "Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime "
+            "returns complete (ShipLoop started it: start nothing). You write "
+            + ("" if child["stage"] in stage_spec.with_improve("item") else "CHILD/commit-message.md, ")
+            + "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json."
+        )
     return [
         IMPROVE_READ_SENTENCE,
         CHILD_SYMBOL + " = " + str(standalone.receipt_path(child).parent) + " · ROUTE = " + str(improve_route_path(child))
@@ -9328,11 +9336,14 @@ def improve_packet(core: Any, root: Path, state: Mapping[str, Any],
         else:
             # Host-neutral (packet review 2026-10-17, A5-1/D-17): the argument on a line of its own, then each host's route
             # on equal terms; the run does not record which host renders the packet.
+            next_cmd = _improve_next_command(child)
             lines += ["1. Run the improve skill on the " + stage + " result with this argument, at every Improve stage and "
                       "not from memory of an earlier one:",
                       "       " + argument,
                       "   (through the host's skill call for skill \"improve\": the Skill tool, or /improve, where the host "
                       "has one; otherwise open " + child["skill"]["skill_card"] + " and follow it with the argument)",
+                      *(["   Continue the already-started review once (run directly; do not parse packet.json): " + next_cmd]
+                        if next_cmd else []),
                       "   After each review pass, write its review-<n>.md (form: the handoff's Evidence line), then run: "
                       + _callback(core, root, "improve-pass", action=improve_id(state)),
                       "2. When the improve skill has completed, run: "

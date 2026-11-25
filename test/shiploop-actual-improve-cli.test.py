@@ -1209,17 +1209,21 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(with_route(full).count("Never write or edit the receipt"), 1)    # in the route now, once
 
     def test_printed_literal_improve_continuation_command_runs_without_glue(self):
-        """Handoff prints the validated, shell-quoted next_argv command verbatim and falls back when stale or done."""
+        """Packet and handoff print the validated literal continuation command directly and fall back when stale or done."""
         handoff_path = navigator.improve_handoff_path(self.bound)
         handoff = handoff_path.read_text(encoding="utf-8")
         self.assertNotIn(sys.executable, handoff)
-        line = next(row for row in handoff.splitlines() if row.startswith("Run the receipt CHILD/packet.json's next_argv once"))
+        prefix = "Continue the already-started review once (run directly; do not parse CHILD/packet.json): "
+        line = next(row for row in handoff.splitlines() if row.startswith(prefix))
         self.assertIn(": python3 ", line)
-        cmd = line.split(": ", 1)[1].split(" — then follow each returned instruction", 1)[0]
+        cmd = line.split(prefix, 1)[1].split(" — then follow each returned instruction", 1)[0]
+        if self.inline():
+            packet = self.invoke(CLI, "next", "--run-dir", self.run).stdout
+            self.assertIn("Continue the already-started review once (run directly; do not parse packet.json): " + cmd, packet)
         _raw, res = self.invoke_argv(shlex.split(cmd))
         self.assertEqual(res["status"], "active")
 
-        # Stale/tampered receipt pointing to a mismatched workspace or wrong runtime_cli returns None.
+        # Stale/tampered receipt pointing to a mismatched workspace or wrong runtime_cli returns None and handoff falls back.
         receipt_path = bridge.receipt_path(self.bound)
         raw_receipt = receipt_path.read_bytes()
         try:
@@ -1231,6 +1235,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
             ):
                 receipt_path.write_text(json.dumps(tampered), encoding="utf-8")
                 self.assertIsNone(navigator._improve_next_command(self.bound))
+            with mock.patch.object(navigator, "delegation", return_value="inline"), \
+                    mock.patch.object(navigator, "_callback", return_value="python3 shiploop complete"):
+                fallback_lines = navigator._improve_handoff_top(
+                    object(), self.run,
+                    {"active_improve": self.bound, "run_id": "r", "revision": 1, "work_items": [], "history": [], "accepted": {}},
+                )
+            self.assertTrue(any(row.startswith("Run the receipt CHILD/packet.json's next_argv once,") for row in fallback_lines))
         finally:
             receipt_path.write_bytes(raw_receipt)
 
