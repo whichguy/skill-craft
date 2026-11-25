@@ -53,3 +53,12 @@ The results record each suite separately, including the base suite and original 
 ```sh
 python3 -B test/shiploop-e2e-ticket-semantics.test.py
 ```
+
+# Live 3-host model-routing smoke runner
+
+`model_routing_smoke.py` verifies `shiploop-drive` harness-to-model switching across **Claude, Codex, and Antigravity** (and optional unrouted controls) on a minimal seeded outer workflow (`system-test-author` → `system-test` → `product-acceptance`):
+
+```sh
+python3 -B test/shiploop_e2e/probes/model_routing_smoke.py --hosts claude,codex,antigravity --mode routed --dry-run
+python3 -B test/shiploop_e2e/probes/model_routing_smoke.py --hosts claude,codex,antigravity --mode routed --output /tmp/routing-smoke
+```

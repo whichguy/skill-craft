@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import importlib.util
 import json
 import shlex
 import os
@@ -1529,6 +1530,306 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
         rows = self.model_rows()
         self.assertEqual(len(rows), 1)
         self.assertEqual((rows[0]["model"], rows[0]["effort"]), ("gpt-6.2-sol", "medium"))
+
+    def test_observed_model_reads_claude_effort_from_assistant_transcript_row(self) -> None:
+        transcript = self.temp / "claude-transcript.jsonl"
+        transcript.write_text(
+            json.dumps({
+                "type": "assistant",
+                "effort": "high",
+                "perTurnEffort": "high",
+                "message": {"role": "assistant", "model": "claude-sonnet-5-5", "content": []},
+            }) + "\n",
+            encoding="utf-8",
+        )
+        self.hook("observe", "claude", {
+            **self.payload("claude", "observe", "claude-eff-1"),
+            "transcript_path": str(transcript),
+        })
+        transcript.write_text(
+            json.dumps({
+                "type": "assistant",
+                "perTurnEffort": "low",
+                "message": {"role": "assistant", "model": "claude-haiku-5-5", "content": []},
+            }) + "\n",
+            encoding="utf-8",
+        )
+        self.hook("observe", "claude", {
+            **self.payload("claude", "observe", "claude-eff-1"),
+            "transcript_path": str(transcript),
+        })
+        transcript.write_text(
+            json.dumps({
+                "type": "assistant",
+                "message": {"role": "assistant", "model": "claude-opus-5-5", "content": []},
+            }) + "\n",
+            encoding="utf-8",
+        )
+        self.hook("observe", "claude", {
+            **self.payload("claude", "observe", "claude-eff-1"),
+            "transcript_path": str(transcript),
+        })
+        rows = self.model_rows()
+        self.assertEqual(
+            [(row["model"], row.get("effort")) for row in rows],
+            [("claude-sonnet-5-5", "high"), ("claude-haiku-5-5", "low"), ("claude-opus-5-5", None)],
+        )
+
+    def test_drive_warm_resume_survives_session_end_binding_cleanup(self) -> None:
+        run_id = self.status()["run_id"]
+        for host, planning, execution in (
+            ("claude", {"model": "sonnet", "effort": "high"}, {"model": "haiku", "effort": "low"}),
+            ("codex", {"model": "gpt-6.2-astra", "effort": "high"}, {"model": "gpt-6.2-sol", "effort": "medium"}),
+        ):
+            routing_cfg = {"planning": {host: planning}, "execution": {host: execution}}
+            statuses = [
+                {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                 "status": "active", "stage": "plan", "revision": 1, "completion": "c1", "next": "n1"},
+                {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                 "status": "active", "stage": "implement", "revision": 2, "completion": "c2", "next": "n2"},
+                {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                 "status": "active", "stage": "product-acceptance", "revision": 3, "completion": "c3", "next": "n3"},
+                {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
+                 "status": "done", "stage": "done", "revision": 4, "completion": "", "next": "n4"},
+            ]
+            idx = [0]
+            calls: list[list[str]] = []
+            sid = f"{host}-warm-session-end-1"
+
+            def fake_status(_run_dir):
+                return dict(statuses[min(idx[0], len(statuses) - 1)])
+
+            def runner(argv, **kwargs):
+                calls.append(argv)
+                self.hook("observe", host, self.payload(host, "observe", sid))
+                # Simulate Claude/Codex SessionEnd firing on clean exit, unlinking the binding file.
+                self.hook("session-end", host, {"session_id": sid, "reason": "other"})
+                idx[0] += 1
+                return DriverTests.done(argv)
+
+            with mock.patch.object(keepalive, "run_status", side_effect=fake_status):
+                code = keepalive.drive(host, str(self.run_dir), session_timeout=60, extra=[], cwd=None,
+                                       routing=routing_cfg, out=lambda _m: None, runner=runner, clock=lambda: 10.0)
+            self.assertEqual(code, keepalive.EXIT_DONE)
+            self.assertEqual(len(calls), 3)
+            self.assertNotIn("--resume", calls[0])
+            if host == "codex":
+                self.assertEqual(calls[1][:3], ["codex", "exec", "resume"])
+                self.assertEqual(calls[2][:3], ["codex", "exec", "resume"])
+            else:
+                self.assertIn("--resume", calls[1])
+                self.assertIn("--resume", calls[2])
+            self.assertIn(sid, calls[1])
+            self.assertIn(sid, calls[2])
+
+
+class ThreeHostSmokeMatrixTests(unittest.TestCase):
+    """Hermetic 3-host integration matrix exercising real `drive` + `observe`/`stop`/`session-end` + `grade_run`."""
+
+    _SPECS = {
+        "claude": {
+            "planning": ("sonnet", "high", "claude-sonnet-5-5"),
+            "execution": ("haiku", "low", "claude-haiku-5-5"),
+        },
+        "codex": {
+            "planning": ("gpt-6.2-astra", "high", "gpt-6.2-astra"),
+            "execution": ("gpt-6.2-sol", "medium", "gpt-6.2-sol"),
+        },
+        "antigravity": {
+            "planning": ("gemini-4-neon-high", "high", "gemini-4-neon-high"),
+            "execution": ("gemini-4-carbon-medium", "medium", "gemini-4-carbon-medium"),
+        },
+    }
+
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory(prefix="shiploop-ka-3host-")
+        self.addCleanup(tmp.cleanup)
+        self.temp = Path(tmp.name).resolve()
+        probe_path = ROOT / "test" / "shiploop_e2e" / "probes" / "model_routing_smoke.py"
+        spec = importlib.util.spec_from_file_location("shiploop_model_routing_smoke_probe", probe_path)
+        assert spec is not None and spec.loader is not None
+        probe = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(probe)
+        self.probe = probe
+
+    def _init_run(self, name: str) -> tuple[Path, Path, Path]:
+        base = self.temp / name
+        repo = base / "repo"
+        run_dir = base / "run"
+        ka_home = base / "keepalive"
+        repo.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
+        env = {
+            **os.environ,
+            "SHIPLOOP_KEEPALIVE_HOME": str(ka_home),
+            "SHIPLOOP_PROGRESS": "off",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+        }
+        subprocess.run(
+            [sys.executable, str(SCRIPTS / "shiploop"), "init",
+             "--run-dir", str(run_dir), "--repo", str(repo), "--prompt", "Add greet helper."],
+            env=env, capture_output=True, text=True, check=True,
+        )
+        return run_dir, ka_home, base
+
+    @staticmethod
+    def _write_history(state_path: Path, stages: list[str], *, final_status: str = "done") -> None:
+        data = store.read_record(state_path)
+        data["status"] = final_status
+        data["history"] = [
+            {"stage": s, "outcome": "done", "summary": "ok", "workitem": None, "action": f"nav-{i}"}
+            for i, s in enumerate(stages)
+        ]
+        store.write_record(state_path, data)
+
+    def _make_payload(self, host: str, event: str, session: str, marker: str, run_dir: Path,
+                      *, effort: str | None, obs_model: str, transcript: Path) -> dict:
+        raw = (FIXTURES / f"{host}-{event}.json").read_text(encoding="utf-8")
+        raw = raw.replace("__SESSION__", session).replace("__MARKER__", marker).replace("__RUN_DIR__", str(run_dir))
+        payload = json.loads(raw)
+        if host == "antigravity":
+            payload["modelName"] = obs_model
+        elif host == "codex":
+            payload["model"] = obs_model
+            transcript.write_text(
+                json.dumps({"type": "turn_context", "payload": {"model": obs_model, "effort": effort}}) + "\n",
+                encoding="utf-8",
+            )
+            payload["transcript_path"] = str(transcript)
+        elif host == "claude":
+            transcript.write_text(
+                json.dumps({
+                    "type": "assistant",
+                    "effort": effort,
+                    "perTurnEffort": effort,
+                    "message": {"role": "assistant", "model": obs_model, "content": []},
+                }) + "\n",
+                encoding="utf-8",
+            )
+            payload["transcript_path"] = str(transcript)
+        return payload
+
+    def test_routed_matrix_toggles_across_claude_codex_and_antigravity(self) -> None:
+        import shiploop_model_routing as routing
+
+        for host, spec in self._SPECS.items():
+            with self.subTest(host=host):
+                run_dir, ka_home, base = self._init_run(f"{host}-routed")
+                repo = base / "repo"
+                env_patch = {
+                    "SHIPLOOP_KEEPALIVE_HOME": str(ka_home),
+                    "SHIPLOOP_PROGRESS": "off",
+                    "GIT_CONFIG_NOSYSTEM": "1",
+                    "GIT_CONFIG_GLOBAL": os.devnull,
+                }
+                with mock.patch.dict(os.environ, env_patch), mock.patch.object(keepalive, "host_process", return_value=None):
+                    st0 = keepalive.run_status(str(run_dir))
+                    run_id = st0["run_id"]
+                    marker = f"SHIPLOOP-RUN run={run_id} rev=0 dir={run_dir}"
+                    transcript = base / "transcript.jsonl"
+                    statuses = [
+                        {**st0, "stage": "system-test-author", "profile": "planning", "revision": 1},
+                        {**st0, "stage": "system-test", "profile": "execution", "revision": 2},
+                        {**st0, "stage": "product-acceptance", "profile": "planning", "revision": 3},
+                        {**st0, "stage": "done", "profile": None, "status": "done", "revision": 4, "completion": ""},
+                    ]
+                    idx = [0]
+                    invocations: list[tuple[list[str], dict[str, str]]] = []
+                    sid = f"{host}-smoke-thread"
+
+                    def runner(argv, **kwargs):
+                        cur = idx[0]
+                        invocations.append((argv, kwargs.get("env", {})))
+                        prof = "execution" if cur == 1 else "planning"
+                        _m_in, effort_in, obs_m = spec[prof]
+                        obs_payload = self._make_payload(
+                            host, "observe", sid, marker, run_dir,
+                            effort=effort_in, obs_model=obs_m, transcript=transcript,
+                        )
+                        keepalive.run_hook("observe", host, json.dumps(obs_payload))
+                        if cur in (0, 1):
+                            idx[0] += 1
+                            nxt = statuses[idx[0]]
+                            stop_payload = self._make_payload(
+                                host, "stop", sid, marker, run_dir,
+                                effort=effort_in, obs_model=obs_m, transcript=transcript,
+                            )
+                            with mock.patch.dict(os.environ, kwargs.get("env", {})), \
+                                    mock.patch.object(keepalive, "run_status", return_value=nxt):
+                                raw_out = keepalive.run_hook("stop", host, json.dumps(stop_payload))
+                            if raw_out:
+                                self.assertEqual(json.loads(raw_out)["decision"], "allow")
+                            if host in ("claude", "codex"):
+                                keepalive.run_hook("session-end", host, json.dumps({"session_id": sid, "reason": "other"}))
+                        else:
+                            idx[0] += 1
+                        return subprocess.CompletedProcess(argv, 0, "ok", "")
+
+                    routing_cfg = {
+                        "planning": {host: {"model": spec["planning"][0],
+                                            **({} if spec["planning"][0].endswith(routing.EFFORT_SUFFIXES) else {"effort": spec["planning"][1]})}},
+                        "execution": {host: {"model": spec["execution"][0],
+                                             **({} if spec["execution"][0].endswith(routing.EFFORT_SUFFIXES) else {"effort": spec["execution"][1]})}},
+                    }
+                    with mock.patch.object(keepalive, "run_status", side_effect=lambda _d: dict(statuses[idx[0]])):
+                        code = keepalive.drive(host, str(run_dir), session_timeout=60, extra=[], cwd=str(repo),
+                                               routing=routing_cfg, out=lambda _m: None, runner=runner, clock=lambda: 5.0)
+                    self.assertEqual(code, keepalive.EXIT_DONE)
+                    self.assertEqual(len(invocations), 3)
+                    self.assertNotIn("--resume", invocations[0][0])
+                    if host == "codex":
+                        self.assertEqual(invocations[1][0][:3], ["codex", "exec", "resume"])
+                        self.assertEqual(invocations[2][0][:3], ["codex", "exec", "resume"])
+                    else:
+                        self.assertIn("--resume", invocations[1][0])
+                        self.assertIn("--resume", invocations[2][0])
+                    self.assertIn(sid, invocations[1][0])
+                    self.assertIn(sid, invocations[2][0])
+
+                    self._write_history(run_dir / "state.md", ["system-test-author", "system-test", "product-acceptance"])
+                    verdict = self.probe.grade_run(
+                        host,
+                        run_dir,
+                        ka_home / "drive" / run_id / "drive.log",
+                        mode="routed",
+                        expected_planning=(spec["planning"][0], spec["planning"][1]),
+                        expected_execution=(spec["execution"][0], spec["execution"][1]),
+                    )
+                    self.assertTrue(verdict["pass"], verdict)
+                    self.assertEqual(len(verdict["boundary_stops"]), 2, verdict)
+
+    def test_unrouted_codex_matrix_control(self) -> None:
+        run_dir, ka_home, base = self._init_run("codex-unrouted")
+        with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE_HOME": str(ka_home), "SHIPLOOP_PROGRESS": "off"}), \
+                mock.patch.object(keepalive, "host_process", return_value=None):
+            st0 = keepalive.run_status(str(run_dir))
+            run_id = st0["run_id"]
+            marker = f"SHIPLOOP-RUN run={run_id} rev=0 dir={run_dir}"
+            transcript = base / "rollout.jsonl"
+            payload = self._make_payload(
+                "codex", "observe", "cx-unrouted", marker, run_dir,
+                effort="medium", obs_model="gpt-6.2-sol", transcript=transcript,
+            )
+            statuses = [st0, {**st0, "stage": "done", "profile": None, "status": "done", "revision": 1}]
+            idx = [0]
+
+            def runner(argv, **kwargs):
+                keepalive.run_hook("observe", "codex", json.dumps(payload))
+                idx[0] = 1
+                return subprocess.CompletedProcess(argv, 0, "ok", "")
+
+            with mock.patch.object(keepalive, "run_status", side_effect=lambda _d: dict(statuses[idx[0]])):
+                code = keepalive.drive("codex", str(run_dir), session_timeout=60, extra=["-m", "gpt-6.2-sol"],
+                                       cwd=str(base / "repo"), routing=None, out=lambda _m: None, runner=runner,
+                                       clock=lambda: 5.0)
+            self.assertEqual(code, keepalive.EXIT_DONE)
+            self._write_history(run_dir / "state.md", ["system-test-author", "system-test", "product-acceptance"])
+            ok = self.probe.grade_run(
+                "codex", run_dir, ka_home / "drive" / run_id / "drive.log",
+                mode="unrouted", expected_planning=("gpt-6.2-sol", "medium"), expected_execution=("gpt-6.2-sol", "medium"),
+            )
+            self.assertTrue(ok["pass"], ok)
 
 
 if __name__ == "__main__":

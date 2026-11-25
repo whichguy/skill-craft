@@ -246,6 +246,31 @@ def bindings_for_run(host: str, run_dir: str) -> list[dict]:
     return sorted(found, key=lambda item: item.get("bound_at", 0), reverse=True)
 
 
+def _seen_sessions_path(run_id: str) -> Path:
+    return home() / "drive" / run_id / "seen-sessions.json"
+
+
+def _record_seen_session(run_id: str | None, host: str, session: str) -> None:
+    """Remember ``session`` under ``home()/drive/<run_id>`` when a driver run is active so ``SessionEnd`` cleanup does not erase warm-``--resume`` history."""
+    if not isinstance(run_id, str) or not run_id or not isinstance(session, str) or not session:
+        return
+    path = _seen_sessions_path(run_id)
+    if not path.parent.is_dir():
+        return
+    try:
+        with _locked(path):
+            try:
+                data = _read_json(path)
+            except (OSError, ValueError):
+                data = {}
+            if not isinstance(data, dict):
+                data = {}
+            data[host] = {"session": session, "at": time.time()}
+            _write_json(path, data)
+    except OSError:
+        pass
+
+
 def run_status(run_dir: str) -> dict:
     """Ask ShipLoop about a run.  Never raises; an unanswerable run has ``error``."""
     try:
@@ -434,11 +459,16 @@ def observed_model(host: str, payload: Mapping[str, Any]) -> tuple[str | None, s
     if norm == "claude":
         effort = payload.get("effort") if isinstance(payload.get("effort"), str) else None
         model_name = payload.get("model") if isinstance(payload.get("model"), str) else None
-        if not model_name:
+        if not model_name or not effort:
             for row in reversed(_tail_jsonl(payload.get("transcript_path"))):
                 msg = row.get("message")
                 if isinstance(msg, Mapping) and msg.get("role") == "assistant" and isinstance(msg.get("model"), str):
-                    model_name = msg["model"]
+                    if not model_name:
+                        model_name = msg["model"]
+                    if not effort:
+                        raw_eff = row.get("effort") or row.get("perTurnEffort")
+                        if isinstance(raw_eff, str) and raw_eff.strip():
+                            effort = raw_eff
                     break
         return (model_name.strip() if model_name else None), (effort.strip() if effort and effort.strip() else None)
     raw_model = payload.get("model") or payload.get("modelName")
@@ -516,6 +546,7 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     if marker is None:
         existing = load_binding(host, session)
         if existing is not None:
+            _record_seen_session(existing.get("run_id"), host, session)
             path = _binding_path(host, session)
             with _locked(path):
                 current = load_binding(host, session)
@@ -548,6 +579,7 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
         _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
                                profile=status.get("profile"))
         _write_json(path, binding)
+    _record_seen_session(status.get("run_id"), host, session)
     claim_owner(status["run_dir"], host, session)
     try:
         import shiploop_registry as registry
@@ -809,6 +841,7 @@ def session_end(host: str, payload: Mapping[str, Any]) -> dict | None:
             binding = load_binding(bound_host, session)
             path.unlink(missing_ok=True)
         if binding is not None:
+            _record_seen_session(binding.get("run_id"), bound_host, session)
             released = release_owner(binding["run_dir"], bound_host, session)  # only this session's own claim
             return {"run_dir": binding["run_dir"], "host": bound_host, "released": released}
     return None
@@ -1329,15 +1362,34 @@ def _load_sessions(path: Path) -> dict[str, str]:
     return {str(k): str(v) for k, v in data.items() if isinstance(k, str) and isinstance(v, str) and v}
 
 
-def _capture_session(host: str, run_dir: str, wall_started: float, previous: str | None) -> str | None:
+def _capture_session(
+    host: str,
+    run_dir: str,
+    wall_started: float,
+    previous: str | None,
+    *,
+    run_id: str | None = None,
+) -> str | None:
     bound = bindings_for_run(host, run_dir)
-    if not bound:
-        return previous
-    newest = bound[0]
-    if previous and newest.get("session") == previous:
-        return previous
-    if float(newest.get("bound_at") or 0) >= wall_started - 2.0 and isinstance(newest.get("session"), str):
-        return newest["session"]
+    if bound:
+        newest = bound[0]
+        if previous and newest.get("session") == previous:
+            return previous
+        if float(newest.get("bound_at") or 0) >= wall_started - 2.0 and isinstance(newest.get("session"), str):
+            return newest["session"]
+    if isinstance(run_id, str) and run_id:
+        try:
+            seen = _read_json(_seen_sessions_path(run_id))
+        except (OSError, ValueError):
+            seen = {}
+        entry = seen.get(host) if isinstance(seen, Mapping) else None
+        if (
+            isinstance(entry, Mapping)
+            and isinstance(entry.get("session"), str)
+            and entry["session"]
+            and float(entry.get("at") or 0) >= wall_started - 2.0
+        ):
+            return entry["session"]
     return previous
 
 
@@ -1418,7 +1470,9 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
             out(f"shiploop-drive: cannot start {argv[0]}: {exc}")
             return EXIT_NEEDS_USER
         if target is not None and target.resume == "warm":
-            captured = _capture_session(active_host, run_dir, wall_started, session)
+            captured = _capture_session(
+                active_host, run_dir, wall_started, session, run_id=str(before.get("run_id") or "")
+            )
             if captured:
                 sessions[active_host] = captured
                 _write_json(sessions_file, sessions)
