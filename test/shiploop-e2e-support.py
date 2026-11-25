@@ -99,10 +99,12 @@ def product():
         "        out = subprocess.run([sys.executable, 'hello.py'], capture_output=True, text=True).stdout\\n"
         "        self.assertEqual(out.strip(), 'Hello, world!')\\n")
     Path(".shiploop").mkdir()
-    # A current run records its planning_review option; FAKE_PLANNING_REVIEW=absent leaves the key out, as a run before 1.22.0 does.
+    # A current run records its planning_review and delegation options; FAKE_*=absent leaves the key out.
     state = {{"status": "done"}}
     if os.environ.get("FAKE_PLANNING_REVIEW", "stage") != "absent":
         state["planning_review"] = os.environ.get("FAKE_PLANNING_REVIEW", "stage")
+    if os.environ.get("FAKE_DELEGATION", "inline") != "absent":
+        state["delegation"] = os.environ.get("FAKE_DELEGATION", "inline")
     store.write_record(Path(".shiploop/state.md"), state)
     Path(".shiploop/report.html").write_text("<html></html>")
     # A finished run leaves its product committed, as ShipLoop's return does.

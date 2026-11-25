@@ -792,7 +792,7 @@ from pathlib import Path
 sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
 import shiploop_store as store
 store.write_record(Path(".shiploop/state.md"), {{"status": "blocked", "stage": "system-test", "planning_review": "stage",
-                                                "status_reason": "waiting for a person"}})
+                                                "delegation": "inline", "status_reason": "waiting for a person"}})
 Path(".shiploop/report.html").unlink()
 PY
 exit $rc
@@ -865,6 +865,22 @@ exit $rc
         self.edit_rows(r0={"prompt_sha256": "0123456789ab"}, r1={"prompt_sha256": "0123456789ab"})
         _, _, printed = self.once()  # both carry a hash and it differs from this run's: another cell
         self.assertIn("(2 another prompt)", printed)
+
+    def test_delegation_mode_is_recorded_and_not_compared_across_modes(self):
+        os.environ["FAKE_DELEGATION"] = "inline"
+        self.addCleanup(os.environ.pop, "FAKE_DELEGATION", None)
+        _, inline_res, _ = self.once()
+        inline_row = json.loads(self.baselines.read_text().splitlines()[-1])
+        self.assertEqual((inline_res["shiploop"]["delegation"], inline_row["delegation"]), ("inline", "inline"))
+        os.environ["FAKE_DELEGATION"] = "agents"
+        _, agents_res, printed = self.once("done", "--delegation", "agents")
+        agents_row = json.loads(self.baselines.read_text().splitlines()[-1])
+        self.assertEqual((agents_res["delegation"], agents_res["shiploop"]["delegation"], agents_row["delegation"]),
+                         ("agents", "agents", "agents"))
+        self.assertIn("not compared across delegation modes (agents vs inline)", printed)
+        self.assertNotIn("baseline  vs", printed)
+        _, _, same_printed = self.once("done", "--delegation", "agents")
+        self.assertRegex(same_printed, r"baseline  vs .*delegation agents\):")
 
     def line(self, printed: str, prefix: str) -> str:
         return next(ln for ln in printed.splitlines() if ln.startswith(prefix))
@@ -1560,6 +1576,11 @@ class RowMatchesTest(unittest.TestCase):
         self.assertEqual(run.row_matches(row(prompt_sha256="aaaaaaaaaaaa"), *key[:6], "bbbbbbbbbbbb"), "another prompt")
         self.assertEqual(run.row_matches(row(verdicts={"shiploop": False}), *key), "did not reach done")
         self.assertEqual(run.row_matches(row(case="checkers"), *key), "another case or source")
+        # Delegation isolation: historical rows without the field stand for inline; agents/ask-agent never cross-match.
+        self.assertIsNone(run.row_matches(row(), *key, delegation="inline"))
+        self.assertEqual(run.row_matches(row(), *key, delegation="agents"), "another delegation mode")
+        self.assertEqual(run.row_matches(row(delegation="agents"), *key, delegation="inline"), "another delegation mode")
+        self.assertIsNone(run.row_matches(row(delegation="agents"), *key, delegation="agents"))
 
     def test_matching_rows_is_this_predicate_and_nothing_else(self):
         self.assertIn("row_matches(", _source(run.matching_rows))
@@ -1866,6 +1887,28 @@ class BaselineReportShapeTest(BaselineReportCase):
     def test_the_inputs_are_recorded_as_given_so_the_command_can_be_run_again(self):
         report = self.report()
         self.assertEqual(report["inputs"], {"baseline": str(self.ROWS), "runs": [str(self.RUNS)]})
+
+    def test_non_inline_delegation_rows_split_into_their_own_cells_and_render_with_delegation(self):
+        rows_path = self.tmp / "delegation-rows.jsonl"
+        base = {"case": "hello", "source": "checkout", "host": "codex", "model": "gpt-6.2-sol", "effort": "medium",
+                "planning_review": "stage", "prompt_sha256": "aaaaaaaaaaaa", "verdicts": {"shiploop": True},
+                "termination": {"engine_status": "done"}, "pass": True, "turns": 100, "cost_usd": None}
+        rows_path.write_text(
+            json.dumps({**base, "output": "/gone/inline-legacy"}) + "\n"
+            + json.dumps({**base, "delegation": "inline", "output": "/gone/inline-new"}) + "\n"
+            + json.dumps({**base, "delegation": "agents", "output": "/gone/agents-1"}) + "\n"
+        )
+        empty = self.tmp / "no-runs"
+        empty.mkdir()
+        report = self.report(rows=rows_path, runs=empty)
+        self.assertEqual(len(report["cells"]), 2)
+        inline_cell = next(c for c in report["cells"] if "delegation" not in c["cell"])
+        agents_cell = next(c for c in report["cells"] if c["cell"].get("delegation") == "agents")
+        self.assertEqual(inline_cell["attempts"]["counted"], 2)
+        self.assertEqual(agents_cell["attempts"]["counted"], 1)
+        rendered = self.text(rows=rows_path, runs=empty)
+        self.assertIn("planning_review stage | prompt aaaaaaaaaaaa", rendered)
+        self.assertIn("planning_review stage | delegation agents | prompt aaaaaaaaaaaa", rendered)
 
 
 RUNS_JSON = ROOT / "docs" / "experiments" / "baseline-spread-20261009" / "runs.json"

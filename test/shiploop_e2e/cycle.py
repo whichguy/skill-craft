@@ -129,6 +129,8 @@ def _expected_driver(args) -> dict:
         driver["permission_mode"] = hosts.CODEX_AUTO_REVIEW
     if getattr(args, "run_timeout", None):
         driver["timeout_seconds"] = args.run_timeout
+    if getattr(args, "delegation", None):
+        driver["delegation"] = args.delegation
     return driver
 
 
@@ -168,7 +170,7 @@ def _load_calibration(path: Path, cases: list[str], *, driver: dict | None = Non
         cal_driver = calibration.get("driver")
         if not isinstance(cal_driver, dict):
             raise ValueError("the calibration records no driver profile: calibrate for this driver")
-        for key in ("host", "model", "effort", "permission_mode", "timeout_seconds"):
+        for key in ("host", "model", "effort", "permission_mode", "timeout_seconds", "delegation"):
             if cal_driver.get(key) != driver.get(key):
                 raise ValueError(f"the calibration driver {key!r} ({cal_driver.get(key)!r}) does not match "
                                  f"the requested driver ({driver.get(key)!r}): calibrate for this driver")
@@ -903,6 +905,8 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
         driver["permission_mode"] = hosts.CODEX_AUTO_REVIEW
     if getattr(args, "run_timeout", None):
         driver["timeout_seconds"] = args.run_timeout
+    if getattr(args, "delegation", None):
+        driver["delegation"] = args.delegation
     try:
         result = qualify_built(stage / "epoch", record_id, prediction_file, control_plugin, candidate_plugin, roles,
                                driver, calibration, args, ledger, candidate_sha)
@@ -939,6 +943,7 @@ def explore(worktree: Path, stage: Path, args) -> list[str]:
                  "--baseline", str(stage / "baselines.jsonl"),
                  *hosts.permission_args(args.permission_mode),
                  *(["--timeout", str(args.run_timeout)] if getattr(args, "run_timeout", None) else []),
+                 *(["--delegation", args.delegation] if getattr(args, "delegation", None) else []),
                  *(["--model", args.model] if args.model else []), *(["--effort", args.effort] if args.effort else [])])
     return assess_exploration(worktree, stage, args, stage / "run")
 

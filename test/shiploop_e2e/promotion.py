@@ -206,6 +206,10 @@ def _strict_registration(raw: dict, data: bytes) -> dict:
             if type(timeout) is not int or timeout <= 0:
                 raise SystemExit(f"promotion/5 {name} arm needs a positive timeout")
             fields.add("timeout_seconds")
+        if isinstance(driver, dict) and "delegation" in driver:
+            if driver["delegation"] not in ("inline", "agents", "ask-agent"):
+                raise SystemExit(f"promotion/5 {name} arm has an unsupported delegation mode")
+            fields.add("delegation")
         if (not isinstance(driver, dict) or set(driver) != fields
                 or any(not isinstance(driver.get(key), str) or not driver[key].strip()
                        for key in ("host", "model", "effort"))):
@@ -228,7 +232,7 @@ def _strict_registration(raw: dict, data: bytes) -> dict:
     if reg["purpose"] == "model_only" and (not same_build or
             control_driver["model"] == candidate_driver["model"] or
             any(control_driver.get(key) != candidate_driver.get(key)
-                for key in ("host", "effort", "permission_mode", "timeout_seconds"))):
+                for key in ("host", "effort", "permission_mode", "timeout_seconds", "delegation"))):
         raise SystemExit("model_only requires the same ShipLoop build and host/effort, with a different model")
     attempts = reg.get("attempts")
     if not isinstance(attempts, list) or not attempts:
@@ -709,7 +713,7 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
             expected_driver = arm_spec.get("driver") if isinstance(arm_spec.get("driver"), dict) else {}
             if any(driver.get(key) != expected_driver.get(key) for key in ("host", "model", "effort")):
                 add_evidence_error(row, f"{attempt_id}: recorded host/model/effort does not match the {side} arm binding")
-            for setting in ("permission_mode", "timeout_seconds"):
+            for setting in ("permission_mode", "timeout_seconds", "delegation"):
                 if driver.get(setting) != expected_driver.get(setting):
                     add_evidence_error(row, f"{attempt_id}: recorded {setting} does not match the {side} arm binding")
             installed = arm_spec.get("installed_skills") or {}

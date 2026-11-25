@@ -717,7 +717,7 @@ def score(run, *, required_case=_CURRENT_CASE) -> dict:
             "accuracy": accuracy(result, unmeasured, required_case),
             "enterprise": {"observed": False, "reason": NOT_YET, "floor": NOT_APPLICABLE},
             "fidelity": fidelity(run_metrics, unmeasured), "efficiency": efficiency(run_metrics, unmeasured, result)}
-    for setting in ("permission_mode", "timeout_seconds"):
+    for setting in ("permission_mode", "timeout_seconds", "delegation"):
         if setting in result:
             card["driver"][setting] = result[setting]
     for key in ("shiploop_sha256", "improve_sha256"):
