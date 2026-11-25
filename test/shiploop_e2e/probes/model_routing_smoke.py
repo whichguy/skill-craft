@@ -213,6 +213,7 @@ def grade_run(
     expected_execution: tuple[str, str | None],
     check_boundary_stops: bool = True,
     plan_reflect_and_improve: bool = False,
+    resume_mode: str = "fresh",
 ) -> dict[str, Any]:
     """Grade one completed or paused smoke run purely from disk records (`state.md`, `drive.log`, `trace.jsonl`)."""
     norm_host = model_routing.normalize_host(host)
@@ -263,8 +264,14 @@ def grade_run(
                 "observed_models_ok": observed_models_ok,
             }
         elif plan_reflect_and_improve:
-            resumed_ids = [row.get("resumed") for row in sessions[1:3] if isinstance(row.get("resumed"), str) and row.get("resumed")]
-            warm_resume_ok = len(sessions) >= 3 and len(resumed_ids) == 2 and len(set(resumed_ids)) == 1
+            resumed_vals = [row.get("resumed") for row in sessions[1:3]]
+            if resume_mode == "warm":
+                resumed_ids = [r for r in resumed_vals if isinstance(r, str) and r]
+                handoff_ok = len(sessions) >= 3 and len(resumed_ids) == 2 and len(set(resumed_ids)) == 1
+                handoff_key = "warm_resume_ok"
+            else:
+                handoff_ok = len(sessions) >= 3 and all(r is None for r in resumed_vals)
+                handoff_key = "fresh_handoff_ok"
             boundary_stops_ok = (
                 (any("at improve)" in why for why in boundary_stages)
                  and any("at system-test)" in why for why in boundary_stages))
@@ -278,16 +285,21 @@ def grade_run(
                     (expected_execution[0], expected_execution[1], "execution"),
                 ],
             )
-            passed = stages_ok and warm_resume_ok and boundary_stops_ok and observed_models_ok
+            passed = stages_ok and handoff_ok and boundary_stops_ok and observed_models_ok
             checks = {
                 "stages_ok": stages_ok,
-                "warm_resume_ok": warm_resume_ok,
+                handoff_key: handoff_ok,
                 "boundary_stops_ok": boundary_stops_ok,
                 "observed_models_ok": observed_models_ok,
             }
         else:
             resumed_id = sessions[1].get("resumed") if len(sessions) >= 2 else None
-            warm_resume_ok = len(sessions) >= 2 and isinstance(resumed_id, str) and bool(resumed_id)
+            if resume_mode == "warm":
+                handoff_ok = len(sessions) >= 2 and isinstance(resumed_id, str) and bool(resumed_id)
+                handoff_key = "warm_resume_ok"
+            else:
+                handoff_ok = len(sessions) >= 2 and resumed_id is None
+                handoff_key = "fresh_handoff_ok"
             boundary_stops_ok = (
                 len(boundary_stages) == 1 and "at step-plan)" in boundary_stages[0]
                 if check_boundary_stops else True
@@ -299,10 +311,10 @@ def grade_run(
                     (expected_execution[0], expected_execution[1], "execution"),
                 ],
             )
-            passed = stages_ok and warm_resume_ok and boundary_stops_ok and observed_models_ok
+            passed = stages_ok and handoff_ok and boundary_stops_ok and observed_models_ok
             checks = {
                 "stages_ok": stages_ok,
-                "warm_resume_ok": warm_resume_ok,
+                handoff_key: handoff_ok,
                 "boundary_stops_ok": boundary_stops_ok,
                 "observed_models_ok": observed_models_ok,
             }
@@ -442,33 +454,41 @@ def stage_host(
     else:
         raise ValueError(f"unsupported smoke host: {host!r}")
 
-    if plan_reflect_and_improve:
-        seeded = e2e_run.seed_run(
-            cli, work, runs_out, SMOKE_PROMPT, "system-test-author",
-            work_item={"id": "W1", "title": "Add greet helper"},
-            delegation="inline",
-            checks=["python3 -m unittest -v"],
-            product=product_dir,
-            home_fixture=home_fix_dir,
-            exclude=["README.md"],
-            planning_review="none",
-            improve_skill=str(improve),
-            release_slice_mode=True,
-        )
-    else:
-        prelude_fix = product_dir.parent / "prelude_fixture"
-        if not prelude_fix.is_dir():
-            prelude_fix = product_dir
-        seeded = e2e_run.seed_run(
-            cli, work, runs_out, SMOKE_PROMPT, "prepare",
-            fixture=prelude_fix,
-            work_item={"id": "W1", "title": "Add greet helper"},
-            delegation="inline",
-            checks=["python3 -m unittest -v"],
-            planning_review="none",
-            improve_skill=str(improve),
-            release_slice_mode=False,
-        )
+    prev_progress = os.environ.get("SHIPLOOP_PROGRESS")
+    os.environ["SHIPLOOP_PROGRESS"] = "off"
+    try:
+        if plan_reflect_and_improve:
+            seeded = e2e_run.seed_run(
+                cli, work, runs_out, SMOKE_PROMPT, "system-test-author",
+                work_item={"id": "W1", "title": "Add greet helper"},
+                delegation="inline",
+                checks=["python3 -m unittest -v"],
+                product=product_dir,
+                home_fixture=home_fix_dir,
+                exclude=["README.md"],
+                planning_review="none",
+                improve_skill=str(improve),
+                release_slice_mode=True,
+            )
+        else:
+            prelude_fix = product_dir.parent / "prelude_fixture"
+            if not prelude_fix.is_dir():
+                prelude_fix = product_dir
+            seeded = e2e_run.seed_run(
+                cli, work, runs_out, SMOKE_PROMPT, "prepare",
+                fixture=prelude_fix,
+                work_item={"id": "W1", "title": "Add greet helper"},
+                delegation="inline",
+                checks=["python3 -m unittest -v"],
+                planning_review="none",
+                improve_skill=str(improve),
+                release_slice_mode=False,
+            )
+    finally:
+        if prev_progress is None:
+            os.environ.pop("SHIPLOOP_PROGRESS", None)
+        else:
+            os.environ["SHIPLOOP_PROGRESS"] = prev_progress
     run_dir = Path(seeded["run_dir"]).resolve()
     run_id = store.read_record(run_dir / "state.md")["run_id"]
     drive_log = ka_home / "drive" / run_id / "drive.log"

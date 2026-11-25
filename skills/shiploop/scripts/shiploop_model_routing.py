@@ -15,7 +15,7 @@ HOST_ALIASES = {"agy": "antigravity"}
 KNOWN_HOSTS = ("antigravity", "claude", "codex", "cursor", "grok", "opencode")
 EFFORT_SUFFIXES = ("-low", "-medium", "-high", "-xhigh", "-max")
 RESUME_MODES = ("warm", "fresh")
-DEFAULT_RESUME = "warm"
+DEFAULT_RESUME = "fresh"
 
 _TOP_KEYS = frozenset({"planning", "execution", "review", "stages", "resume", "plan_reflect_and_improve"})
 _ENTRY_KEYS = frozenset({"host", "model", "effort", "args", "resume"})

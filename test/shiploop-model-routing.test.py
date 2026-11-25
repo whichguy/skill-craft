@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -166,6 +167,7 @@ class ModelRoutingResolutionTests(unittest.TestCase):
             e = routing.resolve(cfg, "implement", host)
             self.assertEqual((p.model, p.effort), exp_plan, host)
             self.assertEqual((e.model, e.effort), exp_exec, host)
+            self.assertEqual((p.resume, e.resume), ("fresh", "fresh"), host)
         # Antigravity Orchestrator maps both profiles to one target key -> no driver boundary stop.
         self.assertEqual(routing.resolve(cfg, "plan", "agy").target_key, routing.resolve(cfg, "implement", "agy").target_key)
         # Hosts without built-in defaults return None.
@@ -241,7 +243,10 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
     }
 
     def setUp(self) -> None:
-        tmp = tempfile.TemporaryDirectory(prefix="shiploop-routing-matrix-")
+        env_patch = mock.patch.dict(os.environ, {"SHIPLOOP_PROGRESS": "off"})
+        env_patch.start()
+        self.addCleanup(env_patch.stop)
+        tmp = tempfile.TemporaryDirectory(prefix="shiploop-routing-matrix-", ignore_cleanup_errors=True)
         self.addCleanup(tmp.cleanup)
         self.temp = Path(tmp.name).resolve()
         self.probe = _load_smoke_probe()
@@ -253,7 +258,7 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         host: str,
         spec: dict[str, tuple[str, str, str]],
         stages: list[str],
-        include_resume: bool = True,
+        include_resume: bool = False,
         include_boundaries: bool = True,
         routed: bool = True,
         plan_reflect_and_improve: bool = False,
@@ -309,7 +314,7 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
         for host, spec in self._SPECS.items():
             with self.subTest(host=host):
                 run_dir, drive_log = self._write_synthetic_artifacts(
-                    self.temp / f"{host}-ok", host=host, spec=spec, stages=prelude_stages,
+                    self.temp / f"{host}-ok", host=host, spec=spec, stages=prelude_stages, include_resume=False,
                 )
                 ok = self.probe.grade_run(
                     host, run_dir, drive_log, mode="routed",
@@ -317,12 +322,13 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
                     expected_execution=(spec["execution"][0], spec["execution"][1]),
                 )
                 self.assertTrue(ok["pass"], ok)
+                self.assertTrue(ok["checks"].get("fresh_handoff_ok") or ok["checks"].get("single_session_ok"), ok)
                 self.assertEqual(len(ok["boundary_stops"]), 1, ok)
 
-        # Opt-in --plan-reflect-and-improve grading (system-test-author -> improve -> system-test).
+        # Opt-in --plan-reflect-and-improve grading (system-test-author -> improve -> system-test, fresh default).
         opt_run, opt_dl = self._write_synthetic_artifacts(
             self.temp / "codex-optin-ok", host="codex", spec=self._SPECS["codex"],
-            stages=["system-test-author", "system-test"], plan_reflect_and_improve=True,
+            stages=["system-test-author", "system-test"], plan_reflect_and_improve=True, include_resume=False,
         )
         ok_opt = self.probe.grade_run(
             "codex", opt_run, opt_dl, mode="routed",
@@ -331,15 +337,39 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
             plan_reflect_and_improve=True,
         )
         self.assertTrue(ok_opt["pass"], ok_opt)
+        self.assertTrue(ok_opt["checks"]["fresh_handoff_ok"], ok_opt)
         self.assertEqual(len(ok_opt["boundary_stops"]), 2, ok_opt)
 
-        # Negative routed checks: unresumed sessions, missing boundaries, or flat unrouted run must fail.
+        # Explicit warm-resume mode check (--resume-mode warm).
+        run_warm, dl_warm = self._write_synthetic_artifacts(
+            self.temp / "claude-warm-ok", host="claude", spec=self._SPECS["claude"],
+            stages=prelude_stages, include_resume=True,
+        )
+        ok_warm = self.probe.grade_run(
+            "claude", run_warm, dl_warm, mode="routed",
+            expected_planning=("claude-opus-5-5", "high"), expected_execution=("claude-sonnet-5-5", "high"),
+            resume_mode="warm",
+        )
+        self.assertTrue(ok_warm["pass"], ok_warm)
+        self.assertTrue(ok_warm["checks"]["warm_resume_ok"], ok_warm)
+
+        # Negative routed checks: unexpected warm resume under default fresh mode, missing warm resume under warm mode,
+        # or flat unrouted run must fail.
+        bad_fresh = self.probe.grade_run(
+            "claude", run_warm, dl_warm, mode="routed",
+            expected_planning=("claude-opus-5-5", "high"), expected_execution=("claude-sonnet-5-5", "high"),
+        )
+        self.assertFalse(bad_fresh["pass"])
+        self.assertFalse(bad_fresh["checks"]["fresh_handoff_ok"])
+
         run_no_res, dl_no_res = self._write_synthetic_artifacts(
-            self.temp / "claude-no-resume", host="claude", spec=self._SPECS["claude"], stages=prelude_stages, include_resume=False,
+            self.temp / "claude-no-resume", host="claude", spec=self._SPECS["claude"],
+            stages=prelude_stages, include_resume=False,
         )
         bad_res = self.probe.grade_run(
             "claude", run_no_res, dl_no_res, mode="routed",
             expected_planning=("claude-opus-5-5", "high"), expected_execution=("claude-sonnet-5-5", "high"),
+            resume_mode="warm",
         )
         self.assertFalse(bad_res["pass"])
         self.assertFalse(bad_res["checks"]["warm_resume_ok"])
@@ -400,7 +430,7 @@ class ModelRoutingSmokeGraderAndStagingTests(unittest.TestCase):
             expected_planning=("gpt-6.2-astra", "high"), expected_execution=("gpt-6.2-sol", "xhigh"),
         )
         self.assertFalse(bad_routed["pass"])
-        self.assertFalse(bad_routed["checks"]["warm_resume_ok"])
+        self.assertFalse(bad_routed["checks"]["fresh_handoff_ok"])
         self.assertFalse(bad_routed["checks"]["boundary_stops_ok"])
         self.assertFalse(bad_routed["checks"]["observed_models_ok"])
 
