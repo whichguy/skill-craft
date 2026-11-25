@@ -37,14 +37,10 @@ NARRATIVE_END = "=== end ShipLoop narrative ==="
 LINE = re.compile(r"^Where: (?P<where>.+?) · (?P<label>Next|Waiting on you|Waiting on a service|Stopped): "
                   r"(?P<value>.+?)(?: · Goal: .*)?$", re.M)
 HEADER = "ShipLoop navigator | "
-# The progress must end this early in stdout: the navigator's PRINT_LIMIT, the most a
-# packet prints whole, and a head (up to 20,000 characters) puts the progress block
-# after its callback, goal and Until Loop block, inside it (test/shiploop-head-order.test.py).
-# Claude Code keeps the first ~30,000 characters of oversized Bash
-# output (measured 2026-09-25), so the whole printed packet reaches the hook. It was
-# 8000 until the step-plan template's per-step criteria and paths (2026-10-10) pushed
-# the block 450 characters past it on the ask-agent route.
-WINDOW = 16_000
+# The progress must end this early in stdout: Claude Code keeps the first ~30,000 characters of oversized Bash
+# output (measured 2026-09-25; Codex and Antigravity allow more), so matching WINDOW / PRINT_LIMIT at 30,000
+# guarantees the whole printed progress block reaches the hook.
+WINDOW = 30_000
 ENTRY_POINTS = {"shiploop": None, "shiploop-complete": "complete", "shiploop-next": "next"}
 WRAPPER_LINES = {
     "complete": "shiploop complete — close the increment and print the next stdout\n",

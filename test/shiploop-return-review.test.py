@@ -35,6 +35,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_protocol as protocol  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
@@ -358,8 +359,8 @@ class ReviewReturnTests(ReturnReviewCase):
         self.assertEqual(positions, sorted(positions))
 
     def test_the_whole_printed_output_is_one_budget_with_the_next_command_last_and_a_directory_decides_the_rest(self) -> None:
-        # Hosts cut a long output near 20,000 characters, and the command is what a cleared context needs, so every
-        # command's output (not each of its lists) stays within PRINT_LIMIT and ends with that command.  Three
+        # Hosts cut long stdout near 30,000 characters, and the command is what a cleared context needs, so every
+        # command's output (not each of its lists) stays within OUTPUT_LIMIT and ends with that command.  Three
         # directories of long names are each longer than the limit alone, so the review below holds a long kept list,
         # a long excluded list and a long undecided list in one output.
         root, worktree = self.start("many paths")
@@ -370,7 +371,7 @@ class ReviewReturnTests(ReturnReviewCase):
         self.at(root, "handoff")
 
         def within(text: str, last: str) -> None:
-            self.assertLessEqual(len(text), navigator.PRINT_LIMIT, len(text))
+            self.assertLessEqual(len(text), protocol.OUTPUT_LIMIT, len(text))
             self.assertTrue(text.splitlines()[-1].startswith(last), text.splitlines()[-1][:120])
 
         within(self.plan_return(root).stdout, "Decide them with: ")
@@ -380,7 +381,7 @@ class ReviewReturnTests(ReturnReviewCase):
         self.assertIn(", and ", first)  # a cut list counts the rest
         self.assertIn(" more", first)
         self.assertIn("Run: ", refused)
-        self.assertLessEqual(len(refused), navigator.PRINT_LIMIT)
+        self.assertLessEqual(len(refused), protocol.OUTPUT_LIMIT)
         excluded = self.review(root, "--exclude", "drop-me").stdout
         within(excluded, "Decide them with: ")
         self.assertIn("Recorded: excluded 100", excluded)

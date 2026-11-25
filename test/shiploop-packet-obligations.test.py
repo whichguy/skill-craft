@@ -165,7 +165,7 @@ class LedgerHoldsTests(unittest.TestCase):
         nav = obligations._imports()[0]
         limit = nav.PRINT_LIMIT
         long_packets = [p for p in self.packets if len(p["file"]) > limit]
-        self.assertGreaterEqual(len(long_packets), 8)
+        self.assertGreaterEqual(len(long_packets), 2)
         for packet in self.packets:
             with self.subTest(packet=packet["where"]):
                 self.assertEqual(packet["printed"], packet["file"] + nav.HEAD_END + "\n")
