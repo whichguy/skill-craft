@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_expectations as expectations  # noqa: E402
+import shiploop_follow_on as follow_on  # noqa: E402
 import shiploop_head_plans as plans  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
@@ -2200,6 +2201,55 @@ class ConsumesTests(RepoCase):
         later = dict(state, history=state["history"] + [product[0], accepted[0]],
                      accepted=dict(state["accepted"], ts9=product[1], pa1=accepted[1]))
         self.assertNotIn("D1", [i.row["id"] for i in assumptions.open_items(later)])
+
+    def test_open_items_render_settlement_hint_and_handoff_requires_due_accounting(self) -> None:
+        state = self.fixture("test")
+        st_lines = "\n".join(navigator.handoff_lines(self.root, state, "system-test"))
+        self.assertIn(
+            "Account for each due open item by ID in summary (settled evidence) or carry it forward in assumptions.",
+            st_lines,
+        )
+        hf_lines = "\n".join(navigator.handoff_lines(self.root, state, "handoff"))
+        self.assertIn(
+            'Account for each open item due at handoff in follow_on (source: "assumption:<id>") '
+            "or cite its ID in summary.",
+            hf_lines,
+        )
+        # No open items -> no settlement hint emitted.
+        empty_state = dict(state, history=[], accepted={})
+        self.assertEqual(
+            [line for line in navigator.handoff_lines(self.root, empty_state, "system-test")
+             if "Account for each" in line],
+            [],
+        )
+        # Due open item at handoff must be cited in follow_on (assumption:<id>) or by word-bounded ID in summary.
+        rv_entry, rv_result = row("rv1", "release-verify", None, {
+            "assumptions": [open_row("A1", "handoff"), open_row("RV1", "handoff")],
+        })
+        h_state = dict(
+            state,
+            history=state["history"] + [rv_entry],
+            accepted=dict(state["accepted"], rv1=rv_result),
+        )
+        with self.assertRaises(follow_on.FollowOnError) as caught:
+            follow_on.check_submitted(h_state, "handoff", {
+                "outcome": "done",
+                "summary": "A10 was inspected; nothing else mentioned.",
+                "follow_on": [],
+            })
+        self.assertIn("A1, RV1", str(caught.exception))
+        # Accounting via follow_on source (A1) + word-bounded ID in summary (RV1) passes.
+        follow_on.check_submitted(h_state, "handoff", {
+            "outcome": "done",
+            "summary": "Verified RV1 limitation before closeout.",
+            "follow_on": [{
+                "class": "person",
+                "statement": "Confirm A1 on hosted deployment.",
+                "source": "assumption:A1",
+                "request_sentence": "",
+                "needs": "Operator confirmation",
+            }],
+        })
 
     def test_each_steps_document_keeps_its_open_items_until_its_items_reflect_and_revise(self) -> None:
         # Design T §9.1 2b-3 (option C, owner 2026-10-28): a step's document records the follow-up work it found outside

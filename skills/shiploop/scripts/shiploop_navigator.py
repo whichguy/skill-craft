@@ -7575,7 +7575,8 @@ def _followed_lines(repo: Path, label: str, value: Any) -> list[str]:
     return [label + ":", *(line for ident, _text in value for line in _entry_lines(repo, str(ident)))]
 
 
-def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Collection[str] = ()) -> list[str]:
+def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Collection[str] = (),
+                  *, stage: str | None = None) -> list[str]:
     """One hand-off value in the consumer contract's wording (section 4); "not recorded by <stage>" when missing.
 
     ``listed`` names the living files whose contents the same packet lists above (``reads_lines``): the pointer that stands
@@ -7607,6 +7608,13 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
                          + " | due: " + assumptions.due(row)
                          + (" | owner: " + _one_line(row["owner"]) if row.get("owner") else "")
                          + " | from " + str(item.stage) + (" " + str(item.workitem) if item.workitem else ""))
+        lines.append(
+            'Account for each open item due at handoff in follow_on (source: "assumption:<id>") '
+            "or cite its ID in summary."
+            if stage == "handoff" else
+            "Account for each due open item by ID in summary (settled evidence) "
+            "or carry it forward in assumptions."
+        )
         return lines
     label = source.key + " (" + (str(source.workitem) + " " if source.workitem else "") + str(source.stage) + ")"
     value = source.value
@@ -7687,7 +7695,7 @@ def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, listed: Coll
             lines += _not_covered_lines(root, state, group)
             position += len(group)
             continue
-        lines += _source_lines(root, state, source, listed)
+        lines += _source_lines(root, state, source, listed, stage=stage)
         position += 1
     scope = step_scope(state, stage) if lines else None
     if scope is not None:
@@ -8159,6 +8167,8 @@ def _test_evidence_lines(root: Path, state: Mapping[str, Any], stage: str, work_
                 lines.append("- " + str(row.get("id")) + ": " + _one_line(row.get("assumption"))
                              + " | settle: " + _one_line(row.get("settle"))
                              + " | reason: " + _one_line(row.get("reason")))
+            lines.append("Account for each due open item by ID in summary (settled evidence) "
+                         "or carry it forward in assumptions.")
         return lines
     if stage == "test-strategy":
         intake_action = current.get((None, "intake"))

@@ -25,6 +25,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import shiploop_assumptions as assumptions
 import shiploop_git as git_tools
 import shiploop_knowledge_home as knowledge
 import shiploop_planning_revision as planning_revision
@@ -177,6 +178,24 @@ def check_submitted(state: Mapping[str, Any], stage: str, result: Any) -> None:
               f"{label}.request_sentence {sentence!r} is not a sentence of the request (S1..S{count}, "
               f"RUN/{request_file.REQUEST_FILE})")
         _check_source(state, held, label, entry["source"].strip())
+    due_handoff = list(dict.fromkeys(
+        str(found.row["id"]) for found in assumptions.open_items(state)
+        if found.row.get("due_stage") == "handoff"
+        and isinstance(found.row.get("id"), str) and found.row.get("id")
+    ))
+    if due_handoff:
+        cited_sources = {entry["source"].strip() for entry in entries}
+        summary_text = str(result.get("summary") or "")
+        missing = [
+            oid for oid in due_handoff
+            if f"assumption:{oid}" not in cited_sources
+            and re.search(rf"(?<![A-Za-z0-9_-]){re.escape(oid)}(?![A-Za-z0-9_-])", summary_text) is None
+        ]
+        _need(
+            not missing,
+            "handoff leaves open assumption(s) due at handoff unaccounted for: " + ", ".join(missing)
+            + '; record each in follow_on (source: "assumption:<id>") or cite its ID in summary',
+        )
 
 
 def _text(value: Any) -> str:
