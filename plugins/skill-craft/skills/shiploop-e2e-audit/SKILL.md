@@ -6,7 +6,7 @@ description: >-
   source checkout: iterate ShipLoop on a real local case, evaluate behavior and
   workflow quality, decide whether ShipLoop needs to change, plan one bounded
   hypothesis, apply and verify the change, and rerun a qualified comparison.
-version: 2.0.0
+version: 2.1.0
 license: MIT
 platforms:
   - linux
@@ -28,7 +28,7 @@ The six-step loop is:
 1. **Iterate** ShipLoop headlessly on a test case in a brand-new, independent, isolated product Git repository folder (`$RUN/work`, created fresh per run outside `skill-craft`).
 2. **Evaluate** product checks, held-out quality, and an independent read-only review + judge.
 3. **Decide** whether ShipLoop itself needs to improve, and record learnings in the repo.
-4. **Plan** one bounded, generic hypothesis with a falsifiable prediction.
+4. **Plan** one bounded, generic hypothesis with a falsifiable prediction; pre-screen single-stage hypotheses rapidly via `test/shiploop_e2e/stage_suite/stages.py` before spending full deliveries (`promotion/5` remains required for end-to-end qualification).
 5. **Change** `skills/shiploop/` at owner-selected `max` effort and verify with the `quick` test tier.
 6. **Rerun & promote** via a qualified `promotion/5` comparison (each attempt in its own fresh isolated product Git repo folder), release on `PROMOTE`, and repeat.
 
@@ -36,8 +36,8 @@ The six-step loop is:
 
 | Surface | Requirement |
 | --- | --- |
-| Operator host | Any host with shell access to a clean `skill-craft` checkout (Codex, Claude Code, Grok, Cursor, OpenCode). |
-| Subject host | `--host codex` (`--codex-auto-review`), `--host claude` (`--backend anthropic` or `ollama`), or `--host grok`. Operator and subject may differ. |
+| Operator host | Any host with shell access to a clean `skill-craft` checkout (Codex, Claude Code, Grok, Cursor, OpenCode, Antigravity `agy`). |
+| Subject host | `--host codex` (`--codex-auto-review`), `--host claude` (`--backend anthropic` or `ollama`), or `--host grok`. Operator and subject may differ; `agy 1.1.2` is currently operator-only until it exposes structured JSON event output for `hosts.py`. |
 | Python | `python3` — 3.13+ on macOS (`os.waitid` in `listeners.py`), 3.9+ on Linux (ShipLoop itself requires 3.9+). |
 | Git | Configured committer identity (`git -c user.useConfigOnly=true var GIT_COMMITTER_IDENT`) before spending model runs. |
 

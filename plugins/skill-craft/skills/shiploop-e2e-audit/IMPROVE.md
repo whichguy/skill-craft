@@ -53,6 +53,35 @@ Pick a local case whose oracle can fail meaningfully:
 - Incremental `follows` cases (such as `user-teams`): use explicit `epoch.py init`
   with a reviewed predecessor registration; guided `--qualify` refuses them
   early before invoking the improver.
+- **Fixed-port serial execution:** cases declaring `quality.refuse_ports` in
+  `cases.json` (`ticket-*` on port 4180; `user-*`, `battleship`, `checkers`,
+  and `roundtable` on port 3000) acquire an exclusive port lease. Run them
+  serially (`--parallel 1` / `--serial`), never concurrently against the same
+  port.
+
+Optional `run.py` flags for ShipLoop 2.15+ behaviors:
+- `--delegation inline|agents|ask-agent` (default `inline`; `agents` keeps core
+  stages inline and dispatches native review workers).
+- `--planning-review stage|none` (default `stage`; `none` skips planning
+  Improve reviews and starts at the first step's `document` review).
+- `--owner-note-at STAGE` (injects an owner note mid-run to verify delivery;
+  omit on baseline runs).
+
+### Fast single-stage pre-screen (`stage_suite`)
+
+Use `stage_suite` to verify or iterate on a single stage's packet, checks, or
+prompt behavior in ~1–3 minutes/sample before spending a full delivery:
+
+```sh
+python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" list
+python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" verify   # T0: offline oracle calibration (free)
+python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" render   # T1: offline packet render checks (free)
+python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" live <selector> --samples 1 --host codex --effort xhigh
+```
+
+T0 (`verify`) and T1 (`render`) make no model calls. T2 (`live`) informs
+hypotheses and catches stage regressions quickly, but a narrow stage replay
+never substitutes for `promotion/5` end-to-end qualification.
 
 For Codex campaigns, resolve the latest available Sol and Astra families from
 the current official model catalog (currently `gpt-6.2-sol` and `gpt-6.2-astra`),
@@ -94,6 +123,8 @@ After every run (including failed, blocked, or no-change passes):
 - Check `nomenclature` in `$RUN/metrics.json` against
   `skills/shiploop/references/glossary.md` (S-16) and cite any retired or
   confused term beside the model action that followed.
+- Check `fork_completeness` (for `--delegation agents` runs) and
+  `open_item_settlement` in `$RUN/metrics.json`.
 - Inspect `$RUN/review-export/` (compact `review-export.json` and static
   `run-review.html`). Updating the shared Run Review page via
   `/skill-craft:shiploop-run-review` is optional.
@@ -111,7 +142,9 @@ candidates isolated until qualified. If editing ShipLoop terminology, update
 
 Run a registered `promotion/5` comparison with either a matched A/A calibration
 report (`--calibration FILE`, bound to driver, floors, and usable splits) or an
-explicitly stated, unmeasured pair (`--attempts N --tolerance T`):
+explicitly stated, unmeasured pair (`--attempts N --tolerance T`). Pass
+`--parallel 1` whenever `$CASE` or `--generality-case` declares a fixed port in
+`cases.json` (`ticket-*`, `user-*`, `battleship`, `checkers`, `roundtable`):
 
 ```sh
 # Continuing from Step 3: invoke iterate.py from the learning worktree printed in
@@ -119,7 +152,7 @@ explicitly stated, unmeasured pair (`--attempts N --tolerance T`):
 # root from its own script path. Or pass --review-run "$RUN" directly without Step 3.
 python3 -B "$LEARNING_WORKTREE/test/shiploop_e2e/iterate.py" \
   --qualify --iterations 1 --case "$CASE" --record "$RECORD_ID" \
-  --attempts 3 --tolerance 0.25 \
+  --attempts 3 --tolerance 0.25 --parallel 1 \
   --host codex --model "$SOL" --effort xhigh --codex-auto-review \
   --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
   --judge-host codex --judge-model "$ASTRA" --judge-effort high \
@@ -147,9 +180,16 @@ learning commit explaining why, and proceed to the next hypothesis.
 
 ## Retention hygiene
 
-Keep raw run folders outside the checkout. Once a terminal attempt's compact
-evidence and `LEARNINGS.md` entry are committed, use
-`python3 -B "$SOURCE/test/shiploop_e2e/lifecycle.py" dispose "$RUN"` to remove
-heavy subdirectories (`work/`, `home/`, `build/`, `quality/`) while keeping logs
-and receipts. Never delete another session's runs, worktrees, or branches
-without explicit owner authorization.
+Keep raw run folders outside the checkout:
+- `python3 -B "$SOURCE/test/shiploop_e2e/lifecycle.py" cleanup "$RUN"` — stop
+  orphaned process groups left by interrupted or killed runs (idempotent).
+- `python3 -B "$SOURCE/test/shiploop_e2e/lifecycle.py" dispose "$RUN"` — once a
+  terminal attempt's compact evidence and `LEARNINGS.md` entry are committed,
+  remove heavy subdirectories (`work/`, `home/`, `build/`, `quality/`) while
+  keeping logs and receipts.
+- `python3 -B "$SOURCE/test/shiploop_e2e/lifecycle.py" prune "$RUN_ROOT" --older-than-days 7 [--apply]`
+  — dry-run by default; pass `--apply` to dispose finished runs older than the
+  cutoff.
+
+Never delete another session's runs, worktrees, or branches without explicit
+owner authorization.

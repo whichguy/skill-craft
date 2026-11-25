@@ -6,7 +6,7 @@ description: >-
   source checkout: iterate ShipLoop on a real local case, evaluate behavior and
   workflow quality, decide whether ShipLoop needs to change, plan one bounded
   hypothesis, apply and verify the change, and rerun a qualified comparison.
-version: 2.0.0
+version: 2.1.0
 license: MIT
 platforms:
   - linux
