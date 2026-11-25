@@ -343,6 +343,14 @@ def destructive_deploy(org: str, plan: dict[str, list[str]]) -> None:
         return
     with tempfile.TemporaryDirectory() as tmp:
         tdir = Path(tmp)
+        (tdir / "force-app").mkdir()
+        (tdir / "sfdx-project.json").write_text(
+            json.dumps(
+                {"packageDirectories": [{"path": "force-app", "default": True}], "sourceApiVersion": API_VERSION},
+                indent=2,
+            ) + "\n",
+            encoding="utf-8",
+        )
         pkg = tdir / "package.xml"
         dest = tdir / "destructiveChanges.xml"
         pkg.write_text(empty_package_xml(), encoding="utf-8")
@@ -363,6 +371,7 @@ def destructive_deploy(org: str, plan: dict[str, list[str]]) -> None:
                 ],
                 org,
                 timeout=600,
+                cwd=str(tdir),
             ),
             "destructive cleanup deploy",
         )

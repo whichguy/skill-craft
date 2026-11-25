@@ -149,6 +149,9 @@ FAKE_SF_CODE = textwrap.dedent(r"""
 
     if argv[:3] == ["project", "deploy", "start"]:
         if "--post-destructive-changes" in argv:
+            if not (Path.cwd() / "sfdx-project.json").is_file():
+                print(json.dumps({"status": 1, "message": f"{Path.cwd()} does not contain a valid Salesforce DX project."}))
+                raise SystemExit(1)
             import xml.etree.ElementTree as ET
             dest = Path(argv[argv.index("--post-destructive-changes") + 1])
             tree = ET.fromstring(dest.read_text(encoding="utf-8"))
