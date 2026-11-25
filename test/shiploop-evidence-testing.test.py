@@ -11,6 +11,7 @@ import tempfile
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "skills/shiploop"
@@ -19,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_expectations as expectations  # noqa: E402
+import shiploop_head_plans as plans  # noqa: E402
 import shiploop_inner_fixture as inner  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
@@ -461,6 +463,61 @@ class EvidenceTestingTests(unittest.TestCase):
         self.assertIn("python3 -B -m unittest -v tests/test_reg.py", w2_head)
         self.assertIn("Never edit product code directly", " ".join(prompts.DUTIES["system-test"].split()))
         self.assertIn("describe('<ID> ...')", " ".join(prompts.DUTIES["test-spec"].split()))
+
+    def test_release_plan_surfaces_dropped_earlier_regression_commands(self) -> None:
+        _base, repo, run_dir = self._init_repo_run()
+        rp_state = None
+        rv_state = None
+        for key, st in plans.full_walk(plans.CASE, "inline", str(repo), run_dir):
+            if plans.stage_of(key) == "release-plan" and rp_state is None:
+                rp_state = st
+            elif plans.stage_of(key) == "release-verify" and rv_state is None:
+                rv_state = st
+                break
+        assert rp_state is not None and rv_state is not None
+        cmd_a = "npm test"
+        cmd_b = "npm run test:enrich"
+        w2_sp = next(
+            entry["action"] for entry in rp_state["history"]
+            if entry.get("stage") == "step-plan" and entry.get("workitem") == "W2"
+        )
+
+        # W2 has no regression command (e.g. docs item) -> regression_commands(last_item=True) keeps W1's npm test.
+        self.assertEqual(test_loop.dropped_regression_commands(rp_state), [])
+        self.assertNotIn("Earlier items' regression commands", nav.render(None, run_dir, rp_state))
+
+        # Narrowed W2 regression command (cmd_b instead of cmd_a): W1's cmd_a is surfaced in release-plan,
+        # while release_commands(..., last_item=True) continues appending only W2's cmd_b.
+        narrowed_rp = json.loads(json.dumps(rp_state))
+        narrowed_rp["accepted"][w2_sp]["test_commands"].append(
+            {"command": cmd_b, "suite": "regression", "criteria": ["C1"]},
+        )
+        self.assertEqual(test_loop.dropped_regression_commands(narrowed_rp), [("W1", cmd_a)])
+        rp_packet = nav.render(None, run_dir, narrowed_rp)
+        self.assertIn("Earlier items' regression commands not in the last item's step-plan", rp_packet)
+        self.assertIn(f"- `{cmd_a}` (from W1)", rp_packet)
+
+        narrowed_rv = json.loads(json.dumps(rv_state))
+        narrowed_rv["accepted"][w2_sp]["test_commands"].append(
+            {"command": cmd_b, "suite": "regression", "criteria": ["C1"]},
+        )
+        rp_action = next(
+            entry["action"] for entry in narrowed_rv["history"] if entry.get("stage") == "release-plan"
+        )
+        narrowed_rv["accepted"][rp_action]["consumer_checks"] = [{"command": "smoke-ok", "suite": "check"}]
+        with mock.patch.object(test_loop, "observation", return_value={"where": "returned-result"}):
+            cmds, _ = test_loop.release_commands(run_dir, narrowed_rv)
+        self.assertEqual([c["command"] for c in cmds], ["smoke-ok", cmd_b])
+        self.assertEqual([r["command"] for r in test_loop.regression_commands(narrowed_rp, last_item=True)], [cmd_b])
+
+        # Carried W1 regression command in W2 -> no dropped command and no hint in release-plan packet.
+        carried_rp = json.loads(json.dumps(rp_state))
+        carried_rp["accepted"][w2_sp]["test_commands"].extend([
+            {"command": cmd_a, "suite": "regression", "criteria": ["C1"]},
+            {"command": cmd_b, "suite": "regression", "criteria": ["C1"]},
+        ])
+        self.assertEqual(test_loop.dropped_regression_commands(carried_rp), [])
+        self.assertNotIn("Earlier items' regression commands", nav.render(None, run_dir, carried_rp))
 
 
 if __name__ == "__main__":

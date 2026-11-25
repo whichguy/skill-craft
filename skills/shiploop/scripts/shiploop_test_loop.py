@@ -1208,6 +1208,30 @@ def regression_commands(state: Mapping[str, Any], *, last_item: bool = False) ->
     return [dict(row) for row in found.values() if _remote_base(row, stateful) is None]
 
 
+def dropped_regression_commands(state: Mapping[str, Any]) -> List[Tuple[str, str]]:
+    """Unique local ``(work_item_id, command)`` pairs recorded by earlier items' step plans that are absent from
+    ``regression_commands(state, last_item=True)``."""
+    stateful = stateful_targets(state)
+    last_cmds = {row["command"] for row in regression_commands(state, last_item=True)}
+    seen: set[str] = set()
+    dropped: List[Tuple[str, str]] = []
+    for item in state.get("work_items", ()):
+        item_id = str(item.get("id") or "")
+        _action, result = _step_plan(state, item_id)
+        for row in result.get("test_commands") or ():
+            if not isinstance(row, Mapping):
+                continue
+            if row.get("suite") != "regression" and not row.get("regression"):
+                continue
+            if _remote_base(row, stateful) is not None:
+                continue
+            cmd = str(row.get("command") or "")
+            if cmd and cmd not in last_cmds and cmd not in seen:
+                seen.add(cmd)
+                dropped.append((item_id, cmd))
+    return dropped
+
+
 def release_commands(root: Path, state: Mapping[str, Any]) -> Tuple[List[Dict[str, Any]], str]:
     """release-verify's commands and, when there are none, why.
 
@@ -2355,6 +2379,7 @@ __all__ = (
     "check_result_fields",
     "criteria_without_ids",
     "default_suite_drift",
+    "dropped_regression_commands",
     "floor_detail",
     "floors",
     "judge",

@@ -8258,6 +8258,14 @@ def _test_evidence_lines(root: Path, state: Mapping[str, Any], stage: str, work_
             lines.append("Mutants marked `not-exercisable` in inner tests (cover or carry open):")
             lines.extend(not_ex)
         return lines
+    if stage == "release-plan":
+        dropped = test_loop.dropped_regression_commands(state)
+        if dropped:
+            lines.append("Earlier items' regression commands not in the last item's step-plan "
+                         "(release-verify only auto-appends the last item's; include any still-valid suite in "
+                         "consumer_checks or note why superseded):")
+            lines.extend(f"- `{cmd}` (from {item_id})" for item_id, cmd in dropped)
+        return lines
     return lines
 
 
