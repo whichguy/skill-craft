@@ -519,6 +519,7 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         # A run blocked on a person: the stop stays quiet until their reply resumes it.
         "awaiting": (navigator.awaiting(state) or (None, {}))[1].get("kind", ""),
         "stage": stage,
+        "profile": navigator.stage_spec.stage_profile(stage),
         "action": (action or {}).get("id"),
         "revision": state["revision"],
         # Keepalive progress: the revision, callback attempts (a refused callback is

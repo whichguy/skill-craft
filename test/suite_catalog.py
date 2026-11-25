@@ -144,6 +144,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-domain-words.test.py",
     "test/shiploop-retired-terms.test.py",
     "test/shiploop-keepalive.test.py",
+    "test/shiploop-model-routing.test.py",
     "test/shiploop-skill-calls.test.py",
     "test/shiploop-trace.test.py",
     "test/shiploop-owner-notes.test.py",
@@ -218,6 +219,7 @@ _FALLBACK_DURATION_SECONDS = 60.0
 # The quick tier's fixed ShipLoop baseline: fast graph, packet and boundary checks.
 _QUICK_PATHS = frozenset({
     "test/shiploop-stage-spec.test.py",
+    "test/shiploop-model-routing.test.py",
     "test/shiploop-no-model-launch.test.py",
     "test/shiploop-navigator-contract.test.py",
     "test/shiploop-navigator-v4.test.py",

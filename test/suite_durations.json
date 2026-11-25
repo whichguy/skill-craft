@@ -180,6 +180,7 @@
     "test/shiploop-local-skills.test.py": 2.81,
     "test/shiploop-loophole-gates.test.py": 146.307,
     "test/shiploop-loops.test.py": 110.643,
+    "test/shiploop-model-routing.test.py": 0.5,
     "test/shiploop-narrative.test.py": 4.24,
     "test/shiploop-navigator-contract.test.py": 453.915,
     "test/shiploop-navigator-dry-run.test.py": 63.22,
