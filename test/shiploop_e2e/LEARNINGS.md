@@ -10127,6 +10127,30 @@ Configured built-in default-on planning vs. execution profiles in `skills/shiplo
   - **Codex (`codex/routed`, `301.71s`):** `stages_ok=True`, `warm_resume_ok=True` (`01a214ac-3aa1-7c33-bb8d-e36683d39a6e` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`gpt-6.2-astra/high` `132s` rev `16→18` → `gpt-6.2-sol/xhigh` `54s` rev `18→19` → `gpt-6.2-astra/high` `115s` rev `19→21`).
   - **Antigravity (`antigravity/routed`, `268.74s`):** `stages_ok=True`, `single_session_ok=True` (`1` unbroken `gemini-pro-orchestrator-neon` session `38ff245f-39c0-43e0-8b15-69813d832a5b`, `0` driver boundary stops, rev `16→21`), `target_recorded_ok=True`, `observed_models_ok=True` (`hook=model` recorded internal Orchestrator switch `gemini-4-neon-high/high` → `gemini-4-hydrogen-high/high`).
 
+## 2026-11-25 — Prelude-Only Default Stage Routing, `--plan-reflect-and-improve` Opt-In, and Live `sequence_stage` Fix
+
+Changed `shiploop-drive`'s default stage-to-profile mapping to **Prelude-Only** (`PRELUDE` + prelude `improve` reviews on `planning`; everything from `step-plan` through `handoff`, including `reflect-and-revise` and inner/outer `improve` stages, on `execution` — a single `planning → execution` switch at `prepare → step-plan`), and added the off-by-default `--plan-reflect-and-improve` flag (`"plan_reflect_and_improve": true` in routing JSON) for users who want `reflect-and-revise` and inner/outer `improve` stages routed back to `planning`:
+
+- **Live cache-hit motivation (`routing-smoke-defaults-live` from `45ef76d9d376bac16107e59344a82e7984ea9975`):**
+  - Inspecting raw provider transcripts on the prior 3-stage outer alternation (`planning → execution → planning`, with a short `41s`–`54s` middle stage) confirmed heavy prompt-cache cold-miss penalties whenever sessions switch models:
+    - **Claude (`244d585d`, `Opus 5.5 → Sonnet 5.5 → Opus 5.5`, `41s` middle stage):** Switch 1 (`Opus → Sonnet`) had `cache_create=136,516` (`cache_read=0`, `0.0%` hit); Switch 2 (`Sonnet → Opus`) had `cache_create=149,525`, `cache_read=13,712` (`8.4%` hit).
+    - **Codex (`01a214ac`, `Astra → Sol → Astra`, `54s` middle stage):** Steady-state turns achieved `98.3%`–`99.9%` cache hits, but Switch 1 (`Astra → Sol`) hit `0/72,528` (`0.0%` hit) and Switch 2 (`Sol → Astra`, within short TTL) hit `59,264/97,088` (`61.0%` hit, `37,824` uncached).
+  - Defaulting to Prelude-Only eliminates repeated `execution ↔ planning` cache busts inside inner/outer loops while keeping heavy architectural thinking (`intake..prepare` + prelude `improve`) on the planning target.
+
+- **Live Run 4 (`routing-smoke-prelude-live`, default Prelude-Only 3-host smoke, `prepare → step-plan → test-spec` pause) — `3/3 PASS` (`exit 0`, all checks `True`):**
+  - **Claude (`claude/routed`, `166.67s`):** `stages_ok=True`, `warm_resume_ok=True` (`f0da0772-6de9-4878-9b2f-cbfe52ba8bc2`), `boundary_stops_ok=True` (`1` stop at `step-plan`), `observed_models_ok=True` (`claude-opus-5-5/high` `49s` rev `6→7` → `claude-sonnet-5-5/high` `117s` rev `7→9`).
+  - **Codex (`codex/routed`, `163.7s`):** `stages_ok=True`, `warm_resume_ok=True` (`01a214c9-3315-7c42-b1e5-9db6ca05c29e`), `boundary_stops_ok=True` (`1` stop at `step-plan`), `observed_models_ok=True` (`gpt-6.2-astra/high` `47s` rev `6→7` → `gpt-6.2-sol/xhigh` `117s` rev `7→9`).
+  - **Antigravity (`antigravity/routed`, `193.82s`):** `stages_ok=True`, `single_session_ok=True` (`1` unbroken `gemini-pro-orchestrator-neon` session `7872c010-f64d-4147-a520-aed67eb75928`, `0` boundary stops, rev `6→9`), `target_recorded_ok=True`, `observed_models_ok=True` (`gemini-4-neon-high` → `gemini-4-hydrogen-high` → `gemini-4-neon-high`).
+
+- **Live bug caught by opt-in `--plan-reflect-and-improve` smoke (`routing-smoke-optin-live`, `task-1512`) and fixed via `sequence_stage(state)`:**
+  - First live opt-in Codex run (`system-test-author → improve → system-test`) ran all 3 stages in `1` session on `gpt-6.2-sol/xhigh` with `0` boundary stops (`warm_resume_ok=False`, `boundary_stops_ok=False`, `observed_models_ok=False`).
+  - **Root cause:** `navigator.emit()` (`skills/shiploop/scripts/shiploop_navigator.py`) and `protocol.hook_status()` (`skills/shiploop/scripts/shiploop_protocol.py`) called `current_stage(state)` (which returns the cursor stage `"system-test-author"`, never `"improve"`) instead of `sequence_stage(state)` (which returns `"improve"` whenever `active_improve` is set), hiding `improve` and `reviewed_stage` from `active_boundary()`, `hook_status()`, and `hook=model`.
+  - Fixed both sites to call `sequence_stage(state)` and added real-state regression coverage (`test_active_improve_sequence_stage_and_boundary_in_real_state` in `test/shiploop-keepalive.test.py`, verified in `100/100` OK).
+
+- **Live Run 5 (`routing-smoke-optin-live-v2`, `codex --mode routed --plan-reflect-and-improve`, `task-1643`) — `PASS codex/routed` (`363.69s`, `exit 0`, all `4/4` checks `True`):**
+  - `stages_ok=True`, `warm_resume_ok=True` (`01a214d7-9ca3-7082-b38a-3d0642ddda36` across Sessions 2 & 3), `boundary_stops_ok=True` (`2` stops: `gpt-6.2-sol/xhigh → gpt-6.2-astra/high at improve` and `gpt-6.2-astra/high → gpt-6.2-sol/xhigh at system-test`), `observed_models_ok=True` (`gpt-6.2-sol/xhigh` `86s` rev `16→17` → `gpt-6.2-astra/high` `183s` rev `17→18` at `improve` → `gpt-6.2-sol/xhigh` `94s` rev `18→20` at `system-test`, paused cleanly at `product-acceptance`).
+
+
 
 
 
