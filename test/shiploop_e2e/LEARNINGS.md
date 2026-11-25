@@ -10149,9 +10149,11 @@ Changed `shiploop-drive`'s default stage-to-profile mapping to **Prelude-Only** 
 
 - **Live Run 5 (`routing-smoke-optin-live-v2`, `codex --mode routed --plan-reflect-and-improve`, `task-1643`) — `PASS codex/routed` (`363.69s`, `exit 0`, all `4/4` checks `True`):**
   - `stages_ok=True`, `warm_resume_ok=True` (`01a214d7-9ca3-7082-b38a-3d0642ddda36` across Sessions 2 & 3), `boundary_stops_ok=True` (`2` stops: `gpt-6.2-sol/xhigh → gpt-6.2-astra/high at improve` and `gpt-6.2-astra/high → gpt-6.2-sol/xhigh at system-test`), `observed_models_ok=True` (`gpt-6.2-sol/xhigh` `86s` rev `16→17` → `gpt-6.2-astra/high` `183s` rev `17→18` at `improve` → `gpt-6.2-sol/xhigh` `94s` rev `18→20` at `system-test`, paused cleanly at `product-acceptance`).
+## 2026-11-25 — Live Codex `hello` Checkout E2E Validation of Stage/Token Telemetry (`b854c572a`) and Gemini Hub (`405d23d58`, `c64e919f4`)
 
+Ran a fresh live checkout E2E round on `c64e919f4` (`--case hello --source checkout --host codex --planning-review none --delegation inline --timeout 900 --output /tmp/e2e-release-hub-20261125/hello`, run `nav-f8606ea422b84910b6cf772d6e9ad8b7`):
 
-
-
-
-
+- **Every verdict passed (`PASS`):** `invoked` (`/skill-craft:shiploop`), `plugin` (`skill-craft@whichguy 4.18.0`), `process` (`rc=0`, `553.8s`, `165` turns, `1` session `end_turn`), `shiploop` (`done`, revision `26`, `report.html`, `4` Improve children, `0` test-quality dodges, `0` unverified), `committed` (`HEAD 17ed1262`, `5` files), and case checks `2/2` PASS.
+- **Stage & token telemetry measured live (`b854c572a`, `405d23d58`, `c64e919f4`):** `timeline.json` recorded `26` `entered` and `23` `accepted` timestamps (`elapsed_seconds=532`, `active_seconds=532.1`, `paused_seconds=0.0`); `trace.jsonl` recorded `130` lines including `60` passive `hook="usage"` events; delta-aggregated run usage totaled `7,914,818` tokens (`input=7,894,708`, `cached=7,714,944`, `output=20,110`, `reasoning=885`, `peak_context=185,619`).
+- **Live Gemini Hub & headless Chrome check on completed E2E run:** `shiploop_progress_serve` `GET /api/runs/<key>/detail` projected `23` story cards (`23/23` with `recorded_entry` durations, `22/23` with delta-aggregated `token_usage`); headless Chrome (`--headless=new --dump-dom`) rendered `255,343 B` DOM with Hero and the `"Hello, world!"` prompt intact and `0` console/CSP errors.
+- **Scope & limits:** Verified `hello` on `codex` (`gpt-6.2-sol/xhigh`, `--planning-review none --delegation inline`, `n = 1`), with `paused_seconds=0.0` (no pause/resume triggered in-run). Executed on `c64e919f4` (prior to concurrent `7565df333`, `7d32c3cb1`, `f0dda55da`, `f81eb8dcf`).
