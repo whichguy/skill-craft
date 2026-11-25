@@ -147,27 +147,36 @@ class SampleStopped(RuntimeError):
 # ---------------------------------------------------------------------------------------------------------------- the stop
 
 def accepted_reached(state: dict | None, action_id: str) -> bool:
-    """Whether the host is done with the seeded action ``action_id``: it has an accepted row in ``history`` (any outcome), or
-    the run is parked at its Improve stage (``active_improve.action_id``), or the run is no longer active (blocked, paused,
-    halted, done). False for a state that could not be read: the next poll reads it again."""
+    """Whether the host is done with the seeded action ``action_id``: it has an accepted row in ``history`` (any outcome),
+    an imported Improve review for ``improve_action == action_id``, the run is parked at its Improve stage
+    (``active_improve.action_id``), or the run is no longer active (blocked, paused, halted, done). False for a state that
+    could not be read: the next poll reads it again."""
     if not isinstance(state, dict):
         return False
     if state.get("status") != "active":
         return True
     if any(isinstance(row, dict) and row.get("action") == action_id for row in state.get("history") or []):
         return True
+    if any(isinstance(rec, dict) and rec.get("improve_action") == action_id
+           for rec in (state.get("improve_results") or {}).values()):
+        return True
     child = state.get("active_improve")
     return isinstance(child, dict) and child.get("action_id") == action_id
 
 
 def seeded_result(state: dict | None, action_id: str) -> tuple[dict | None, str | None]:
-    """(the seeded action's result, where it is from): ``accepted`` is state ``accepted[action_id]``, ``parked`` the producer's
-    ``active_improve.seed_result`` while the run waits at that action's Improve stage; (None, None) when it is neither."""
+    """(the seeded action's result, where it is from): ``accepted`` is state ``accepted[action_id]`` (or an imported Improve
+    action's reviewed accepted result), ``parked`` the producer's ``active_improve.seed_result`` while the run waits at that
+    action's Improve stage; (None, None) when it is neither."""
     if not isinstance(state, dict):
         return None, None
     accepted = (state.get("accepted") or {}).get(action_id)
     if isinstance(accepted, dict):
         return accepted, "accepted"
+    for reviewed_id, rec in (state.get("improve_results") or {}).items():
+        if isinstance(rec, dict) and rec.get("improve_action") == action_id:
+            reviewed = (state.get("accepted") or {}).get(reviewed_id)
+            return (reviewed if isinstance(reviewed, dict) else rec), "accepted"
     child = state.get("active_improve")
     if isinstance(child, dict) and child.get("action_id") == action_id and isinstance(child.get("seed_result"), dict):
         return child["seed_result"], "parked"
@@ -495,7 +504,7 @@ def _collect(sc: sb.Scenario, out: Path) -> tuple[stage_oracle.Bundle, dict | No
     stage = None
     if state is not None:
         try:
-            stage = navigator.current_stage(state)
+            stage = sb.stage_of(state)
         except Exception:  # noqa: BLE001 - an unreadable cursor is a missing fact, not a crash of the grade
             stage = None
     bundle = stage_oracle.Bundle(

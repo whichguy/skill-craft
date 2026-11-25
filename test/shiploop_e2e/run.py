@@ -1500,7 +1500,8 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
              work_item: dict | None = None, delegation: str | None = None, checks: list[str] | None = None,
              home: bool = True, product: Path | None = None, home_fixture: Path | None = None,
              records: dict | None = None, exclude: list[str] | tuple = (), planning_review: str | None = None,
-             improve_skill: str = "", implementation: dict | None = None) -> dict:
+             improve_skill: str = "", implementation: dict | None = None,
+             release_slice_mode: bool | None = None) -> dict:
     """Start a run and record its stages before `stop` as synthetic.
 
     `planning_review` and `improve_skill` are the run's `--planning-review` and `--improve-skill` options (unset: the
@@ -1523,7 +1524,7 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
     output: the seed stops at implement, lays those files in the run's worktree uncommitted, as an implement stage leaves
     them (after the item's base, so they read as the step's change), and then records implement and the stages up to `stop`.
     """
-    delivered = release_slice.delivered(stop)
+    delivered = release_slice.delivered(stop) if release_slice_mode is None else release_slice_mode
     if delivered and (product is None or home_fixture is None):
         raise SystemExit(f"seed: a seed at {stop} needs the case's product and knowledge home (seed_product, seed_home)")
     delegation = delegation or ("inline" if delivered else "ask-agent")
