@@ -591,15 +591,11 @@ def review(run_dir: Path, *, host: str | None = None, model: str | None = None, 
     stage.mkdir(exist_ok=False)
     env = agent.env(stage / "home")
     source = ran_source(run_dir, skill_root)
+    permission_mode = "read-only" if role["host"] == "antigravity" else "auto"
     argv, stdin_payload = agent.prepare(prompt=reviewer_prompt(run_dir, source, prior_learnings, records),
                       prompt_file=stage / "prompt.txt", cwd=run_dir, model=role["model"],
-                      effort=role["effort"], permission_mode="auto", max_turns=max_turns)
-    if role["host"] == "codex":
-        try:
-            sandbox_index = argv.index("-s")
-        except ValueError as exc:
-            raise RuntimeError("Codex reviewer requires an explicit read-only sandbox") from exc
-        argv[sandbox_index + 1] = "read-only"
+                      effort=role["effort"], permission_mode=permission_mode, max_turns=max_turns)
+    hosts.enforce_readonly_sandbox(role["host"], argv, context="reviewer")
     process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
                               translate=agent.translator(), stdin_payload=stdin_payload)
     response = hosts.final_text(stage / "events.jsonl")

@@ -102,10 +102,12 @@ gain is not yet explained.
 New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The reviewer and judge
 are separate fresh sessions, even when their selected models agree. `hosts.ROLE_DEFAULTS` defines the current
 subject, reviewer, judge and improver profiles. For new work, the owner selected Codex / GPT-6.2 Sol / extra-high
-(`xhigh`) for subjects, Codex / GPT-6.2 Sol / max for improvers (or Claude / Sonnet 5.5 / max with
-`--improver-host claude`), and Codex / GPT-6.2 Astra / high for independent reviewers and judges (2026-11-19,
-superseding Grok 4.6 xhigh subjects from 2026-11-10, GPT-6.1 Sol max improvers from 2026-11-15, and GPT-6 Astra high
-reviewers/judges from 2026-11-08).
+(`xhigh`) for subjects (2026-11-19), and Antigravity Orchestrator (Neon) (`antigravity` / `gemini-pro-orchestrator-neon`) for
+independent reviewers, independent judges and improvers (2026-11-25, superseding Codex / GPT-6.2 Astra / high
+reviewers/judges and Codex / GPT-6.2 Sol / max improvers from 2026-11-19, GPT-6.1 Sol max improvers from
+2026-11-15, and GPT-6 Astra high reviewers/judges from 2026-11-08; explicit overrides such as
+`--improver-host codex` for Sol `max` or `--improver-host claude` for Sonnet 5.5 `max` and
+`--reviewer-host codex` / `--judge-host codex` remain available).
 This is an owner preference, not a measured model improvement.
 Explicit role choices override that default; without an override, resumed runs retain their recorded identities.
 Frozen registrations and historical evidence are not relabelled; continue existing strict epochs on their original pinned

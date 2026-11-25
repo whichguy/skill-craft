@@ -89,10 +89,10 @@ flowchart TD
 New runs, step slices and experiment invocations default to **Codex / GPT-6.2 Sol / extra-high (`xhigh`)** as the driver
 (owner, 2026-11-19), replacing Grok / Grok 4.6 / extra-high (`xhigh`, owner 2026-11-10) and earlier Codex / GPT-6.1 Sol
 / medium (owner, 2026-11-08). Independent reviewers
-and judges default to **Codex / GPT-6.2 Astra / high** (owner, 2026-11-19, replacing GPT-6 Astra high) and remain
+and judges default to **Antigravity / Orchestrator (Neon) (`gemini-pro-orchestrator-neon`)** (owner, 2026-11-25, replacing Codex / GPT-6.2 Astra / high from 2026-11-19) and remain
 separate fresh sessions. The improver defaults to
-**Codex / GPT-6.2 Sol / max** (owner, 2026-11-19, replacing GPT-6.1 Sol max from 2026-11-15); `--improver-host claude` selects
-**Claude / Sonnet 5.5 / max**, because the improver's max holds across hosts (`hosts.ROLE_EFFORT`). `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
+**Antigravity / Orchestrator (Neon) (`gemini-pro-orchestrator-neon`)** (owner, 2026-11-25, replacing Codex / GPT-6.2 Sol / max from 2026-11-19); `--improver-host codex` selects **Codex / GPT-6.2 Sol / max** and `--improver-host claude` selects
+**Claude / Sonnet 5.5 / max**, because the improver's `max` holds across hosts (`hosts.ROLE_EFFORT`) when not overridden by an orchestrator profile. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
 its `--host`, `--model` and `--effort` select the subject only. With no explicit override, existing runs resume
 their recorded identities. Continue an already registered strict epoch on its original pinned harness checkout;
 its qualification fingerprint binds the specification and launcher bytes as well as the product build.
@@ -2545,9 +2545,10 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands independently admitted material findings to an
-improver agent. Subjects default to Codex / GPT-6.2 Sol / extra-high (`xhigh`); improvers default to Codex / GPT-6.2 Sol / max
-(`--improver-host claude` gives Claude / Sonnet 5.5 / max). Reviewers and judges default to
-Codex / GPT-6.2 Astra / high in separate fresh sessions. Subject flags do not silently switch the other roles.
+improver agent. Subjects default to Codex / GPT-6.2 Sol / extra-high (`xhigh`); improvers default to
+Antigravity / Orchestrator (Neon) (`gemini-pro-orchestrator-neon`, while `--improver-host codex` gives Codex / GPT-6.2 Sol / max and
+`--improver-host claude` gives Claude / Sonnet 5.5 / max). Reviewers and judges default to
+Antigravity / Orchestrator (Neon) (`gemini-pro-orchestrator-neon`) in separate fresh read-only sandbox sessions. Subject flags do not silently switch the other roles.
 Use `--reviewer-*`, `--judge-*` and `--improver-*` to override their respective profiles.
 Only supported, material, implementation-eligible ShipLoop findings reach the improver. Design challenges and
 harness discoveries retain separate dispositions. Legacy reviews remain readable but cannot establish new
@@ -2651,10 +2652,10 @@ arm's mean and its latest decide verdict. It reads run folders only.
 
 The reviewer records conformance and discoveries separately. A novel or design-challenging finding can anchor to the
 mission without a pre-existing clause; it is retained for investigation or owner review. Materiality and confidence are
-separate. The default Codex reviewer uses Astra high in a read-only sandbox. The judge is a separate fresh Astra high session with
+separate. The default Antigravity reviewer uses Orchestrator (Neon) (`gemini-pro-orchestrator-neon`) in `--mode plan --sandbox`. The judge is a separate fresh session with
 its own isolated home and read-only sandbox, bound to the exact review receipt. The purpose review also uses the judge profile.
 Only supported, material, eligible
-ShipLoop findings reach the improver (Sol 6.2 max by default). Harness discoveries follow a
+ShipLoop findings reach the improver (Antigravity Orchestrator (Neon) by default). Harness discoveries follow a
 separate evaluator experiment. Older reviews remain readable diagnostics and cannot supply the new review/judge gate.
 
 `epoch.py` is a stepwise controller over the existing runner, scorer and promotion rule. `init`, `next`, `status` and

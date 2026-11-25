@@ -29,15 +29,17 @@ class RoleDefaultsTest(unittest.TestCase):
         self.assertEqual(hosts.RUN_DEFAULT_HOST, "codex")
         expected = {
             "subject": {"host": "codex", "model": "gpt-6.2-sol", "effort": "xhigh"},
-            "reviewer": {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"},
-            "judge": {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"},
-            "improver": {"host": "codex", "model": "gpt-6.2-sol", "effort": "max"},
+            "reviewer": {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None},
+            "judge": {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None},
+            "improver": {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None},
         }
         self.assertEqual(hosts.ROLE_DEFAULTS, expected)
         for role, profile in expected.items():
             with self.subTest(role=role):
                 self.assertEqual(hosts.resolve_role(role), profile)
         self.assertEqual(hosts.resolve_role("reviewer", {"model": "custom-model", "effort": "xhigh"}),
+                         {"host": "antigravity", "model": "custom-model", "effort": "xhigh"})
+        self.assertEqual(hosts.resolve_role("reviewer", {"host": "codex", "model": "custom-model", "effort": "xhigh"}),
                          {"host": "codex", "model": "custom-model", "effort": "xhigh"})
         self.assertEqual(hosts.resolve_role("subject", {"host": "claude"}),
                          {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
@@ -104,15 +106,35 @@ class RoleDefaultsTest(unittest.TestCase):
         self.assertIn('agents.default_subagent_model="gpt-6.2-sol"', argv)
         self.assertIn("agents.default_subagent_reasoning_effort=xhigh", argv)
 
-    def test_improver_default_max_and_explicit_high_reach_codex_argv(self):
-        agent = hosts.CodexHost("fake-codex")
+    def test_default_antigravity_improver_and_codex_max_override_reach_argv(self):
+        agy_agent = hosts.AntigravityHost("fake-agy")
         args = argparse.Namespace(case="hello", host="codex", model="subject-only", effort="low",
                                   permission_mode="auto", improve_max_turns=None, max_budget_usd=None,
-                                  improve_timeout=30)
+                                  improve_timeout=30, antigravity_bin="fake-agy")
 
         def finish(_argv, _cwd, _env, events_path, _stderr, _timeout, **_kwargs):
             events_path.touch()
             return {"status": "exited", "returncode": 0}
+
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.object(agy_agent, "env", return_value={}), \
+                mock.patch.object(hosts, "host", return_value=agy_agent) as get_host, \
+                mock.patch.object(hosts, "run_agent", side_effect=finish) as launch, \
+                mock.patch.object(iterate, "git", side_effect=["base", "", ""]):
+            root = Path(folder)
+            iterate.improve(root, [], root / "agy-default", args, prompt="Improve this fixture.")
+        self.assertEqual(get_host.call_args.args, ("antigravity", "fake-agy"))
+        agy_argv = launch.call_args.args[0]
+        self.assertEqual(agy_argv[0], "fake-agy")
+        self.assertEqual(agy_argv[agy_argv.index("--model") + 1], "gemini-pro-orchestrator-neon")
+        self.assertNotIn("--effort", agy_argv)
+        self.assertIn("--dangerously-skip-permissions", agy_argv)
+        self.assertEqual(agy_argv[-1], "--print=Improve this fixture.")
+
+        agent = hosts.CodexHost("fake-codex")
+        args = argparse.Namespace(case="hello", host="codex", model="subject-only", effort="low",
+                                  permission_mode="auto", improver_host="codex", improve_max_turns=None,
+                                  max_budget_usd=None, improve_timeout=30)
 
         with tempfile.TemporaryDirectory() as folder, \
                 mock.patch.object(agent, "env", return_value={}), \
@@ -201,10 +223,10 @@ class RoleDefaultsTest(unittest.TestCase):
             setattr(args, role + "_effort", role + "-effort")
         for role in ("reviewer", "judge", "improver"):
             self.assertEqual(iterate.role_profile(args, role),
-                             {"host": "codex", "model": role + "-model", "effort": role + "-effort"})
-        self.assertEqual(hosts.resolve_role("judge", {"model": "gpt-6.1-sol", "effort": "high"}),
+                             {"host": "antigravity", "model": role + "-model", "effort": role + "-effort"})
+        self.assertEqual(hosts.resolve_role("judge", {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"}),
                          {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"})
-        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], "gpt-6.2-astra")
+        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], "gemini-pro-orchestrator-neon")
 
     def test_old_codex_resume_launch_keeps_recorded_model_and_effort(self):
         recorded = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}

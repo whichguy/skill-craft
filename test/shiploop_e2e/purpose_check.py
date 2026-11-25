@@ -162,29 +162,27 @@ Return one JSON object in a single ```json fenced block:
 
 
 def review(repo: Path, base: str, head: str, record: dict, prediction: dict | None, stage: Path, *,
-           host: str | None = None, model: str | None = None, effort: str | None = None, codex_bin: str = "codex",
-           timeout: int = 1200) -> dict:
+           host: str | None = None, model: str | None = None, effort: str | None = None,
+           antigravity_bin: str = "agy", codex_bin: str = "codex", timeout: int = 1200) -> dict:
     """The fresh purpose review; ``validity`` is valid only for a parsed verdict from an exited session."""
     diff = _git(repo, "diff", "--no-color", "--no-ext-diff", f"{base}..{head}")
     if len(diff) > MAX_DIFF:
         return {"verdict": None, "validity": {"status": "invalid",
                                               "reason": f"diff of {len(diff)} characters is larger than one record's change"}}
     role = hosts.resolve_role("judge", {"host": host, "model": model, "effort": effort})
-    if role["host"] != "codex":
+    if role["host"] not in ("codex", "antigravity"):
         return {"verdict": None, "validity": {"status": "failed",
-                                              "reason": "the purpose review requires Codex read-only sandbox mode"}}
-    agent = hosts.host("codex", codex_bin)
+                                              "reason": "the purpose review requires Codex or Antigravity read-only sandbox mode"}}
+    agent = hosts.host(role["host"], antigravity_bin if role["host"] == "antigravity" else codex_bin)
     stage.mkdir(parents=True, exist_ok=False)
     anchor = record.get("anchor") if isinstance(record.get("anchor"), dict) else {}
-    argv = agent.argv(prompt=review_prompt(record, clause_text(anchor.get("clause_id")), prediction, diff),
-                      prompt_file=stage / "prompt.txt", cwd=stage, model=role["model"], effort=role["effort"],
-                      permission_mode="read-only", max_turns=None)
-    try:
-        argv[argv.index("-s") + 1] = "read-only"
-    except ValueError:
-        raise RuntimeError("CodexHost.argv did not provide the sandbox option the purpose review requires")
+    argv, stdin_payload = agent.prepare(
+        prompt=review_prompt(record, clause_text(anchor.get("clause_id")), prediction, diff),
+        prompt_file=stage / "prompt.txt", cwd=stage, model=role["model"], effort=role["effort"],
+        permission_mode="read-only", max_turns=None)
+    hosts.enforce_readonly_sandbox(role["host"], argv, context="the purpose review")
     process = hosts.run_agent(argv, stage, agent.env(stage / "home"), stage / "events.jsonl", stage / "stderr.txt",
-                              timeout, translate=agent.translator())
+                              timeout, translate=agent.translator(), stdin_payload=stdin_payload)
     parsed = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
     if process.get("status") != "exited" or not isinstance(parsed, dict) or parsed.get("verdict") not in VERDICTS:
         result = {"verdict": None, "process": process, "validity": {

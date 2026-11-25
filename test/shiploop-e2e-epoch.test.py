@@ -97,7 +97,8 @@ class EpochTest(unittest.TestCase):
             self.assertEqual(epoch.state(self.root)["publication"], "not_performed")
         self.assertEqual((self.root / epoch.LEDGER).read_bytes(), original)
         profiles = json.loads((self.root / "roles.json").read_text())
-        self.assertEqual(profiles["improver"], {"host": "codex", "model": "gpt-6.2-sol", "effort": "max"})
+        self.assertEqual(profiles["improver"],
+                         {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None})
 
     def test_both_arms_use_the_registered_permissions_timeout_and_review_roles(self):
         driver = {"host": "codex", "model": "requested-sol", "effort": "medium",
@@ -335,10 +336,12 @@ class EpochTest(unittest.TestCase):
                 mock.patch.object(judge, "judge", return_value=verdict) as independent:
             event = epoch.review_attempt(self.root, "control-hello")
         self.assertEqual(event["kind"], "reviewed")
-        self.assertEqual(reviewer.call_args.kwargs["model"], "gpt-6.2-astra")
-        self.assertEqual(independent.call_args.kwargs["model"], "gpt-6.2-astra")
-        self.assertEqual(reviewer.call_args.kwargs["effort"], "high")
-        self.assertEqual(independent.call_args.kwargs["effort"], "high")
+        self.assertEqual(reviewer.call_args.kwargs["host"], "antigravity")
+        self.assertEqual(independent.call_args.kwargs["host"], "antigravity")
+        self.assertEqual(reviewer.call_args.kwargs["model"], "gemini-pro-orchestrator-neon")
+        self.assertEqual(independent.call_args.kwargs["model"], "gemini-pro-orchestrator-neon")
+        self.assertIsNone(reviewer.call_args.kwargs["effort"])
+        self.assertIsNone(independent.call_args.kwargs["effort"])
         self.assertEqual(reviewer.call_args.kwargs["assessment_id"], independent.call_args.kwargs["assessment_id"])
         self.assertEqual(epoch.next_action(self.root)["attempt_id"], "candidate-hello")
         with self.assertRaisesRegex(ValueError, "already recorded"):

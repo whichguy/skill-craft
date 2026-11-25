@@ -64,7 +64,7 @@ class ReviewDiscoveryContractTest(unittest.TestCase):
                     mock.patch.object(review.hosts, "host", return_value=agent), \
                     mock.patch.object(review.hosts, "run_agent", return_value=exited()) as launch, \
                     mock.patch.object(review.hosts, "final_text", return_value=json.dumps(review_payload([]))):
-                verdict = review.review(run_dir, skill_root=ROOT / "skills" / "shiploop")
+                verdict = review.review(run_dir, host="codex", skill_root=ROOT / "skills" / "shiploop")
             argv = launch.call_args.args[0]
             self.assertEqual(argv[-1], "-")
             stdin_payload = launch.call_args.kwargs["stdin_payload"]
@@ -72,12 +72,29 @@ class ReviewDiscoveryContractTest(unittest.TestCase):
             self.assertTrue(stdin_payload)
             self.assertEqual(stdin_payload, (run_dir / "review" / "prompt.txt").read_bytes())
             self.assertEqual(argv[argv.index("-s") + 1], "read-only")
-            self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.2-astra")
-            self.assertIn("model_reasoning_effort=high", argv)
-            self.assertIn('agents.default_subagent_model="gpt-6.2-astra"', argv)
-            self.assertIn("agents.default_subagent_reasoning_effort=high", argv)
+            self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.2-sol")
             self.assertNotIn("resume", argv, "an independent review starts a fresh session")
-            self.assertEqual(verdict["driver"], {"host": "codex", "model": "gpt-6.2-astra", "effort": "high"})
+            self.assertEqual(verdict["driver"], {"host": "codex", "model": "gpt-6.2-sol", "effort": "xhigh"})
+
+    def test_default_antigravity_reviewer_uses_orchestrator_neon_read_only_sandbox(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp)
+            agent = review.hosts.AntigravityHost("fake-agy")
+            with mock.patch.object(agent, "env", return_value={}), \
+                    mock.patch.object(review.hosts, "host", return_value=agent) as get_host, \
+                    mock.patch.object(review.hosts, "run_agent", return_value=exited()) as launch, \
+                    mock.patch.object(review.hosts, "final_text", return_value=json.dumps(review_payload([]))):
+                verdict = review.review(run_dir, skill_root=ROOT / "skills" / "shiploop")
+            self.assertEqual(get_host.call_args.args, ("antigravity", "agy"))
+            argv = launch.call_args.args[0]
+            self.assertEqual(argv[argv.index("--model") + 1], "gemini-pro-orchestrator-neon")
+            self.assertNotIn("--effort", argv)
+            self.assertEqual(argv[argv.index("--mode") + 1], "plan")
+            self.assertIn("--sandbox", argv)
+            self.assertIn("--dangerously-skip-permissions", argv)
+            self.assertIsNone(launch.call_args.kwargs["stdin_payload"])
+            self.assertEqual(verdict["driver"],
+                             {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None})
 
     def test_a_material_clause_free_challenge_is_valid_and_survives_as_owner_work(self):
         payload = review_payload()
@@ -246,8 +263,10 @@ class JudgeContractTest(unittest.TestCase):
                 mock.patch.object(judge.hosts, "host", return_value=agent) as get_host, \
                 mock.patch.object(judge.hosts, "run_agent", side_effect=fake_run_agent), \
                 mock.patch.object(judge.hosts, "final_text", side_effect=lambda _path: json.dumps(outputs.pop(0))):
-            first = judge.judge(self.run_dir, self.review, assessment_id="fresh-a")
-            second = judge.judge(self.run_dir, self.review, model="gpt-6.1-sol", effort="high", assessment_id="fresh-b")
+            first = judge.judge(self.run_dir, self.review, host="codex", model="gpt-6.2-astra",
+                                effort="high", assessment_id="fresh-a")
+            second = judge.judge(self.run_dir, self.review, host="codex", model="gpt-6.1-sol",
+                                 effort="high", assessment_id="fresh-b")
 
         self.assertEqual(get_host.call_args_list[0].args, ("codex", "codex"))
         self.assertEqual(len(launched), 2, "a failed judge is not retried through another host")
@@ -266,7 +285,39 @@ class JudgeContractTest(unittest.TestCase):
         self.assertTrue(Path(first["judge_receipt"]["verdict"]).is_file())
         self.assertTrue(Path(second["judge_receipt"]["verdict"]).is_file())
 
-    def test_review_defaults_to_astra_high_and_assessment_ids_keep_separate_receipts(self):
+    def test_default_antigravity_judge_and_fail_closed_unsupported_host(self):
+        agent = judge.hosts.AntigravityHost("fake-agy")
+        launched = []
+
+        def fake_run_agent(argv, cwd, env, events_path, stderr_path, timeout, translate=None, *, stdin_payload=None):
+            launched.append((list(argv), stdin_payload))
+            Path(events_path).write_text("")
+            Path(stderr_path).write_text("")
+            return exited()
+
+        with mock.patch.object(agent, "env", side_effect=lambda home: {"HOME": str(home)}), \
+                mock.patch.object(judge.hosts, "host", return_value=agent) as get_host, \
+                mock.patch.object(judge.hosts, "run_agent", side_effect=fake_run_agent), \
+                mock.patch.object(judge.hosts, "final_text", return_value=json.dumps(self.parsed())):
+            verdict = judge.judge(self.run_dir, self.review, antigravity_bin="fake-agy", assessment_id="agy-default")
+
+        self.assertEqual(get_host.call_args.args, ("antigravity", "fake-agy"))
+        argv, stdin_payload = launched[0]
+        self.assertEqual(argv[argv.index("--model") + 1], "gemini-pro-orchestrator-neon")
+        self.assertEqual(argv[argv.index("--mode") + 1], "plan")
+        self.assertIn("--sandbox", argv)
+        self.assertIn("--dangerously-skip-permissions", argv)
+        self.assertIsNone(stdin_payload)
+        self.assertEqual(verdict["validity"]["status"], "valid")
+        self.assertEqual(verdict["driver"],
+                         {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None})
+
+        refused = judge.judge(self.run_dir, self.review, host="claude", assessment_id="claude-blocked")
+        self.assertEqual(refused["validity"]["status"], "failed")
+        self.assertIn("Codex or Antigravity read-only sandbox", refused["validity"]["reason"])
+        self.assertEqual(refused["admitted"]["owner_challenges"][0]["id"], "d-1")
+
+    def test_review_defaults_to_orchestrator_neon_and_assessment_ids_keep_separate_receipts(self):
         calls = []
         reply = json.dumps(review_payload([]))
 
@@ -277,7 +328,7 @@ class JudgeContractTest(unittest.TestCase):
             def argv(self, **kwargs):
                 calls.append(kwargs)
                 Path(kwargs["prompt_file"]).write_text(kwargs["prompt"])
-                return ["fake-reviewer", "-s", "danger-full-access"]
+                return ["fake-reviewer", "--mode", "plan", "--sandbox", "--dangerously-skip-permissions"]
 
             def prepare(self, **kwargs):
                 return self.argv(**kwargs), None
@@ -294,11 +345,11 @@ class JudgeContractTest(unittest.TestCase):
                 mock.patch.object(review.hosts, "run_agent", side_effect=fake_run_agent), \
                 mock.patch.object(review.hosts, "final_text", return_value=reply):
             first = review.review(self.run_dir, prior_learnings="", assessment_id="review-a")
-            second = review.review(self.run_dir, prior_learnings="", model="gpt-6.1-terra", effort="xhigh",
+            second = review.review(self.run_dir, prior_learnings="", model="gemini-4-neon-high", effort="high",
                                    assessment_id="review-b")
 
-        self.assertEqual((calls[0]["model"], calls[0]["effort"]), ("gpt-6.2-astra", "high"))
-        self.assertEqual((calls[1]["model"], calls[1]["effort"]), ("gpt-6.1-terra", "xhigh"))
+        self.assertEqual((calls[0]["model"], calls[0]["effort"]), ("gemini-pro-orchestrator-neon", None))
+        self.assertEqual((calls[1]["model"], calls[1]["effort"]), ("gemini-4-neon-high", "high"))
         first_receipt = first["review_receipt"]
         second_receipt = second["review_receipt"]
         self.assertNotEqual(first_receipt["review_json"], second_receipt["review_json"])

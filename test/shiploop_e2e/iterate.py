@@ -134,7 +134,7 @@ def improve(worktree: Path, findings: list[dict], stage: Path, args, prompt: str
     cases = json.loads(runner.CASES.read_text())
     graded_before = boundary.fingerprint(HERE, cases.get(args.case))
     profile = role_profile(args, "improver")
-    agent = hosts.host(profile["host"])
+    agent = hosts.host(profile["host"], getattr(args, "antigravity_bin", "agy") if profile["host"] == "antigravity" else None)
     git_config = Path.home() / ".gitconfig"
     env = agent.env(stage / "home", git_config if git_config.is_file() else None)
     base = git(worktree, "rev-parse", "HEAD")
@@ -345,6 +345,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--improve-timeout", type=int, default=2700)
     p.add_argument("--delegation", choices=("inline", "agents", "ask-agent"), default=None,
                    help="the ShipLoop delegation option passed to subject runs")
+    p.add_argument("--antigravity-bin", default="agy")
     p.add_argument("--output", type=Path)
     p.add_argument("--qualify", action="store_true", help="qualified iteration (cycle.py): one record per candidate, "
                    "promoted only by its own epoch")
@@ -446,10 +447,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"== iteration {index}: review", flush=True)
         ledger = worktree / "test" / "shiploop_e2e" / learning_records.LEDGER.name
         verdict = reviewer.review(stage / "run", **role_profile(args, "reviewer"),
+                                  antigravity_bin=args.antigravity_bin,
                                   skill_root=worktree / "skills" / "shiploop", prior_learnings=prior_learnings,
                                   records=learning_records.reviewer_view(ledger))
         if (verdict.get("validity") or {}).get("discovery_qualified"):
-            judged = judge.judge(stage / "run", verdict, **role_profile(args, "judge"))
+            judged = judge.judge(stage / "run", verdict, antigravity_bin=args.antigravity_bin,
+                                 **role_profile(args, "judge"))
             routes = judge.admitted(verdict, judged)
             verdict["judge"] = judged
             verdict["actionable"] = routes["implementation"]

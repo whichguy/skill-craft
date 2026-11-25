@@ -852,6 +852,7 @@ def _qualify_impl(worktree: Path, loop: str, record_id: str, stage: Path, args, 
         script = purpose_check.script_check(worktree, tip, head, record_id, record.get("files"))
         reviewed = None if not script["passed"] else purpose_check.review(
             worktree, tip, head, record, predicted, stage / f"purpose-{attempt}",
+            antigravity_bin=getattr(args, "antigravity_bin", "agy"),
             codex_bin=getattr(args, "codex_bin", "codex"), **iterate.role_profile(args, "judge"))
         verdict = purpose_check.decide(script, reviewed)
         (stage / f"purpose-{attempt}.json").write_text(json.dumps({"script": script, "review": reviewed,
@@ -1041,6 +1042,7 @@ def assess_exploration(worktree: Path, stage: Path, args, run_dir: Path) -> list
                if getattr(args, "review_run", None) is not None or (run_dir / "review").exists() else None)
     review_kwargs = {"assessment_id": base_id} if base_id is not None else {}
     verdict = reviewer.review(run_dir, **iterate.role_profile(args, "reviewer"),
+                              antigravity_bin=getattr(args, "antigravity_bin", "agy"),
                               prior_learnings=reviewer.last_commit_messages(worktree),
                               records=learning_records.reviewer_view(ledger), **review_kwargs)
     stage.mkdir(parents=True, exist_ok=True)
@@ -1064,7 +1066,8 @@ def assess_exploration(worktree: Path, stage: Path, args, run_dir: Path) -> list
             judge_kwargs = {"assessment_id": judge_id}
         else:
             judge_kwargs = {"assessment_id": f"retry-{asked}"} if asked else {}
-        judged = judge.judge(run_dir, verdict, **iterate.role_profile(args, "judge"), **judge_kwargs)
+        judged = judge.judge(run_dir, verdict, antigravity_bin=getattr(args, "antigravity_bin", "agy"),
+                             **iterate.role_profile(args, "judge"), **judge_kwargs)
         if (judged.get("validity") or {}).get("status") == "valid":
             break
     routes = judge.admitted(verdict, judged)

@@ -823,6 +823,56 @@ class PurposeCheckTest(unittest.TestCase):
             "validity": {"status": "valid"}, "verdict": "aligned", "prediction_follows": False,
             "prediction_note": "any change would meet it"})["reasons"]))
 
+    def test_purpose_review_supports_antigravity_and_codex_read_only_and_refuses_claude(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            record = {"record": "LR-20261031-000001", "title": "t", "anchor": {"clause_id": "S-13"}}
+            reply = json.dumps({"files": [{"path": "a.py", "serves": "yes", "why": "ok"}],
+                                "prediction_follows": True, "prediction_note": "",
+                                "verdict": "aligned", "summary": "aligned"})
+
+            def fake_run(argv, _cwd, _env, events_path, stderr_path, _timeout, translate=None, *, stdin_payload=None):
+                Path(events_path).write_text("")
+                Path(stderr_path).write_text("")
+                return {"status": "exited", "returncode": 0, "elapsed_seconds": 0.1}
+
+            agy = purpose_check.hosts.AntigravityHost("fake-agy")
+            codex = purpose_check.hosts.CodexHost("fake-codex")
+            with mock.patch.object(purpose_check, "_git", return_value="diff --git a/a.py b/a.py\n+x = 1\n"):
+                with mock.patch.object(agy, "env", return_value={}), \
+                        mock.patch.object(purpose_check.hosts, "host", return_value=agy) as get_host, \
+                        mock.patch.object(purpose_check.hosts, "run_agent", side_effect=fake_run) as launch, \
+                        mock.patch.object(purpose_check.hosts, "final_text", return_value=reply):
+                    agy_res = purpose_check.review(root, "base", "head", record, None, root / "s-agy",
+                                                   antigravity_bin="fake-agy")
+                self.assertEqual(get_host.call_args.args, ("antigravity", "fake-agy"))
+                agy_argv = launch.call_args.args[0]
+                self.assertEqual(agy_argv[agy_argv.index("--model") + 1], "gemini-pro-orchestrator-neon")
+                self.assertEqual(agy_argv[agy_argv.index("--mode") + 1], "plan")
+                self.assertIn("--sandbox", agy_argv)
+                self.assertIn("--dangerously-skip-permissions", agy_argv)
+                self.assertIsNone(launch.call_args.kwargs["stdin_payload"])
+                self.assertEqual(agy_res["validity"]["status"], "valid")
+                self.assertEqual(agy_res["verdict"], "aligned")
+
+                with mock.patch.object(codex, "env", return_value={}), \
+                        mock.patch.object(purpose_check.hosts, "host", return_value=codex) as get_host, \
+                        mock.patch.object(purpose_check.hosts, "run_agent", side_effect=fake_run) as launch, \
+                        mock.patch.object(purpose_check.hosts, "final_text", return_value=reply):
+                    codex_res = purpose_check.review(root, "base", "head", record, None, root / "s-codex",
+                                                     host="codex", model="gpt-6.2-astra", effort="high",
+                                                     codex_bin="fake-codex")
+                self.assertEqual(get_host.call_args.args, ("codex", "fake-codex"))
+                codex_argv = launch.call_args.args[0]
+                self.assertEqual(codex_argv[codex_argv.index("-s") + 1], "read-only")
+                self.assertEqual(codex_argv[-1], "-")
+                self.assertIsInstance(launch.call_args.kwargs["stdin_payload"], bytes)
+                self.assertEqual(codex_res["validity"]["status"], "valid")
+
+                blocked = purpose_check.review(root, "base", "head", record, None, root / "s-claude", host="claude")
+                self.assertEqual(blocked["validity"]["status"], "failed")
+                self.assertIn("Codex or Antigravity read-only sandbox", blocked["validity"]["reason"])
+
 
 class Wave2MeasurementTests(unittest.TestCase):
     """Wave 2: sparse spread refusal, strict floor observation, Codex partial tokens."""

@@ -2059,6 +2059,16 @@ class AntigravityHostTest(HarnessCase):
                                  effort=None, permission_mode="accept-edits", max_turns=None)
         self.assertEqual(accept_argv[accept_argv.index("--mode") + 1], "accept-edits")
         self.assertNotIn("--dangerously-skip-permissions", accept_argv)
+        plan_argv = agent.argv(prompt="hello", prompt_file=prompt_file, cwd=self.tmp, model="gemini-pro-orchestrator-neon",
+                               effort=None, permission_mode="plan", max_turns=None)
+        self.assertEqual(plan_argv[plan_argv.index("--mode") + 1], "plan")
+        self.assertNotIn("--sandbox", plan_argv)
+        self.assertNotIn("--dangerously-skip-permissions", plan_argv)
+        ro_argv = agent.argv(prompt="hello", prompt_file=prompt_file, cwd=self.tmp, model="gemini-pro-orchestrator-neon",
+                             effort=None, permission_mode="read-only", max_turns=None)
+        self.assertEqual(ro_argv[ro_argv.index("--mode") + 1], "plan")
+        self.assertIn("--sandbox", ro_argv)
+        self.assertLess(ro_argv.index("--dangerously-skip-permissions"), ro_argv.index("--print=hello"))
 
     def test_end_to_end_antigravity_run_grades_invoked_plugin_product_and_keepalive(self):
         (self.plugin / ".antigravity-plugin").mkdir(exist_ok=True)

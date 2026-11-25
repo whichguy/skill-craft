@@ -2,11 +2,11 @@
 
 Public API:
 
-    judge(run_dir, review, *, host=None, model=None, effort=None, codex_bin="codex", timeout=1200)
+    judge(run_dir, review, *, host=None, model=None, effort=None, antigravity_bin="agy", codex_bin="codex", timeout=1200)
 
 The role resolver supplies the current judge profile from hosts.ROLE_DEFAULTS. Explicit
-overrides win. A judge gets a new isolated HOME and process, runs in Codex's
-read-only sandbox, and receives the exact review identity plus the original run
+overrides win. A judge gets a new isolated HOME and process, runs in Codex or Antigravity
+read-only sandbox mode, and receives the exact review identity plus the original run
 artifact paths. No alternate host or model is tried when launch or evaluation
 fails. The returned ``validity`` is fail-closed and ``admitted`` preserves
 material owner challenges and harness discoveries even when judging fails.
@@ -221,8 +221,8 @@ def admitted(review: dict, verdict: dict) -> dict:
 
 
 def judge(run_dir: Path, review: dict, *, host: str | None = None, model: str | None = None,
-          effort: str | None = None, codex_bin: str = "codex", timeout: int = 1200,
-          assessment_id: str | None = None) -> dict:
+          effort: str | None = None, antigravity_bin: str = "agy", codex_bin: str = "codex",
+          timeout: int = 1200, assessment_id: str | None = None) -> dict:
     """Run the independent fresh judge and return its process, validity, assessments, identity, and routes."""
     run_dir = Path(run_dir).resolve()
     try:
@@ -238,12 +238,13 @@ def judge(run_dir: Path, review: dict, *, host: str | None = None, model: str | 
         result["admitted"] = admitted(review, result)
         return result
     role = hosts.resolve_role("judge", {"host": host, "model": model, "effort": effort})
-    if role["host"] != "codex":
+    if role["host"] not in ("codex", "antigravity"):
         result = {"review_sha256": identity, "assessments": [], "process": {"status": "not_started"},
-                  "validity": {"status": "failed", "reason": "the judge requires Codex read-only sandbox mode"}}
+                  "validity": {"status": "failed",
+                               "reason": "the judge requires Codex or Antigravity read-only sandbox mode"}}
         result["admitted"] = admitted(review, result)
         return result
-    agent = hosts.host("codex", codex_bin)
+    agent = hosts.host(role["host"], antigravity_bin if role["host"] == "antigravity" else codex_bin)
     if assessment_id is None:
         stage = run_dir / "review-judge"
     else:
@@ -255,11 +256,7 @@ def judge(run_dir: Path, review: dict, *, host: str | None = None, model: str | 
     env = agent.env(stage / "home")
     argv, stdin_payload = agent.prepare(prompt=judge_prompt(run_dir, review, identity), prompt_file=prompt_file, cwd=run_dir,
                       model=role["model"], effort=role["effort"], permission_mode="read-only", max_turns=None)
-    try:
-        sandbox_index = argv.index("-s")
-    except ValueError:
-        raise RuntimeError("CodexHost.argv did not provide the sandbox option required by the judge")
-    argv[sandbox_index + 1] = "read-only"
+    hosts.enforce_readonly_sandbox(role["host"], argv, context="the judge")
     process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
                               translate=agent.translator(), stdin_payload=stdin_payload)
     parsed = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
