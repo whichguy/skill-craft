@@ -1564,6 +1564,27 @@ class Wave2IntegrityTests(unittest.TestCase):
         finally:
             harness.doCleanups()
 
+    def test_expected_driver_and_calibration_include_delegation_when_requested(self):
+        args = argparse.Namespace(host="codex", model="gpt-6.2-sol", effort="medium",
+                                  permission_mode="auto", run_timeout=None, delegation="agents")
+        driver = cycle._expected_driver(args)
+        self.assertEqual(driver["delegation"], "agents")
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        cal = {
+            "contract": spread.CONTRACT,
+            "driver": {"host": "codex", "model": "gpt-6.2-sol", "effort": "medium"},
+            "floors": ["accuracy", "fidelity"],
+            "attempts_sealed": 6,
+            "cases": {c: {"attempts": 6, "unknown": 0, "false_decision": {"tokens": {"compared": 20}}} for c in CASES},
+            "scoring": spread.scoring_digest({c: catalog[c] for c in CASES}),
+            "recommended": {"attempts": 3, "tolerance": 0.2, "metric": "tokens"},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cal.json"
+            path.write_text(json.dumps(cal))
+            with self.assertRaisesRegex(ValueError, "driver 'delegation'"):
+                cycle.load_calibration(path, list(CASES), driver=driver, floors=["accuracy", "fidelity"])
+
 
 if __name__ == "__main__":
     unittest.main()

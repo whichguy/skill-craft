@@ -1068,6 +1068,84 @@ def planning_review(state: dict) -> str:
     return NOT_RECORDED if value is None else value if isinstance(value, str) else json.dumps(value)
 
 
+def delegation(state: dict) -> str:
+    """The run's `delegation` option as state.md recorded it (`inline`, `agents`, `ask-agent`), or "not recorded"."""
+    value = state.get("delegation")
+    return NOT_RECORDED if value is None else value if isinstance(value, str) else json.dumps(value)
+
+
+def _read_markdown_record(path: Path) -> dict | None:
+    if not path.is_file():
+        return None
+    found = STATE_BLOCK.search(path.read_text(errors="replace"))
+    if not found:
+        return None
+    try:
+        value = json.loads(found.group("json"))
+    except ValueError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def state_summary(state: dict, run_dir: Path | None = None) -> dict:
+    """Compact read-only summary of ShipLoop state facts for `result.json` (`None` when unrecorded/absent)."""
+    accepted = state.get("accepted") if isinstance(state.get("accepted"), dict) else {}
+    history = state.get("history") if isinstance(state.get("history"), list) else []
+
+    steps_per_item: dict[str, int] = {}
+    criteria_per_step: dict[str, int] = {}
+    defaults_count: int | None = None
+    for row in history:
+        if not isinstance(row, dict) or row.get("outcome") != "done":
+            continue
+        stage = row.get("stage")
+        action = row.get("action")
+        rec = accepted.get(action) if isinstance(action, str) else None
+        if not isinstance(rec, dict):
+            continue
+        if stage == "spec" and isinstance(rec.get("defaults"), list):
+            defaults_count = len(rec["defaults"])
+        elif stage == "step-plan" and isinstance(rec.get("steps"), list):
+            item_id = row.get("work_item") or rec.get("work_item")
+            if isinstance(item_id, str) and item_id:
+                steps_per_item[item_id] = len(rec["steps"])
+                for step in rec["steps"]:
+                    if isinstance(step, dict) and isinstance(step.get("id"), str) and isinstance(step.get("criteria"), list):
+                        criteria_per_step[f"{item_id}/{step['id']}"] = len(step["criteria"])
+
+    release_verify_added: list[str] | None = None
+    return_kind: str | None = None
+    if run_dir is not None:
+        tests_dir = Path(run_dir) / "tests"
+        if tests_dir.is_dir():
+            verify_recs = []
+            for p in sorted(tests_dir.glob("*-verify*.md")):
+                rec = _read_markdown_record(p)
+                if isinstance(rec, dict) and rec.get("stage") == "release-verify":
+                    verify_recs.append(rec)
+            if verify_recs:
+                added: list[str] = []
+                for run_row in verify_recs[-1].get("runs") or []:
+                    if isinstance(run_row, dict) and run_row.get("from_step_plan") and isinstance(run_row.get("command"), str):
+                        added.append(run_row["command"])
+                release_verify_added = added
+        receipt = _read_markdown_record(Path(run_dir).parent / "return-receipt.md")
+        if isinstance(receipt, dict) and receipt.get("status") == "returned":
+            kind = receipt.get("kind")
+            if isinstance(kind, str) and kind.strip():
+                return_kind = kind
+
+    return {
+        "planning_review": planning_review(state),
+        "delegation": delegation(state),
+        "steps_per_item": steps_per_item or None,
+        "criteria_per_step": criteria_per_step or None,
+        "defaults_count": defaults_count,
+        "release_verify_added": release_verify_added,
+        "return_kind": return_kind,
+    }
+
+
 def _epoch(text: object) -> float | None:
     """One ShipLoop UTC stamp as epoch seconds, or None when it cannot be read."""
     if not isinstance(text, str):

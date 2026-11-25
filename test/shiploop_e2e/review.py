@@ -53,11 +53,15 @@ Inspect these areas across the three categories:
 - Intent and discovery: what unexpected expectation or observation could change
   the design position? Separate a missed frozen obligation from a new proposal.
 - Planning: were assumptions, risks, dependencies, acceptance criteria and step
-  granularity sound? Did implementation preserve the intent and earlier behaviour?
+  granularity sound? Where exercised, did planning experiments (`RUN/experiments/`),
+  vertical slicing (`W1` spine -> `W2+`), and `defaults` / owner-note handling work
+  without breaking intent or earlier behaviour?
 - Skill/script/prompt interchanges: did the skill format, script inputs/results,
   returned prompts and templates give the next action what it needed?
 - Stages and gates: what caught a useful defect, missed one or caused avoidable
-  rework? Could a smaller script/template change help before a structural change?
+  rework? Where exercised, did evidence-driven test findings, `replan_remaining`,
+  or delegated review workers (`delegation: agents`, `fork_completeness`) behave
+  cleanly? Could a smaller script/template change help before a structural change?
 - Quality: were checks discriminating, negative cases meaningful and actual
   target behaviour verified? A green app does not discharge every obligation.
   Inspect the delivered code against ShipLoop's Code craft guidance: are code
@@ -210,8 +214,9 @@ Do not modify any file. Read only.
 
 {PREMISE}
 {prior}{recorded}
-The run: a headless agent was started in an empty directory and asked to run ShipLoop
-on the request in {run_dir / 'prompt.txt'}.
+The run: a headless agent was started in a fresh isolated working directory
+(empty for greenfield cases, or a pinned base fixture for brownfield and follow-on
+cases) and asked to run ShipLoop on the request in {run_dir / 'prompt.txt'}.
 - Graded result: {run_dir / 'result.json'}
 - Readable transcript (messages, tool calls, outputs): {run_dir / 'transcript.md'}
 - Raw event stream: {run_dir / 'events.jsonl'}; host stderr: {run_dir / 'stderr.txt'}
@@ -224,7 +229,7 @@ on the request in {run_dir / 'prompt.txt'}.
 
 If result.json has a follow_on block, this run added a feature in a copy of an earlier
 run's repository (follow_on.prior). Then also judge retention: did ShipLoop find and use
-the earlier docs/shiploop/ spec, environment and test-strategy notes and extend the
+the earlier docs/shiploop/ spec, environment and architecture notes and extend the
 existing modules and tests, or did it rediscover or rebuild beside them? Compare its
 turns and cost with the earlier run.
 

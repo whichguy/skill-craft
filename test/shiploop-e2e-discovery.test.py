@@ -105,7 +105,11 @@ class ReviewDiscoveryContractTest(unittest.TestCase):
         self.assertEqual(judge.admitted(payload, payload["judge"]),
                          {"implementation": [], "owner_challenges": [], "harness": []})
         self.assertTrue(review.counts_as_clean(payload))
-        self.assertIn("Do not invent a discovery", review.reviewer_prompt(Path("/run"), Path("/skill")))
+        prompt = review.reviewer_prompt(Path("/run"), Path("/skill"))
+        self.assertIn("Do not invent a discovery", prompt)
+        self.assertIn("architecture", prompt)
+        self.assertNotIn("test-strategy notes", prompt)
+        self.assertNotIn("in an empty directory", prompt)
 
     def test_v2_rejects_malformed_category_and_discovery_findings(self):
         valid_legacy_finding = {"title": "Keep a receipt", "evidence": "transcript.md:8", "proposal": "Keep it",

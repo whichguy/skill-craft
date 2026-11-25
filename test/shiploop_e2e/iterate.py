@@ -343,6 +343,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-budget-usd", type=float, default=None, help="per Claude process, default none; Grok has no spend cap")
     p.add_argument("--run-timeout", type=int, default=None)  # no time limit unless asked
     p.add_argument("--improve-timeout", type=int, default=2700)
+    p.add_argument("--delegation", choices=("inline", "agents", "ask-agent"), default=None,
+                   help="the ShipLoop delegation option passed to subject runs")
     p.add_argument("--output", type=Path)
     p.add_argument("--qualify", action="store_true", help="qualified iteration (cycle.py): one record per candidate, "
                    "promoted only by its own epoch")
@@ -418,7 +420,8 @@ def main(argv: list[str] | None = None) -> int:
                     *hosts.permission_args(args.permission_mode),
                     *(["--max-turns", str(args.run_max_turns)] if args.run_max_turns else []),
                     *(["--max-budget-usd", str(args.max_budget_usd)] if args.max_budget_usd else []),
-                    *(["--timeout", str(args.run_timeout)] if args.run_timeout else [])]
+                    *(["--timeout", str(args.run_timeout)] if args.run_timeout else []),
+                    *(["--delegation", args.delegation] if args.delegation else [])]
         run_args += (["--model", args.model] if args.model else []) + (["--effort", args.effort] if args.effort else [])
         print(f"\n== iteration {index}: run ({sha[:8]})", flush=True)
         runner.main(run_args)

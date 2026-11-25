@@ -138,7 +138,9 @@ class QualificationTest(unittest.TestCase):
                        "cost_usd": cost, "turns": 2, "unreported_sessions": 1 if lower else 0,
                        "tmp_writes": [], "fidelity": fidelity_record}
         result = {"case": case, "host": driver["host"], "backend": "anthropic", "model": driver["model"],
-                  "effort": driver["effort"], "pass": passed, "outcome_class": "DONE" if passed else "FAILED",
+                  "effort": driver["effort"],
+                  **({"delegation": driver["delegation"]} if "delegation" in driver else {}),
+                  "pass": passed, "outcome_class": "DONE" if passed else "FAILED",
                   "attempt_id": attempt_id, "resumed_run": not timed,
                   "versions": {"plugin_sha256": build, "plugin_version": "1.0", "shiploop_version": "1.0"},
                   "boundary": {"evaluator": "e" * 12, "oracle": "o" * 12, "case": f"c-{case}"},
@@ -526,6 +528,31 @@ class QualificationTest(unittest.TestCase):
         verdict = self.decide(reg, diff_ctrl, diff_cand)
         self.assertEqual(verdict["decision"], "UNDECIDED")
         self.assertTrue(any("host CLI builds" in err for err in verdict["reasons"]), verdict)
+
+    def test_delegation_driver_binding_validates_and_enforces_match(self):
+        reg = self.registration_payload()
+        for arm in reg["arms"].values():
+            arm["driver"]["delegation"] = "agents"
+        path = Path(self.temp.name) / "delegation-reg.json"
+        path.write_text(json.dumps(reg))
+        loaded = promotion.load_registration(path)
+        self.assertEqual(loaded["arms"]["control"]["driver"]["delegation"], "agents")
+
+        # Scorecard carries delegation when recorded in result.json and rejects a mismatch.
+        mismatch_card = self.card(loaded, "candidate", "hello", start=6000, build="b" * 12,
+                                  driver={**loaded["arms"]["candidate"]["driver"], "delegation": "inline"})
+        control_card = self.card(loaded, "control", "hello", start=5000, build="a" * 12,
+                                 driver=loaded["arms"]["control"]["driver"])
+        verdict = self.decide(loaded, [(control_card, 5000)], [(mismatch_card, 6000)])
+        self.assertEqual(verdict["decision"], "UNDECIDED")
+        self.assertTrue(any("recorded delegation does not match" in r for r in verdict["reasons"]), verdict)
+
+        # Unsupported delegation mode is refused at registration.
+        bad = self.registration_payload()
+        bad["arms"]["candidate"]["driver"]["delegation"] = "bogus"
+        path.write_text(json.dumps(bad))
+        with self.assertRaisesRegex(SystemExit, "unsupported delegation"):
+            promotion.load_registration(path)
 
 
 class FileBackedCaseTest(unittest.TestCase):

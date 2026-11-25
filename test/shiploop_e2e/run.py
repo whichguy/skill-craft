@@ -448,11 +448,14 @@ def delegation_choice(requested: str | None, earlier: dict | None) -> str | None
     return recorded
 
 
-def case_prompt(prompt: str, improve_skill: str | None) -> str:
-    """The case's own prompt: ``prompt`` without the sentence ``--planning-review none`` appended to it (planning_review_sentence of
-    the run's recorded ``improve_skill``). What prompt_sha256 hashes: the mode is a key of its own, and the sentence names an
-    absolute path, so two `none` runs of one case would otherwise hash apart by where their plugin build sits."""
+def case_prompt(prompt: str, improve_skill: str | None, delegation: str | None = None) -> str:
+    """The case's own prompt: ``prompt`` without the sentences appended for ``--delegation`` or ``--planning-review none``.
+    What prompt_sha256 hashes: the modes are keys of their own, and the none sentence names an absolute path."""
     text = prompt.strip()
+    if delegation and delegation != "inline":
+        deleg_tail = " " + delegation_sentence(delegation)
+        if text.endswith(deleg_tail):
+            text = text[:-len(deleg_tail)]
     tail = " " + planning_review_sentence(improve_skill) if improve_skill else None
     return text[:-len(tail)] if tail and text.endswith(tail) else text
 
@@ -1497,7 +1500,8 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
              work_item: dict | None = None, delegation: str | None = None, checks: list[str] | None = None,
              home: bool = True, product: Path | None = None, home_fixture: Path | None = None,
              records: dict | None = None, exclude: list[str] | tuple = (), planning_review: str | None = None,
-             improve_skill: str = "", implementation: dict | None = None) -> dict:
+             improve_skill: str = "", implementation: dict | None = None,
+             release_slice_mode: bool | None = None) -> dict:
     """Start a run and record its stages before `stop` as synthetic.
 
     `planning_review` and `improve_skill` are the run's `--planning-review` and `--improve-skill` options (unset: the
@@ -1520,7 +1524,7 @@ def seed_run(cli: Path, work: Path, out: Path, prompt: str, stop: str, *, fixtur
     output: the seed stops at implement, lays those files in the run's worktree uncommitted, as an implement stage leaves
     them (after the item's base, so they read as the step's change), and then records implement and the stages up to `stop`.
     """
-    delivered = release_slice.delivered(stop)
+    delivered = release_slice.delivered(stop) if release_slice_mode is None else release_slice_mode
     if delivered and (product is None or home_fixture is None):
         raise SystemExit(f"seed: a seed at {stop} needs the case's product and knowledge home (seed_product, seed_home)")
     delegation = delegation or ("inline" if delivered else "ask-agent")
@@ -2936,7 +2940,8 @@ def overlapped_runs(result: dict) -> int | None:
 
 
 def baseline_row(result: dict, style: str | None, suite: str | None,
-                 planning_review: str = metrics.NOT_RECORDED) -> dict:
+                 planning_review: str = metrics.NOT_RECORDED,
+                 delegation: str = metrics.NOT_RECORDED) -> dict:
     """One comparable summary of a run: the per-case history the suites judge against (SPEC: E2E suites).
 
     Carries host, model and effort because a baseline compares only with rows
@@ -2947,7 +2952,8 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
     events cannot show is null here and named in ``unmeasured``, so a later run on that
     host compares it as not measured and never as 0 -> 0. ``planning_review`` is the
     run's option as its state.md recorded it (``metrics.planning_review``): a run is
-    compared only with a row of the same mode (``planning_review_line``).
+    compared only with a row of the same mode (``planning_review_line``). ``delegation``
+    similarly isolates ``inline``, ``agents``, and ``ask-agent`` rows.
     """
     m = result.get("metrics") or {}
     versions = result.get("versions") or {}
@@ -2957,6 +2963,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "termination": row_termination(result.get("termination")), "unmeasured": sorted(m.get("unmeasured") or {}),
             "source": versions.get("source"), "plugin_version": versions.get("plugin_version"),
             "shiploop_version": versions.get("shiploop_version"), "planning_review": planning_review,
+            "delegation": delegation,
             "pass": result.get("pass"),
             "verdicts": {k: (result.get(k) or {}).get("pass") for k in ("invoked", "plugin", "process",
                                                                        "shiploop", "committed")},
@@ -3055,16 +3062,35 @@ def _source_name(text) -> str | None:
     return text.split(" (")[0] if isinstance(text, str) else text
 
 
+def row_delegation(row: dict) -> tuple[str, str]:
+    """(the delegation mode a baseline row stands for, why when inferred from an older row without the field)."""
+    recorded = row.get("delegation")
+    if isinstance(recorded, str) and recorded:
+        return recorded, ""
+    if recorded is not None:
+        return json.dumps(recorded), ""
+    return "inline", "records no delegation, read as inline (default before delegation was recorded)"
+
+
+def delegation_line(mode: str, last: dict) -> str:
+    """The report line when a run has earlier rows for its driver, all in another delegation mode."""
+    earlier, why = row_delegation(last)
+    reason = "this run records no delegation mode" if mode == metrics.NOT_RECORDED else f"no earlier row of delegation {mode}"
+    return (f"  baseline  not compared across delegation modes ({mode} vs {earlier}); {reason}; the last row for this "
+            f"driver is {str(last.get('date'))[:10]}, ShipLoop {last.get('shiploop_version')}" + (f"; it {why}" if why else ""))
+
+
 def row_matches(row: dict, case: str, source: str | None, host: str | None = None, model: str | None = None,
                 effort: str | None = None, planning_review: str | None = None,
-                prompt_sha256: str | None = None) -> str | None:
+                prompt_sha256: str | None = None, delegation: str | None = None) -> str | None:
     """None when ``row`` is a basis for a run with this key, else why not, in words (the keys of ``matching_rows``' counter).
 
     The one predicate (S-12) behind ``matching_rows``, ``scan_baseline``, ``previous_row`` and ``--baseline-report``. SPEC: a
     baseline compares only with rows from the same host, model and effort, so a row that does not name all three, or names
     different ones, is no basis, and rows written before those fields existed are therefore not compared against. The source
     is compared by its name, not by the note a resume adds. With ``planning_review`` (this run's mode) a row that stands for
-    another mode (``row_planning_review``) is no basis either; a run that records no mode matches no row. The prompt key is
+    another mode (``row_planning_review``) is no basis either; a run that records no mode matches no row. With ``delegation``,
+    a row of another delegation mode is no basis either (older rows without the field stand for ``inline``). The prompt key is
     ``_prompt_differs``. A row that did not reach done is a record and not a basis (``row_reached_done``).
     """
     if row.get("case") != case or _source_name(row.get("source")) != _source_name(source):
@@ -3074,6 +3100,9 @@ def row_matches(row: dict, case: str, source: str | None, host: str | None = Non
     if planning_review is not None and (planning_review == metrics.NOT_RECORDED
                                         or row_planning_review(row)[0] != planning_review):
         return "another planning_review mode"
+    if delegation is not None and (delegation == metrics.NOT_RECORDED
+                                   or row_delegation(row)[0] != delegation):
+        return "another delegation mode"
     if _prompt_differs(case, prompt_sha256, row):
         return "another prompt"
     if not row_reached_done(row):
@@ -3083,7 +3112,7 @@ def row_matches(row: dict, case: str, source: str | None, host: str | None = Non
 
 def matching_rows(path: Path, case: str, source: str | None, host: str | None = None, model: str | None = None,
                   effort: str | None = None, planning_review: str | None = None,
-                  prompt_sha256: str | None = None) -> tuple[list[dict], int, Counter]:
+                  prompt_sha256: str | None = None, delegation: str | None = None) -> tuple[list[dict], int, Counter]:
     """(the rows this run may be compared with, in file order; how many rows the case and source have; why each other was
     skipped), by ``row_matches``."""
     skipped: Counter = Counter()
@@ -3095,7 +3124,7 @@ def matching_rows(path: Path, case: str, source: str | None, host: str | None = 
             row = json.loads(line)
         except ValueError:
             continue
-        reason = row_matches(row, case, source, host, model, effort, planning_review, prompt_sha256)
+        reason = row_matches(row, case, source, host, model, effort, planning_review, prompt_sha256, delegation)
         if reason == "another case or source":
             continue
         seen += 1
@@ -3108,19 +3137,21 @@ def matching_rows(path: Path, case: str, source: str | None, host: str | None = 
 
 def scan_baseline(path: Path, case: str, source: str | None, host: str | None = None,
                   model: str | None = None, effort: str | None = None,
-                  planning_review: str | None = None, prompt_sha256: str | None = None) -> tuple[dict | None, int]:
+                  planning_review: str | None = None, prompt_sha256: str | None = None,
+                  delegation: str | None = None) -> tuple[dict | None, int]:
     """(the last comparable row, how many rows were recorded for this case and source), by ``matching_rows``.
 
     The count lets a caller say "rows exist but none is comparable" instead of printing nothing.
     """
-    rows, seen, _ = matching_rows(path, case, source, host, model, effort, planning_review, prompt_sha256)
+    rows, seen, _ = matching_rows(path, case, source, host, model, effort, planning_review, prompt_sha256, delegation)
     return (rows[-1] if rows else None), seen
 
 
 def previous_row(path: Path, case: str, source: str | None, host: str | None = None,
-                 model: str | None = None, effort: str | None = None, prompt_sha256: str | None = None) -> dict | None:
+                 model: str | None = None, effort: str | None = None, prompt_sha256: str | None = None,
+                 delegation: str | None = None) -> dict | None:
     """The last recorded row for this case that is actually comparable with this run, whatever its planning_review mode."""
-    return scan_baseline(path, case, source, host, model, effort, None, prompt_sha256)[0]
+    return scan_baseline(path, case, source, host, model, effort, None, prompt_sha256, delegation)[0]
 
 
 def row_lower_bound(row: dict) -> bool | None:
@@ -3176,7 +3207,7 @@ ATTEMPT_COUNTS = {"counted": "counted", "did not reach done": "did_not_reach_don
                   "process not observed": "process_not_observed", "no driver recorded": "no_driver_recorded",
                   "no result.json": "no_result"}
 # What a folder can supply for a row that lacks it: the cell fields and the identity fields.
-SUPPLIED_FIELDS = ("source", "host", "model", "effort", "planning_review", *IDENTITY_FIELDS)
+SUPPLIED_FIELDS = ("source", "host", "model", "effort", "planning_review", "delegation", *IDENTITY_FIELDS)
 REPORT_NOTES = (
     "n, min, median and max describe the rows counted; a range across builds is not a noise estimate, and no run is placed "
     "against it.",
@@ -3263,9 +3294,11 @@ def folder_record(folder: Path, cases: dict) -> dict:
                                                   "effort": identity.get("effort"), "versions": identity.get("versions"),
                                                   "output": recorded, "metrics": {}}
     state = metrics.engine_state(run_dir) if run_dir else {}
-    row = baseline_row(stand_in, style, None, metrics.planning_review(state))
+    row = baseline_row(stand_in, style, None, metrics.planning_review(state), metrics.delegation(state))
     if state.get("planning_review") is None:
         row["planning_review"] = None  # no mode recorded: ``row_planning_review`` reads it from the plugin version, as for a row
+    if state.get("delegation") is None:
+        row["delegation"] = None
     row["source"] = _source_name((first.get("versions") or {}).get("source") or row.get("source"))
     filled: list[str] = []
     why_not: dict[str, str] = {}
@@ -3284,8 +3317,9 @@ def folder_record(folder: Path, cases: dict) -> dict:
         digest, why = tree_digest_checked(plugin_dir) if plugin_dir else (None, "the plugin build is not inside the run folder")
         fill("plugin_sha256", digest, why)
     try:
-        fill("prompt_sha256", masked_prompt_digest(case_prompt((folder / "prompt.txt").read_text(), first.get("improve_skill")),
-                                                   Path(recorded)))
+        fill("prompt_sha256", masked_prompt_digest(
+            case_prompt((folder / "prompt.txt").read_text(), first.get("improve_skill"), first.get("delegation")),
+            Path(recorded)))
     except OSError:
         why_not["prompt_sha256"] = "no prompt.txt in the folder"
     if row.get("host") == "claude":
@@ -3363,12 +3397,13 @@ def span_overlaps(spans: list[tuple[float | None, float | None]]) -> list[int | 
 
 
 def assign_cells(records: list[dict]) -> dict[tuple, list[dict]]:
-    """Group records into cells: the live key (case, source, host, model, effort, planning_review mode) plus the prompt. A
+    """Group records into cells: the live key (case, source, host, model, effort, planning_review, delegation) plus the prompt. A
     record with a hash goes to the cell of that hash. One with none goes to the only cell of its driver when there is one
     prompt (the live rule matches it with any prompt of a named case), and to a cell of its own when the driver has
     several, or when the case is ``custom`` (the live rule matches it with none)."""
     def base(r: dict) -> tuple:
-        return tuple(r[k] for k in ("case", "source", "host", "model", "effort", "planning_review"))
+        return (*tuple(r[k] for k in ("case", "source", "host", "model", "effort", "planning_review")),
+                r.get("delegation") or "inline")
 
     hashes: dict[tuple, set] = {}
     for r in records:
@@ -3407,10 +3442,12 @@ def _public_record(key: str, entry: dict) -> dict:
                              or (found or {}).get("why_not", {}).get(name)
                              or (row.get("identity_unmeasured") or {}).get(name) or "not recorded")
     bound = found["lower_bound"] if found and found["lower_bound"] is not None else row_lower_bound(row)
+    deleg = row_delegation(row)[0]
     return {
         "output": row.get("output") or key, "record": "file+folder" if file_row and found else "folder" if found else "file",
         "case": row.get("case"), "source": row.get("source"), "host": row.get("host"), "model": row.get("model"),
         "effort": row.get("effort"), "planning_review": row_planning_review(row)[0],
+        **({"delegation": deleg} if deleg != "inline" else {}),
         "prompt_sha256": row.get("prompt_sha256"), "plugin_version": row.get("plugin_version"),
         "plugin_sha256": row.get("plugin_sha256"), "host_build": row.get("host_build"), "local_head": row.get("local_head"),
         "started": started, "ended": ended,
@@ -3503,8 +3540,11 @@ def baseline_report(baseline: Path | None, runs: list[Path]) -> dict:
                 stat["overlapped_by_span"] = sum(1 for r in counted if r["minutes"] is not None and r["overlaps"])
                 stat["not_seen_overlapping"] = sum(1 for r in counted if r["minutes"] is not None and r["overlaps"] == 0)
             measures[name] = stat
+        cell_meta = dict(zip(("case", "source", "host", "model", "effort", "planning_review", "delegation", "prompt_sha256"), key))
+        if cell_meta["delegation"] == "inline":
+            del cell_meta["delegation"]
         cells.append({
-            "cell": dict(zip(("case", "source", "host", "model", "effort", "planning_review", "prompt_sha256"), key)),
+            "cell": cell_meta,
             "attempts": attempts,
             "builds": {"plugin_sha256": dict(sorted(trees.items())),
                        "unrecorded": sum(1 for r in counted if not r["plugin_sha256"])},
@@ -3531,6 +3571,7 @@ def render_report(report: dict) -> str:
         lines += ["", "cell " + " | ".join([str(c["case"]), str(c["source"]), c["host"] or "host not recorded",
                                             c["model"] or "model not recorded", f"effort {c['effort'] or '-'}",
                                             f"planning_review {c['planning_review']}",
+                                            *([f"delegation {c['delegation']}"] if "delegation" in c else []),
                                             f"prompt {c['prompt_sha256'] or 'not recorded'}"])]
         a = cell["attempts"]
         extra = "".join(f", {label} {a[key]}" for label, key in (
@@ -4629,6 +4670,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         launch_settings["fresh_product"] = fresh_product
     if args.timeout:
         launch_settings["timeout_seconds"] = args.timeout
+    if delegation_opt is not None:
+        launch_settings["delegation"] = delegation_opt
     invocation = {"case": name, "host": args.host, "backend": backend, "model": args.model, "effort": args.effort, "argv": cli,
                   **launch_settings,
                   **({"fresh_product": fresh_product} if fresh_product is not None else {}),
@@ -4883,6 +4926,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                                 scrubbed=bool(platform_spec)))
     delivered_after = delivery.fingerprint(work)  # what the checks left; scorecard's correctness compares the two
     engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
+    shiploop = {
+        **shiploop,
+        "planning_review": metrics.planning_review(engine),
+        "delegation": metrics.delegation(engine),
+        "summary_facts": metrics.state_summary(engine, ledger),
+    }
     try:
         # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
         # check which timed out leaves is stopped with the rest in a run that launched a host. A regrade reaps nothing (the run
@@ -5008,7 +5057,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               # Identity, null where unknown: the case prompt (before a `--planning-review none` sentence) with the run's own
               # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
-              "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
+              "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill, delegation_opt), out, args.resume_run or args.output),
               # The route the run began with, read from what its start left on disk (start_route.py; a probe records the first one
               # its watcher saw): workspace (the isolated entry, once its run has a state), direct (init), or null where ShipLoop
               # never started a run.
@@ -5052,7 +5101,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     exported = review_export(out)
     print(f"  flow      {flow_record(out)}")  # again, now that the Review page exists for flow.html's header to link to
     style = catalog().get(name, {}).get("style") if name != "custom" else None
-    row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine))
+    row = baseline_row(result, style, args.suite_name, metrics.planning_review(engine), metrics.delegation(engine))
     # A baseline measures one host running a case from the start to its end; a resumed run is not one, and neither is
     # a run the harness ended: its engine still active (a deadline, a requested stop, a spent resume budget) or its host
     # killed by the deadline or a stop before ShipLoop wrote any state (engine unknown). The turns, cost and stages are a
@@ -5065,10 +5114,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     reached_done = engine.get("status") == "done"
     cell, rows_for_case, skipped = (
         matching_rows(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["planning_review"],
-                      row["prompt_sha256"]) if baseline_file and reached_done else ([], 0, Counter()))
+                      row["prompt_sha256"], row["delegation"]) if baseline_file and reached_done else ([], 0, Counter()))
     before = cell[-1] if cell else None
-    last = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["prompt_sha256"])
+    last = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["prompt_sha256"],
+                         row["delegation"])
             if baseline_file and reached_done and before is None else None)  # the driver's last row, of another mode: what the report names
+    last_any_deleg = (previous_row(baseline_file, name, versions["source"], args.host, args.model, args.effort, row["prompt_sha256"])
+                      if baseline_file and reached_done and before is None and last is None else None)
     if baseline_file:
         with baseline_file.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
@@ -5160,7 +5212,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         unknown = lambda value: "not measured" if value is None else value  # noqa: E731
         was, now = row_lower_bound(before), metrics.lower_bound(run_metrics)  # a lower bound stays marked wherever it is shown
         print(f"  baseline  vs {before['date'][:10]} (ShipLoop {before['shiploop_version']}, same "
-              f"{args.host}/{args.model}/{args.effort}, planning_review {row['planning_review']}): "
+              f"{args.host}/{args.model}/{args.effort}, planning_review {row['planning_review']}"
+              + (f", delegation {row['delegation']}" if row.get("delegation") not in (None, "inline") else "") + "): "
               f"turns {marked(unknown(before['turns']), was)} -> {marked(unknown(row['turns']), now)}, "
               f"cost {marked(metrics.money(before['cost_usd']), was)} -> {marked(metrics.money(row['cost_usd']), now)}, "
               f"sessions {before['sessions']} -> {row['sessions']}, "
@@ -5178,6 +5231,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               "its turns, cost and stages are no comparison; its row is recorded")
     elif last:
         print(planning_review_line(row["planning_review"], last))  # turns, cost and stages mean something else in the other mode
+    elif last_any_deleg:
+        print(delegation_line(row["delegation"], last_any_deleg))
     elif baseline_file:
         only_driver = set(skipped) <= {"another host, model or effort"}
         print("  baseline  nothing compared: " + (

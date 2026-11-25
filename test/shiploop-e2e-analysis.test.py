@@ -4612,5 +4612,60 @@ class OpenItemSettlementTests(unittest.TestCase):
             self.assertIn("open items settled 2/3 (total 3) (unsettled: A3@product-acceptance)", lines)
 
 
+class StateSummaryTests(unittest.TestCase):
+    """metrics.delegation and metrics.state_summary read state.md, tests/, and return-receipt.md honestly."""
+
+    def test_absent_fields_report_not_recorded_and_none(self):
+        self.assertEqual(metrics.delegation({}), metrics.NOT_RECORDED)
+        self.assertEqual(metrics.state_summary({}), {
+            "planning_review": metrics.NOT_RECORDED,
+            "delegation": metrics.NOT_RECORDED,
+            "steps_per_item": None,
+            "criteria_per_step": None,
+            "defaults_count": None,
+            "release_verify_added": None,
+            "return_kind": None,
+        })
+
+    def test_populated_state_and_workspace_records_are_extracted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Path(tmp) / "ws"
+            run_dir = ws / "run"
+            (run_dir / "tests").mkdir(parents=True)
+            run.store.write_record(run_dir / "tests" / "A9-verify1.md", {
+                "stage": "release-verify",
+                "runs": [
+                    {"command": "node test/smoke.js", "from_step_plan": False},
+                    {"command": "npm test", "from_step_plan": True},
+                ],
+            })
+            run.store.write_record(ws / "return-receipt.md", {"status": "returned", "kind": "fast-forward-merge"})
+            state = {
+                "planning_review": "stage",
+                "delegation": "agents",
+                "history": [
+                    {"stage": "spec", "outcome": "done", "action": "A1"},
+                    {"stage": "step-plan", "outcome": "done", "work_item": "W1", "action": "A2"},
+                ],
+                "accepted": {
+                    "A1": {"outcome": "done", "defaults": [{"q": "x"}, {"q": "y"}]},
+                    "A2": {"outcome": "done", "steps": [
+                        {"id": "S1", "criteria": ["C1", "C2"]},
+                        {"id": "S2", "criteria": ["C3"]},
+                    ]},
+                },
+            }
+            self.assertEqual(metrics.delegation(state), "agents")
+            self.assertEqual(metrics.state_summary(state, run_dir), {
+                "planning_review": "stage",
+                "delegation": "agents",
+                "steps_per_item": {"W1": 2},
+                "criteria_per_step": {"W1/S1": 2, "W1/S2": 1},
+                "defaults_count": 2,
+                "release_verify_added": ["npm test"],
+                "return_kind": "fast-forward-merge",
+            })
+
+
 if __name__ == "__main__":
     unittest.main()
