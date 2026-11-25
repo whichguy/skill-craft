@@ -772,6 +772,27 @@ class EpochLaunchAndPredictionTest(unittest.TestCase):
         self.assertEqual(decision["numeric_reasons"], ["tokens fell 30%"])
         self.assertEqual(decision["incomplete_reviews"], ["control-hello", "candidate-hello"])
 
+    def test_launch_forwards_registered_delegation_flag(self):
+        driver = {"host": "codex", "model": "requested-sol", "effort": "medium", "delegation": "agents"}
+        for arm in self.reg["arms"].values():
+            arm["driver"] = driver
+        self.template.write_text(json.dumps(self.reg))
+        root = self.temp / "delegated"
+        epoch.initialise(root, self.template, profiles={
+            "reviewer": {"host": "codex", "model": "requested-astra", "effort": "high"},
+            "judge": {"host": "codex", "model": "requested-astra", "effort": "high"},
+        })
+
+        def completed_run(argv):
+            args = runner.parser().parse_args(argv)
+            self.assertEqual(args.delegation, "agents")
+            args.output.mkdir()
+            (args.output / "result.json").write_text(json.dumps({"case": args.case, "pass": True}))
+            return 0
+
+        with mock.patch.object(runner, "main", side_effect=completed_run):
+            epoch.launch(root, "control-hello", self.plugin)
+
 
 if __name__ == "__main__":
     unittest.main()

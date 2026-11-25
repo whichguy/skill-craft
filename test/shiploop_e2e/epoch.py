@@ -451,6 +451,8 @@ def launch(root: Path, attempt_id: str, plugin: Path) -> dict:
         argv += hosts.permission_args(driver["permission_mode"])
     if "timeout_seconds" in driver:
         argv += ["--timeout", str(driver["timeout_seconds"])]
+    if "delegation" in driver:
+        argv += ["--delegation", driver["delegation"]]
     if intent.get("predecessor"):
         argv += ["--predecessor-registration", str(root / "registration.json"),
                  "--predecessor-registration-sha256", intent["registration_sha256"]]
