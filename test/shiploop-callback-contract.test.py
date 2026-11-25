@@ -2502,6 +2502,10 @@ class PrimaryRequirementRouteTests(RealCliCase):
         fixed = dict(replaced, work_items=[dict(replaced["work_items"][0], follows=follows)])
         write_block(path, fixed)
         RefusalRouteTests.accept_after_the_knowledge_files(self, command, run)
+        state = self.state(run)
+        if state.get("active_improve") is not None:
+            nav.save(run, nav.finish_improve(state, state["active_improve"]["action_id"],
+                                             {"summary": "Synthetic receipt; no review claim."}))
         self.assertEqual([row["id"] for row in self.state(run)["work_items"]], ["W1", "W3"])
         self.assertEqual(self.state(run)["work_items"][1]["follows"], ["R-1"])
 
