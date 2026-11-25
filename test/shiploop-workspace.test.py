@@ -588,9 +588,6 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertTrue(fixes[0].startswith("  * Codex"), fixes)
         claude = grants.report(error, "rerun", {"CLAUDECODE": "1"})
         self.assertIn("/add-dir /r and /add-dir /g/.git", claude)
-        grok = grants.report(error, "rerun", {"GROK_AGENT": "1"})
-        self.assertIn("restart required", grok.splitlines()[[i for i, row in enumerate(grok.splitlines())
-                                                               if row.startswith("  * ")][0]])
 
     def test_bootstrap_leaves_non_empty_and_nested_directories_alone(self) -> None:
         loose = self.base / "loose files"

@@ -4,7 +4,7 @@
 The harness creates a unique harmless fixture, verifies a v1 install, publishes
 v2, verifies one fresh v2 discovery with its exact skill-card bytes, then
 uninstalls it. It is intentionally absent from test/run-all.sh and CI because
-it invokes installed Claude, Grok, or Codex CLIs.
+it invokes installed Claude or Codex CLIs.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from typing import Any, Iterable
 
 CLT_GIT = Path("/Library/Developer/CommandLineTools/usr/bin/git")
 PAYLOAD_KEY = "SKILL_CRAFT_E2E_PAYLOAD"
-HOSTS = ("claude", "grok", "codex")
+HOSTS = ("claude", "codex")
 HOME_PATH = str(Path.home())
 BASE_ENV_KEYS = ("PATH", "LANG", "LC_ALL", "LC_CTYPE", "TERM", "TMPDIR", "DEVELOPER_DIR")
 CODEX_ENV_KEYS = ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", *BASE_ENV_KEYS)
@@ -133,12 +133,6 @@ def command_environment(host: str | None = None, profile: Path | None = None) ->
         if profile is None:
             raise ValueError("Claude requires a disposable profile")
         env["CLAUDE_CONFIG_DIR"] = str(profile)
-    elif host == "grok":
-        if profile is None:
-            raise ValueError("Grok requires a disposable profile")
-        env["GROK_HOME"] = str(profile)
-        env["GROK_CLAUDE_SKILLS_ENABLED"] = "false"
-        env["GROK_CURSOR_SKILLS_ENABLED"] = "false"
     elif host is not None:
         raise ValueError(f"unsupported isolated host: {host}")
     return env
@@ -156,7 +150,6 @@ def codex_environment() -> dict[str, str]:
 def host_binary(host: str) -> str:
     candidates = {
         "claude": (Path.home() / ".claude" / "tools" / "claude", shutil.which("claude")),
-        "grok": (Path.home() / ".grok" / "bin" / "grok", shutil.which("grok")),
         "codex": (shutil.which("codex"),),
     }
     for candidate in candidates[host]:
@@ -472,12 +465,11 @@ def remove_profile(profile: Path, host_dir: Path) -> None:
 
 
 def host_command(host: str, binary: str, leader_socket: Path, parts: list[str]) -> list[str]:
-    if host == "grok":
-        return [binary, "--leader-socket", str(leader_socket), "plugin", *parts]
+    del host, leader_socket
     return [binary, "plugin", *parts]
 
 
-def lifecycle_claude_or_grok(
+def lifecycle_claude(
     *, host: str, host_dir: Path, token: str, keep_profile: bool
 ) -> dict[str, Any]:
     profile = host_dir / "profile"
@@ -500,7 +492,7 @@ def lifecycle_claude_or_grok(
         "host": host,
         "fixture": {"marketplace": market_name, "plugin": plugin_name},
         "isolation": {
-            "profile_variable": "CLAUDE_CONFIG_DIR" if host == "claude" else "GROK_HOME",
+            "profile_variable": "CLAUDE_CONFIG_DIR",
             "consumer_state_sentinel_sha256": sentinel_hash,
         },
     }
@@ -520,11 +512,11 @@ def lifecycle_claude_or_grok(
         origin, worktree, v1_commit = make_fixture_repository(
             host_dir, market_name=market_name, plugin_name=plugin_name, receipts=receipts
         )
-        source = str(worktree) if host == "claude" else origin.as_uri()
+        source = str(worktree)
         call(["marketplace", "add", source], "marketplace.add-v1")
         available_v1 = parse_json(call(["list", "--available", "--json"], "inventory.available-v1"), "inventory.available-v1")
 
-        install = ["install", f"{plugin_name}@{market_name}", "--json"] if host == "claude" else ["install", plugin_name, "--trust"]
+        install = ["install", f"{plugin_name}@{market_name}", "--json"]
         cleanup_needed = True
         call(install, "plugin.install-v1")
         installed_v1 = parse_json(call(["list", "--json"], "inventory.installed-v1"), "inventory.installed-v1")
@@ -538,10 +530,10 @@ def lifecycle_claude_or_grok(
         )
 
         v2_commit = publish_v2(worktree, market_name=market_name, plugin_name=plugin_name, receipts=receipts)
-        marketplace_update = ["marketplace", "update", market_name] if host == "claude" else ["marketplace", "update", origin.stem]
+        marketplace_update = ["marketplace", "update", market_name]
         call(marketplace_update, "marketplace.update-v2")
         available_v2 = parse_json(call(["list", "--available", "--json"], "inventory.available-v2-fresh"), "inventory.available-v2-fresh")
-        update = ["update", f"{plugin_name}@{market_name}", "--json"] if host == "claude" else ["update", plugin_name]
+        update = ["update", f"{plugin_name}@{market_name}", "--json"]
         call(update, "plugin.update-v2")
         installed_v2 = parse_json(call(["list", "--json"], "inventory.installed-v2-fresh"), "inventory.installed-v2-fresh")
         assert_inventory_version(installed_v2, plugin_name=plugin_name, version="1.0.1", label="inventory.installed-v2-fresh")
@@ -553,7 +545,7 @@ def lifecycle_claude_or_grok(
             payload="v2",
         )
 
-        remove = ["uninstall", f"{plugin_name}@{market_name}", "--json"] if host == "claude" else ["uninstall", plugin_name, "--confirm"]
+        remove = ["uninstall", f"{plugin_name}@{market_name}", "--json"]
         call(remove, "plugin.uninstall")
         cleanup_needed = False
         after_remove = parse_json(call(["list", "--json"], "inventory.after-uninstall-fresh"), "inventory.after-uninstall-fresh")
@@ -563,10 +555,6 @@ def lifecycle_claude_or_grok(
             "matching_card_count": len(native_cache_cards),
             "cards": [str(card) for card in native_cache_cards],
         }
-        if host == "grok" and native_cache_cards:
-            raise VerificationError(
-                f"Grok uninstall left fixture cache cards: {safe_value([str(card) for card in native_cache_cards])}"
-            )
         if not sentinel.is_file() or sentinel.read_bytes() != sentinel_bytes or sha256_file(sentinel) != sentinel_hash:
             raise VerificationError("consumer-state sentinel changed or disappeared")
         result.update(
@@ -587,7 +575,7 @@ def lifecycle_claude_or_grok(
                     "v2_installed_card": card_v2,
                     "uninstall_removed_inventory_entry": True,
                     "native_fixture_cache_cards_absent_after_uninstall": not native_cache_cards,
-                    "native_fixture_cache_retention_observed": host == "claude" and bool(native_cache_cards),
+                    "native_fixture_cache_retention_observed": bool(native_cache_cards),
                     "consumer_state_sentinel_preserved": True,
                 },
             }
@@ -598,7 +586,7 @@ def lifecycle_claude_or_grok(
         if cleanup_needed:
             try:
                 cleanup = call(
-                    ["uninstall", f"{plugin_name}@{market_name}", "--json"] if host == "claude" else ["uninstall", plugin_name, "--confirm"],
+                    ["uninstall", f"{plugin_name}@{market_name}", "--json"],
                     "cleanup.plugin.uninstall",
                     allow_failure=True,
                 )
@@ -615,8 +603,6 @@ def lifecycle_claude_or_grok(
             "matching_card_count": len(post_native_cleanup_cards),
             "cards": [str(card) for card in post_native_cleanup_cards],
         }
-        if host == "grok" and post_native_cleanup_cards and failure is None:
-            failure = VerificationError("Grok fixture cache cards remained after native uninstall cleanup")
         if not keep_profile:
             result["isolation"]["profile_disposed"] = False
             try:
@@ -1110,7 +1096,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--keep-profile",
         action="store_true",
-        help="retain only Claude/Grok disposable profiles for diagnosis (default: remove them)",
+        help="retain only Claude disposable profiles for diagnosis (default: remove them)",
     )
     args = parser.parse_args(argv)
     if args.self_test:
@@ -1140,7 +1126,7 @@ def main(argv: list[str]) -> int:
             result = (
                 lifecycle_codex(host_dir=host_dir, token=token)
                 if host == "codex"
-                else lifecycle_claude_or_grok(host=host, host_dir=host_dir, token=token, keep_profile=args.keep_profile)
+                else lifecycle_claude(host=host, host_dir=host_dir, token=token, keep_profile=args.keep_profile)
             )
         except Exception as error:  # Unexpected errors still receive an evidence result.
             result = {"host": host, "status": "failed", "error": sanitize(str(error))}

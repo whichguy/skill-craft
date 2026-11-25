@@ -929,6 +929,6 @@ def host(name: str, binary: str | None = None, backend: str | None = None) -> Ho
     cls = HOSTS[name]
     if backend not in (None, "anthropic") and "backends" not in vars(cls):
         raise SystemExit(f"--backend {backend} is a Claude host option; the {name} host has one backend")
-    kwargs = {"backend": backend} if backend else {}
+    kwargs = {"backend": backend} if backend and "backends" in vars(cls) else {}
     return cls(binary, **kwargs) if binary else cls(**kwargs)
 

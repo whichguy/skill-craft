@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cursor and Grok marketplace metadata is generated from skill frontmatter.
+# Cursor marketplace and native host adapters are generated from skill frontmatter.
 # Exercise drift failures in an isolated checkout so this test never mutates
 # the caller's materialized plugin views.
 #
@@ -69,7 +69,7 @@ bash scripts/sync-plugin-views.sh --check || fail "baseline adapter check"
 # nothing; an unknown option is refused rather than silently dropped.
 gen="scripts/skill-frontmatter-to-plugin-json.js"
 generated_digest() {
-  (find plugins .cursor-plugin .grok-plugin .claude-plugin .agents README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
+  (find plugins .cursor-plugin .claude-plugin .agents README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
 }
 generated_digest > "$tmp/generated-before-cli"
 expect_failure "unknown option" "unknown argument --bogus" node "$gen" --package --check --bogus
@@ -83,7 +83,7 @@ node "$gen" --marketplaces --check >/dev/null || fail "--marketplaces --check mu
 generated_digest | cmp -s - "$tmp/generated-before-cli" || fail "generator command-line refusals changed generated files"
 
 # The bundle carries every actual source skill, and nothing inferred from
-# empty/stale directories; the Cursor and Grok catalogs each list exactly one
+# empty/stale directories; the Cursor catalog lists exactly one
 # local plugin entry (the bundle), not one per skill.
 node - <<NODE || exit 1
 const fs = require("fs");
@@ -97,21 +97,13 @@ if (leaves.length === 0) {
   throw new Error("expected at least one source skill");
 }
 const cursor = JSON.parse(fs.readFileSync(".cursor-plugin/marketplace.json", "utf8"));
-const grok = JSON.parse(fs.readFileSync(".grok-plugin/marketplace.json", "utf8"));
-for (const [host, catalog] of [["Cursor", cursor], ["Grok", grok]]) {
-  const names = catalog.plugins.map((p) => p.name);
-  if (JSON.stringify(names) !== JSON.stringify([plugin])) {
-    throw new Error(\`\${host} catalog must list exactly the one bundle plugin, got \${names}\`);
-  }
+const names = cursor.plugins.map((p) => p.name);
+if (JSON.stringify(names) !== JSON.stringify([plugin])) {
+  throw new Error(\`Cursor catalog must list exactly the one bundle plugin, got \${names}\`);
 }
 const cursorPlugin = cursor.plugins[0];
 if (cursorPlugin.source !== \`./plugins/\${plugin}\` || !cursorPlugin.description) {
   throw new Error("Cursor entry invalid");
-}
-const grokPlugin = grok.plugins[0];
-if (grokPlugin.source?.type !== "local" || grokPlugin.source?.path !== \`./plugins/\${plugin}\` ||
-    !grokPlugin.version || !grokPlugin.category) {
-  throw new Error("Grok entry invalid");
 }
 
 const base = \`plugins/\${plugin}\`;
@@ -305,24 +297,6 @@ expect_failure "drifted Codex manifest" "Codex plugin manifest" \
 mv "$codex_manifest.bak-native-test" "$codex_manifest"
 node "$gen" --package --check >/dev/null || fail "restored Codex manifest after drift"
 
-# Exact generated index content rejects entries that are not backed by a skill.
-node - <<'NODE'
-const fs = require("fs");
-const path = ".grok-plugin/marketplace.json";
-const catalog = JSON.parse(fs.readFileSync(path, "utf8"));
-catalog.plugins.push({
-  name: "_zz-extra",
-  version: "0.0.0",
-  description: "extra",
-  category: "productivity",
-  source: { type: "local", path: "./plugins/_zz-extra" },
-});
-fs.writeFileSync(path, JSON.stringify(catalog, null, 2) + "\n");
-NODE
-expect_failure "extra Grok index entry" "Grok marketplace index" \
-  bash scripts/sync-plugin-views.sh --check
-bash scripts/sync-plugin-views.sh || fail "restore extra Grok index entry"
-
 # Adding a real source leaf materializes it inside the one bundle and updates
 # the README inventory, but does not grow the marketplace catalogs (every
 # host still lists exactly the one "skill-craft" plugin entry); prose outside
@@ -347,7 +321,7 @@ if (!readme.includes("[catalog-fixture](skills/catalog-fixture/SKILL.md) | 1.2.3
   throw new Error("new skill/version/escaped description missing from README inventory");
 }
 if (!readme.includes("<!-- outside-inventory-sentinel -->")) throw new Error("outside prose lost");
-for (const host of ["cursor", "grok"]) {
+for (const host of ["cursor"]) {
   const catalog = JSON.parse(fs.readFileSync(\`.\${host}-plugin/marketplace.json\`, "utf8"));
   const names = catalog.plugins.map((p) => p.name);
   if (JSON.stringify(names) !== JSON.stringify([plugin])) {
@@ -395,7 +369,6 @@ grep -q 'catalog-fixture' README.md && fail "removed leaf remains in README inve
 plugins_digest() { (find plugins -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null; }
 cp README.md "$tmp/readme-before-empty"
 cp .cursor-plugin/marketplace.json "$tmp/cursor-before-empty"
-cp .grok-plugin/marketplace.json "$tmp/grok-before-empty"
 plugins_digest > "$tmp/plugins-before-empty"
 mv skills "$tmp/held-skills"
 mkdir skills
@@ -405,7 +378,6 @@ expect_failure "empty direct generation" "no source skills" \
   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --write
 cmp -s README.md "$tmp/readme-before-empty" || fail "empty source changed README"
 cmp -s .cursor-plugin/marketplace.json "$tmp/cursor-before-empty" || fail "empty source changed Cursor index"
-cmp -s .grok-plugin/marketplace.json "$tmp/grok-before-empty" || fail "empty source changed Grok index"
 plugins_digest | cmp -s - "$tmp/plugins-before-empty" || fail "empty source changed plugins/"
 rmdir skills
 mv "$tmp/held-skills" skills

@@ -36,7 +36,7 @@ import shiploop_store as store  # noqa: E402
 import shiploop_trace as trace  # noqa: E402
 from shiploop_packet_view import assert_top_block, head_packet_path  # noqa: E402
 
-RECORDED_HOSTS = ("antigravity", "claude", "codex", "cursor", "grok")
+RECORDED_HOSTS = ("antigravity", "claude", "codex", "cursor")
 
 
 def shiploop(*argv: str) -> subprocess.CompletedProcess:
@@ -452,29 +452,30 @@ class HookDecisionTests(KeepaliveTestCase):
         self.assertIsNone(self.hook("stop", "codex", self.payload("codex", "stop")))
 
     def test_unbound_sessions_and_session_end_stops_are_allowed(self) -> None:
-        self.assertIsNone(self.hook("stop", "grok", self.payload("grok", "stop")))
-        self.hook("observe", "grok", self.payload("grok", "observe"))
-        ending = {**self.payload("grok", "stop"), "reason": "channel_closed"}
-        self.assertIsNone(self.hook("stop", "grok", ending))
+        self.assertIsNone(self.hook("stop", "claude", self.payload("claude", "stop")))
+        self.hook("observe", "claude", self.payload("claude", "observe"))
+        ending = {**self.payload("claude", "stop"), "reason": "channel_closed"}
+        self.assertIsNone(self.hook("stop", "claude", ending))
 
     def test_another_hosts_payload_is_left_to_that_host(self) -> None:
-        # Grok also runs ~/.cursor/hooks.json; its events must not bind as Cursor.
-        self.assertIsNone(self.hook("observe", "cursor", self.payload("grok", "observe")))
+        self.assertIsNone(self.hook("observe", "cursor", self.payload("claude", "observe")))
         self.assertEqual(list((self.temp / "state").glob("bindings/*")), [])
 
     def test_a_shiploop_command_binds_even_when_its_output_was_filtered(self) -> None:
-        payload = {"hookEventName": "PostToolUse", "sessionId": "filtered-1",
-                   "toolInput": {"command": f"python3 shiploop next --run-dir={self.run_dir} | tail -5"},
-                   "toolResult": "=== ShipLoop status === (filtered, no marker)"}
-        self.hook("observe", "grok", payload)
-        binding = keepalive.load_binding("grok", "filtered-1")
+        payload = {"hook_event_name": "PostToolUse", "session_id": "filtered-1",
+                   "transcript_path": "/tmp/shiploop-keepalive-fixture", "prompt_id": "p-1",
+                   "tool_input": {"command": f"python3 shiploop next --run-dir={self.run_dir} | tail -5"},
+                   "tool_response": {"stdout": "=== ShipLoop status === (filtered, no marker)"}}
+        self.hook("observe", "claude", payload)
+        binding = keepalive.load_binding("claude", "filtered-1")
         self.assertIsNotNone(binding)
         self.assertEqual(binding["run_id"], self.status()["run_id"])
         for query in ("hook-status", "status", "report"):
-            payload = {"hookEventName": "PostToolUse", "sessionId": f"reader-{query}",
-                       "toolInput": {"command": f"python3 shiploop {query} --run-dir {self.run_dir}"}}
-            self.hook("observe", "grok", payload)
-            self.assertIsNone(keepalive.load_binding("grok", f"reader-{query}"), query)
+            payload = {"hook_event_name": "PostToolUse", "session_id": f"reader-{query}",
+                       "transcript_path": "/tmp/shiploop-keepalive-fixture", "prompt_id": "p-1",
+                       "tool_input": {"command": f"python3 shiploop {query} --run-dir {self.run_dir}"}}
+            self.hook("observe", "claude", payload)
+            self.assertIsNone(keepalive.load_binding("claude", f"reader-{query}"), query)
 
     def test_the_improve_stage_commands_bind_and_the_retired_improve_complete_does_not(self) -> None:
         """The Improve stage is driven by `complete` (naming its id), improve-bind, a restart through improve-start and improve-reconcile;
@@ -483,11 +484,12 @@ class HookDecisionTests(KeepaliveTestCase):
                             ("improve-start --action=nav-i --restart-stopped", True),
                             ("improve-reconcile --action=nav-i --result=/x/r.md", True), ("improve-complete --action=nav-i", False)):
             session = "improve-" + verb.split()[0]
-            payload = {"hookEventName": "PostToolUse", "sessionId": session,
-                       "toolInput": {"command": f"python3 shiploop {verb} --run-dir={self.run_dir}"},
-                       "toolResult": "=== ShipLoop status === (filtered, no marker)"}
-            self.hook("observe", "grok", payload)
-            self.assertEqual(keepalive.load_binding("grok", session) is not None, binds, verb)
+            payload = {"hook_event_name": "PostToolUse", "session_id": session,
+                       "transcript_path": "/tmp/shiploop-keepalive-fixture", "prompt_id": "p-1",
+                       "tool_input": {"command": f"python3 shiploop {verb} --run-dir={self.run_dir}"},
+                       "tool_response": {"stdout": "=== ShipLoop status === (filtered, no marker)"}}
+            self.hook("observe", "claude", payload)
+            self.assertEqual(keepalive.load_binding("claude", session) is not None, binds, verb)
 
     def test_marker_copied_from_elsewhere_does_not_bind(self) -> None:
         payload = self.payload("claude", "observe")
@@ -498,7 +500,6 @@ class HookDecisionTests(KeepaliveTestCase):
     def test_live_marker_printed_by_a_reading_command_does_not_bind(self) -> None:
         """A session that only reads a packet file or log must not be kept alive for the run."""
         for host, command in (("claude", f"cat {self.run_dir}/packets/next.md"),
-                              ("grok", f"tail -50 {self.run_dir}/../events.jsonl"),
                               ("codex", "python3 progress.py out | grep SHIPLOOP")):
             payload = self.payload(host, "observe", f"reader-{host}")
             for key in ("tool_input", "toolInput"):
@@ -536,23 +537,23 @@ class HookDecisionTests(KeepaliveTestCase):
 class ProgressAndTurnTests(KeepaliveTestCase):
     """What counts as progress, and how continuations are counted within a turn."""
 
-    def grok_stop(self, active: bool, **extra) -> dict:
-        payload = {**self.payload("grok", "stop", "turn-1"), "stopHookActive": active, **extra}
+    def claude_stop(self, active: bool, **extra) -> dict:
+        payload = {**self.payload("claude", "stop", "turn-1"), "stop_hook_active": active, **extra}
         with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
-            return keepalive.stop("grok", payload)
+            return keepalive.stop("claude", payload)
 
-    def bind_grok(self) -> None:
-        self.hook("observe", "grok", self.payload("grok", "observe", "turn-1"))
+    def bind_claude(self) -> None:
+        self.hook("observe", "claude", self.payload("claude", "observe", "turn-1"))
 
     def test_a_refused_callback_counts_as_progress(self) -> None:
-        self.bind_grok()
-        self.assertEqual(self.grok_stop(False)["decision"], "continue")
+        self.bind_claude()
+        self.assertEqual(self.claude_stop(False)["decision"], "continue")
         refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", "nav-unknown",
                            "--result", str(self.run_dir / "inbox" / "nav-unknown.md"))
         self.assertNotEqual(refused.returncode, 0)
         self.assertIn("do not end the turn over a refused callback", refused.stderr)
-        self.assertEqual(self.grok_stop(True)["decision"], "continue")
-        self.assertEqual(self.grok_stop(True)["decision"], "continue")
+        self.assertEqual(self.claude_stop(True)["decision"], "continue")
+        self.assertEqual(self.claude_stop(True)["decision"], "continue")
 
     def test_refusals_without_an_accepted_result_keep_counting_as_progress_with_no_release(self) -> None:
         # Owner 2026-10-24: no run caps.  The 22-continuation release is gone: 23 and more refused callbacks with no
@@ -569,32 +570,18 @@ class ProgressAndTurnTests(KeepaliveTestCase):
             self.assertEqual(stalled["decision"], "continue")
 
     def test_a_running_background_task_is_a_wait_not_a_stop(self) -> None:
-        self.bind_grok()
-        self.grok_stop(False)
-        decision = self.grok_stop(True, backgroundTasks=[{"id": "deploy"}])
+        self.bind_claude()
+        self.claude_stop(False)
+        decision = self.claude_stop(True, background_tasks=[{"id": "deploy"}])
         self.assertEqual(decision["decision"], "continue")
         self.assertIn("background task is still running", decision["reason"])
 
-    def test_grok_continuations_are_counted_per_turn_and_warned_near_the_cap(self) -> None:
-        self.bind_grok()
-        reasons = []
-        for index in range(7):
-            (self.run_dir / "callback-attempts").write_text(str(index + 1))
-            decision = self.grok_stop(index > 0)
-            self.assertEqual(decision["decision"], "continue")
-            reasons.append(decision["reason"])
-        self.assertNotIn("of grok's 8", reasons[4])
-        self.assertIn("continuation 6 of grok's 8", reasons[5])
-        (self.run_dir / "callback-attempts").write_text("99")
-        fresh = self.grok_stop(False)
-        self.assertIn("continuation 1/8", fresh["why"])
-
     def test_a_second_session_is_told_who_owns_the_run(self) -> None:
-        self.bind_grok()
-        self.grok_stop(False)
-        self.hook("observe", "grok", self.payload("grok", "observe", "turn-2"))
+        self.bind_claude()
+        self.claude_stop(False)
+        self.hook("observe", "claude", self.payload("claude", "observe", "turn-2"))
         with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
-            decision = keepalive.stop("grok", self.payload("grok", "stop", "turn-2"))
+            decision = keepalive.stop("claude", self.payload("claude", "stop", "turn-2"))
         self.assertEqual(decision["decision"], "allow")
         self.assertIn("another session owns this run", decision["notice"])
 
@@ -723,29 +710,32 @@ class HealthNoticeTests(KeepaliveTestCase):
     """A session that keeps printing packets without ever binding is told its hooks are off."""
 
     def env(self, session: str) -> dict:
-        return {"GROK_AGENT": "1", "GROK_SESSION_ID": session}
+        return {"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": session}
 
     def test_the_second_unbound_packet_warns_once(self) -> None:
         run = str(self.run_dir)
         self.assertIsNone(keepalive.health_notice(run, self.env("h1")))
         notice = keepalive.health_notice(run, self.env("h1"))
-        self.assertIn("keepalive is not active in this grok session", notice)
-        self.assertIn("restart Grok", notice)
+        self.assertIn("keepalive is not active in this claude session", notice)
+        self.assertIn(keepalive.HEALTH_REMEDY["claude"], notice)
         self.assertIsNone(keepalive.health_notice(run, self.env("h1")))
 
     def test_a_bound_session_never_warns(self) -> None:
-        self.hook("observe", "grok", self.payload("grok", "observe", "h2"))
+        self.hook("observe", "claude", self.payload("claude", "observe", "h2"))
         for _ in range(3):
             self.assertIsNone(keepalive.health_notice(str(self.run_dir), self.env("h2")))
         self.assertIsNone(keepalive.health_notice(str(self.run_dir), {}))
 
     def test_the_cli_prints_the_warning_on_stderr(self) -> None:
-        env = {**os.environ, **self.env("h3")}
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID",
+                            "ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID")}
+        env.update(self.env("h3"))
         argv = [sys.executable, str(SCRIPTS / "shiploop"), "next", "--run-dir", str(self.run_dir)]
         first = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
         second = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
         self.assertNotIn("keepalive is not active", first.stderr)
-        self.assertIn("keepalive is not active in this grok session", second.stderr)
+        self.assertIn("keepalive is not active in this claude session", second.stderr)
         self.assertEqual(first.stdout, second.stdout)
 
 
@@ -778,8 +768,8 @@ class ConcurrencyTests(KeepaliveTestCase):
     def test_a_silent_owner_goes_stale(self) -> None:
         self.bind("claude", "crashed")
         with mock.patch.object(keepalive, "OWNER_STALE_SECONDS", 0):
-            self.bind("grok", "fresh")
-            self.assertEqual(self.stop_decision("grok", "fresh")["decision"], "continue")
+            self.bind("codex", "fresh")
+            self.assertEqual(self.stop_decision("codex", "fresh")["decision"], "continue")
 
     def test_owner_activity_without_a_marker_keeps_the_claim(self) -> None:
         self.bind("claude", "owner")
@@ -814,7 +804,7 @@ class ConcurrencyTests(KeepaliveTestCase):
 
     def test_plugin_hooks_resolve_the_calling_host(self) -> None:
         for env, payload_host, expected in ((
-                {"GROK_PLUGIN_ROOT": "/p"}, "grok", "grok"), ({"CURSOR_PLUGIN_ROOT": "/p"}, "cursor", "cursor"),
+                {"CURSOR_PLUGIN_ROOT": "/p"}, "cursor", "cursor"),
                 ({}, "antigravity", "antigravity"), ({}, "codex", "codex"), ({}, "claude", "claude")):
             with self.subTest(expected=expected), mock.patch.dict(os.environ, env):
                 keepalive.release_owner(str(self.run_dir))
@@ -832,7 +822,6 @@ class ConcurrencyTests(KeepaliveTestCase):
 
     def test_antigravity_reactive_subagent_wait_preserves_ownership_and_execution_num_tracks_continuation(self) -> None:
         self.assertEqual(keepalive.detected_host(self.payload("antigravity", "observe")), "antigravity")
-        self.assertEqual(keepalive.detected_host(self.payload("grok", "observe")), "grok")
         quoted = self.payload("antigravity", "observe", "quoted-1")
         quoted["toolCall"]["args"]["CommandLine"] = f'python3 "{SCRIPTS / "shiploop"}" next --run-dir "{self.run_dir}"'
         self.assertEqual(keepalive.command_run_dir(quoted), str(self.run_dir))
@@ -878,7 +867,7 @@ class SessionEndTests(KeepaliveTestCase):
         return keepalive.load_binding(host, session)["run_dir"]
 
     def test_each_hosts_session_end_releases_the_run_its_session_owned(self) -> None:
-        for host in ("claude", "codex", "cursor", "grok"):
+        for host in ("claude", "codex", "cursor"):
             with self.subTest(host=host):
                 session = f"ending-{host}"
                 run_dir = self.bind(host, session)
@@ -977,7 +966,8 @@ class InstallTests(KeepaliveTestCase):
         agy_cfg.parent.mkdir(parents=True)
         other_agy = {"Stop": [{"type": "command", "command": "./other.sh"}]}
         agy_cfg.write_text(json.dumps({"other-hook": other_agy}))
-        for host in keepalive.HOSTS:
+        active_hosts = [h for h in keepalive.HOSTS if h not in ("grok", "opencode")]
+        for host in active_hosts:
             keepalive.install(host)
             self.assertEqual(keepalive.status(host), "installed", host)
             keepalive.install(host)  # idempotent
@@ -992,16 +982,13 @@ class InstallTests(KeepaliveTestCase):
         self.assertEqual(cursor["version"], 1)
         self.assertIn("afterShellExecution", cursor["hooks"])
         self.assertIn("session-end --host cursor", cursor["hooks"]["sessionEnd"][0]["command"])
-        plugin = (self.home() / ".config" / "opencode" / "plugins" / "shiploop-keepalive.js").read_text()
-        self.assertIn(json.dumps(str(SCRIPTS / "shiploop-hook")), plugin)
-        for host in keepalive.HOSTS:
+        for host in active_hosts:
             keepalive.install(host, remove=True)
             self.assertEqual(keepalive.status(host), "absent", host)
         self.assertEqual(json.loads(agy_cfg.read_text()), {"other-hook": other_agy})
         self.assertEqual(json.loads(settings.read_text()),
                          {"model": "opus", "hooks": {"Stop": [{"hooks": [other]}]}})
         self.assertFalse((self.home() / ".cursor" / "hooks.json").exists())
-        self.assertFalse((self.home() / ".grok" / "hooks" / "shiploop-keepalive.json").exists())
         agy_cfg.unlink()
         keepalive.install("antigravity")
         self.assertTrue(agy_cfg.is_file())
@@ -1009,11 +996,11 @@ class InstallTests(KeepaliveTestCase):
         self.assertFalse(agy_cfg.exists())
 
     def test_foreign_or_invalid_files_are_refused(self) -> None:
-        plugin = self.home() / ".config" / "opencode" / "plugins" / "shiploop-keepalive.js"
-        plugin.parent.mkdir(parents=True)
-        plugin.write_text("// someone else's plugin\n")
+        settings = self.home() / ".claude" / "settings.json"
+        settings.parent.mkdir(parents=True)
+        settings.write_text("{broken")
         with self.assertRaises(keepalive.InstallError):
-            keepalive.install("opencode")
+            keepalive.install("claude")
         codex = self.home() / ".codex" / "hooks.json"
         codex.parent.mkdir(parents=True)
         codex.write_text("{broken")
@@ -1260,7 +1247,7 @@ class DriverTests(KeepaliveTestCase):
         self.assertIn("do not restart, reissue or replay", fresh)
         self.assertLess(fresh.index(recovery), fresh.index(status["completion"]))
         self.assertNotIn(recovery, same_session)
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 argv = keepalive.host_argv(host, fresh, None, [])
                 self.assertIn(fresh, argv)
@@ -1270,7 +1257,7 @@ class DriverTests(KeepaliveTestCase):
         self.assertLess(agy_argv.index("--dangerously-skip-permissions"), agy_argv.index(f"--print={fresh}"))
 
     def test_a_host_that_fails_without_progress_is_reported_at_once(self) -> None:
-        code, lines = self.drive("opencode", lambda argv, **kwargs: self.done(argv, returncode=1))
+        code, lines = self.drive("codex", lambda argv, **kwargs: self.done(argv, returncode=1))
         self.assertEqual(code, keepalive.EXIT_STUCK)
         self.assertIn("may have failed to start", lines[-1])
 

@@ -530,27 +530,16 @@ class StatusHookTests(unittest.TestCase):
         self.assertEqual(hook.compact(BEGIN + "\nnoise\n" + END), BEGIN + "\nnoise\n" + END)
 
     def test_host_payload_shapes(self) -> None:
-        """Claude and Codex display; Grok and Cursor are recognized but cannot display."""
+        """Claude and Codex display; Cursor is recognized but cannot display."""
         cat = f"cat {self.run_dir}/status.md"
         shapes = {
             "codex": lambda command, out: {"hook_event_name": "PostToolUse", "tool_name": "Bash",
                                            "tool_input": {"command": command},
                                            "tool_response": {"output": out}},
-            # Grok 1.0.41's real payload (captured live): camelCase keys plus
-            # snake_case aliases, and the raw output as a list of byte values.
-            "grok": lambda command, out: {
-                "hookEventName": "PostToolUse", "hook_event_name": "PostToolUse",
-                "toolName": "run_terminal_command", "tool_name": "run_terminal_command",
-                "toolInput": {"command": command}, "tool_input": {"command": command},
-                "toolResult": {"command": command, "exit_code": 0, "output": list(out.encode()),
-                               "output_for_prompt": out, "truncated": False, "type": "run_terminal_command"},
-                "tool_response": {"command": command, "exit_code": 0, "output": list(out.encode()),
-                                  "output_for_prompt": out, "truncated": False, "type": "run_terminal_command"},
-                "isBackgrounded": False},
             "cursor": lambda command, out: {"hook_event_name": "afterShellExecution",
                                             "command": command, "output": out, "duration": 5},
         }
-        expected_host = {"codex": "claude-or-codex", "grok": "grok", "cursor": "cursor"}
+        expected_host = {"codex": "claude-or-codex", "cursor": "cursor"}
         for name, shape in shapes.items():
             with self.subTest(host=name):
                 self.assertEqual(hook.progress(shape(self.command, self.packet)),

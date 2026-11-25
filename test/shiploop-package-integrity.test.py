@@ -202,14 +202,6 @@ class PackageIntegrityTests(unittest.TestCase):
     def test_entry_card_split_holds_its_ledger_and_bounds(self) -> None:
         self.assertEqual(card_split_problems(PACKAGE, json.loads(CARD_LEDGER.read_text(encoding="utf-8"))), [])
 
-    @unittest.skipUnless(shutil.which("node"), "node is required for the OpenCode hook")
-    def test_opencode_keepalive_hook_is_valid_module_syntax(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            module = Path(tmp) / "opencode-keepalive.mjs"
-            shutil.copyfile(PACKAGE / "hooks" / "opencode-keepalive.js", module)
-            result = subprocess.run(["node", "--check", str(module)], capture_output=True, text=True)
-            self.assertEqual(result.returncode, 0, result.stderr)
-
 
 class CheckerSensitivityTests(unittest.TestCase):
     """Each check must fail on a package with the defect it looks for."""

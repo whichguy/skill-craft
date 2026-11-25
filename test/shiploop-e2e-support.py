@@ -303,19 +303,26 @@ assert argv[:2] == ["exec", "--json"], argv
 os.chdir(argv[argv.index("-C") + 1])
 resumed = argv[argv.index("resume") + 1] if "resume" in argv else None
 prompt = sys.stdin.buffer.read().decode("utf-8") if argv[-1] == "-" else argv[-1]
-Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{"argv": argv, "prompt": prompt, "resumed": resumed,
+entry = {{"argv": argv, "prompt": prompt, "resumed": resumed,
     "cwd_listing": os.listdir("."), "codex_home": str(home),
-    "auth_is_symlink": (home / "auth.json").is_symlink()}}))
+    "auth_is_symlink": (home / "auth.json").is_symlink()}}
+Path(os.environ["FAKE_LOG"]).write_text(json.dumps(entry))
+with open(os.environ["FAKE_LOG"] + ".sessions", "a") as sessions:
+    sessions.write(json.dumps(entry) + "\\n")
 def emit(event):
     print(json.dumps(event), flush=True)
 emit({{"type": "thread.started", "thread_id": resumed or "codex-thread-1"}})
 cli = "python3 /x/skills/shiploop/scripts/shiploop next"
 emit({{"type": "item.completed", "item": {{"id": "item_0", "type": "command_execution", "command": cli,
       "aggregated_output": "ShipLoop navigator\\n", "exit_code": 0, "status": "completed"}}}})
-if os.environ.get("FAKE_MODE") == "done":
+mode = os.environ.get("FAKE_MODE")
+if mode == "done" or (mode in ("resume", "early") and resumed):
     import shutil
     shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
     product()
+elif mode in ("stuck", "resume"):
+    Path(".shiploop").mkdir(exist_ok=True)
+    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
 emit({{"type": "item.completed", "item": {{"id": "item_1", "type": "agent_message", "text": "Shipped."}}}})
 if os.environ.get("FAKE_ROLLOUT"):
     # Codex writes per-call usage only to its rollout files under CODEX_HOME, never to the event stream.

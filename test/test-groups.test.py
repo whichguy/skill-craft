@@ -340,7 +340,6 @@ class TestGroupTests(unittest.TestCase):
                                                  "shiploop-keepalive"},
             "skills/shiploop/scripts/shiploop_protocol.py": {"shiploop-delegation", "shiploop-lint"},
             "skills/shiploop/host-hooks.json": {"shiploop-package-integrity"},
-            "skills/shiploop/hooks/opencode-keepalive.js": {"shiploop-package-integrity"},
         }
         for path, expected in cases.items():
             with self.subTest(path=path):

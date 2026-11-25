@@ -26,27 +26,19 @@ assert_absent() {
   [[ ! -e "$path" && ! -L "$path" ]] || fail "expected absent: $path"
 }
 
-opencode_skills_dir() {
-  printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
-}
-
 assert_all_hosts() {
   local leaf="$1"
   local source="$2"
   assert_symlink "$HOME/.claude/skills/$leaf" "$source"
-  assert_symlink "$HOME/.grok/skills/$leaf" "$source"
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
   assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
-  assert_symlink "$(opencode_skills_dir)/$leaf" "$source"
 }
 
 assert_no_hosts() {
   local leaf="$1"
   assert_absent "$HOME/.claude/skills/$leaf"
-  assert_absent "$HOME/.grok/skills/$leaf"
   assert_absent "$HOME/.codex/skills/$leaf"
   assert_absent "$HOME/.cursor/skills/$leaf"
-  assert_absent "$(opencode_skills_dir)/$leaf"
 }
 
 fresh_home() {
@@ -62,8 +54,7 @@ trap cleanup EXIT
 [[ -f "$fixture_sample/SKILL.md" ]] || fail "missing frozen fixture: $fixture_sample/SKILL.md"
 
 # ---------------------------------------------------------------------------
-# E1: --from fixture sample-skill → all 5 symlink hosts get sample-skill symlink
-# (--all: the default now only touches OpenCode/Hermes)
+# E1: --from fixture sample-skill → Claude/Codex/Cursor get sample-skill symlink
 # ---------------------------------------------------------------------------
 fresh_home e1
 fixture_abs="$(cd "$fixture_sample" && pwd -P)"
@@ -77,7 +68,7 @@ printf '%s\n' "$out1" | grep -q 'sample-skill' || fail "E1 stdout should mention
 # ---------------------------------------------------------------------------
 fresh_home e2
 set +e
-out2="$("$install_sh" --skill nonexistent-skill-xyz 2>&1)"
+out2="$("$install_sh" --claude-only --skill nonexistent-skill-xyz 2>&1)"
 rc2=$?
 set -e
 [[ "$rc2" -ne 0 ]] || fail "E2 --skill nonexistent should fail (got exit 0)"
@@ -86,7 +77,6 @@ assert_no_hosts "nonexistent-skill-xyz"
 
 # ---------------------------------------------------------------------------
 # E3: --skill all installs repo skills (skill-interop), not fixture
-# (--all: the default now only touches OpenCode/Hermes)
 # ---------------------------------------------------------------------------
 fresh_home e3
 out3="$("$install_sh" --all --skill all 2>&1)" || fail "E3 --skill all failed: $out3"
@@ -113,14 +103,14 @@ assert_symlink "$HOME/.claude/skills/sample-skill" "$fixture_abs"
 assert_absent "$HOME/.claude/skills/skill-interop"
 
 # ---------------------------------------------------------------------------
-# E6: an OpenCode --copy install ships Ask Agent's real helper. It can prepare
+# E6: a Codex --copy install ships Ask Agent's real helper. It can prepare
 # a worktree from an unrelated cwd without importing the source checkout.
 # ---------------------------------------------------------------------------
 fresh_home e6
 ask_agent_source="$root/skills/ask-agent"
 [[ -f "$ask_agent_source/scripts/ask_agent_workspace.py" ]] || fail "E6 missing Ask Agent helper"
-out6i="$("$install_sh" --opencode-only --copy --skill ask-agent 2>&1)" || fail "E6 OpenCode copy install: $out6i"
-installed_ask_agent="$(opencode_skills_dir)/ask-agent"
+out6i="$("$install_sh" --codex-only --copy --skill ask-agent 2>&1)" || fail "E6 Codex copy install: $out6i"
+installed_ask_agent="$HOME/.codex/skills/ask-agent"
 installed_helper="$installed_ask_agent/scripts/ask_agent_workspace.py"
 [[ -d "$installed_ask_agent" && ! -L "$installed_ask_agent" ]] || fail "E6 expected copied Ask Agent package"
 [[ -f "$installed_helper" && ! -L "$installed_helper" ]] || fail "E6 expected copied helper"

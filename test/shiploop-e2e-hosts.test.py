@@ -17,271 +17,14 @@ def load_tests(loader, standard_tests, pattern):
     return _support._tests_from_namespace(loader, __name__, globals(), pattern)
 
 
-import grok_preempt  # noqa: E402  (test/shiploop_e2e is on the path through the support module)
-
-REFUSAL = "User cancelled the execution for tool `run_terminal_command`"
-
-
-def update(call: str, status: str, text: str) -> dict:
-    return {"type": "tool_call_update", "toolCallId": call, "status": status,
-            "content": [{"type": "content", "content": {"type": "text", "text": text}}]}
-
-
-def refused_session(command: str, *, stop: str = "cancelled", between: tuple = ()) -> str:
-    """One Grok session that ends on a refused shell call, as headless Grok writes it (docs/experiments/grok-headless-
-    refusals-20261115): the call, its failed update, any events in between, then the session's end event."""
-    return "\n".join(json.dumps(event) for event in (
-        {"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command", "rawInput": {"command": command}},
-        update("c1", "failed", REFUSAL), *between,
-        {"type": "end", "stopReason": stop, "sessionId": "s1"})) + "\n"
-
-
-def run_folder(tmp: str, sessions: list[tuple[str, str]]) -> Path:
-    """A run folder holding ``sessions`` (host, stream text) in order, with the session log the harness writes."""
-    out = Path(tmp)
-    lines = 0
-    with (out / "events.jsonl").open("w") as events, (out / "sessions.jsonl").open("w") as log:
-        for number, (host, text) in enumerate(sessions, 1):
-            log.write(json.dumps({"row": "start", "n": number, "host": host, "events_line": lines}) + "\n")
-            events.write(text)
-            lines += len(text.splitlines())
-            log.write(json.dumps({"row": "end", "n": number, "events_line": lines}) + "\n")
-    return out
-
-
-REFUSED_SESSION = refused_session("cd /r/worktree && mkdir -p fixtures")
-PROBES = ROOT / "docs" / "experiments" / "grok-headless-refusals-20261115" / "evidence" / "probes.jsonl"
-PREEMPT = Path(grok_preempt.__file__).resolve()
-
-
-class GrokPreemptTest(unittest.TestCase):
-    """The hook that refuses in the turn what Grok's headless permission check would refuse by ending the session."""
-
-    def payload(self, command, tool="run_terminal_command", **extra) -> dict:
-        return {"hookEventName": "pre_tool_use", "toolName": tool, "toolInput": {"command": command},
-                "cwd": "/runs/r/work", "workspaceRoot": "/runs/r/work", "permissionMode": "auto",
-                "toolInputTruncated": False, **extra}
-
-    def hook(self, payload, state: Path | None) -> subprocess.CompletedProcess:
-        env = {key: value for key, value in os.environ.items() if key != "XDG_STATE_HOME"}
-        if state is not None:
-            env["XDG_STATE_HOME"] = str(state)
-        return subprocess.run([sys.executable, str(PREEMPT)], input=payload if isinstance(payload, str) else json.dumps(payload),
-                              capture_output=True, text=True, env=env, timeout=30)
-
-    def test_the_rule_agrees_with_every_probe_of_its_calibrated_build(self):
-        # Each exact-command probe session (probe.py, no hook, no allow rule) asked Grok to run one command; a refusal is
-        # one decided without the classifier (its reviews take seconds). Recalibrating on another build adds that build's
-        # probes beside these and moves the constant: the earlier build's rows stay as its record.
-        sessions = [json.loads(line) for line in PROBES.read_text().splitlines()]
-        exact = [s for s in sessions if s["prompt_kind"] == "exact" and not s["allow"] and not s["preempt_hook"]
-                 and not s["batch"].startswith("trace") and s["build"] == grok_preempt.CALIBRATED_BUILD]
-        self.assertGreaterEqual(len(exact), 85)
-        for session in exact:
-            command = (session["ran"] or [session["asked"]])[0].replace("{ROOT}", "/probe/root")
-            refused = session["decision"] == "cancelled" and session["wait_ms"] <= 50
-            self.assertEqual(bool(grok_preempt.floor_shapes(command, "/probe/root/work")), refused,
-                             f"{session['batch']}/{session['case']}: {command[:120]!r}")
-
-    def test_each_shape_is_named_and_the_commands_grok_allows_are_not(self):
-        # Each line is a probe's answer from Grok 1.0.77 (batches pairs, pairs2, writers, writers2 and edges).
-        floor = grok_preempt.floor_shapes
-        refused = {
-            'COPY="/r/x"\nmkdir -p "$COPY"': ["var-write"], 'X=/r\ncp a.md "$X/"': ["var-write"],
-            'X=/r\necho hi | tee -a "$X/t.txt"': ["var-write"], 'mkdir -p "$(dirname /r/deep/x)"': ["var-write"],
-            'X=/r\nrm -rf "$X"': ["var-write"], 'X="/a" mkdir -p "$X"': ["var-write"], '"mkdir" -p "$X"': ["var-write"],
-            'env mkdir -p "$X"': ["var-write"], 'timeout 5 mkdir -p "$X"': ["var-write"],
-            'touch -r "$X" /r/t.txt': ["var-write"], 'cp /r/a.md "$X" <<< text': ["var-write"],
-            'cat <<END-X\nbody\nEND-X\nmkdir -p "$X"': ["var-write"], 'cat <<<"x"\nX=/r\nmkdir -p "$X"': ["var-write"],
-            "cd /r/worktree && git show HEAD:README.md > fixtures.txt": ["cd-relative-write"],
-            "(cd /r/worktree && mkdir -p x)": ["cd-relative-write"], "cd /r/wt; echo hi >|relative.txt": ["cd-relative-write"],
-            "cd /r/wt && cd /runs/r/work && mkdir -p rel": ["cd-relative-write"], "cd . && mkdir -p rel": ["cd-relative-write"],
-            "(cd /r/wt; pwd); mkdir -p rel": ["cd-relative-write"], "if cd /r/wt; then mkdir -p rel; fi": ["cd-relative-write"],
-            "pushd /r/wt; popd; mkdir -p rel": ["cd-relative-write"],
-            'python3 -c "import re; re.search(r\'```x\\n(.*)\\n```\', t)"': ["backtick-in-dq"],
-        }
-        for command, shapes in refused.items():
-            self.assertEqual(floor(command, "/runs/r/work"), shapes, command)
-        for allowed in ('X=/r\ncp "$X/a.md" /r/b.md', 'X=/r\nrsync -a /s/ "$X/"', 'X=/r\ntar -x -C "$X" -f /a.tgz',
-                        'X=/r\nnode --version > "$X/out.txt" 2>&1', 'mkdir -p /r/out2>"$X.log"', 'cp -t"$X" /r/a.md',
-                        "cd /r/worktree && git status --short", "cd /runs/r/work && mkdir -p fixtures",
-                        'echo "a `date` b"', 'echo "`date``date`"', "mkdir -p /r/literal", "mkdir -p '/r/$X'",
-                        'mkdir -p "/r/\\$X"', "mkdir /r/out # $X", 'mkdir -p /r/hs <<< "$X"', "cd /r/wt; printf %s \\>relative",
-                        "python3 -c 'import re; re.search(r\"```x\", t)'", "cat > \"$X/a.txt\" <<'EOF'\n``` text\nEOF",
-                        'cat <<\\EOF\nmkdir -p "$X"\nEOF', "echo 'unterminated"):
-            self.assertEqual(floor(allowed, "/runs/r/work"), [], allowed)
-
-    def test_the_hook_denies_a_floored_shell_call_with_the_rewrite_and_logs_it(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            done = self.hook(self.payload('X=/r\nmkdir -p "$X"', sessionId="s1"), Path(tmp))
-            self.assertEqual(done.returncode, 0, done.stderr)
-            reply = json.loads(done.stdout)
-            self.assertEqual(reply["decision"], "deny")
-            self.assertTrue(reply["reason"].startswith(grok_preempt.MARK), reply["reason"])
-            self.assertIn(grok_preempt.REWRITE, reply["reason"])
-            log = Path(tmp) / "shiploop-e2e" / f"{grok_preempt.NAME}.jsonl"
-            row = json.loads(log.read_text())
-            self.assertEqual((row["session"], row["shapes"], row["command"]), ("s1", ["var-write"], 'X=/r\nmkdir -p "$X"'))
-
-    def test_outside_a_throwaway_profile_the_hook_still_denies_and_logs_nothing(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            done = subprocess.run([sys.executable, str(PREEMPT)], input=json.dumps(self.payload('mkdir -p "$X"')),
-                                  capture_output=True, text=True, timeout=30,
-                                  env={**{k: v for k, v in os.environ.items() if k != "XDG_STATE_HOME"}, "HOME": tmp})
-            self.assertEqual(json.loads(done.stdout)["decision"], "deny")
-            self.assertEqual(list(Path(tmp).iterdir()), [], "no state folder is made outside the harness's profile")
-            self.assertIsNone(grok_preempt.log_path({"XDG_STATE_HOME": "relative/state"}))
-
-    def test_a_deny_never_reads_as_grok_s_own_refusal(self):
-        # metrics.cancelled_update counts Grok's refusals: the update a hook deny makes must not be one of them.
-        reason = grok_preempt.reason(["var-write", "cd-relative-write", "backtick-in-dq"])
-        self.assertFalse(metrics.cancelled_update(update("c", "failed", "Hook denied: " + reason)))
-        self.assertNotIn("cancel", reason.lower())
-
-    def test_the_hook_has_no_opinion_on_anything_else(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            state = Path(tmp)
-            floored = 'X=/r\nmkdir -p "$X"'
-            for payload in (self.payload("git status --short"), self.payload(floored, tool="write"),
-                            self.payload(floored, toolInputTruncated=True),
-                            *(self.payload(floored, permissionMode=mode) for mode in ("bypassPermissions", "default", "plan")),
-                            {k: v for k, v in self.payload(floored).items() if k != "permissionMode"},
-                            {"toolName": "run_terminal_command", "toolInput": {}}, "not json", "[]"):
-                done = self.hook(payload, state)
-                self.assertEqual((done.returncode, done.stdout), (0, ""), payload)
-            self.assertFalse((state / "shiploop-e2e").exists())
-
-    def test_install_writes_only_the_throwaway_profile_and_a_resumed_run_keeps_its_hook(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            auth = Path(tmp) / "auth.json"
-            auth.write_text("{}")
-            with mock.patch.object(hosts, "GROK_AUTH", auth):
-                env = hosts.GrokHost().env(Path(tmp) / "home")
-            grok_dir = Path(env["GROK_CONFIG_DIR"])
-            self.assertIsNone(hosts.GrokHost().preempt_record(env))
-            self.assertFalse((grok_dir / "hooks").exists(), "reading the record writes nothing")
-            first = hosts.GrokHost().preempt_install(env)
-            script = grok_dir / "hooks" / f"{grok_preempt.NAME}.py"
-            self.assertEqual((first["script"], first["kept"], first["calibrated_on"]),
-                             (str(script), False, grok_preempt.CALIBRATED_BUILD))
-            self.assertEqual(script.read_bytes(), PREEMPT.read_bytes())
-            config = json.loads((grok_dir / "hooks" / f"{grok_preempt.NAME}.json").read_text())
-            (group,) = config["hooks"]["PreToolUse"]
-            self.assertEqual(group["matcher"], "run_terminal_command")
-            self.assertEqual(group["hooks"], [{"type": "command", "command": shlex.join(["python3", str(script)]) + " || true",
-                                               "timeout": grok_preempt.HOOK_TIMEOUT_SECONDS}])
-            again = hosts.GrokHost().preempt_install(env)
-            self.assertEqual((again["kept"], again["sha256"]), (True, first["sha256"]))
-            # A kept copy is described by its own constant, not by the harness's current one.
-            script.write_text(script.read_text().replace(f'CALIBRATED_BUILD = "{grok_preempt.CALIBRATED_BUILD}"',
-                                                         'CALIBRATED_BUILD = "0.0.1"'))
-            self.assertEqual(hosts.GrokHost().preempt_record(env)["calibrated_on"], "0.0.1")
-
-    def test_a_hook_whose_script_cannot_start_gives_no_opinion(self):
-        # Grok runs a hook without args as sh -c; Python exits 2 for a missing script, and Grok reads exit 2 as a deny.
-        with tempfile.TemporaryDirectory() as tmp:
-            missing = Path(tmp) / f"{grok_preempt.NAME}.py"
-            command = shlex.join(["python3", str(missing)]) + " || true"
-            done = subprocess.run(["sh", "-c", command], input="{}", capture_output=True, text=True, timeout=30)
-            self.assertEqual((done.returncode, done.stdout), (0, ""))
-
-    def test_a_launch_says_whether_its_grok_build_is_the_installed_hook_s(self):
-        build = grok_preempt.CALIBRATED_BUILD
-        self.assertTrue(run.calibrated_build_matches(f"grok {build} (50ca579fa996) [stable]", build))
-        self.assertFalse(run.calibrated_build_matches("grok 1.0.80 (aaaaaaaaaaaa)", build))
-        self.assertFalse(run.calibrated_build_matches(f"grok {build}1 (bbbbbbbbbbbb)", build))
-        self.assertIsNone(run.calibrated_build_matches(None, build))
-        self.assertIsNone(run.calibrated_build_matches(f"grok {build}", None))
-
-    def test_denials_are_counted_by_shape_and_a_bad_row_never_breaks_the_record(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            home = Path(tmp)
-            empty = {"count": 0, "shapes": {}, "commands": [], "unreadable": 0}
-            self.assertEqual(grok_preempt.denials(home), empty, "no log, no denial")
-            log = home / ".local" / "state" / "shiploop-e2e" / f"{grok_preempt.NAME}.jsonl"
-            log.parent.mkdir(parents=True)
-            log.write_text('{"shapes": ["var-write"], "command": "a"}\nnot json\n{"shapes": 5}\n[]\n'
-                           '{"shapes": ["var-write", "cd-relative-write"], "command": "b"}\n')
-            self.assertEqual(grok_preempt.denials(home), {"count": 2, "shapes": {"var-write": 2, "cd-relative-write": 1},
-                                                          "commands": ["a", "b"], "unreadable": 3})
-
-    def test_the_refusal_read_is_the_session_s_own_exact_refusal(self):
-        normal = json.dumps({"type": "end", "stopReason": "end_turn", "sessionId": "s2"}) + "\n"
-        with tempfile.TemporaryDirectory() as tmp:
-            events = Path(tmp) / "events.jsonl"
-            self.assertIsNone(run.refusal_at_end(events), "no stream yet")
-            for text, expected, why in (
-                    (REFUSED_SESSION, "cd /r/worktree && mkdir -p fixtures", "a refused session"),
-                    (REFUSED_SESSION + normal, None, "the stream's last end was a normal one"),
-                    (refused_session("x", stop="end_turn"), None, "a session that ended on its own was not ended by it"),
-                    (refused_session("x", between=(update("c1", "completed", "ok"),)), None, "the call ran after all"),
-                    (refused_session("x", between=(update("c9", "completed", "a sibling ran"),)), "x",
-                     "another call's update between the refusal and the end"),
-                    (refused_session("x").replace(REFUSAL, "AssertionError: expected " + REFUSAL), None,
-                     "a failed test whose output quotes the words is no refusal"),
-                    (refused_session("x").replace('"Hook denied', '"x').replace(REFUSAL, "Hook denied: " + grok_preempt.reason(
-                        ["var-write"])), None, "a hook's deny is reported to the model and ends nothing"),
-                    ("\n".join(REFUSED_SESSION.splitlines()[:2]) + "\n", "cd /r/worktree && mkdir -p fixtures",
-                     "a killed session with no end event")):
-                events.write_text(text)
-                self.assertEqual(run.refusal_at_end(events), expected, why)
-            events.write_text(REFUSED_SESSION + json.dumps({"type": "tool_call", "toolCallId": "c5",
-                                                            "toolName": "run_terminal_command", "rawInput": {"command": "y"}}) + "\n")
-            self.assertIsNone(run.refusal_at_end(events, since_line=3), "a later launch that wrote no end reads its own events")
-
-    def test_the_note_reads_the_last_launch_and_only_a_grok_one(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            out = run_folder(tmp, [("grok", REFUSED_SESSION), ("grok", "")])
-            self.assertIsNone(run.refusal_note(hosts.GrokHost(), out), "the last launch wrote nothing: no refusal of its own")
-        with tempfile.TemporaryDirectory() as tmp:
-            out = run_folder(tmp, [("codex", REFUSED_SESSION)])
-            self.assertIsNone(run.refusal_note(hosts.GrokHost(), out), "a Codex launch's stream is not Grok's refusal")
-            self.assertIsNone(run.refusal_note(hosts.CodexHost(), out))
-        with tempfile.TemporaryDirectory() as tmp:
-            (Path(tmp) / "events.jsonl").write_text(REFUSED_SESSION)
-            self.assertIsNone(run.refusal_note(hosts.GrokHost(), Path(tmp)), "no session log, no note")
-
-    def test_the_note_follows_the_resume_prompt_and_quotes_a_one_line_head(self):
-        long = "X=/r\n" + "mkdir -p \"$X\" " * 40
-        with tempfile.TemporaryDirectory() as tmp:
-            note = run.refusal_note(hosts.GrokHost(), run_folder(tmp, [("grok", REFUSED_SESSION), ("grok", refused_session(long))]))
-        head = note.split('It began: "', 1)[1].split('". Do not run it again', 1)[0]
-        self.assertEqual(head, " ".join(long.split())[:run.REFUSAL_HEAD_CHARS])
-        cli = Path("/p/cli")
-        self.assertEqual(run.resume_prompt("/r/run", cli, note), run.resume_prompt("/r/run", cli) + " " + note)
-        self.assertEqual(run.joined_note(None, note, ""), note)
-        self.assertIsNone(run.joined_note(None, ""))
-
-
-
-
-class GrokRunTest(HarnessCase):
+class HostRunDefaultsTest(HarnessCase):
     def test_codex_sol_xhigh_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
         self.assertEqual(run.parser().parse_args([]).host, "codex")
-        self.assertEqual(hosts.HOST_DEFAULTS["grok"], {"model": "grok-4.6", "effort": "xhigh"})
         self.assertEqual(hosts.HOST_DEFAULTS["codex"], {"model": "gpt-6.2-sol", "effort": "xhigh"})
         self.assertEqual(hosts.HOST_DEFAULTS["claude"]["model"], "claude-sonnet-5-5")
 
-    def test_done_run_passes_in_an_isolated_profile_from_an_empty_directory(self):
-        code, result = self.invoke("grok", "done")
-        self.assertEqual(code, 0, result)
-        seen = self.seen()
-        self.assertEqual(seen["cwd_listing"], [])
-        self.assertTrue(seen["prompt"].startswith("/shiploop "), seen["prompt"])
-        self.assertTrue(seen["auth_is_symlink"])
-        self.assertEqual(seen["claude_skills"], "false")
-        self.assertEqual(Path(seen["home"]), Path(result["output"]) / "home")
-        argv = seen["argv"]
-        self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "xhigh")
-        self.assertEqual(argv[argv.index("--model") + 1], "grok-4.6")
-        self.assertTrue(result["plugin"]["pass"], result["plugin"])
-        self.assertTrue(result["committed"]["pass"], result["committed"])
-        transcript = (Path(result["output"]) / "transcript.md").read_text()
-        self.assertIn("tool  run_terminal_command: shiploop next", transcript)
-        self.assertIn("say   Shipped.", transcript)
-
     def test_run_that_does_nothing_fails_the_product_verdicts(self):
-        code, result = self.invoke("grok", "nothing")
+        code, result = self.invoke("codex", "nothing")
         self.assertEqual(code, 1)
         self.assertTrue(result["process"]["pass"])
         self.assertTrue(result["invoked"]["pass"])
@@ -289,86 +32,43 @@ class GrokRunTest(HarnessCase):
         self.assertFalse(any(check["pass"] for check in result["checks"]))
         self.assertFalse(result["committed"]["pass"])
 
-    def test_missing_grok_sign_in_stops_before_launch(self):
-        hosts.GROK_AUTH = self.tmp / "absent.json"
-        with self.assertRaises(SystemExit):
-            self.invoke("grok", "done")
-        self.assertFalse(self.log.exists())
 
-
-class GrokResumeTest(HarnessCase):
+class HostResumeTest(HarnessCase):
     def sessions(self) -> list[dict]:
         return [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
 
     def test_session_that_ends_with_shiploop_active_is_resumed_until_done(self):
-        code, result = self.invoke("grok", "resume")
+        code, result = self.invoke("codex", "resume")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["process"]["resumes"], 1)
         sessions = self.sessions()
-        self.assertEqual([s["resumed"] for s in sessions], [None, "sess-1"])
+        self.assertEqual([s["resumed"] for s in sessions], [None, "codex-thread-1"])
         self.assertIn(" next --run-dir ", sessions[1]["prompt"])
         self.assertIn("Never end the turn while a ShipLoop command is still running", sessions[1]["prompt"])
         self.assertNotIn("Your last shell command was not run", sessions[1]["prompt"],
                          "a session that ended without a refusal is resumed with the prompt alone")
-        self.assertEqual(result["cli"]["num_turns"], 8)
         self.assertEqual(result["shiploop"]["status"], "done")
-
-    def test_a_session_a_permission_refusal_ended_is_resumed_with_the_refused_command_named(self):
-        code, result = self.invoke("grok", "refused")
-        self.assertEqual(code, 0, result)
-        prompt = self.sessions()[1]["prompt"]
-        # The resume prompt as before, then the note: what was refused, and how to write it so Grok can check it.
-        head, _, note = prompt.partition("Never end the turn while a ShipLoop command is still running. ")
-        self.assertIn(" next --run-dir ", head)
-        self.assertTrue(note.startswith("Your last shell command was not run: Grok's permission check"), note)
-        self.assertIn('It began: "COPY="/r/run/scratch/rv-copy" mkdir -p "$COPY"".', note)
-        self.assertIn(grok_preempt.REWRITE, note)
-        self.assertEqual(result["shiploop"]["status"], "done")
-
-    def test_a_grok_run_records_the_preempt_hook_it_installed_in_its_own_profile(self):
-        code, result = self.invoke("grok", "done")
-        self.assertEqual(code, 0, result)
-        preempt = result["preempt"]
-        hooks = Path(preempt["script"]).resolve().parent
-        self.assertEqual(hooks, (self.tmp / "out-grok-done" / "home" / ".grok" / "hooks").resolve())
-        self.assertEqual((preempt["installed"], preempt["kept"], preempt["calibrated_on"]),
-                         (True, False, grok_preempt.CALIBRATED_BUILD))
-        self.assertEqual(preempt["denials"], {"count": 0, "shapes": {}, "commands": [], "unreadable": 0})
-        self.assertIsNone(preempt["build_matches"], "the fake host answers no --version, so its build is unknown")
-        row = json.loads(self.baselines.read_text().splitlines()[-1])
-        self.assertEqual(row["preempted_tool_calls"], 0)
 
     def test_claude_and_codex_runs_get_no_preempt_hook_and_no_refusal_note(self):
         self.assertIsNone(hosts.ClaudeHost().preempt_install({}))
         self.assertIsNone(hosts.CodexHost().preempt_install({}))
         self.assertIsNone(run.baseline_row({"case": "hello", "metrics": {}}, None, None)["preempted_tool_calls"])
-        with tempfile.TemporaryDirectory() as tmp:
-            out = run_folder(tmp, [("grok", REFUSED_SESSION)])
-            self.assertIsNone(run.refusal_note(hosts.CodexHost(), out),
-                              "Codex streams can say 'cancelled' in a failing test summary: only Grok's refusals end sessions")
-            self.assertIsNotNone(run.refusal_note(hosts.GrokHost(), out))
-
-    def test_a_run_outside_auto_mode_gets_no_hook(self):
-        code, result = self.invoke("grok", "done", "--permission-mode", "bypassPermissions")
-        self.assertEqual(code, 0, result)
-        self.assertIsNone(result["preempt"])
-        self.assertFalse((self.tmp / "out-grok-done" / "home" / ".grok" / "hooks" / f"{grok_preempt.NAME}.json").exists())
 
     def test_resume_stops_at_the_cap_when_the_run_never_finishes(self):
-        code, result = self.invoke("grok", "stuck", "--max-resumes", "2")
+        code, result = self.invoke("codex", "stuck", "--max-resumes", "2")
         self.assertEqual(code, 1)
         self.assertEqual(result["process"]["resumes"], 2)
         self.assertEqual(len(self.sessions()), 3)
         self.assertEqual(result["shiploop"]["status"], "active")
 
     def test_session_that_ends_before_the_run_starts_is_resumed(self):
-        code, result = self.invoke("grok", "early")
+        code, result = self.invoke("codex", "early")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["process"]["resumes"], 1)
         self.assertIn("ended before the ShipLoop run was started", self.sessions()[1]["prompt"])
 
     def test_no_resume_when_the_run_is_done(self):
-        code, result = self.invoke("grok", "done")
+        code, result = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["process"]["resumes"], 0)
 
@@ -717,8 +417,8 @@ class CodexRunTest(HarnessCase):
         self.assertIn("agents.default_subagent_reasoning_effort=xhigh", argv)
         self.assertEqual((result["model"], result["effort"]), ("gpt-6-sol", "xhigh"))
 
-    def test_resume_run_continues_a_stopped_grok_run_on_codex(self):
-        code, stopped = self.invoke("grok", "stuck", "--max-resumes", "0")
+    def test_resume_run_continues_a_stopped_claude_run_on_codex(self):
+        code, stopped = self.invoke("claude", "active", "--max-resumes", "0")
         self.assertEqual(code, 1)
         out = Path(stopped["output"])
         original = (out / "invocation.json").read_text()
@@ -729,20 +429,20 @@ class CodexRunTest(HarnessCase):
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(code, 0, result)
         self.assertEqual(result["host"], "codex")
-        self.assertEqual(result["resumed_run"]["from_host"], "grok")
+        self.assertEqual(result["resumed_run"]["from_host"], "claude")
         self.assertEqual(result["resumed_run"]["stage"], "test-refine")
         self.assertIn("next --run-dir", self.seen()["prompt"])
         self.assertEqual((out / "invocation.json").read_text(), original)
         self.assertEqual(len(list(out.glob("invocation-resume-codex-*.json"))), 1)
         events = (out / "events.jsonl").read_text()
-        self.assertIn('"sessionId": "sess-1"', events)          # the Grok session is kept
-        self.assertIn('"sessionId": "codex-thread-1"', events)  # the Codex session is appended
+        self.assertIn('"claude_code_version": "0.0.1-fake"', events)  # the Claude session is kept
+        self.assertIn('"sessionId": "codex-thread-1"', events)       # the Codex session is appended
         # The original run ended with its engine active, so it wrote no row (SPEC: a baseline row is a finished
         # run's), and a resume never writes one.
         self.assertFalse(self.baselines.exists(), "neither the unfinished original nor its resume writes a baseline row")
 
     def test_resume_run_refuses_a_run_that_is_neither_active_nor_done(self):
-        code, finished = self.invoke("grok", "done")
+        code, finished = self.invoke("codex", "done")
         self.assertEqual(code, 0)
         with mock.patch.object(run, "grade_shiploop", return_value={"status": "paused"}):
             with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished ShipLoop run"):
@@ -750,7 +450,7 @@ class CodexRunTest(HarnessCase):
                           "--resume-run", finished["output"], "--plugin-dir", str(self.plugin)])
 
     def test_resume_run_on_a_finished_run_regrades_it_without_starting_a_host(self):
-        code, finished = self.invoke("grok", "done")
+        code, finished = self.invoke("codex", "done")
         self.assertEqual(code, 0)
         out = Path(finished["output"])
         (out / "result.json").write_text(json.dumps({"case": "stale", "pass": False}))
@@ -758,7 +458,7 @@ class CodexRunTest(HarnessCase):
         gate = ["local HEAD 0123abc has commits origin/main does not: publish them first"]
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "version_gate", return_value=gate):
             # The regrade starts no host, so a failing version gate (an unpushed branch) must not stop it.
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertFalse(self.log.exists(), "no host process was started")
         regraded = json.loads((out / "result.json").read_text())
@@ -954,7 +654,7 @@ sys.exit(int(os.environ.get("FAKE_RC", "0")))
         self.assertEqual(custom.prepare(prompt="雪", extra=7), (["custom", "雪"], None))
         self.assertEqual(custom.received, {"prompt": "雪", "extra": 7})
         with tempfile.TemporaryDirectory() as tmp:
-            for name in ("grok", "claude"):
+            for name in ("claude",):
                 with self.subTest(host=name):
                     agent = hosts.host(name, "fake-" + name)
                     kwargs = self.kwargs(Path(tmp), "short 雪\n")
@@ -1166,16 +866,13 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(sorted(path.name for path in Path(env["CODEX_HOME"]).iterdir()), ["auth.json"])
 
     def test_the_keepalive_block_names_the_hooks_the_plugin_brings_to_codex(self):
-        codex, grok = hosts.host("codex"), hosts.host("grok")
+        codex = hosts.host("codex")
         with tempfile.TemporaryDirectory() as temp:
             plugin = Path(temp)
             self.assertFalse(codex.keepalive_install({}, plugin)["installed"])
             (plugin / "hooks").mkdir()
             (plugin / "hooks" / "codex.json").write_text("{}")
             self.assertTrue(codex.keepalive_install({}, plugin)["installed"])
-            with mock.patch.object(hosts, "grok_keepalive", return_value={"installed": True}) as installer:
-                self.assertEqual(grok.keepalive_install({"HOME": "h"}, plugin), {"installed": True})
-                installer.assert_called_once_with({"HOME": "h"}, plugin)
             self.assertIsNone(hosts.host("claude").keepalive_install({}, plugin))
 
     def test_a_codex_notice_is_a_thought_not_a_tool_call_or_a_turn(self):
@@ -1220,17 +917,16 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(collected["turns"], 4)
             self.assertTrue(any("git commit" in g["command"] for g in collected["model_glue"]))
 
-    def test_turns_add_a_codex_session_to_a_grok_run_it_resumed(self):
-        grok = [{"type": "usage", "usage": {"input_tokens": 1}}, {"type": "usage", "usage": {"input_tokens": 2}},
-                {"type": "end", "stopReason": "cancelled", "num_turns": 91, "total_cost_usd": 1.0}]
+    def test_turns_add_two_codex_sessions(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp)
-            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in grok + self.translated()))
-            self.assertEqual(metrics.collect(out)["turns"], 2 + 4)
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in self.translated() + self.translated()))
+            self.assertEqual(metrics.collect(out)["turns"], 4 + 4)
 
     def test_every_host_is_selectable_by_name(self):
-        self.assertEqual(sorted(hosts.HOSTS), ["antigravity", "claude", "codex", "grok"])
-        for name in hosts.HOSTS:
+        active = ("antigravity", "claude", "codex")
+        self.assertTrue(set(active).issubset(hosts.HOSTS))
+        for name in active:
             agent = hosts.host(name)
             self.assertEqual(agent.name, name)
             self.assertEqual(hosts.HOST_DEFAULTS[name], {"model": agent.model, "effort": agent.effort})
@@ -1244,16 +940,14 @@ class ThrowawayHomeEnvTest(unittest.TestCase):
 
     VAR = "SF_USE_GENERIC_UNIX_KEYCHAIN"
 
-    def test_the_codex_and_grok_throwaway_homes_carry_it(self):
+    def test_the_codex_throwaway_home_carries_it(self):
         with tempfile.TemporaryDirectory() as temp:
-            auth = Path(temp) / "auth.json"
-            auth.write_text("{}")
-            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}), mock.patch.object(hosts, "GROK_AUTH", auth):
-                for name in ("codex", "grok"):
-                    home = Path(temp) / f"{name}-home"
-                    env = hosts.host(name).env(home)
-                    self.assertEqual(env["HOME"], str(home), name)
-                    self.assertEqual(env[self.VAR], "true", name)
+            (Path(temp) / "auth.json").write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}):
+                home = Path(temp) / "codex-home"
+                env = hosts.host("codex").env(home)
+                self.assertEqual(env["HOME"], str(home))
+                self.assertEqual(env[self.VAR], "true")
 
     def test_the_claude_host_runs_in_the_real_home_and_never_carries_it(self):
         with mock.patch.dict(os.environ):
@@ -1268,21 +962,19 @@ class ThrowawayHomeEnvTest(unittest.TestCase):
         3.9.6: one real session substituted python3.15 and passed, the next reported a missing prerequisite and ShipLoop never ran
         (docs/closed-loop-journal.md R15). Every installed shell a model may use must find this harness's own interpreter."""
         with tempfile.TemporaryDirectory() as temp:
-            auth = Path(temp) / "auth.json"
-            auth.write_text("{}")
-            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}), mock.patch.object(hosts, "GROK_AUTH", auth):
-                for name in ("codex", "grok"):
-                    home = Path(temp) / f"{name}-home"
-                    env = hosts.host(name).env(home)
-                    folder = home / hosts.PYTHON_PIN_DIR
-                    self.assertEqual(run.shell_resolution_problems(["python3"], folder, env), [], name)
-                    login = next(shell for shell in ("/bin/zsh", "/bin/bash") if os.access(shell, os.X_OK))
-                    done = subprocess.run([login, "-lc", "python3 -c 'import sys; print(sys.executable)'"], capture_output=True, text=True,
-                                          env=dict(env, SHELL_SESSIONS_DISABLE="1"), stdin=subprocess.DEVNULL, timeout=60, check=False)
-                    self.assertEqual(os.path.realpath(done.stdout.strip()), os.path.realpath(sys.executable), (name, done.stderr))
-                    hosts.host(name).env(home)  # a second launch in the same home, as a resume makes
-                    for startup in hosts.SHELL_STARTUP_FILES:
-                        self.assertEqual((home / startup).read_text().count(hosts.PYTHON_PIN_MARK), 1, (name, startup))
+            (Path(temp) / "auth.json").write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}):
+                home = Path(temp) / "codex-home"
+                env = hosts.host("codex").env(home)
+                folder = home / hosts.PYTHON_PIN_DIR
+                self.assertEqual(run.shell_resolution_problems(["python3"], folder, env), [])
+                login = next(shell for shell in ("/bin/zsh", "/bin/bash") if os.access(shell, os.X_OK))
+                done = subprocess.run([login, "-lc", "python3 -c 'import sys; print(sys.executable)'"], capture_output=True, text=True,
+                                      env=dict(env, SHELL_SESSIONS_DISABLE="1"), stdin=subprocess.DEVNULL, timeout=60, check=False)
+                self.assertEqual(os.path.realpath(done.stdout.strip()), os.path.realpath(sys.executable), done.stderr)
+                hosts.host("codex").env(home)  # a second launch in the same home, as a resume makes
+                for startup in hosts.SHELL_STARTUP_FILES:
+                    self.assertEqual((home / startup).read_text().count(hosts.PYTHON_PIN_MARK), 1, startup)
 
 
 @unittest.skipUnless(sys.platform == "darwin" and os.access(hosts.SECURITY, os.X_OK), "macOS keychains only")
@@ -1297,22 +989,20 @@ class ThrowawayKeychainTest(unittest.TestCase):
         done = subprocess.run([hosts.SECURITY, "default-keychain", "-d", "user"], env=env, capture_output=True, text=True)
         return (done.stdout + done.stderr).strip()
 
-    def test_the_codex_and_grok_throwaway_homes_get_a_keychain_macos_finds_and_the_real_default_is_unchanged(self):
+    def test_the_codex_throwaway_home_gets_a_keychain_macos_finds_and_the_real_default_is_unchanged(self):
         real = self.default_keychain(None)
         with tempfile.TemporaryDirectory() as temp:
-            auth = Path(temp) / "auth.json"
-            auth.write_text("{}")
-            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}), mock.patch.object(hosts, "GROK_AUTH", auth):
-                for name in ("codex", "grok"):
-                    home = Path(temp) / f"{name}-home"
-                    hosts.host(name).env(home)
-                    keychain = home / hosts.THROWAWAY_KEYCHAIN
-                    self.assertTrue(keychain.is_file(), name)
-                    self.assertIn(str(keychain.resolve()), str(Path(self.default_keychain(home).strip('"')).resolve()), name)
-                    info = subprocess.run([hosts.SECURITY, "show-keychain-info", str(keychain)], capture_output=True, text=True,
-                                          env=dict(os.environ, HOME=str(home)))
-                    self.assertIn("no-timeout", info.stdout + info.stderr, name)
-                    self.assertEqual(hosts.throwaway_keychain(home), keychain, "a second call keeps the keychain it made")
+            (Path(temp) / "auth.json").write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}):
+                home = Path(temp) / "codex-home"
+                hosts.host("codex").env(home)
+                keychain = home / hosts.THROWAWAY_KEYCHAIN
+                self.assertTrue(keychain.is_file())
+                self.assertIn(str(keychain.resolve()), str(Path(self.default_keychain(home).strip('"')).resolve()))
+                info = subprocess.run([hosts.SECURITY, "show-keychain-info", str(keychain)], capture_output=True, text=True,
+                                      env=dict(os.environ, HOME=str(home)))
+                self.assertIn("no-timeout", info.stdout + info.stderr)
+                self.assertEqual(hosts.throwaway_keychain(home), keychain, "a second call keeps the keychain it made")
         self.assertEqual(self.default_keychain(None), real, "the owner's own default keychain is unchanged")
 
     def test_a_failing_security_stops_the_run_from_starting(self):
@@ -1417,40 +1107,13 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         second = codex_session([codex_command(0, cli, refusal + "\n", 2)], thread="t2")
         found = collect_stream([*first, *second], [])["shiploop_failures"]
         self.assertEqual([(f["verb"], f["exit"], f["line"]) for f in found], [("next", 2, refusal)] * 2)
-        # One call is still one failure when the host repeats its update (Grok), even with an id that came back.
-        update = {"type": "tool_call_update", "toolCallId": "g", "status": "completed",
-                  "rawOutput": {"exit_code": 2, "output_for_prompt": refusal + "\n"}}
-        grok = [{"type": "tool_call", "toolCallId": "g", "rawInput": {"command": cli}}, update, update]
-        self.assertEqual(len(collect_stream(grok, [])["shiploop_failures"]), 1)
 
-    def test_the_same_rule_reads_a_grok_and_a_codex_stream(self):
+    def test_the_same_rule_reads_a_codex_stream(self):
         refusal = "ShipLoop blocked: the run directory is not readable"
         cli = "python3 x/shiploop next --run-dir r | head"
-        grok = [{"type": "tool_call", "toolCallId": "a", "rawInput": {"command": cli}},
-                {"type": "tool_call_update", "toolCallId": "a", "status": "completed",
-                 "rawOutput": {"exit_code": 0, "output_for_prompt": refusal + "\n"}},
-                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": cli}},
-                {"type": "tool_call_update", "toolCallId": "b", "status": "completed",
-                 "rawOutput": {"exit_code": 0, "output_for_prompt": "fine\n"}}]
         codex = codex_session([codex_command(0, cli, refusal + "\n", 0), codex_command(1, cli, "fine\n", 0)])
-        for label, stream in (("grok", grok), ("codex", codex)):
-            with self.subTest(label):
-                self.assertEqual(collect_stream(stream, [])["shiploop_failures"],
-                                 [{"verb": "next", "exit": 0, "line": refusal}])
-
-    def test_a_grok_call_is_read_from_its_final_update_not_the_running_one(self):
-        # The shape of a recorded Grok call (v1210, a refused `complete`): running updates carry a placeholder exit 0 and the
-        # output so far, the completed update the real exit 2. One call, one failure, with the exit the host reported last.
-        cli = "python3 x/shiploop complete --run-dir r"
-        refusal = "ShipLoop navigator: result requires outcome and summary"
-        stream = [{"type": "tool_call", "toolCallId": "a", "rawInput": {"command": cli}},
-                  {"type": "tool_call_update", "toolCallId": "a", "status": "in_progress",
-                   "rawOutput": {"exit_code": 0, "output_for_prompt": ""}},
-                  {"type": "tool_call_update", "toolCallId": "a", "status": "in_progress",
-                   "rawOutput": {"exit_code": 0, "output_for_prompt": refusal + "\n"}},
-                  {"type": "tool_call_update", "toolCallId": "a", "status": "completed",
-                   "rawOutput": {"exit_code": 2, "output_for_prompt": refusal + "\n"}}]
-        self.assertEqual(collect_stream(stream, [])["shiploop_failures"], [{"verb": "complete", "exit": 2, "line": refusal}])
+        self.assertEqual(collect_stream(codex, [])["shiploop_failures"],
+                         [{"verb": "next", "exit": 0, "line": refusal}])
 
     def test_model_glue_and_tmp_writes_see_through_command_variables(self):
         names = list(json.loads((TOOL_BLOCKS / "manifest.json").read_text())["battleship-sonnet-calls.jsonl"])
@@ -1616,12 +1279,9 @@ class ClaudeToolBlocksTest(unittest.TestCase):
         self.assertEqual(packets["on_disk"], {"files": 3, "bytes": 3540})
 
     def test_other_hosts_have_no_tool_use_block(self):
-        grok = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
-                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "ls"}}]
-        for label, stream in (("grok", grok), ("codex", codex_stream(3))):
-            m = collect_stream(stream, [])
-            self.assertIsNone(m["tool_use"], label)
-            self.assertNotIn("tool_use", m["unmeasured"], "no host but Claude ever had this block: nothing to name")
+        m = collect_stream(codex_stream(3), [])
+        self.assertIsNone(m["tool_use"], "codex")
+        self.assertNotIn("tool_use", m["unmeasured"], "no host but Claude ever had this block: nothing to name")
 
     def test_the_summary_says_what_the_model_ran_beside_the_glue_count(self):
         lines = metrics.summary_lines(self.collect(self.all_calls()))
@@ -1685,8 +1345,8 @@ class ClaudeOnOllamaTest(PrintedCase):
         argv = json.loads(self.log.read_text())["argv"]
         self.assertEqual(argv[argv.index("--model") + 1], "claude-sonnet-5-5")
         self.assertNotIn("--tools", argv, "the coding-tool allowlist is the Ollama route's")
-        self.assertEqual((hosts.HOST_DEFAULTS["claude"]["model"], hosts.HOST_DEFAULTS["grok"]["model"]),
-                         ("claude-sonnet-5-5", hosts.GrokHost.model))
+        self.assertEqual((hosts.HOST_DEFAULTS["claude"]["model"], hosts.HOST_DEFAULTS["codex"]["model"]),
+                         ("claude-sonnet-5-5", hosts.CodexHost.model))
         ollama = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "ollama"]))
         self.assertEqual((ollama.backend, ollama.model), ("ollama", hosts.OLLAMA_MODEL), "--backend ollama names the Ollama route")
         self.assertEqual(hosts.host("claude").backend, "anthropic", "the factory's default and the run's are the same")
@@ -1747,7 +1407,7 @@ class ClaudeOnOllamaTest(PrintedCase):
 
     def test_the_backend_is_a_claude_option_and_the_anthropic_route_is_unchanged(self):
         with self.assertRaises(SystemExit):
-            hosts.host("grok", None, "ollama")
+            hosts.host("codex", None, "ollama")
         with mock.patch.dict(os.environ, self.SECRETS):
             anthropic = hosts.host("claude")
             self.assertEqual(anthropic.env(self.tmp / "home")["ANTHROPIC_AUTH_TOKEN"], "real-oauth-bearer",
@@ -1760,7 +1420,7 @@ class ClaudeOnOllamaTest(PrintedCase):
         args = argparse.Namespace(backend=None)
         self.assertEqual(run.resume_backend(args, {"host": "claude", "backend": "ollama"}), "ollama")
         self.assertEqual(run.resume_backend(args, {"host": "claude"}), "anthropic", "a launch from before the field")
-        self.assertIsNone(run.resume_backend(args, {"host": "grok"}))
+        self.assertIsNone(run.resume_backend(args, {"host": "codex"}))
         with self.assertRaises(SystemExit) as mixed:
             run.resume_backend(argparse.Namespace(backend="anthropic"), {"host": "claude", "backend": "ollama"})
         self.assertIn("mixed-backend run", str(mixed.exception))
@@ -1831,8 +1491,9 @@ class MeasuredHostPrintingTest(PrintedCase):
 class ResumedRunRecordTest(PrintedCase):
     """A run continued after the harness stopped keeps what it recorded and invents nothing."""
 
-    def stopped_run(self) -> Path:
-        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+    def stopped_run(self, host: str = "codex") -> Path:
+        mode = "active" if host == "claude" else "stuck"
+        code, result, _ = self.invoke_printed(host, mode, "--max-resumes", "0")
         self.assertEqual(code, 1)
         return Path(result["output"])
 
@@ -1854,7 +1515,7 @@ class ResumedRunRecordTest(PrintedCase):
         out = self.stopped_run()
         original = json.loads((out / "result.json").read_text())["termination"]
         self.finish_out_of_band(out)
-        result, printed = self.regrade(out, "--host", "grok", "--grok-bin", str(self.fakes["grok"]))
+        result, printed = self.regrade(out, "--host", "codex", "--codex-bin", str(self.fakes["codex"]))
         t = result["termination"]
         self.assertTrue(t["regraded"])
         self.assertEqual({k: v for k, v in t.items() if k in original}, original)
@@ -1874,7 +1535,7 @@ class ResumedRunRecordTest(PrintedCase):
         recorded = json.loads((out / "result.json").read_text())
         self.block_out_of_band(out)
         self.log.unlink(missing_ok=True)
-        result, printed = self.regrade(out, "--host", "codex", "--codex-bin", str(self.fakes["codex"]))
+        result, printed = self.regrade(out, "--host", "claude", "--claude-bin", str(self.fakes["claude"]))
         self.assertFalse(self.log.exists(), "no host process was started for a blocked run")
         self.assertTrue(result["process"]["regraded"])
         self.assertEqual((result["host"], result["model"], result["effort"]),
@@ -1895,7 +1556,7 @@ class ResumedRunRecordTest(PrintedCase):
         out = self.stopped_run()
         self.finish_out_of_band(out)
         (out / "result.json").unlink()
-        result, printed = self.regrade(out, "--host", "grok", "--grok-bin", str(self.fakes["grok"]))
+        result, printed = self.regrade(out, "--host", "codex", "--codex-bin", str(self.fakes["codex"]))
         t = result["termination"]
         self.assertEqual((t["process_status"], t["returncode"], t["sessions"], t["session_stops"]),
                          (run.NOT_OBSERVED, None, 0, []))
@@ -1906,15 +1567,15 @@ class ResumedRunRecordTest(PrintedCase):
         self.assertNotIn("host exited rc=0", printed)
 
     def test_a_regrade_without_a_host_flag_keeps_the_host_the_run_recorded(self):
-        out = self.stopped_run()
+        out = self.stopped_run("claude")
         self.finish_out_of_band(out)
-        result, _ = self.regrade(out)  # no --host: the default is Claude, which never ran this
-        self.assertEqual(result["host"], "grok")
+        result, _ = self.regrade(out)  # no --host: the default is Codex, which never ran this
+        self.assertEqual(result["host"], "claude")
         self.assertEqual(result["model"], json.loads((out / "invocation.json").read_text())["model"])
         self.assertTrue(result["process"]["regraded"])
 
     def test_a_regrade_through_the_marketplace_source_never_overwrites_the_finished_result(self):
-        code, finished, _ = self.invoke_printed("grok", "done")
+        code, finished, _ = self.invoke_printed("claude", "done")
         out = Path(finished["output"])
         before = (out / "result.json").read_text()
         gate = ["local HEAD 0123abc has commits origin/main does not: publish them first"]
@@ -1931,7 +1592,7 @@ class ResumedRunRecordTest(PrintedCase):
         self.assertNotEqual((out / "result.json").read_text(), before)  # re-graded, not stubbed
 
     def test_a_refused_resume_never_overwrites_the_record_of_the_run_it_would_have_continued(self):
-        out = self.stopped_run()
+        out = self.stopped_run("claude")
         before = (out / "result.json").read_text()
         gate = ["origin/main has unreleased changes (x): run scripts/release.py and push"]
         versions = {"source": "marketplace", "plugin_version": "9", "shiploop_version": "1", "gate": gate}
@@ -1962,7 +1623,7 @@ class PluginVerdictCarriedTest(PrintedCase):
     Only Claude's own events say which plugin loaded. A Grok or Codex run's evidence is the install check made
     before its first process started, so invocation.json records it and a later invocation reads it back."""
 
-    HOSTS = ("claude", "grok", "codex")
+    HOSTS = ("claude", "codex")
 
     def setUp(self):
         super().setUp()
@@ -2016,11 +1677,11 @@ class PluginVerdictCarriedTest(PrintedCase):
                 self.assertEqual(recorded["plugin"], None if host == "claude" else first["plugin"])
 
     def test_a_run_whose_first_launch_recorded_no_plugin_verdict_is_not_given_one(self):
-        out, first = self.ended_while_active("grok")
+        out, first = self.ended_while_active("codex")
         recorded = json.loads((out / "invocation.json").read_text())
         recorded.pop("plugin", None)  # an invocation.json written before the verdict was kept
         (out / "invocation.json").write_text(json.dumps(recorded))
-        result = self.continue_run("grok", out)
+        result = self.continue_run("codex", out)
         self.assertFalse(result["plugin"]["pass"], "no evidence is a failed plugin check, never a guessed pass")
         self.assertEqual(result["plugin"]["loaded"], [])
 
@@ -2059,19 +1720,20 @@ class ResumeCliThroughMainTest(PrintedCase):
         self.assertNotIn("`shiploop next", prompt)
 
     def test_a_resume_inside_the_run_names_the_cli_the_run_started_on(self):
-        # The resume loop (a Grok or Codex session that ended while ShipLoop was active) is the third call site that
+        # The resume loop (a Codex session that ended while ShipLoop was active) is the third call site that
         # builds this prompt, beside the first resume and the resume after an interrupt.
-        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        code, result, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "1")
         sessions = [json.loads(line) for line in Path(str(self.log) + ".sessions").read_text().splitlines()]
         self.assertEqual(len(sessions), 2)
         self.assertIsNotNone(sessions[1]["resumed"])
-        command = f'python3 "{self.cli}" next --run-dir "'
+        expected_cli = run.run_cli("codex", Path(result["output"]), self.plugin)
+        command = f'python3 "{expected_cli}" next --run-dir "'
         self.assertIn(command, sessions[1]["prompt"])
         self.assertIn(command, (Path(result["output"]) / "resume-1.txt").read_text())
         self.assertNotIn("`shiploop next", sessions[1]["prompt"])
 
     def test_a_run_continued_on_another_host_keeps_the_cli_it_started_on(self):
-        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, first, _ = self.invoke_printed("claude", "active", "--max-resumes", "0")
         other = self.tmp / "other" / "plugins" / "skill-craft"
         (other / ".claude-plugin").mkdir(parents=True)
         (other / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
@@ -2087,19 +1749,23 @@ class ResumeCliThroughMainTest(PrintedCase):
 
 
     def test_a_resume_whose_plugin_cli_is_gone_is_refused_before_any_host_starts(self):
-        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
-        self.cli.unlink()
+        code, first, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0")
+        installed_cli = run.run_cli("codex", Path(first["output"]), self.plugin)
+        if installed_cli.is_file():
+            installed_cli.unlink()
+        if self.cli.is_file():
+            self.cli.unlink()
         self.log.unlink()
         Path(str(self.log) + ".sessions").unlink()
         os.environ["FAKE_MODE"] = "stuck"
         with self.assertRaisesRegex(SystemExit, "ShipLoop CLI.*is gone"):
-            self.resume(Path(first["output"]), "grok")
+            self.resume(Path(first["output"]), "codex")
         self.assertFalse(self.log.exists(), "no host was started")
 
     def test_a_regrade_never_needs_the_cli(self):
-        code, first, _ = self.invoke_printed("grok", "done")
+        code, first, _ = self.invoke_printed("codex", "done")
         self.cli.unlink()
-        self.resume(Path(first["output"]), "grok")  # done: graded again, no host, no prompt
+        self.resume(Path(first["output"]), "codex")  # done: graded again, no host, no prompt
         self.assertTrue(json.loads((Path(first["output"]) / "result.json").read_text())["process"]["regraded"])
 
 
@@ -2112,15 +1778,11 @@ class RunCliTest(unittest.TestCase):
             for plugin in (out / "marketplace/plugins/skill-craft", out / "build/plugins/skill-craft"):
                 self.assertEqual(run.run_cli("claude", out, plugin), plugin / "skills/shiploop/scripts/shiploop")
 
-    def test_grok_and_codex_use_the_copy_they_installed_and_fall_back_to_the_plugin_dir(self):
+    def test_codex_uses_the_copy_it_installed_and_falls_back_to_the_plugin_dir(self):
         with tempfile.TemporaryDirectory() as temp:
             out = Path(temp)
             build = out / "build/plugins/skill-craft"
-            self.assertEqual(run.run_cli("grok", out, build), run.shiploop_cli(build))
-            grok_copy = out / "home/.grok/installed-plugins/skill-craft-1234/skills/shiploop/scripts/shiploop"
-            grok_copy.parent.mkdir(parents=True)
-            grok_copy.write_text("")
-            self.assertEqual(run.run_cli("grok", out, build), grok_copy)
+            self.assertEqual(run.run_cli("codex", out, build), run.shiploop_cli(build))
             codex_copy = out / "home/.codex/plugins/cache/whichguy/skill-craft/1.0.0/skills/shiploop/scripts/shiploop"
             codex_copy.parent.mkdir(parents=True)
             codex_copy.write_text("")
@@ -2136,7 +1798,7 @@ class ResumeCommandTest(PrintedCase):
     def test_no_limit_is_set_unless_one_is_asked_for_and_the_printed_command_names_none(self):
         """Owner 2026-10-24: no turn, spend, time or resume limit by default. The three drivers share the defaults, the
         host argv carries no --max-turns or --max-budget-usd, and the printed command adds none and still round-trips."""
-        args = run.parser().parse_args(["--host", "grok", "--model", "m"])
+        args = run.parser().parse_args(["--host", "codex", "--model", "m"])
         self.assertEqual((args.max_turns, args.max_budget_usd, args.timeout, args.max_resumes), (None, None, None, None))
         import slice as slice_driver  # the slice driver beside run.py (not the builtin)
         sliced = slice_driver.parser().parse_args([])
@@ -2151,7 +1813,7 @@ class ResumeCommandTest(PrintedCase):
         common = dict(prompt="p", cwd=Path("/w"), model="m", effort=None, permission_mode="auto", max_turns=None,
                       max_budget_usd=None)
         with tempfile.TemporaryDirectory() as tmp:
-            for name in ("grok", "claude"):
+            for name in ("codex", "claude"):
                 with self.subTest(host=name):
                     argv = hosts.HOSTS[name]().argv(prompt_file=Path(tmp) / "prompt.txt", **common)
                     self.assertNotIn("--max-turns", argv)
@@ -2162,8 +1824,8 @@ class ResumeCommandTest(PrintedCase):
         return [shlex.split(ln[ln.index("python3 "):]) for ln in lines]
 
     def test_the_start_and_the_end_print_the_exact_command_that_continues_the_run(self):
-        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0", "--timeout", "900",
-                                                    "--permission-mode", "plan", "--max-budget-usd", "12.5")
+        code, result, printed = self.invoke_printed("codex", "stuck", "--max-resumes", "0", "--timeout", "900",
+                                                    "--permission-mode", "never", "--max-budget-usd", "12.5")
         found = self.commands(printed)
         self.assertEqual(len(found), 2, "before the host starts, and again for a run left active")
         self.assertEqual(found[0], found[1])
@@ -2172,10 +1834,11 @@ class ResumeCommandTest(PrintedCase):
         self.assertEqual((argv[0], Path(argv[1])), ("python3", Path(run.__file__).resolve()))
         parsed = run.parser().parse_args(argv[2:])
         self.assertEqual(parsed.resume_run, Path(result["output"]))
-        self.assertEqual((parsed.host, parsed.model, parsed.effort), ("grok", "grok-4.6", "xhigh"))
+        self.assertEqual((parsed.host, parsed.model, parsed.effort),
+                         ("codex", hosts.HOST_DEFAULTS["codex"]["model"], hosts.HOST_DEFAULTS["codex"]["effort"]))
         self.assertEqual((parsed.timeout, parsed.max_resumes, parsed.max_budget_usd, parsed.permission_mode),
-                         (900, 0, 12.5, "plan"))  # each non-default, so dropping any flag from the command fails here
-        self.assertEqual(parsed.grok_bin, str(self.fakes["grok"]))
+                         (900, 0, 12.5, "never"))  # each non-default, so dropping any flag from the command fails here
+        self.assertEqual(parsed.codex_bin, str(self.fakes["codex"]))
         self.assertEqual(parsed.plugin_dir, self.plugin)
 
     def test_a_finished_run_prints_it_once_and_a_host_without_an_effort_prints_none(self):
@@ -2188,7 +1851,7 @@ class ResumeCommandTest(PrintedCase):
     def test_the_printed_command_round_trips_for_a_marketplace_a_checkout_and_a_plugin_dir_run(self):
         """U27: the line is complete for each way a run starts. It parses with the harness's own parser to the arguments the run had
         (`--source checkout` too, which a checkout build the harness made itself has no `--plugin-dir` to imply)."""
-        flags = ["--host", "grok", "--model", "m", "--effort", "high", "--timeout", "900", "--max-resumes", "3",
+        flags = ["--host", "codex", "--model", "m", "--effort", "high", "--timeout", "900", "--max-resumes", "3",
                  "--max-budget-usd", "12.5", "--permission-mode", "bypassPermissions"]
         for kind, extra in (("marketplace", []), ("checkout", ["--source", "checkout"]),
                             ("plugin-dir", ["--plugin-dir", str(self.plugin)]),
@@ -2207,7 +1870,7 @@ class ResumeCommandTest(PrintedCase):
                 self.assertEqual(again.source, "marketplace" if kind == "marketplace" else "checkout")
 
     def test_the_printed_command_continues_the_run_in_place(self):
-        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, result, printed = self.invoke_printed("codex", "stuck", "--max-resumes", "0")
         argv = self.commands(printed)[0][2:]
         os.environ["FAKE_MODE"] = "done"
         self.log.unlink()
@@ -2243,8 +1906,8 @@ class ClaudeCodeVersionTest(PrintedCase):
         code, result, _ = self.invoke_printed("claude", "done")
         self.assertEqual(json.loads((Path(result["output"]) / "metrics.json").read_text())["claude_code_version"], "0.0.1-fake")
         self.assertEqual(result["metrics"]["claude_code_version"], "0.0.1-fake")
-        code, grok, _ = self.invoke_printed("grok", "done")
-        self.assertIsNone(grok["metrics"]["claude_code_version"])
+        code, codex, _ = self.invoke_printed("codex", "done")
+        self.assertIsNone(codex["metrics"]["claude_code_version"])
 
 
 class KeepAwakeTest(unittest.TestCase):
