@@ -10105,5 +10105,19 @@ Designed, empirically tested across harnesses, implemented, and validated script
   2. `_tail_jsonl` window bumped from `64 KB` to `256 KB` and `_record_observed_model` preserves prior `observed_effort` when a later rollout tail omits `turn_context` on the same `observed_model`, stopping Codex `medium → None` flapping mid-run.
   - Also resolved `SliceCase.setUp` in `test/shiploop-e2e-slice.test.py:171` (`cd1d9e17ed`) for a pre-existing macOS `/var` vs `/private/var` loop receipt symlink mismatch from `0d38c7fefae63` (`73/73` slice tests OK in `305.6s`).
 
+## 2026-11-25 — 3-Host Live Model-Routing Smoke Runner (`claude`, `codex`, `antigravity`) and Two Live-Caught `shiploop-drive` Fixes
+
+Added a reusable 3-host model-switching smoke runner (`test/shiploop_e2e/probes/model_routing_smoke.py`, documented in `test/shiploop_e2e/probes/README.md`) and hermetic matrix tests (`ThreeHostSmokeMatrixTests` in `test/shiploop-model-routing.test.py`), seeding a minimal Python `greet` fixture at `system-test-author` so every host crosses `system-test-author` (`planning`, Model A) → `system-test` (`execution`, Model B) → `product-acceptance` (`planning`, Model A) → `release-plan` (paused).
+
+- **Live Run 1 (`routing-smoke-live`, `task-1042`) uncovered two real bugs in `skills/shiploop/scripts/shiploop_keepalive.py`:**
+  1. **Warm `--resume` lost on `SessionEnd` (`claude` & `codex`):** Claude (`claude-sonnet-5-5` `395.65s`) and Codex (`gpt-6.2-astra`/`gpt-6.2-sol` `264.52s`) crossed all 3 stages and stopped cleanly at both boundaries, but `SessionEnd` unlinked `keepalive/bindings/<host>-<digest>.json` right before subprocess exit, causing `_capture_session()` to read `[]` and leaving `resumed: null` in Sessions 2 and 3. Antigravity (`gemini-4-neon-high` ↔ `gemini-4-carbon-medium`, `427.55s`) passed `warm_resume_ok: True` only because it has no `SessionEnd` hook. Fixed by persisting drive-observed session IDs in `home()/drive/<run_id>/seen-sessions.json` inside `observe()` and `session_end()` and falling back to it in `_capture_session()`.
+  2. **Claude `effort` missed by `observed_model()`:** Live Claude JSONL transcripts store `effort` and `perTurnEffort` (`"high"` / `"low"`) on top-level `assistant` rows rather than inside `row["message"]`, so `hook=model` recorded `effort=null`. Updated `observed_model("claude", ...)` to read `row.get("effort") or row.get("perTurnEffort")` from the latest `assistant` transcript row.
+
+- **Live Run 2 (`routing-smoke-live-v2`, `task-1138`) — `3/3 PASS` (`exit 0`, all 4 checks `True` per host):**
+  - **Claude (`claude/routed`, `390.31s`):** `stages_ok=True`, `warm_resume_ok=True` (`5d0d5b7c-da1f-474e-8dc7-0dd5ec7dc640` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`claude-sonnet-5-5/high` `235s` rev `16→18` → `claude-haiku-5-5/low` `34s` rev `18→19` → `claude-sonnet-5-5/high` `120s` rev `19→21`).
+  - **Codex (`codex/routed`, `248.9s`):** `stages_ok=True`, `warm_resume_ok=True` (`01a2143e-b8a6-7f13-b26e-59b2614d3083` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`gpt-6.2-astra/high` `110s` rev `16→18` → `gpt-6.2-sol/medium` `34s` rev `18→19` → `gpt-6.2-astra/high` `104s` rev `19→21`).
+  - **Antigravity (`antigravity/routed`, `498.57s`):** `stages_ok=True`, `warm_resume_ok=True` (`107ab34f-846f-423a-b652-6fed82fb55c8` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`gemini-4-neon-high/high` `295s` rev `16→18` → `gemini-4-carbon-medium/medium` `107s` rev `18→19` → `gemini-4-neon-high/high` `96s` rev `19→21`).
+
+
 
 
