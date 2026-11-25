@@ -119,18 +119,18 @@ class _Paths:
         return self.head + ", ".join(shown) + more(len(self.paths) - len(shown)) + self.tail
 
 
-# The most one command's output holds (the return-review and workspace commands' lists): the navigator's whole-print limit
-# when the two were one constant, apart from it now so the packet limits can move without changing these outputs.
-OUTPUT_LIMIT = 16_000
+# The most one command's output holds (the return-review and workspace commands' lists), sized to Claude Code's
+# ~30,000-character Bash stdout ceiling (Codex and Antigravity allow more; replaces Grok's retired 20,000 cutoff).
+OUTPUT_LIMIT = 30_000
 
 
 def _fit(parts: Sequence[str | _Paths], limit: Optional[int] = None) -> list[str]:
     """The lines of one command's output, as text of at most ``limit`` characters (default ``OUTPUT_LIMIT``) in all.
 
     A plain string is a fixed line and prints whole.  Each ``_Paths`` takes an even share of the room the fixed lines
-    leave, in order, so a short list leaves its room to the longer ones after it.  Output hosts cut near 20,000
-    characters, and the line a cleared context needs is the last one (the next command), so the whole output, not each
-    list, is held to the limit.
+    leave, in order, so a short list leaves its room to the longer ones after it.  Claude Code keeps ~30,000 characters
+    of Bash stdout (Codex and Antigravity allow more), and the line a cleared context needs is the last one (the next
+    command), so the whole output, not each list, is held to the limit.
     """
     room = (limit or OUTPUT_LIMIT) - sum(len(part) + 1 for part in parts if isinstance(part, str))
     lists = sum(not isinstance(part, str) for part in parts)
@@ -376,7 +376,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                               "next", "--run-dir", str(root / "run")]))
         return 0
     except grants.GrantError as exc:
-        print(grants.report(exc, shlex.join(rerun)), file=sys.stderr)
+        print(grants.report(exc, shlex.join(rerun), starting=(args.operation == "start")), file=sys.stderr)
         return grants.EXIT_GRANT_NEEDED
     except workspace.ReviewRefused as exc:
         # Line 1 carries the verb, the count and the paths: hosts and models read refusals through `head` and `cut`.
@@ -499,8 +499,10 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         retired = navigator.retired_run_reason(state)
         need(retired is None, retired or "")
         navigator.validate(state)
-        stage = navigator.current_stage(state)
-        profile = navigator.stage_spec.stage_profile(stage)
+        stage = navigator.sequence_stage(state)
+        child = state.get("active_improve")
+        reviewed_stage = child.get("stage") if stage == "improve" and isinstance(child, Mapping) else None
+        profile = navigator.stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
         action = navigator.current_action(state)
         iteration = _loop_iteration(root, state)
     except SystemExit:
@@ -521,6 +523,7 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         "awaiting": (navigator.awaiting(state) or (None, {}))[1].get("kind", ""),
         "stage": stage,
         "profile": profile,
+        "reviewed_stage": reviewed_stage,
         "action": (action or {}).get("id"),
         "revision": state["revision"],
         # Keepalive progress: the revision, callback attempts (a refused callback is
@@ -544,7 +547,7 @@ def _grant_refusal(core: Any, raw_argv: Sequence[str], run_dir: Optional[Path]) 
         workspace.require_grants(Path(run_dir).parent)
     except grants.GrantError as exc:
         print(grants.report(exc, shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
-                                             *raw_argv])), file=sys.stderr)
+                                             *raw_argv]), starting=False), file=sys.stderr)
         return grants.EXIT_GRANT_NEEDED
     except workspace.WorkspaceError:
         pass  # binding problems are reported by the verb's own checks

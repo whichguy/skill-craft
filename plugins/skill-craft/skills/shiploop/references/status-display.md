@@ -257,18 +257,22 @@ in their own terminal (never auto-started by the agent). Later packets do not
 repeat it.
 
 The viewer only reads; each run's observer still owns its pages. It answers GET
-and HEAD for the hub (`/`, `/api/runs`, and `/runs/<key>/...`) or single-run
-pages and sibling live-update scripts (`progress-version.js`,
-`progress-content.js`, `trace-content.js`), and nothing else: 405 for any write
-method, 404 for any unknown run or path, 403 for a file that is a symbolic link
-or has a second hard link. It refuses a request whose `Host` is not its own
-address, listens on loopback only, and sets `no-store` and a strict content
-security policy (`connect-src 'self'` on the hub for `/api/runs`, `connect-src
-'none'` on per-run pages). While it runs, any process on this machine can read
-the pages. Primary evidence navigation opens embedded previews, including over
-HTTP; disk paths remain selectable for manual inspection. Progress and trace use
-relative page links, and the saved-report link points at the viewer's own
-`report.html`.
+and HEAD for the hub (`/`, `/api/runs`, `/api/poll`, `/api/runs/<key>/detail`,
+`/api/runs/<key>/artifact`, and `/runs/<key>/...`) or single-run pages and
+sibling live-update scripts (`progress-version.js`, `progress-content.js`,
+`trace-content.js`), and nothing else: 405 for any write method, 404 for any
+unknown run or path, 403 for a file that is a symbolic link or has a second hard
+link. The interactive Hub workspace uses a single sequential poller with a hard
+minimum interval of 2 seconds (`MIN_POLL_MS = 2000`, backing off to 10 seconds
+when hidden) and serves read-only, credential-screened artifact previews on
+demand. It refuses a request whose `Host` is not its own address, listens on
+loopback only, and sets `no-store` and a strict content security policy
+(`connect-src 'self'` on the hub for `/api/runs`, `/api/poll`, and
+`/api/runs/<key>/*`; `connect-src 'none'` on per-run pages). While it runs, any
+process on this machine can read the pages. Primary evidence navigation opens
+embedded previews, including over HTTP; disk paths remain selectable for manual
+inspection. Progress and trace use relative page links, and the saved-report
+link points at the viewer's own `report.html`.
 
 ## Run trace
 

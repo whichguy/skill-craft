@@ -83,12 +83,11 @@ T0 (`verify`) and T1 (`render`) make no model calls. T2 (`live`) informs
 hypotheses and catches stage regressions quickly, but a narrow stage replay
 never substitutes for `promotion/5` end-to-end qualification.
 
-For Codex campaigns, resolve the latest available Sol and Astra families from
-the current official model catalog (currently `gpt-6.2-sol` and `gpt-6.2-astra`),
-using Sol `xhigh` for the subject and fresh Astra `high` sessions for reviewer
-and judge. Leave the improver at the harness default (`max`: Codex Sol `max`, or
-Claude Sonnet `max` via `--improver-host claude`; do not pass `--improver-effort
-medium`).
+For new campaigns, resolve the latest available Sol model for the subject (`--host codex --model "$SOL" --effort xhigh`,
+currently `gpt-6.2-sol`) and leave reviewer, judge and improver at the harness defaults
+(`antigravity / gemini-pro-orchestrator-neon` — Orchestrator Neon + Carbon; pass explicit `--reviewer-*`,
+`--judge-*`, or `--improver-*` flags such as Codex Astra `high`, Codex Sol `max`, or Claude Sonnet `max` with
+`--improver-host claude` without `--improver-effort medium` only when overriding a role).
 
 Run the published build:
 
@@ -113,10 +112,7 @@ new `--output`; each assessment uses its own `assessment_id` and writes
 ```sh
 python3 -B "$SOURCE/test/shiploop_e2e/iterate.py" \
   --case "$CASE" --review-run "$RUN" --output "$ASSESSMENT" \
-  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
-  --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
-  --judge-host codex --judge-model "$ASTRA" --judge-effort high \
-  --improver-host codex --improver-model "$SOL"
+  --host codex --model "$SOL" --effort xhigh --codex-auto-review
 ```
 
 After every run (including failed, blocked, or no-change passes):
@@ -154,9 +150,6 @@ python3 -B "$LEARNING_WORKTREE/test/shiploop_e2e/iterate.py" \
   --qualify --iterations 1 --case "$CASE" --record "$RECORD_ID" \
   --attempts 3 --tolerance 0.25 --parallel 1 \
   --host codex --model "$SOL" --effort xhigh --codex-auto-review \
-  --reviewer-host codex --reviewer-model "$ASTRA" --reviewer-effort high \
-  --judge-host codex --judge-model "$ASTRA" --judge-effort high \
-  --improver-host codex --improver-model "$SOL" \
   --output "$CYCLE"
 ```
 

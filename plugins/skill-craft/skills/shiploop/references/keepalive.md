@@ -10,7 +10,7 @@ optional; runs work without it.
 | Part | What it does |
 |------|--------------|
 | Packet marker | Every packet prints `Keepalive marker: SHIPLOOP-RUN run=<id> rev=<n> dir=<run dir>`. |
-| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `profile`, `action`, `revision`, `progress`, `repo`, `next`, `completion`. `profile` is `planning` or `execution` from the stage table. `completion` describes a valid current completion operation; it is empty outside an active run or when no valid operation can be derived. Exit 2 with an `error` field when the run cannot be read. |
+| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `profile`, `reviewed_stage`, `action`, `revision`, `progress`, `repo`, `next`, `completion`. `profile` is `planning` or `execution` from the stage table (`reviewed_stage` names the stage being reviewed during an active `improve` step). `completion` describes a valid current completion operation; it is empty outside an active run or when no valid operation can be derived. Exit 2 with an `error` field when the run cannot be read. |
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` with required completion pending, refuse the stop and repeat the current action's completion instructions. |
 | `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
@@ -238,23 +238,38 @@ ceiling by default: runs are meant to go on for a long time. It keeps one JSON l
 `${XDG_STATE_HOME:-~/.local/state}/shiploop/keepalive/drive/<run id>/`, never in
 the run directory.
 
-### Optional harness-to-model routing (`shiploop-drive`)
+### Harness-to-model routing (`shiploop-drive`)
 
-By default `shiploop-drive` runs every stage with the host and flags after `--`.
-To use different models or reasoning efforts for **planning** stages (`intake`..`prepare`,
-`step-plan`, `test-spec`, `reflect-and-revise`, `system-test-author`, `product-acceptance`,
-`release-plan`, `handoff`, and `improve`) versus **execution** stages (`validate-existing`,
-`implement`, `test`, `document`, `system-test`, `release-check`, `release`,
-`release-verify`, `operations`), pass either `--routing routing.json` or the
-shorthand `--planning-model` / `--planning-effort` / `--execution-model` /
-`--execution-effort` (plus optional `--review-*` for `improve` and `--*-host` for
-cross-harness runs):
+For `claude`, `codex`, and `antigravity`, `shiploop-drive` applies built-in per-host
+defaults using a **prelude-only** planner boundary by default so multi-stage runs
+maximize prompt cache hits:
+
+- **Default (`planning` → `execution`, 1 switch):** **planning** covers only the
+  prelude stages (`intake`..`prepare` plus prelude `improve` reviews); **execution**
+  covers everything from `step-plan` through `handoff` (including inner-loop steps,
+  `reflect-and-revise`, inner/outer `improve`, and release stages).
+- **Opt-in `--plan-reflect-and-improve`** (or `"plan_reflect_and_improve": true` in
+  `routing.json`, off by default): also routes `reflect-and-revise` and every `improve`
+  stage to `planning` (traded off against extra KV/prompt-cache invalidations).
+
+Pass `--no-routing` or set `--model` / `-m` after `--` to opt out and inherit the host's
+unrouted CLI configuration instead:
+
+| Host | Planning profile | Execution profile | Boundary behavior |
+|------|------------------|-------------------|-------------------|
+| `claude` | `claude-opus-5-5` (`high`) | `claude-sonnet-5-5` (`high`) | Pauses at `prepare -> step-plan` (default 1 switch), starts fresh execution session (warm `--resume` on same-model timeout or `--resume-mode warm`) |
+| `codex` | `gpt-6.2-astra` (`high`) | `gpt-6.2-sol` (`xhigh`) | Pauses at `prepare -> step-plan` (default 1 switch), starts fresh execution session (warm `exec resume` on same-model timeout or `--resume-mode warm`) |
+| `antigravity` | `gemini-pro-orchestrator-neon` | `gemini-pro-orchestrator-neon` | Single unbroken Orchestrator session (Neon plan ↔ internal worker execution) |
+
+To override the built-in defaults, pass `--routing routing.json` (or `--routing default`),
+`--plan-reflect-and-improve`, or the shorthand `--planning-model` / `--planning-effort` /
+`--execution-model` / `--execution-effort` (plus optional `--review-*` for `improve` and
+`--*-host` for cross-harness runs):
 
 ```sh
-scripts/shiploop-drive --host antigravity --run-dir RUN --routing routing.json -- --dangerously-skip-permissions
-scripts/shiploop-drive --host codex --run-dir RUN \
-  --planning-model gpt-6.2-astra --planning-effort high \
-  --execution-model gpt-6.2-sol --execution-effort low -- --dangerously-bypass-approvals-and-sandbox
+scripts/shiploop-drive --host claude --run-dir RUN -- --dangerously-skip-permissions
+scripts/shiploop-drive --host codex --run-dir RUN --plan-reflect-and-improve -- --dangerously-bypass-approvals-and-sandbox
+scripts/shiploop-drive --host codex --run-dir RUN --no-routing -- -m gpt-6.2-sol
 ```
 
 `routing.json` supports both a flat model spec (applies to whichever `--host` is active)
@@ -276,8 +291,11 @@ and a per-harness selector (`antigravity`/`agy`, `codex`, `claude`, `grok`, `cur
 
 When the active driver session finishes a stage whose successor resolves to a different
 target, `shiploop complete` prints a `Profile boundary reached` receipt (withholding the
-next packet) and `shiploop-hook stop` allows the turn to end. `shiploop-drive` then
-warm-resumes that host's session (`--resume` / `codex exec resume`, or starts fresh with
-`--resume-mode fresh` or on a cross-harness switch) using the new target's flags and a
-`next` recovery prompt. Keepalive hooks also passively log observed `(model, effort)`
-transitions to `RUN/trace.jsonl` whenever the host reports them.
+next packet) and `shiploop-hook stop` allows the turn to end. By default (`--resume-mode fresh`),
+`shiploop-drive` starts a fresh session on a model/target switch (avoiding a full
+transcript cold-cache write on the new model while keeping durable `docs/shiploop/` and
+the recovery packet) and still warm-resumes (`--resume` / `codex exec resume`) when
+restarting the same target after a timeout. Pass `--resume-mode warm` (or `"resume": "warm"`
+in `routing.json`) to warm-resume across model switches as well. Keepalive hooks also
+passively log observed `(model, effort)` transitions to `RUN/trace.jsonl` whenever the host
+reports them.

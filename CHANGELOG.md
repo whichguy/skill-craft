@@ -4,6 +4,47 @@ Written by scripts/release.py.
 
 ## 2026-11-25
 
+### skill-craft 4.19.0
+
+- Skills: improve 0.7.5, shiploop 2.20.0, shiploop-e2e-audit 2.2.0
+
+### improve 0.7.5
+
+- Update the ShipLoop Improve route Step 1 (`Receipt`) to run a printed literal continuation command directly instead of shelling out to parse `CHILD/packet.json`.
+
+### shiploop 2.20.0
+
+- Enable built-in per-host planning/execution routing defaults in `shiploop-drive` (Claude: `claude-opus-5-5`/`high` planning and `claude-sonnet-5-5`/`high` execution; Codex: `gpt-6.2-astra`/`high` planning and `gpt-6.2-sol`/`xhigh` execution; Antigravity: `gemini-pro-orchestrator-neon` single-session Orchestrator), with `--no-routing` or explicit `--model`/`-m` after `--` to opt out and `--routing default` to select the built-in preset explicitly.
+- Refine deferred-concerns lifecycle and clarify stage prompt checklists:
+
+  - Stop triggering an extra upfront `step-plan` Improve review on rolling-wave `W2+` items whose plan concerns were set to `"deferred"` (`shiploop_navigator._first_item_review`, replacing the rule from `415f6831b`); allow deferred `step-plan` results to optionally record applicable step-mapped concerns (`shiploop_concerns.check_step_plan`), and surface a non-blocking deferred-concerns reminder checklist in `product-acceptance` and `release-verify` packets (`shiploop_concerns.deferred_items`, `shiploop_navigator._deferred_concerns_lines`).
+  - Document the updated schedule in `skills/shiploop/references/improve-stages.md` and update `_improve_line()` wording for `document` Improve reviews over full diffs before committing steps.
+  - Add concise, language-neutral pre-submit checklist reminders across `test-strategy` (unit/component row for UI/client code), `plan` (canonical `concerns` shapes), `prepare` (summary/TAP reporter), `step-plan` (`absent` expectation for new standalone `proof` scripts and `A<n>` settlement), `test-spec` + `references/testing-and-documentation.md` (preserve intermediate observable state invariants), `test` (mutation scope & `mutant_dispositions`), and `release-check` / `handoff` (`return-plan.md` and open `A<n>` assumptions).
+- Change `shiploop-drive`'s default `--resume-mode` to `fresh`, starting a clean host session on cross-model switches (`prepare -> step-plan`) so the execution model does not pay a full cold cache-write over the prelude transcript while preserving warm `--resume` / `exec resume` for same-target restarts (`--resume-mode warm` remains available to warm-resume across model switches).
+- Upgrade ShipLoop's single-port multi-run Hub (`shiploop view --serve`) into an interactive Google Gemini / Material Design 3 storytelling workspace with session rail switching, prompt/plan/gate/trace/notes/report tabs, on-demand artifact inspection, model telemetry, transition notes, and a strict `>= 2s` single-poller delta endpoint (`/api/poll`).
+- Record HEAD commit and tree in Improve bind snapshots so committed review edits later overwritten back to the bound working tree are still caught as dirty and re-verified, and print the validated literal Improve continuation command directly in inline Improve packets and at the top of Improve handoffs.
+- Preserve per-host warm-`--resume` session IDs across `SessionEnd` hook binding cleanup on Claude, Codex, Grok, and Cursor during routed `shiploop-drive` runs, and read Claude Code's `effort` / `perTurnEffort` field from `assistant` transcript rows in passive `hook=model` telemetry.
+- - Classify `*Test.*` and `*Tests.*` paths as tests in `path-classes.json`, and exclude executed test-command scripts and stylesheet assets (`.css`/`.scss`/`.sass`/`.less`/`.styl`) from mutation `product_files`.
+  - Parse test counts via `shiploop_test_counts.count` and record measured duration in `system-test` `default_suite_drift()` regression rows.
+  - Print the validated, shell-quoted literal Improve continuation command (`next_argv`) in the shared Improve handoff, worker brief, and restart refusal so models run it verbatim without Python JSON extraction glue.
+  - Make `SHIPLOOP-GRANT-NEEDED` report non-start wording on `next`, `complete`, `lint`, and non-start `workspace` subcommands instead of claiming ShipLoop did not start and created nothing.
+- Default `shiploop-drive` model routing to prelude-only planning (`intake`..`prepare` plus prelude `improve` reviews on the planning profile, with a single switch to the execution profile at `step-plan` through `handoff`) to maximize prompt cache hits, and add an opt-in `--plan-reflect-and-improve` flag (and `plan_reflect_and_improve` routing config key, off by default) to also route `reflect-and-revise` and all `improve` stages to the planning profile.
+- Raise ShipLoop's retired Grok-era 16,000/20,000 stdout and packet-head limits (`HEAD_LIMIT`, `HEAD_REQUIRED_END`, `PRINT_LIMIT`, `shiploop_protocol.OUTPUT_LIMIT`, and `shiploop_status_hook.WINDOW`) to 30,000 characters (29,500 for `HEAD_REQUIRED_END`), matching the lowest common ceiling across Claude Code (~30,000-char Bash stdout), Codex, and Antigravity.
+- Polish context rehydration anchors in `RUN/context-index.md` and compact large `Lint coverage:` file lists:
+
+  - Surface active stage `entered` timestamp (when recorded in `timeline.json`), bounded Until Loop receipt status/pass summary, and latest `checks/<action>.md` summary inside `RUN/context-index.md` `## In progress`, without reading host-written `notes/` pass logs.
+  - Keep `Lint coverage:` filenames verbatim up to 5 files per bucket and summarize larger `not linted` / `syntax only` buckets by file count and extension distribution.
+- Add stage entry/pause/active lifecycle timing and passive per-session token usage telemetry:
+
+  - Record `entered`, `paused_since`, `paused_action`, and `paused_seconds` in derived `RUN/timeline.json`, preserving superseded, send-back, and Improve action entries without adding telemetry bloat to `state.md`.
+  - Extend `shiploop_keepalive.py` at the thin host-adapter boundary with fail-open `observed_usage()` extraction for Codex rollout `token_count`, deduplicated Claude Code transcript `message.usage`, and normalized hook `payload["usage"]`, deduplicated in `STOP_MEMORY` and written as `hook=usage` events via `shiploop_trace.record_usage()`.
+  - Compute monotonic per-`(host, session)` token deltas, `active_seconds`/`wall_seconds`/`paused_seconds`/`duration_basis` (`recorded_entry`, `first_packet`, `accept_delta`, `unmeasured`), and stage `(model, effort)` metadata in `shiploop_trace.py` (`build()` and non-locking `telemetry_summary()`), resolving no-packet stages such as `validate-existing` and excluding passive `model`/`usage` hooks from stop-hook counts.
+  - Surface stage active/paused timing, token totals, and model metadata in `shiploop_story.py`, `status_block()` (when traced or requested via `include_telemetry=True`), `shiploop_progress_data.py`, `shiploop_progress_render.py`, and `shiploop_trace_page.py`.
+
+### shiploop-e2e-audit 2.2.0
+
+- Default ShipLoop E2E reviewer, judge, and improver guidance to Antigravity Orchestrator (Neon) (`gemini-pro-orchestrator-neon`) while keeping subject runs on Codex Sol `xhigh` and documenting `agy` read-only sandbox support.
+
 ### skill-craft 4.18.0
 
 - Skills: shiploop 2.19.0

@@ -6,7 +6,8 @@
   "classes": {
     "test": [
       "**/test/**", "**/tests/**", "**/__tests__/**", "**/spec/**",
-      "**/*.test.*", "**/*.spec.*", "**/test_*.py", "**/*_test.py", "**/*_test.go",
+      "**/*.test.*", "**/*.spec.*", "**/*Test.*", "**/*Tests.*",
+      "**/test_*.py", "**/*_test.py", "**/*_test.go",
       "**/conftest.py", "**/jest.config.*", "**/vitest.config.*", "**/pytest.ini"
     ],
     "metadata-nav": [

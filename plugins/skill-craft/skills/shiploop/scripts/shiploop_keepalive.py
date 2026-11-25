@@ -246,6 +246,31 @@ def bindings_for_run(host: str, run_dir: str) -> list[dict]:
     return sorted(found, key=lambda item: item.get("bound_at", 0), reverse=True)
 
 
+def _seen_sessions_path(run_id: str) -> Path:
+    return home() / "drive" / run_id / "seen-sessions.json"
+
+
+def _record_seen_session(run_id: str | None, host: str, session: str) -> None:
+    """Remember ``session`` under ``home()/drive/<run_id>`` when a driver run is active so ``SessionEnd`` cleanup does not erase warm-``--resume`` history."""
+    if not isinstance(run_id, str) or not run_id or not isinstance(session, str) or not session:
+        return
+    path = _seen_sessions_path(run_id)
+    if not path.parent.is_dir():
+        return
+    try:
+        with _locked(path):
+            try:
+                data = _read_json(path)
+            except (OSError, ValueError):
+                data = {}
+            if not isinstance(data, dict):
+                data = {}
+            data[host] = {"session": session, "at": time.time()}
+            _write_json(path, data)
+    except OSError:
+        pass
+
+
 def run_status(run_dir: str) -> dict:
     """Ask ShipLoop about a run.  Never raises; an unanswerable run has ``error``."""
     try:
@@ -434,11 +459,16 @@ def observed_model(host: str, payload: Mapping[str, Any]) -> tuple[str | None, s
     if norm == "claude":
         effort = payload.get("effort") if isinstance(payload.get("effort"), str) else None
         model_name = payload.get("model") if isinstance(payload.get("model"), str) else None
-        if not model_name:
+        if not model_name or not effort:
             for row in reversed(_tail_jsonl(payload.get("transcript_path"))):
                 msg = row.get("message")
                 if isinstance(msg, Mapping) and msg.get("role") == "assistant" and isinstance(msg.get("model"), str):
-                    model_name = msg["model"]
+                    if not model_name:
+                        model_name = msg["model"]
+                    if not effort:
+                        raw_eff = row.get("effort") or row.get("perTurnEffort")
+                        if isinstance(raw_eff, str) and raw_eff.strip():
+                            effort = raw_eff
                     break
         return (model_name.strip() if model_name else None), (effort.strip() if effort and effort.strip() else None)
     raw_model = payload.get("model") or payload.get("modelName")
@@ -457,6 +487,8 @@ def _record_observed_model(
     *,
     stage: str | None = None,
     profile: str | None = None,
+    reviewed_stage: str | None = None,
+    run_id: str | None = None,
 ) -> bool:
     """Update ``binding`` and append a trace row when the observed ``(model, effort)`` changes."""
     obs_model, obs_effort = observed_model(host, payload)
@@ -479,14 +511,208 @@ def _record_observed_model(
             if not st.get("error"):
                 stage = st.get("stage")
                 profile = st.get("profile")
+                reviewed_stage = st.get("reviewed_stage")
+                run_id = st.get("run_id")
+        if stage:
+            routed_profile = model_routing.active_profile(
+                stage, run_id or binding.get("run_id"), reviewed_stage=reviewed_stage
+            )
+            if routed_profile is not None:
+                profile = routed_profile
         if profile is None and stage:
             try:
-                profile = stage_spec.stage_profile(stage)
+                profile = stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
             except ValueError:
                 profile = None
         session_hash = hashlib.sha256(session.encode()).hexdigest()[:12]
         trace.record_model(run_dir, host, session_hash, model=obs_model, effort=obs_effort,
                            stage=stage, profile=profile)
+    return True
+
+
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def _extract_codex_usage(path_value: Any) -> dict[str, int] | None:
+    """Latest session-cumulative token_count snapshot from a Codex rollout JSONL; fail open."""
+    for row in reversed(_tail_jsonl(path_value)):
+        if row.get("type") != "event_msg" or not isinstance(row.get("payload"), Mapping):
+            continue
+        pl = row["payload"]
+        if pl.get("type") != "token_count" or not isinstance(pl.get("info"), Mapping):
+            continue
+        info = pl["info"]
+        tot = info.get("total_token_usage")
+        if not isinstance(tot, Mapping):
+            continue
+        usage: dict[str, int] = {}
+        for src, dst in (
+            ("input_tokens", "input"),
+            ("cached_input_tokens", "cached_input"),
+            ("cache_write_input_tokens", "cache_write"),
+            ("output_tokens", "output"),
+            ("reasoning_output_tokens", "reasoning_output"),
+            ("total_tokens", "total"),
+        ):
+            val = _int_or_none(tot.get(src))
+            if val is not None:
+                usage[dst] = val
+        last = info.get("last_token_usage") if isinstance(info.get("last_token_usage"), Mapping) else {}
+        ctx = _int_or_none(last.get("total_tokens"))
+        if ctx is None:
+            ctx = _int_or_none(last.get("input_tokens"))
+        if ctx is not None:
+            usage["context_tokens"] = ctx
+        if any(v > 0 for v in usage.values()):
+            return usage
+    return None
+
+
+def _extract_claude_usage(path_value: Any, max_bytes: int = 8 * 1024 * 1024) -> dict[str, int] | None:
+    """Deduplicated cumulative assistant message.usage totals from a Claude Code JSONL; fail open."""
+    if not isinstance(path_value, str) or not path_value:
+        return None
+    path = Path(path_value)
+    if not path.is_file():
+        return None
+    try:
+        size = path.stat().st_size
+        if size <= 0 or size > max_bytes:
+            return None
+        by_msg: dict[str, tuple[int, int, int, int]] = {}
+        order = 0
+        last_ctx: int | None = None
+        with path.open("r", encoding="utf-8", errors="ignore") as handle:
+            for raw_line in handle:
+                line = raw_line.strip()
+                if not line.startswith("{"):
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                msg = row.get("message")
+                if not isinstance(msg, Mapping) or msg.get("role") != "assistant":
+                    continue
+                raw_usage = msg.get("usage")
+                if not isinstance(raw_usage, Mapping):
+                    continue
+                inp = _int_or_none(raw_usage.get("input_tokens")) or 0
+                cache_read = _int_or_none(raw_usage.get("cache_read_input_tokens")) or 0
+                cache_create = _int_or_none(raw_usage.get("cache_creation_input_tokens")) or 0
+                out = _int_or_none(raw_usage.get("output_tokens")) or 0
+                if inp + cache_read + cache_create + out <= 0:
+                    continue
+                msg_id = msg.get("id") if isinstance(msg.get("id"), str) and msg.get("id") else (
+                    row.get("uuid") if isinstance(row.get("uuid"), str) and row.get("uuid") else f"row:{order}"
+                )
+                order += 1
+                by_msg[msg_id] = (inp, cache_read, cache_create, out)
+                last_ctx = inp + cache_read + cache_create
+    except OSError:
+        return None
+    if not by_msg:
+        return None
+    inp_sum = sum(v[0] for v in by_msg.values())
+    cached_sum = sum(v[1] for v in by_msg.values())
+    write_sum = sum(v[2] for v in by_msg.values())
+    out_sum = sum(v[3] for v in by_msg.values())
+    usage: dict[str, int] = {
+        "input": inp_sum,
+        "cached_input": cached_sum,
+        "cache_write": write_sum,
+        "output": out_sum,
+        "total": inp_sum + cached_sum + write_sum + out_sum,
+        "turns": len(by_msg),
+    }
+    if last_ctx is not None and last_ctx > 0:
+        usage["context_tokens"] = last_ctx
+    return usage
+
+
+def observed_usage(host: str, payload: Mapping[str, Any]) -> tuple[dict[str, int], str] | None:
+    """Extract normalized ``(usage, basis)`` from a hook payload or host transcript; fail open."""
+    if not isinstance(payload, Mapping):
+        return None
+    raw_usage = payload.get("usage")
+    if isinstance(raw_usage, Mapping):
+        mapped: dict[str, int] = {}
+        for src, dst in (
+            ("input", "input"), ("input_tokens", "input"), ("prompt_tokens", "input"),
+            ("cached_input", "cached_input"), ("cached_input_tokens", "cached_input"), ("cache_read_input_tokens", "cached_input"),
+            ("cache_write", "cache_write"), ("cache_write_input_tokens", "cache_write"), ("cache_creation_input_tokens", "cache_write"),
+            ("output", "output"), ("output_tokens", "output"), ("completion_tokens", "output"),
+            ("reasoning_output", "reasoning_output"), ("reasoning_output_tokens", "reasoning_output"),
+            ("total", "total"), ("total_tokens", "total"),
+            ("context_tokens", "context_tokens"), ("turns", "turns"),
+        ):
+            val = _int_or_none(raw_usage.get(src))
+            if val is not None and dst not in mapped:
+                mapped[dst] = val
+        if any(v > 0 for v in mapped.values()):
+            basis = str(payload.get("usage_basis") or raw_usage.get("basis") or "session_cumulative")
+            if basis not in ("session_cumulative", "delta"):
+                basis = "session_cumulative"
+            return mapped, basis
+    transcript = payload.get("transcript_path")
+    if not isinstance(transcript, str) or not transcript:
+        return None
+    norm = model_routing.normalize_host(host)
+    if norm == "codex":
+        codex_usage = _extract_codex_usage(transcript)
+        return (codex_usage, "session_cumulative") if codex_usage else None
+    if norm == "claude":
+        claude_usage = _extract_claude_usage(transcript)
+        return (claude_usage, "session_cumulative") if claude_usage else None
+    # Unknown/other hosts with transcripts may use either format; try Codex tail then Claude lines fail-open.
+    found = _extract_codex_usage(transcript) or _extract_claude_usage(transcript)
+    return (found, "session_cumulative") if found else None
+
+
+def _record_observed_usage(
+    host: str,
+    session: str,
+    binding: dict[str, Any],
+    payload: Mapping[str, Any],
+    *,
+    action: str | None = None,
+    stage: str | None = None,
+    item: str | None = None,
+) -> bool:
+    """Update ``binding`` and append a trace usage row when cumulative usage changed; fail open."""
+    try:
+        extracted = observed_usage(host, payload)
+    except Exception:  # noqa: BLE001
+        return False
+    if extracted is None:
+        return False
+    usage, basis = extracted
+    sig = [usage.get("total"), usage.get("output"), usage.get("turns"), usage.get("context_tokens")]
+    if basis != "delta" and binding.get("observed_usage") == sig:
+        return False
+    binding["observed_usage"] = sig
+    run_dir = binding.get("run_dir")
+    if not isinstance(run_dir, str) or not run_dir:
+        return False
+    try:
+        session_hash = hashlib.sha256(session.encode()).hexdigest()[:12]
+        trace.record_usage(
+            run_dir,
+            host,
+            session_hash,
+            usage=usage,
+            action=action,
+            stage=stage,
+            item=item,
+            model=binding.get("observed_model"),
+            effort=binding.get("observed_effort"),
+            basis=basis,
+        )
+    except Exception:  # noqa: BLE001
+        return False
     return True
 
 
@@ -516,11 +742,16 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     if marker is None:
         existing = load_binding(host, session)
         if existing is not None:
+            _record_seen_session(existing.get("run_id"), host, session)
             path = _binding_path(host, session)
             with _locked(path):
                 current = load_binding(host, session)
-                if current is not None and _record_observed_model(host, session, current, payload):
-                    _write_json(path, current)
+                if current is not None:
+                    changed_model = _record_observed_model(host, session, current, payload)
+                    changed_usage = _record_observed_usage(host, session, current, payload,
+                                                            action=current.get("observed_action"))
+                    if changed_model or changed_usage:
+                        _write_json(path, current)
             owner = _load_owner(existing["run_dir"])
             if owner.get("owner") == _owner_id(host, session):
                 claim_owner(existing["run_dir"], host, session)
@@ -545,9 +776,21 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             # Binding the same run again keeps the stop memory: running `next` is not progress, and a turn's
             # continuation count is the host's, not this command's.
             binding.update({key: previous[key] for key in STOP_MEMORY if key in previous})
-        _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
-                               profile=status.get("profile"))
+        _record_observed_model(
+            host, session, binding, payload,
+            stage=status.get("stage"), profile=status.get("profile"),
+            reviewed_stage=status.get("reviewed_stage"), run_id=status.get("run_id"),
+        )
+        prev_action = previous.get("observed_action") if previous.get("run_id") == status["run_id"] else None
+        cur_action = status.get("action")
+        usage_action = (prev_action if isinstance(prev_action, str) and prev_action and cur_action
+                        and prev_action != cur_action and command and re.search(r"\bcomplete\b", command)
+                        else cur_action)
+        _record_observed_usage(host, session, binding, payload, action=usage_action, stage=status.get("stage"))
+        if isinstance(cur_action, str) and cur_action:
+            binding["observed_action"] = cur_action
         _write_json(path, binding)
+    _record_seen_session(status.get("run_id"), host, session)
     claim_owner(status["run_dir"], host, session)
     try:
         import shiploop_registry as registry
@@ -628,7 +871,8 @@ def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool
 # Hosts that force a turn to end after this many stop-hook continuations.
 CONTINUATION_CAPS = {"grok": 8}
 # What a stop remembers about the last refusal; a re-bind of the same run keeps it (``observe``).
-STOP_MEMORY = ("last_block_progress", "turn_blocks", "observed_model", "observed_effort")
+STOP_MEMORY = ("last_block_progress", "turn_blocks", "observed_model", "observed_effort",
+               "observed_usage", "observed_action")
 # A refused callback counts as progress so the host fixes and resubmits it.  No
 # count of continuations without an accepted result releases the turn (owner
 # 2026-10-24: no run caps); only a host's own cap above ends one.
@@ -718,8 +962,16 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False,
         return {"decision": "allow", "drop": True,
                 "why": f"run cannot be read: {status.get('error', 'run changed')}"}
     if payload is not None:
-        _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
-                               profile=status.get("profile"))
+        _record_observed_model(
+            host, session, binding, payload,
+            stage=status.get("stage"), profile=status.get("profile"),
+            reviewed_stage=status.get("reviewed_stage"), run_id=status.get("run_id"),
+        )
+        _record_observed_usage(host, session, binding, payload,
+                               action=status.get("action") or binding.get("observed_action"),
+                               stage=status.get("stage"))
+        if isinstance(status.get("action"), str) and status["action"]:
+            binding["observed_action"] = status["action"]
     if status["status"] != "active":
         reason = status.get("status_reason")
         waiting = ((" (waiting on an outside service)" if status.get("awaiting") == "service" else " (waiting on the user)")
@@ -731,7 +983,9 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False,
                 "notice": ("ShipLoop keepalive: another session owns this run, so this one is not "
                            "kept going. Continue the run from that session, or close it and run: "
                            + status["next"])}
-    boundary = model_routing.active_boundary(status.get("stage"), status.get("run_id"))
+    boundary = model_routing.active_boundary(
+        status.get("stage"), status.get("run_id"), reviewed_stage=status.get("reviewed_stage")
+    )
     if boundary is not None:
         return {"decision": "allow",
                 "why": f"profile boundary reached ({boundary['from_label']} -> {boundary['to_label']} at {boundary['stage']})"}
@@ -809,6 +1063,7 @@ def session_end(host: str, payload: Mapping[str, Any]) -> dict | None:
             binding = load_binding(bound_host, session)
             path.unlink(missing_ok=True)
         if binding is not None:
+            _record_seen_session(binding.get("run_id"), bound_host, session)
             released = release_owner(binding["run_dir"], bound_host, session)  # only this session's own claim
             return {"run_dir": binding["run_dir"], "host": bound_host, "released": released}
     return None
@@ -1329,15 +1584,34 @@ def _load_sessions(path: Path) -> dict[str, str]:
     return {str(k): str(v) for k, v in data.items() if isinstance(k, str) and isinstance(v, str) and v}
 
 
-def _capture_session(host: str, run_dir: str, wall_started: float, previous: str | None) -> str | None:
+def _capture_session(
+    host: str,
+    run_dir: str,
+    wall_started: float,
+    previous: str | None,
+    *,
+    run_id: str | None = None,
+) -> str | None:
     bound = bindings_for_run(host, run_dir)
-    if not bound:
-        return previous
-    newest = bound[0]
-    if previous and newest.get("session") == previous:
-        return previous
-    if float(newest.get("bound_at") or 0) >= wall_started - 2.0 and isinstance(newest.get("session"), str):
-        return newest["session"]
+    if bound:
+        newest = bound[0]
+        if previous and newest.get("session") == previous:
+            return previous
+        if float(newest.get("bound_at") or 0) >= wall_started - 2.0 and isinstance(newest.get("session"), str):
+            return newest["session"]
+    if isinstance(run_id, str) and run_id:
+        try:
+            seen = _read_json(_seen_sessions_path(run_id))
+        except (OSError, ValueError):
+            seen = {}
+        entry = seen.get(host) if isinstance(seen, Mapping) else None
+        if (
+            isinstance(entry, Mapping)
+            and isinstance(entry.get("session"), str)
+            and entry["session"]
+            and float(entry.get("at") or 0) >= wall_started - 2.0
+        ):
+            return entry["session"]
     return previous
 
 
@@ -1358,6 +1632,8 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
     if routing is not None:
         _write_json(routing_file, routing)
         sessions = _load_sessions(sessions_file)
+        if isinstance(sessions.get("_last_target"), str):
+            last_target_key = sessions["_last_target"]
     while deadline is None or clock() < deadline:
         number += 1
         before = run_status(run_dir)
@@ -1367,11 +1643,17 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
         if before["status"] != "active":
             out(f"shiploop-drive: run is {before['status']} after {number - 1} session(s).")
             return EXIT_DONE if before["status"] == "done" else EXIT_NEEDS_USER
-        target = model_routing.resolve(routing, before.get("stage"), host) if routing is not None else None
+        target = (
+            model_routing.resolve(routing, before.get("stage"), host, reviewed_stage=before.get("reviewed_stage"))
+            if routing is not None
+            else None
+        )
         active_host = target.host if target is not None else host
         session = None
         if target is not None:
-            if target.resume == "warm":
+            same_target = last_target_key is not None and last_target_key == target.target_key
+            should_resume = (target.resume == "warm") or same_target
+            if should_resume:
                 session = sessions.get(active_host)
                 if not session and active_host in RESUMING_HOSTS:
                     bound = bindings_for_run(active_host, run_dir)
@@ -1417,13 +1699,15 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
         except OSError as exc:
             out(f"shiploop-drive: cannot start {argv[0]}: {exc}")
             return EXIT_NEEDS_USER
-        if target is not None and target.resume == "warm":
-            captured = _capture_session(active_host, run_dir, wall_started, session)
+        if target is not None:
+            captured = _capture_session(
+                active_host, run_dir, wall_started, session, run_id=str(before.get("run_id") or "")
+            )
             if captured:
                 sessions[active_host] = captured
-                _write_json(sessions_file, sessions)
-        if target is not None:
             last_target_key = target.target_key
+            sessions["_last_target"] = last_target_key
+            _write_json(sessions_file, sessions)
         # The session is over however it ended; let the next one own the run.
         release_owner(run_dir)
         session_log = logs / f"session-{number}.log"
@@ -1522,7 +1806,13 @@ def drive_main(argv: list[str] | None = None) -> int:
                         help="optional wall-clock ceiling for the whole drive; none unless given")
     parser.add_argument("--session-timeout", type=_positive_int, default=3600, help="seconds per host session")
     parser.add_argument("--cwd", help="directory to run the host in (default: the run's repository)")
-    parser.add_argument("--routing", help="optional JSON file or inline JSON mapping planning/execution profiles to models")
+    parser.add_argument("--routing",
+                        help="optional JSON file, inline JSON, or 'default' preset mapping planning/execution profiles to models")
+    parser.add_argument("--no-routing", action="store_true",
+                        help="disable built-in per-host default routing and inherit host/CLI flags after --")
+    parser.add_argument("--plan-reflect-and-improve", action="store_true",
+                        help="also route reflect-and-revise and all improve stages to the planning profile "
+                             "(off by default to maximize prompt cache hits)")
     parser.add_argument("--planning-model", help="optional model for planning stages")
     parser.add_argument("--planning-effort", help="optional reasoning effort for planning stages")
     parser.add_argument("--planning-host", choices=(*HOSTS, "agy"), help="optional host override for planning stages")
@@ -1533,7 +1823,7 @@ def drive_main(argv: list[str] | None = None) -> int:
     parser.add_argument("--review-effort", help="optional reasoning effort override for improve stages")
     parser.add_argument("--review-host", choices=(*HOSTS, "agy"), help="optional host override for improve stages")
     parser.add_argument("--resume-mode", choices=model_routing.RESUME_MODES,
-                        help="with routing enabled: warm (default, --resume same host thread) or fresh session per switch")
+                        help="with routing enabled: fresh (default, fresh session on model switch, warm on same-target restart) or warm (--resume across model switches)")
     raw = list(sys.argv[1:] if argv is None else argv)
     extra: list[str] = []
     if "--" in raw:
@@ -1554,20 +1844,22 @@ def drive_main(argv: list[str] | None = None) -> int:
     )
     if args.routing and cli_routing is not None:
         parser.error("pass either --routing or --planning-*/--execution-* flags, not both")
+    if args.no_routing and (args.routing or cli_routing is not None or args.plan_reflect_and_improve):
+        parser.error("pass --no-routing without --routing, --plan-reflect-and-improve, or --planning-*/--execution-* flags")
     try:
-        routing = model_routing.load_config(args.routing) if args.routing else cli_routing
+        explicit_routing = model_routing.load_config(args.routing) if args.routing else cli_routing
     except (OSError, ValueError) as exc:
         parser.error(f"invalid routing configuration: {exc}")
     host = args.host
     if not host:
-        if routing and args.planning_host and args.execution_host:
+        if explicit_routing and args.planning_host and args.execution_host:
             host = args.planning_host
-        elif routing:
+        elif explicit_routing:
             # Allow omitting --host when both planning and execution resolve to explicit hosts.
-            p_res = model_routing.resolve(routing, "plan", "claude")
-            e_res = model_routing.resolve(routing, "implement", "claude")
-            p_bucket = routing.get("planning")
-            e_bucket = routing.get("execution")
+            p_res = model_routing.resolve(explicit_routing, "plan", "claude")
+            e_res = model_routing.resolve(explicit_routing, "implement", "claude")
+            p_bucket = explicit_routing.get("planning")
+            e_bucket = explicit_routing.get("execution")
             if (isinstance(p_bucket, Mapping) and p_bucket.get("host")
                     and isinstance(e_bucket, Mapping) and e_bucket.get("host")
                     and p_res is not None and e_res is not None):
@@ -1576,6 +1868,16 @@ def drive_main(argv: list[str] | None = None) -> int:
                 parser.error("--host is required unless routing specifies explicit hosts for both planning and execution")
         else:
             parser.error("--host is required")
+    if explicit_routing is not None:
+        routing = explicit_routing
+    elif args.no_routing or model_routing.extra_sets_model(extra):
+        routing = None
+    else:
+        routing = model_routing.default_routing(host)
+    if args.plan_reflect_and_improve:
+        if routing is None:
+            parser.error("--plan-reflect-and-improve requires routing to be enabled")
+        routing = {**routing, "plan_reflect_and_improve": True}
     return drive(host, str(Path(args.run_dir).expanduser().resolve()),
                  max_minutes=args.max_minutes, session_timeout=args.session_timeout,
                  extra=extra, cwd=args.cwd, routing=routing)

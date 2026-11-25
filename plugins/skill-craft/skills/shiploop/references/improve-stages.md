@@ -24,6 +24,10 @@ Three kinds of result start an Improve stage:
   (for the first work item and an item that was sent back), `system-test-author`
   and `release-plan`; `test-spec` is not reviewed in either mode; with `none`, only
   `system-test-author` and `release-plan` (see [Planning review option](run-options.md#planning-review-option)).
+  Even under `planning_review: stage`, rolling-wave `"deferred"` concerns on later
+  items (`W2+`) do not start an extra `step-plan` Improve review; those items
+  are reviewed per step at `document` and surfaced as a non-blocking checklist at
+  `product-acceptance` and `release-verify`.
   These stages write the
   contracts that later work is built on, where a sentence, example or expected
   result can look done and still be wrong. Their Improve handoffs carry a

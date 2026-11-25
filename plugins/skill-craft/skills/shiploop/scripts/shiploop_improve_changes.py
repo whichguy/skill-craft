@@ -47,6 +47,19 @@ def bind_result_path(action: str) -> str:
     return "improve/" + action + "-bind-result.json"
 
 
+_EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+
+def _git_head(top: Path) -> Tuple[str, str]:
+    """Return ``(HEAD commit, HEAD^{tree})`` for ``top``, falling back cleanly on an unborn branch."""
+    commit = lint._git(top, "rev-parse", "--verify", "-q", "HEAD")
+    tree = lint._git(top, "rev-parse", "--verify", "-q", "HEAD^{tree}")
+    return (
+        commit.stdout.decode("ascii", "replace").strip() if commit.returncode == 0 else "",
+        tree.stdout.decode("ascii", "replace").strip() if tree.returncode == 0 else _EMPTY_TREE,
+    )
+
+
 def _snapshot(run_dir: Path, repo: Path) -> Optional[Dict[str, str]]:
     top = lint.git_toplevel(repo)
     if top is None:
@@ -60,7 +73,8 @@ def _snapshot(run_dir: Path, repo: Path) -> Optional[Dict[str, str]]:
     finally:
         if index.exists():
             index.unlink()
-    return {"toplevel": str(top), "prefix": prefix, "tree": tree}
+    head, head_tree = _git_head(top)
+    return {"toplevel": str(top), "prefix": prefix, "tree": tree, "head": head, "head_tree": head_tree}
 
 
 def snapshot_tree(run_dir: Path, repo: Path) -> str:
@@ -167,10 +181,15 @@ def review_changes(run_dir: Path, repo: Path, action: str) -> Optional[Tuple[Lis
         return None
     top = Path(now["toplevel"])
     try:
-        changed = [path for path in _diff(top, str(bound["tree"]), now["tree"]) if not lint._runtime_path(path)]
-        head = lint._git(top, "rev-parse", "--verify", "-q", "HEAD^{tree}")
-        head_tree = head.stdout.decode("ascii", "replace").strip() if head.returncode == 0 else \
-            "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+        worktree_changed = {path for path in _diff(top, str(bound["tree"]), now["tree"]) if not lint._runtime_path(path)}
+        _head, head_tree = _git_head(top)
+        bound_head_tree = bound.get("head_tree")
+        head_changed = (
+            {path for path in _diff(top, bound_head_tree, head_tree) if not lint._runtime_path(path)}
+            if isinstance(bound_head_tree, str) and bound_head_tree
+            else set()
+        )
+        changed = sorted(worktree_changed | head_changed)
         dirty = set(_diff(top, head_tree, now["tree"]))
     except lint.LintError:
         return None

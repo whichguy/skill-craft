@@ -21,6 +21,7 @@ stage's other durable products, as "Results this stage builds on"
 
 from __future__ import annotations
 
+import json
 import shlex
 from pathlib import Path
 from typing import Any, Mapping
@@ -164,7 +165,13 @@ def _item_status(state: Mapping[str, Any], index: int, item_id: str) -> str:
     return "done" if index < state.get("work_index", 0) else "queued"
 
 
-def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
+def render(
+    state: Mapping[str, Any],
+    root: Path,
+    stage: str,
+    *,
+    timeline: Mapping[str, Any] | None = None,
+) -> str:
     """Return the index text for one saved state."""
     root = Path(root)
     current = planning_revision.current_actions(state)
@@ -178,7 +185,7 @@ def render(state: Mapping[str, Any], root: Path, stage: str) -> str:
         f"- Run: {state['run_id']} ({state['status']}); run directory {root}",
         f"- Repository: {state['repo']}",
         *map_lines(state, root, stage),
-        *_in_progress_lines(state, root),
+        *_in_progress_lines(state, root, timeline=timeline),
         "## Request",
         "",
         str(state.get("prompt", "")).strip() or "(empty)",
@@ -241,19 +248,92 @@ PASS_LOG_RULE = ("optional, never a completion gate: create it and append what e
                  "after a reset, open it first if it exists")
 
 
-def _in_progress_lines(state: Mapping[str, Any], root: Path) -> list[str]:
+def _safe_text(path: Path, limit: int = 65536) -> str | None:
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > limit:
+            return None
+        return path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+
+
+def _loop_receipt_note(root: Path, action_id: str) -> str:
+    raw = _safe_text(root / "loops" / f"{action_id}-terminal.json")
+    if not raw:
+        return ""
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return ""
+    if not isinstance(data, Mapping):
+        return ""
+    parts: list[str] = []
+    status = data.get("status")
+    if isinstance(status, str) and status:
+        parts.append(f"status={status}")
+    progress = data.get("progress") if isinstance(data.get("progress"), Mapping) else {}
+    num = progress.get("action_number", data.get("action_number"))
+    if isinstance(num, int) and not isinstance(num, bool):
+        parts.append(f"pass={num}")
+    return f" [{', '.join(parts)}]" if parts else ""
+
+
+def _latest_check_line(root: Path, action_id: str) -> str | None:
+    check_path = root / "checks" / f"{action_id}.md"
+    raw = _safe_text(check_path)
+    if not raw:
+        return None
+    for line in raw.splitlines():
+        clean = " ".join(line.split())
+        if not clean or clean.startswith("#") or clean.startswith("```"):
+            continue
+        return f"- Latest check ({check_path}): {_excerpt(clean)}"
+    return None
+
+
+def _load_timeline_entered(root: Path, action_id: str) -> str | None:
+    raw = _safe_text(root / "timeline.json")
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(data, Mapping):
+        return None
+    entered = data.get("entered")
+    if not isinstance(entered, Mapping):
+        return None
+    stamp = entered.get(action_id)
+    return stamp if isinstance(stamp, str) and stamp else None
+
+
+def _in_progress_lines(
+    state: Mapping[str, Any],
+    root: Path,
+    *,
+    timeline: Mapping[str, Any] | None = None,
+) -> list[str]:
     """What a fresh context needs to resume the current action mid-stage."""
     action = _current_action(state)
     if action is None or state.get("status") not in ("active", "paused", "blocked"):
         return []
     stage, action_id = action["stage"], action["id"]
     row = stage_spec.stage(stage)
+    entered_at = (timeline.get("entered", {}).get(action_id)
+                  if isinstance(timeline, Mapping) and isinstance(timeline.get("entered"), Mapping)
+                  else _load_timeline_entered(root, action_id) if timeline is None
+                  else None)
+    entered_note = f"; entered {entered_at}" if isinstance(entered_at, str) and entered_at else ""
     lines = ["## In progress", "",
-             f"- Action {action_id} ({stage}); result file {root / 'inbox' / (action_id + '.md')}",
+             f"- Action {action_id} ({stage}){entered_note}; result file {root / 'inbox' / (action_id + '.md')}",
              f"- Pass log ({PASS_LOG_RULE}): {pass_log_path(root, action_id)}"]
     if "loop-terminal" in row.complete_runs:  # every inner stage: its Until Loop receipt (shiploop_loops.receipt_path)
-        lines.append(f"- Loop receipt (the runtime rewrites it at every step, the final state last): "
+        lines.append(f"- Loop receipt (the runtime rewrites it at every step, the final state last){_loop_receipt_note(root, action_id)}: "
                      f"{root / 'loops' / (action_id + '-terminal.json')}")
+    latest_check = _latest_check_line(root, action_id)
+    if latest_check:
+        lines.append(latest_check)
     runs = sorted(root.glob(f"tests/{action_id}-verify*.md"))
     if runs:
         lines.append(f"- ShipLoop test runs for this action: {len(runs)}, latest {runs[-1]}")

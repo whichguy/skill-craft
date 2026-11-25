@@ -214,10 +214,32 @@ def _scan_run_parent(parent: Path) -> list[Path]:
     return found
 
 
+def default_cwd_roots() -> tuple[Path, ...]:
+    """Return existing non-symlink ``.shiploop-runs`` directories near ``cwd`` unless ``SHIPLOOP_STATE_HOME`` isolates discovery."""
+    if os.environ.get("SHIPLOOP_STATE_HOME"):
+        return ()
+    found: list[Path] = []
+    try:
+        cwd = Path.cwd().resolve()
+    except OSError:
+        return ()
+    for base in (cwd, cwd.parent):
+        candidate = base / ".shiploop-runs"
+        try:
+            if candidate.is_dir() and not candidate.is_symlink():
+                resolved = Path(os.path.abspath(os.fspath(candidate)))
+                if resolved not in found:
+                    found.append(resolved)
+        except OSError:
+            continue
+    return tuple(found)
+
+
 def discover_runs(
     *,
     extra_roots: Sequence[Path | str] = (),
     include_keepalive: bool = True,
+    state_cache: dict[str, tuple[int, int, Mapping[str, Any]]] | None = None,
 ) -> list[dict[str, Any]]:
     """Discover ShipLoop runs across the registry, keepalive records, and run-root scans.
 
@@ -227,7 +249,16 @@ def discover_runs(
     candidates: dict[str, dict[str, Any]] = {}
     learned_parents: set[Path] = set()
 
-    def add_candidate(run_dir: Path, *, host: str = "", registered_at: str = "", updated_at: str = "") -> None:
+    def add_candidate(
+        run_dir: Path,
+        *,
+        host: str = "",
+        registered_at: str = "",
+        updated_at: str = "",
+        model: str = "",
+        effort: str = "",
+        model_at: str = "",
+    ) -> None:
         try:
             if run_dir.is_symlink():
                 return
@@ -241,6 +272,9 @@ def discover_runs(
             "registered_at": "",
             "updated_at": "",
             "keepalive": None,
+            "model": "",
+            "effort": "",
+            "model_at": "",
         })
         if host and not row["host"]:
             row["host"] = host
@@ -248,6 +282,10 @@ def discover_runs(
             row["registered_at"] = registered_at
         if updated_at and updated_at > row["updated_at"]:
             row["updated_at"] = updated_at
+        if model and (not row["model"] or (model_at and model_at >= row["model_at"])):
+            row["model"] = model
+            row["effort"] = effort
+            row["model_at"] = model_at
         if resolved.name == "run" and resolved.parent.parent.name == ".shiploop-runs":
             learned_parents.add(resolved.parent.parent)
 
@@ -291,7 +329,13 @@ def discover_runs(
                     binding = _read_json_file(path)
                     if not binding or not isinstance(binding.get("run_dir"), str):
                         continue
-                    add_candidate(Path(binding["run_dir"]), host=str(binding.get("host") or ""))
+                    add_candidate(
+                        Path(binding["run_dir"]),
+                        host=str(binding.get("host") or ""),
+                        model=str(binding.get("observed_model") or "").strip(),
+                        effort=str(binding.get("observed_effort") or "").strip(),
+                        model_at=str(binding.get("updated_at") or binding.get("observed_at") or ""),
+                    )
             except OSError:
                 pass
 
@@ -315,17 +359,45 @@ def discover_runs(
 
     results: list[dict[str, Any]] = []
     used_keys: set[str] = set()
+    seen_dirs: set[str] = set()
     for run_dir_str, meta in sorted(candidates.items()):
+        seen_dirs.add(run_dir_str)
         run_path = Path(run_dir_str)
         if run_path.is_symlink() or not run_path.is_dir():
             continue
-        raw = _read_regular_bytes(run_path / "state.md", _MAX_STATE_BYTES)
-        if raw is None:
-            continue
-        try:
-            state = store.loads(raw.decode("utf-8"))
-        except (UnicodeError, store.StorageError, ValueError, RecursionError):
-            continue
+        state_path = run_path / "state.md"
+        state: Mapping[str, Any] | None = None
+        if state_cache is not None:
+            try:
+                info = state_path.lstat()
+            except OSError:
+                continue
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_size > _MAX_STATE_BYTES:
+                continue
+            cached_entry = state_cache.get(run_dir_str)
+            if cached_entry is not None and cached_entry[0] == info.st_mtime_ns and cached_entry[1] == info.st_size:
+                state = cached_entry[2]
+            else:
+                raw = _read_regular_bytes(state_path, _MAX_STATE_BYTES)
+                if raw is None:
+                    continue
+                try:
+                    loaded = store.loads(raw.decode("utf-8"))
+                except (UnicodeError, store.StorageError, ValueError, RecursionError):
+                    continue
+                if isinstance(loaded, Mapping):
+                    state = loaded
+                    state_cache[run_dir_str] = (info.st_mtime_ns, info.st_size, loaded)
+        else:
+            raw = _read_regular_bytes(state_path, _MAX_STATE_BYTES)
+            if raw is None:
+                continue
+            try:
+                loaded = store.loads(raw.decode("utf-8"))
+            except (UnicodeError, store.StorageError, ValueError, RecursionError):
+                continue
+            if isinstance(loaded, Mapping):
+                state = loaded
         if not isinstance(state, Mapping) or not isinstance(state.get("run_id"), str):
             continue
         run_id = state["run_id"]
@@ -355,12 +427,18 @@ def discover_runs(
             "execution_mode": str(state.get("execution_mode") or "navigator"),
             "delegation": str(state.get("delegation") or "inline"),
             "host": meta["host"] or (owner_label.split(":", 1)[0] if ":" in owner_label else ""),
+            "model": meta["model"],
+            "effort": meta["effort"],
             "registered_at": meta["registered_at"],
             "updated_at": meta["updated_at"],
             "keepalive_owner": owner_label,
             "owner_alive": owner_alive,
             "state": state,
         })
+    if state_cache is not None:
+        for stale in list(state_cache):
+            if stale not in seen_dirs:
+                del state_cache[stale]
     return results
 
 

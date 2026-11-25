@@ -15,10 +15,28 @@ HOST_ALIASES = {"agy": "antigravity"}
 KNOWN_HOSTS = ("antigravity", "claude", "codex", "cursor", "grok", "opencode")
 EFFORT_SUFFIXES = ("-low", "-medium", "-high", "-xhigh", "-max")
 RESUME_MODES = ("warm", "fresh")
-DEFAULT_RESUME = "warm"
+DEFAULT_RESUME = "fresh"
 
-_TOP_KEYS = frozenset({"planning", "execution", "review", "stages", "resume"})
+_TOP_KEYS = frozenset({"planning", "execution", "review", "stages", "resume", "plan_reflect_and_improve"})
 _ENTRY_KEYS = frozenset({"host", "model", "effort", "args", "resume"})
+_REFLECT_AND_IMPROVE_STAGES = frozenset({"reflect-and-revise", "improve"})
+
+# Default built-in per-host profiles applied by `shiploop-drive` unless opted out (`--no-routing`,
+# explicit routing config/flags, or an explicit model flag after `--`). Antigravity assigns both
+# planning and execution to `gemini-pro-orchestrator-neon` so Orchestrator runs unbroken in one session
+# while switching Neon (plan) <-> Carbon (execute) internally.
+DEFAULT_ROUTING: dict[str, dict[str, dict[str, str]]] = {
+    "planning": {
+        "claude": {"model": "claude-opus-5-5", "effort": "high"},
+        "codex": {"model": "gpt-6.2-astra", "effort": "high"},
+        "antigravity": {"model": "gemini-pro-orchestrator-neon"},
+    },
+    "execution": {
+        "claude": {"model": "claude-sonnet-5-5", "effort": "high"},
+        "codex": {"model": "gpt-6.2-sol", "effort": "xhigh"},
+        "antigravity": {"model": "gemini-pro-orchestrator-neon"},
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -114,9 +132,11 @@ def _normalize_bucket(raw: Any, *, where: str) -> Any:
 
 
 def load_config(source: str | Path | Mapping[str, Any]) -> dict[str, Any]:
-    """Load and validate a routing configuration from a mapping, JSON path, or JSON text."""
+    """Load and validate a routing configuration from a mapping, JSON path, JSON text, or ``'default'`` preset."""
     if isinstance(source, Mapping):
         data = dict(source)
+    elif isinstance(source, str) and source.strip().lower() == "default":
+        data = dict(DEFAULT_ROUTING)
     else:
         raw_text: str
         if isinstance(source, Path):
@@ -139,6 +159,10 @@ def load_config(source: str | Path | Mapping[str, Any]) -> dict[str, Any]:
         if data["resume"] not in RESUME_MODES:
             raise ValueError(f"routing config resume must be one of {RESUME_MODES}")
         normalized["resume"] = data["resume"]
+    if "plan_reflect_and_improve" in data and data["plan_reflect_and_improve"] is not None:
+        if not isinstance(data["plan_reflect_and_improve"], bool):
+            raise ValueError("routing config plan_reflect_and_improve must be a boolean")
+        normalized["plan_reflect_and_improve"] = data["plan_reflect_and_improve"]
     for bucket_name in ("planning", "execution", "review"):
         if bucket_name in data and data[bucket_name] is not None:
             normalized[bucket_name] = _normalize_bucket(data[bucket_name], where=bucket_name)
@@ -166,6 +190,7 @@ def from_cli_flags(
     review_effort: str | None = None,
     review_host: str | None = None,
     resume_mode: str | None = None,
+    plan_reflect_and_improve: bool = False,
 ) -> dict[str, Any] | None:
     """Build a normalized routing config from CLI shorthand flags, or None when none are set."""
     raw: dict[str, Any] = {}
@@ -187,7 +212,43 @@ def from_cli_flags(
         return None
     if resume_mode:
         raw["resume"] = resume_mode
+    if plan_reflect_and_improve:
+        raw["plan_reflect_and_improve"] = True
     return load_config(raw)
+
+
+def default_routing(host: str | None = None) -> dict[str, Any] | None:
+    """Return the built-in routing config for ``host``, or None if ``host`` has no built-in default."""
+    if host is None:
+        return load_config(DEFAULT_ROUTING)
+    norm = normalize_host(host)
+    if norm in DEFAULT_ROUTING["planning"] or norm in DEFAULT_ROUTING["execution"]:
+        return load_config(DEFAULT_ROUTING)
+    return None
+
+
+def extra_sets_model(extra: list[str] | tuple[str, ...]) -> bool:
+    """True when pass-through CLI arguments after ``--`` explicitly select a model."""
+    expect_config_value = False
+    for arg in extra:
+        if expect_config_value:
+            expect_config_value = False
+            if arg.split("=", 1)[0].strip() == "model":
+                return True
+            continue
+        if arg in ("--model", "-m") or arg.startswith(("--model=", "-m=")):
+            return True
+        if arg in ("-c", "--config"):
+            expect_config_value = True
+            continue
+        if arg.startswith("--config="):
+            value = arg.split("=", 1)[1]
+            if value.split("=", 1)[0].strip() == "model":
+                return True
+        elif arg.startswith("-c") and len(arg) > 2:
+            if arg[2:].split("=", 1)[0].strip() == "model":
+                return True
+    return False
 
 
 def _select_entry(bucket: Any, default_host: str) -> Mapping[str, Any] | None:
@@ -204,16 +265,35 @@ def _select_entry(bucket: Any, default_host: str) -> Mapping[str, Any] | None:
     return None
 
 
+def _effective_profile(
+    stage: str,
+    config: Mapping[str, Any] | None,
+    *,
+    reviewed_stage: str | None = None,
+) -> str | None:
+    profile = stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
+    if (
+        profile is not None
+        and config is not None
+        and config.get("plan_reflect_and_improve") is True
+        and stage in _REFLECT_AND_IMPROVE_STAGES
+    ):
+        return "planning"
+    return profile
+
+
 def resolve(
     config: Mapping[str, Any] | None,
     stage: str | None,
     default_host: str,
+    *,
+    reviewed_stage: str | None = None,
 ) -> RouteTarget | None:
     """Resolve the effective RouteTarget for ``stage`` under ``default_host``."""
     if not stage:
         return None
     norm_host = normalize_host(default_host)
-    profile = stage_spec.stage_profile(stage)
+    profile = _effective_profile(stage, config, reviewed_stage=reviewed_stage)
     if profile is None:
         return None
     default_resume = str((config or {}).get("resume") or DEFAULT_RESUME)
@@ -276,6 +356,8 @@ def active_boundary(
     stage: str | None,
     run_id: str | None,
     env: Mapping[str, str] | None = None,
+    *,
+    reviewed_stage: str | None = None,
 ) -> dict[str, str] | None:
     """Return boundary metadata when an active driver session crossed into a different target."""
     env = os.environ if env is None else env
@@ -289,7 +371,7 @@ def active_boundary(
         return None
     try:
         config = load_config(Path(routing_path))
-        next_target = resolve(config, stage, default_host)
+        next_target = resolve(config, stage, default_host, reviewed_stage=reviewed_stage)
     except (OSError, ValueError, TypeError):
         return None
     if next_target is None or next_target.target_key == assigned_key:
@@ -300,3 +382,29 @@ def active_boundary(
         "stage": stage,
         "profile": next_target.profile,
     }
+
+
+def active_profile(
+    stage: str | None,
+    run_id: str | None = None,
+    env: Mapping[str, str] | None = None,
+    *,
+    reviewed_stage: str | None = None,
+) -> str | None:
+    """Return the effective routing profile for ``stage`` from ``SHIPLOOP_DRIVE_ROUTING`` if active, else stage_spec."""
+    env = os.environ if env is None else env
+    routing_path = env.get("SHIPLOOP_DRIVE_ROUTING", "").strip()
+    default_host = env.get("SHIPLOOP_DRIVE_HOST", "").strip()
+    expected_run_id = env.get("SHIPLOOP_DRIVE_RUN_ID", "").strip()
+    if routing_path and default_host and stage and (not expected_run_id or not run_id or expected_run_id == run_id):
+        try:
+            config = load_config(Path(routing_path))
+            target = resolve(config, stage, default_host, reviewed_stage=reviewed_stage)
+            if target is not None:
+                return target.profile
+        except (OSError, ValueError, TypeError):
+            pass
+    try:
+        return stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
+    except ValueError:
+        return None

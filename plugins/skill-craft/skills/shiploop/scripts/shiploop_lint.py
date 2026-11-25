@@ -2271,10 +2271,27 @@ def _coverage_line(files: Sequence[_File]) -> str:
         kind = ("linted in part" if "linted by" in text else "syntax only, not linted" if text.startswith("syntax")
                 else "not linted")
         groups.setdefault((kind, text), []).append(cquote(item.path))
+    _COVERAGE_LIST_LIMIT = 5
     parts = ([str(linted) + " file" + ("" if linted == 1 else "s") + " linted"
               + (" by " + ", ".join(sorted(tools)) if tools else "")] if linted else [])
     for kind in _COVERAGE_KINDS:
-        entries = [", ".join(paths) + " (" + text + ")" for (group, text), paths in groups.items() if group == kind]
+        entries: list[str] = []
+        for (group, text), paths in groups.items():
+            if group != kind:
+                continue
+            if len(paths) <= _COVERAGE_LIST_LIMIT:
+                entries.append(", ".join(paths) + " (" + text + ")")
+                continue
+            ext_counts: dict[str, int] = {}
+            for p in paths:
+                ext = Path(p).suffix.lower() or "(no ext)"
+                ext_counts[ext] = ext_counts.get(ext, 0) + 1
+            ordered = sorted(ext_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+            ext_parts = [f"{cnt} {ext}" for ext, cnt in ordered[:4]]
+            if len(ordered) > 4:
+                rest = sum(cnt for _, cnt in ordered[4:])
+                ext_parts.append(f"+{rest} other")
+            entries.append(f"{len(paths)} files ({', '.join(ext_parts)}; {text})")
         if entries:
             parts.append(kind + ": " + ", ".join(entries))
     return _redact(_one_line("Lint coverage: " + ("; ".join(parts) if parts else "no changed file to lint") + "."))
