@@ -1013,6 +1013,11 @@ class TestLoopTests(unittest.TestCase):
 
     def test_a_created_skill_must_exist_with_frontmatter_and_repeat_evidence(self):
         self.start()
+        self.drive_to("plan")
+        self.complete(dict(DONE, work_items=[
+            {"id": "W1", "title": "First", "context": "First."},
+            {"id": "W2", "title": "Follow-up", "context": "Follow-up."},
+        ]))
         self.drive_to("reflect-and-revise")
         refused = lambda result, message: self.assert_refused(result, message, loop=True, fill=False)  # noqa: E731
         create = {"decision": "create", "reason": "The same review ran in two steps.", "path": ".claude/skills/review/SKILL.md",
@@ -1024,8 +1029,8 @@ class TestLoopTests(unittest.TestCase):
         refused(dict(DONE, skill=dict(create, evidence=[])), "a create skill decision lists its repeat evidence")
         refused(dict(DONE, skill=dict(create, path="README.md")), "names a SKILL.md that does not exist")
         before = git(self.repo, "rev-parse", "HEAD").strip()
-        # A follow-up item keeps this reflect-and-revise from being the last item's, so no end review runs first.
-        output = self.complete(dict(DONE, skill=create, work_items=[{"id": "W2", "title": "Follow-up"}]))
+        # W2 already pending and unchanged (alongside spec.md), so no mid-run or end Improve runs first.
+        output = self.complete(dict(DONE, skill=create))
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
         # ShipLoop commits the created skill; the model commits nothing.
         head = git(self.repo, "rev-parse", "HEAD").strip()
