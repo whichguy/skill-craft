@@ -714,11 +714,50 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         advances directly.
         """
         if stage == "step-plan" and outcome == "done":
-            # Rule first-item (2026-10-19): reviewed for the first work item, or for an item that was sent back.
+            # Rule first-item (2026-10-19) plus deferred concerns and post-plan corrective items: reviewed for the first
+            # work item, an item reopened via send-back or document replan_remaining, an item with deferred plan
+            # concerns, or any corrective item added after plan.
             state = self._state(run)
             item = state["work_items"][state["work_index"]]["id"]
-            return item == state["work_items"][0]["id"] or any(
-                row["workitem"] == item and row["outcome"] == "send-back" for row in state["history"])
+            if item == state["work_items"][0]["id"]:
+                return True
+            accepted = state.get("accepted") or {}
+            earlier = state["history"]
+            if any(
+                row.get("workitem") == item and (
+                    row.get("outcome") == "send-back"
+                    or (row.get("stage") == "document" and row.get("outcome") == "done"
+                        and isinstance(accepted.get(row.get("action")), dict)
+                        and bool(accepted[row["action"]].get("replan_remaining")))
+                )
+                for row in earlier
+            ):
+                return True
+            plan_row = next(
+                (row for row in reversed(earlier) if row.get("stage") == "plan" and row.get("outcome") == "done"),
+                None,
+            )
+            plan_res = accepted.get(plan_row.get("action")) if isinstance(plan_row, dict) else None
+            if isinstance(plan_res, dict):
+                concerns = plan_res.get("concerns")
+                if isinstance(concerns, dict) and concerns.get(item) == "deferred":
+                    return True
+                planned_items = plan_res.get("work_items")
+                if isinstance(planned_items, list) and planned_items:
+                    planned_ids = {r.get("id") for r in planned_items if isinstance(r, dict) and r.get("id")}
+                    if planned_ids and item not in planned_ids:
+                        return True
+            for row in earlier:
+                if row.get("outcome") == "add-work" or (
+                    row.get("stage") == "reflect-and-revise" and row.get("outcome") == "done"
+                ):
+                    res = accepted.get(row.get("action"))
+                    added = res.get("work_items") if isinstance(res, dict) else None
+                    if isinstance(added, list) and any(
+                        isinstance(r, dict) and r.get("id") == item for r in added
+                    ):
+                        return True
+            return False
         if stage in CHECKPOINT_STAGES:
             return True
         if stage != "reflect-and-revise" or outcome != "done":
@@ -1008,8 +1047,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         shutil.copytree(run_copy, run)
         shutil.copytree(child_copy, repo / ".shiploop-improve")
 
-    def _return_final_workspace(self, workspace: Path, source: Path, context: dict, _receipt: Path) -> None:
-        self._run(self._script(context["shiploop"]), "workspace", "plan-return", "--workspace-root", workspace)
+    def _plan_return_workspace(self, workspace: Path, shiploop: Path) -> None:
+        self._run(self._script(shiploop), "workspace", "plan-return", "--workspace-root", workspace)
         plan_path = workspace / "return-plan.md"
         plan = _read_record(plan_path)
         self.assertTrue(plan["paths"])
@@ -1023,8 +1062,12 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             else:
                 row["disposition"] = "keep"
         _write_record(plan_path, plan, "ShipLoop workspace return plan")
-        self._run(self._script(context["shiploop"]), "workspace", "return", "--workspace-root", workspace)
-        self.assertEqual((source / "delivered.txt").read_text(encoding="utf-8"), "returned candidate\n")
+
+    def _execute_return_workspace(
+        self, workspace: Path, source: Path, shiploop: Path, *, expected_delivered: str = "returned candidate\n",
+    ) -> None:
+        self._run(self._script(shiploop), "workspace", "return", "--workspace-root", workspace)
+        self.assertEqual((source / "delivered.txt").read_text(encoding="utf-8"), expected_delivered)
         self.assertFalse((source / ".shiploop-improve").exists())
 
     def test_full_v3_runtime_composition_and_recovery_variants(self) -> None:
@@ -1066,11 +1109,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
                 payload = {
                     "delivery_assessment": self._delivery_observation(state, "visual-drag"),
                 }
-            if stage == "handoff":
-                # Workspace return is allowed at active release or handoff once
-                # no child is active; handoff never binds one, so return runs
-                # here, while it is still the pending action.
-                self._return_final_workspace(workspace, source, {"shiploop": self.source_shiploop}, None)
+            if stage == "release-check":
+                # Release-check requires a current decided return-plan.md; workspace return runs at release.
+                self._plan_return_workspace(workspace, self.source_shiploop)
+            elif stage == "release":
+                self._execute_return_workspace(workspace, source, self.source_shiploop)
             state, context = self._advance_stage(
                 shiploop=self.source_shiploop, improve=self.source_improve,
                 repo=repo, run=run, stage=stage, payload=payload,
@@ -1248,6 +1291,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._script(self.source_shiploop), "next", "--run-dir", run
         ).stdout
         self.assertNotIn("Delivery replanning required:", recovered_packet)
+        self._plan_return_workspace(workspace, self.source_shiploop)
         state, recovered_check_context = self._advance_stage(
             shiploop=self.source_shiploop, improve=self.source_improve,
             repo=repo, run=run, stage="release-check",

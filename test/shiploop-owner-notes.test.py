@@ -1612,6 +1612,13 @@ class RequirementRouteTests(RouteRun):
         carried = ("The second part. W1's step plan revised R-1: built.txt ends with a line break (KNOWLEDGE/spec.md R-1); "
                    "recheck when the reader changes.")
         head = self.accept(head, self.result(head, work_items=[dict(ITEMS[1], context=carried), dict(ITEMS[2])]))
+        self.assertIn("ShipLoop navigator | improve |", head)
+        state = self.state(run)
+        self.assertIsNotNone(state.get("active_improve"))
+        state = nav.finish_improve(state, state["active_improve"]["action_id"],
+                                   {"summary": "Synthetic receipt; no review claim."})
+        nav.save(run, state)
+        head = self.next(run)
         self.assertIn("ShipLoop navigator | step-plan |", head)
         self.assertIn("Work item context: " + carried, flat(contract.full_packet_text(head)))
         self.assertEqual(self.state(run)["work_items"][2], ITEMS[2])      # W3 is as the plan left it

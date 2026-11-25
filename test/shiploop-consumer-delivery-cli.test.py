@@ -89,6 +89,7 @@ class ConsumerDeliveryCliTests(unittest.TestCase):
     def test_multistage_promotions_contract_accepted_through_cli(self):
         import shiploop_concerns as concerns
         import shiploop_consumer_delivery as consumer_delivery
+        import shiploop_loop_support as loop_support
         import shiploop_navigator as navigator
         improve_card = ROOT / "skills/improve/SKILL.md"
         init_res = self.init("--delivery-contract", "--planning-review", "none", "--improve-skill", str(improve_card))
@@ -99,6 +100,7 @@ class ConsumerDeliveryCliTests(unittest.TestCase):
             state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic prelude (S1)."})
         navigator.save(self.run, state)
         plan_action = navigator.current_action(state)["id"]
+        plan_receipt = loop_support.finish_loop(self.run.resolve(), note="synthetic multi-stage delivery plan")
         no_concerns = {"W1": [{"id": name, "applies": "no", "reason": "Synthetic fixture."} for name in concerns.CONCERN_IDS]}
         plan_result = {
             "outcome": "done",
@@ -140,7 +142,8 @@ class ConsumerDeliveryCliTests(unittest.TestCase):
             },
         }
         inbox = self.run / "inbox" / f"{plan_action}.md"
-        inbox.write_text(store.dumps(plan_result, "CLI plan result"), encoding="utf-8")
+        inbox.write_text(store.dumps(loop_support.with_receipt(plan_result, plan_receipt), "CLI plan result"),
+                         encoding="utf-8")
         done = self.cli("complete", "--run-dir", str(self.run), "--action", plan_action)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         after = store.read_record(self.run / "state.md")

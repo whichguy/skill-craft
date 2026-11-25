@@ -20,6 +20,9 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 import package_build
+import state_home
+
+state_home.isolate()
 
 
 ROOT = Path(__file__).resolve().parents[1]

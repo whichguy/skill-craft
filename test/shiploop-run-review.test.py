@@ -5308,7 +5308,7 @@ class StageCatalogTests(unittest.TestCase):
                            "spec", "plan", "step-plan", "reflect-and-revise", "release-plan")},
                          {"implement": "script-run", "test": "script-run",
                           "intake": "model judgement", "prepare": "model judgement", "document": "script-run",
-                          "release": "model judgement", "spec": "review loop", "plan": "review loop",
+                          "release": "model judgement", "spec": "review loop", "plan": "script-run",
                           "step-plan": "script-run", "reflect-and-revise": "script-run", "release-plan": "review loop"})
         for stage in self.spec.STAGES:
             row = self.spec.STAGE_SPEC[stage]
@@ -5319,10 +5319,10 @@ class StageCatalogTests(unittest.TestCase):
                                                                (("lint-gate",), None), (("lint-gate",), "always"))],
                          ["model judgement", "review loop", "review loop", "review loop", "script-run", "script-run"])
         self.assertEqual({e["exitCheck"] for e in self.catalog}, set(export.EXIT_CHECKS))
-        # Every inner stage has both (its Until Loop's terminal check and, for three of them, an Improve child): the rule
-        # gives script-run, the stronger check.
+        # Every looped stage with an Improve child (`plan`, `step-plan`, `document`, `reflect-and-revise`) has both
+        # its Until Loop's terminal check and an Improve child: the rule gives script-run, the stronger check.
         both = {s for s in self.spec.STAGES if self.spec.STAGE_SPEC[s].complete_runs and self.spec.STAGE_SPEC[s].improve}
-        self.assertEqual(both, {"step-plan", "document", "reflect-and-revise"})   # the step review follows document (T §8)
+        self.assertEqual(both, {"plan", "step-plan", "document", "reflect-and-revise"})   # the step review follows document (T §8)
         self.assertEqual({self.by_name[s]["exitCheck"] for s in both}, {"script-run"})
 
     def test_the_mode_none_case_follows_the_engines_own_reviewed_stages(self):
@@ -5336,11 +5336,11 @@ class StageCatalogTests(unittest.TestCase):
         for mode in self.spec.PLANNING_REVIEW_MODES:
             reviewed = {e["stage"] for e in self.catalog if export.effective_exit_check(e, mode) == "review loop"}
             self.assertEqual(reviewed, (set(self.spec.reviewed_stages(mode)) - scripted) | last_item, mode)
-        for stage in ("spec", "test-strategy", "plan"):
+        for stage in ("spec", "test-strategy"):
             self.assertEqual([export.effective_exit_check(self.by_name[stage], m) for m in MODES],
                              ["review loop", "review loop", "model judgement", "review loop", "review loop"], stage)
-        for stage in ("step-plan", "test-spec", "reflect-and-revise", "system-test-author", "release-plan", "implement",
-                      "intake"):
+        for stage in ("plan", "step-plan", "test-spec", "reflect-and-revise", "system-test-author", "release-plan",
+                      "implement", "intake"):
             self.assertEqual({export.effective_exit_check(self.by_name[stage], m) for m in MODES},
                              {self.by_name[stage]["exitCheck"]}, stage)  # the option does not touch these
 
@@ -5850,7 +5850,7 @@ class StageCardLogicTests(unittest.TestCase):
         self.assertEqual(self.lines(c["done"]["lines"])["Minutes"], "3.5 min, 10% of elapsed")
         self.assertNotRegex(json.dumps(c), r'"0 |\b0 KB|undefined|null"')
         withcat = card(run, 0)  # the catalog alone adds purpose, check and readers, still no packet or result claim
-        self.assertEqual((withcat["purpose"], withcat["check"]["kind"]), (engine_spec().STAGE_SPEC["plan"].goal, "review loop"))  # the engine's own goal
+        self.assertEqual((withcat["purpose"], withcat["check"]["kind"]), (engine_spec().STAGE_SPEC["plan"].goal, "script-run"))  # the engine's own goal
         self.assertEqual(self.lines(withcat["written"]["lines"]), {"Read by (declared by the stage spec)": readers_text("plan")})
         self.assertIsNone(run_logic("stageCard({stages:[]},0,null)"))
         self.assertIsNone(run_logic("stageCard(null,0,null)"))
