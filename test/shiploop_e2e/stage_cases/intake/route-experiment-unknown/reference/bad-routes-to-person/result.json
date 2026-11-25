@@ -1,0 +1,31 @@
+{
+  "outcome": "done",
+  "headline": "Intake asks the user about legacy-batch runtime limits.",
+  "summary": "S1-S2 request batch export via tools/legacy-batch.js.",
+  "evidence_refs": ["RUN/request.md"],
+  "question_categories": [
+    {"id": "K1", "applies": "yes"},
+    {"id": "K2", "applies": "no", "reason": "Preserved by default"},
+    {"id": "K3", "applies": "yes"},
+    {"id": "K4", "applies": "no", "reason": "Local only"},
+    {"id": "K5", "applies": "no", "reason": "Stateless CLI"},
+    {"id": "K6", "applies": "no", "reason": "Zero deps"},
+    {"id": "K7", "applies": "no", "reason": "Single CLI"},
+    {"id": "K8", "applies": "no", "reason": "node --test"},
+    {"id": "K9", "applies": "no", "reason": "Local checkout"},
+    {"id": "K10", "applies": "no", "reason": "No SLA"},
+    {"id": "K11", "applies": "no", "reason": "No extra risks"},
+    {"id": "K12", "applies": "no", "reason": "Explicit path"}
+  ],
+  "questions": [
+    {
+      "id": "Q1",
+      "category": "K3",
+      "question": "What payload limit does tools/legacy-batch.js have and how does it handle multiline notes?",
+      "changes": "Batch chunking in plan",
+      "route": "person",
+      "default": "Single call",
+      "blocks": "plan"
+    }
+  ]
+}

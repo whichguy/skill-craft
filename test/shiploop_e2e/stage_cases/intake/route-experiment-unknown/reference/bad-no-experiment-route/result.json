@@ -1,0 +1,31 @@
+{
+  "outcome": "done",
+  "headline": "Intake guesses legacy-batch behavior with route='default'.",
+  "summary": "S1-S2 request batch export via tools/legacy-batch.js.",
+  "evidence_refs": ["RUN/request.md"],
+  "question_categories": [
+    {"id": "K1", "applies": "yes"},
+    {"id": "K2", "applies": "no", "reason": "Preserved by default"},
+    {"id": "K3", "applies": "yes"},
+    {"id": "K4", "applies": "no", "reason": "Local only"},
+    {"id": "K5", "applies": "no", "reason": "Stateless CLI"},
+    {"id": "K6", "applies": "no", "reason": "Zero deps"},
+    {"id": "K7", "applies": "no", "reason": "Single CLI"},
+    {"id": "K8", "applies": "no", "reason": "node --test"},
+    {"id": "K9", "applies": "no", "reason": "Local checkout"},
+    {"id": "K10", "applies": "no", "reason": "No SLA"},
+    {"id": "K11", "applies": "no", "reason": "No extra risks"},
+    {"id": "K12", "applies": "no", "reason": "Explicit path"}
+  ],
+  "questions": [
+    {
+      "id": "Q1",
+      "category": "K3",
+      "question": "Does tools/legacy-batch.js accept 100+ records cleanly?",
+      "changes": "Wrapper chunking",
+      "route": "default",
+      "default": "Pass all records in one call",
+      "blocks": "nothing: the default proceeds"
+    }
+  ]
+}

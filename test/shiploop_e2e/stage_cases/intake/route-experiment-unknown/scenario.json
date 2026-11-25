@@ -1,0 +1,47 @@
+{
+  "stage": "intake",
+  "about": "When a request depends on an existing local binary whose runtime limits and multiline behavior are undocumented and only observable by executing it, intake must route that empirically testable unknown via route='experiment' rather than blocking on route='person' or guessing via route='default'.",
+  "tags": ["intake", "experiments", "routing"],
+  "tiers": ["verify", "render", "live"],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Extend this Node project with a batch export CLI (`bin/batch-export.js`) backed by the existing undocumented local script `tools/legacy-batch.js` (`R-1`: export 100+ user records including UTF-8 names, commas, and multiline notes reliably using `tools/legacy-batch.js`; `R-2`: preserve existing `/users` HTTP API endpoints and keep `node --test` passing with zero npm dependencies). Note: `tools/legacy-batch.js` has no docs covering its runtime batch limits or multiline handling; determine how it actually behaves before planning.",
+    "work_item": {
+      "id": "W1",
+      "title": "Batch export CLI backed by legacy-batch.js",
+      "context": "Build bin/batch-export.js using tools/legacy-batch.js while preserving /users HTTP endpoints and zero npm dependencies."
+    },
+    "checks": ["node --test"]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "intake routes the undocumented runtime limit / multiline behavior of tools/legacy-batch.js through questions[*].route = 'experiment' instead of routing it to 'person' or skipping experiment routing.",
+      "signature": "questions contains route='experiment' for legacy-batch runtime behavior and zero route='person' asks for that runtime fact"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "intake completes done with valid K1-K12 question_categories, required question fields, S<n> summary coverage, and zero modified files in the tree."
+    }
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "intake"},
+    {"proves": "P1", "packet_contains": "experiment: only running something answers it"},
+    {"proves": "C1", "packet_contains": "K1 Outcome and consumer"}
+  ],
+  "oracle": [
+    {"proves": "P1", "outcome": ["done"]},
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check_intake_experiment.py\" P1", "exit": 0},
+    {"proves": "C1", "outcome": ["done"]},
+    {"proves": "C1", "command": "python3 \"$STAGE_ORACLE/check_intake_experiment.py\" C1", "exit": 0},
+    {"proves": "C1", "changed_only": []}
+  ],
+  "live": {"samples": 1, "pass": 1}
+}

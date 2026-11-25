@@ -1,0 +1,4 @@
+{
+  "fails": ["C1"],
+  "why": "Routes Q1 to experiment properly (passing P1) while omitting K1..K12 question_categories (failing C1)."
+}

@@ -1,0 +1,4 @@
+{
+  "fails": ["P1"],
+  "why": "Guesses via route='default' instead of marking undocumented runtime behavior route='experiment'."
+}

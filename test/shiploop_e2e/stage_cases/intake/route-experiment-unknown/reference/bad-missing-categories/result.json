@@ -1,0 +1,17 @@
+{
+  "outcome": "done",
+  "headline": "Intake missing question_categories.",
+  "summary": "S1 requests legacy-batch CLI wrapper.",
+  "evidence_refs": ["RUN/request.md"],
+  "questions": [
+    {
+      "id": "Q1",
+      "category": "K3",
+      "question": "What runtime batch limit and multiline behavior does tools/legacy-batch.js have?",
+      "changes": "Batch size and escaping",
+      "route": "experiment",
+      "default": "Pass all records once",
+      "blocks": "plan"
+    }
+  ]
+}

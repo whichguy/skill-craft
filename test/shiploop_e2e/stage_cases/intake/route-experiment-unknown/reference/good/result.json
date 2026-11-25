@@ -1,0 +1,31 @@
+{
+  "outcome": "done",
+  "headline": "Intake mapped batch export requirements and routed legacy-batch limits to experiment.",
+  "summary": "S1 requests bin/batch-export.js using tools/legacy-batch.js cleanly for 100+ UTF-8/multiline records while preserving /users and node --test; S2 marks legacy-batch runtime bounds undocumented.",
+  "evidence_refs": ["RUN/request.md"],
+  "question_categories": [
+    {"id": "K1", "applies": "yes"},
+    {"id": "K2", "applies": "yes"},
+    {"id": "K3", "applies": "yes"},
+    {"id": "K4", "applies": "yes"},
+    {"id": "K5", "applies": "no", "reason": "Stateless CLI over existing user data"},
+    {"id": "K6", "applies": "yes"},
+    {"id": "K7", "applies": "no", "reason": "Single CLI wrapper seam"},
+    {"id": "K8", "applies": "yes"},
+    {"id": "K9", "applies": "no", "reason": "Local repository delivery only"},
+    {"id": "K10", "applies": "no", "reason": "No extra latency SLA stated"},
+    {"id": "K11", "applies": "yes"},
+    {"id": "K12", "applies": "no", "reason": "Named script path explicit"}
+  ],
+  "questions": [
+    {
+      "id": "Q1",
+      "category": "K3",
+      "question": "What record/payload limit and multiline note handling does tools/legacy-batch.js exhibit when executed with 100+ UTF-8 and multiline records?",
+      "changes": "Batch chunking vs normalization or wrapper design in plan",
+      "route": "experiment",
+      "default": "Invoke tools/legacy-batch.js once with all records",
+      "blocks": "plan"
+    }
+  ]
+}
