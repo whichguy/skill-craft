@@ -122,7 +122,7 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
         self.assertEqual(status["progress"], "0.0.0")  # no Until Loop yet at intake
         # One derived completion instruction; no raw receipt or second task packet.
         self.assertEqual(set(status), {"run_dir", "run_id", "repo", "status", "status_reason", "awaiting", "stage",
-                                       "action", "revision", "progress", "next", "completion"})
+                                       "profile", "action", "revision", "progress", "next", "completion"})
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_ordinary_completion_is_the_existing_callback_and_status_is_lock_free(self) -> None:
@@ -1343,6 +1343,192 @@ class DriverTests(KeepaliveTestCase):
         journal = self.temp / "state" / "drive" / run_id / "drive.log"
         self.assertEqual(len(journal.read_text().splitlines()), 2)
         self.assertFalse(any(path.name.startswith("session-") for path in self.run_dir.rglob("*")))
+
+
+class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
+    def model_rows(self) -> list[dict]:
+        lines = (self.run_dir / "trace.jsonl").read_text(encoding="utf-8").splitlines()
+        return [row for row in map(json.loads, lines) if row.get("kind") == "hook" and row.get("hook") == "model"]
+
+    def test_hook_status_reports_stage_profile(self) -> None:
+        self.assertEqual(self.status()["profile"], "planning")
+        # Advance to implement (execution) via stage_spec check
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_stage_spec as stage_spec
+        self.assertEqual(stage_spec.stage_profile("implement"), "execution")
+
+    def test_passive_model_telemetry_records_changes_across_hosts(self) -> None:
+        # Antigravity: modelName includes effort suffix; repeated model does not duplicate rows.
+        agy_obs = {**self.payload("antigravity", "observe", "agy-1"), "modelName": "gemini-4-neon-high"}
+        self.hook("observe", "antigravity", agy_obs)
+        self.hook("observe", "antigravity", {**agy_obs, "toolCall": {"name": "run_command", "args": {"CommandLine": "ls"}}})
+        agy_stop = {**self.payload("antigravity", "stop", "agy-1"), "modelName": "gemini-4-carbon-medium"}
+        self.hook("stop", "antigravity", agy_stop)
+
+        # Codex: model on stdin + effort in rollout transcript tail.
+        codex_rollout = self.temp / "rollout.jsonl"
+        codex_rollout.write_text(json.dumps({"type": "turn_context", "payload": {"model": "gpt-6.2-sol", "effort": "medium"}}) + "\n")
+        codex_obs = {**self.payload("codex", "observe", "cx-1"), "model": "gpt-6.2-sol", "transcript_path": str(codex_rollout)}
+        self.hook("observe", "codex", codex_obs)
+
+        # Claude: effort on stdin + model in transcript tail.
+        claude_transcript = self.temp / "claude.jsonl"
+        claude_transcript.write_text(json.dumps({"message": {"role": "assistant", "model": "claude-sonnet-5-5"}}) + "\n")
+        claude_obs = {**self.payload("claude", "observe", "cl-1"), "effort": "high", "transcript_path": str(claude_transcript)}
+        self.hook("observe", "claude", claude_obs)
+
+        rows = self.model_rows()
+        self.assertEqual([(r["host"], r["model"], r["effort"]) for r in rows], [
+            ("antigravity", "gemini-4-neon-high", "high"),
+            ("antigravity", "gemini-4-carbon-medium", "medium"),
+            ("codex", "gpt-6.2-sol", "medium"),
+            ("claude", "claude-sonnet-5-5", "high"),
+        ])
+        self.assertIn("model antigravity gemini-4-neon-high at intake (planning)", trace.event_line({**rows[0], "i": 1}))
+        self.assertIn("model codex gpt-6.2-sol/medium at intake (planning)", trace.event_line({**rows[2], "i": 1}))
+
+    def test_boundary_withholds_next_packet_and_allows_stop(self) -> None:
+        cfg_path = self.temp / "routing.json"
+        cfg_path.write_text(json.dumps({
+            "planning": {"antigravity": "gemini-4-neon-high"},
+            "execution": {"antigravity": "gemini-4-carbon-medium"},
+        }))
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_model_routing as routing
+        exec_target = routing.resolve(routing.load_config(cfg_path), "implement", "antigravity")
+        env = {
+            **os.environ,
+            "SHIPLOOP_DRIVE_ROUTING": str(cfg_path),
+            "SHIPLOOP_DRIVE_HOST": "antigravity",
+            "SHIPLOOP_DRIVE_TARGET": exec_target.target_key,
+            "SHIPLOOP_DRIVE_LABEL": exec_target.label,
+            "SHIPLOOP_DRIVE_RUN_ID": self.status()["run_id"],
+        }
+        # Current stage is intake (planning), while assigned session target is execution -> boundary!
+        res = subprocess.run([sys.executable, str(SCRIPTS / "shiploop"), "next", "--run-dir", str(self.run_dir)],
+                             capture_output=True, text=True, env=env, check=False)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("Profile boundary reached", res.stdout)
+        self.assertNotIn("Callback for this stage", res.stdout)
+        self.hook("observe", "antigravity", self.payload("antigravity", "observe", "agy-b"))
+        with mock.patch.dict(os.environ, env):
+            decision = keepalive.stop("antigravity", self.payload("antigravity", "stop", "agy-b"))
+        self.assertEqual(decision["decision"], "allow")
+        self.assertIn("profile boundary reached", decision["why"])
+
+    def test_routed_drive_warm_resumes_and_switches_models_and_hosts(self) -> None:
+        routing_cfg = {
+            "planning": {"antigravity": {"model": "gemini-4-neon-high"}},
+            "execution": {"antigravity": {"model": "gemini-4-carbon-medium"}},
+        }
+        calls = []
+        statuses = [
+            {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
+             "status": "active", "stage": "plan", "revision": 1, "completion": "c1", "next": "n1"},
+            {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
+             "status": "active", "stage": "implement", "revision": 2, "completion": "c2", "next": "n2"},
+            {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
+             "status": "active", "stage": "review" if False else "handoff", "revision": 3, "completion": "c3", "next": "n3"},
+            {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
+             "status": "done", "stage": None, "revision": 4, "completion": "", "next": "n4"},
+        ]
+        idx = [0]
+
+        def fake_status(_run_dir):
+            return dict(statuses[min(idx[0], len(statuses) - 1)])
+
+        def runner(argv, **kwargs):
+            calls.append((argv, kwargs.get("env", {})))
+            if idx[0] == 0:
+                self.hook("observe", "antigravity", self.payload("antigravity", "observe", "agy-warm-1"))
+            idx[0] += 1
+            return DriverTests.done(argv)
+
+        with mock.patch.object(keepalive, "run_status", side_effect=fake_status):
+            code = keepalive.drive("antigravity", str(self.run_dir), session_timeout=60, extra=["--dangerously-skip-permissions"],
+                                   cwd=None, routing=routing_cfg, out=lambda _m: None, runner=runner, clock=lambda: 10.0)
+        self.assertEqual(code, keepalive.EXIT_DONE)
+        self.assertEqual(len(calls), 3)
+        self.assertIn("gemini-4-neon-high", calls[0][0])
+        self.assertNotIn("--resume", calls[0][0])
+        self.assertIn("--resume", calls[1][0])
+        self.assertIn("agy-warm-1", calls[1][0])
+        self.assertIn("gemini-4-carbon-medium", calls[1][0])
+        self.assertIn("--resume", calls[2][0])
+        self.assertIn("gemini-4-neon-high", calls[2][0])
+
+        # Cross-harness switch: antigravity planning -> codex execution.
+        cross_cfg = {
+            "planning": {"host": "antigravity", "model": "gemini-4-neon-high"},
+            "execution": {"host": "codex", "model": "gpt-6.2-sol", "effort": "medium"},
+        }
+        idx[0] = 0
+        cross_calls = []
+
+        def cross_runner(argv, **kwargs):
+            cross_calls.append(argv)
+            idx[0] += 1
+            return DriverTests.done(argv)
+
+        with mock.patch.object(keepalive, "run_status", side_effect=fake_status):
+            code = keepalive.drive("antigravity", str(self.run_dir), session_timeout=60, extra=[],
+                                   cwd=None, routing=cross_cfg, out=lambda _m: None, runner=cross_runner, clock=lambda: 10.0)
+        self.assertEqual(code, keepalive.EXIT_DONE)
+        self.assertEqual(cross_calls[0][0], "agy")
+        self.assertEqual(cross_calls[1][:2], ["codex", "exec"])
+        self.assertIn("gpt-6.2-sol", cross_calls[1])
+        self.assertIn("model_reasoning_effort=medium", cross_calls[1])
+        self.assertEqual(cross_calls[2][0], "agy")
+
+    def test_hook_status_and_drive_handle_done_stage(self) -> None:
+        import contextlib
+        import importlib.machinery
+        import importlib.util
+        import io
+        import shiploop_protocol as protocol
+
+        loader = importlib.machinery.SourceFileLoader("shiploop_cli_core", str(SCRIPTS / "shiploop"))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        core = importlib.util.module_from_spec(spec)
+        loader.exec_module(core)
+
+        done_state = store.read_record(self.run_dir / "state.md")
+        item_ids = [item["id"] for item in done_state["work_items"]]
+        done_state["status"] = "done"
+        done_state["stage"] = "done"
+        done_state["action"]["stage"] = "done"
+        done_state["work_index"] = len(item_ids)
+        done_state["completed_work_items"] = item_ids
+        done_state["inner_loops"] = {item_id: {"stage": "done", "action": None} for item_id in item_ids}
+        done_state["revision"] += 1
+        store.write_record(self.run_dir / "state.md", done_state)
+
+        buf = io.StringIO()
+        with mock.patch.object(nav, "validate", return_value=None), contextlib.redirect_stdout(buf):
+            rc = protocol.hook_status(core, ["--run-dir", str(self.run_dir)])
+        self.assertEqual(rc, 0)
+        st = json.loads(buf.getvalue())
+        self.assertEqual((st["status"], st["stage"], st["profile"]), ("done", "done", None))
+        with mock.patch.object(keepalive, "run_status", return_value=st):
+            code = keepalive.drive("codex", str(self.run_dir), session_timeout=60, extra=[], cwd=None,
+                                   out=lambda _m: None,
+                                   runner=lambda argv, **kwargs: self.fail("done run must not spawn session"),
+                                   clock=lambda: 1.0)
+        self.assertEqual(code, keepalive.EXIT_DONE)
+
+    def test_observed_model_preserves_effort_when_later_payload_omits_it(self) -> None:
+        rollout = self.temp / "codex-rollout.jsonl"
+        rollout.write_text(json.dumps({"type": "turn_context", "payload": {"model": "gpt-6.2-sol", "effort": "medium"}}) + "\n",
+                           encoding="utf-8")
+        self.hook("observe", "codex", {**self.payload("codex", "observe", "codex-eff-1"),
+                                        "model": "gpt-6.2-sol", "transcript_path": str(rollout)})
+        # Later turn grows rollout past turn_context or omits transcript_path; same model keeps prior effort.
+        rollout.write_text("", encoding="utf-8")
+        self.hook("stop", "codex", {**self.payload("codex", "stop", "codex-eff-1"),
+                                    "model": "gpt-6.2-sol", "transcript_path": str(rollout)})
+        rows = self.model_rows()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual((rows[0]["model"], rows[0]["effort"]), ("gpt-6.2-sol", "medium"))
 
 
 if __name__ == "__main__":

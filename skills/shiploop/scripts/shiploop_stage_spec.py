@@ -650,12 +650,29 @@ INNER: tuple[str, ...] = tuple(row.name for row in _ROWS if row.phase == "inner"
 OUTER: tuple[str, ...] = tuple(row.name for row in _ROWS if row.phase == "outer")
 
 
+ACTIVITY_PROFILES = ("planning", "execution")
+EXECUTION_STAGES = frozenset((
+    "validate-existing", "implement", "test", "document",
+    "system-test", "release-check", "release", "release-verify", "operations",
+))
+
+
 def stage(name: str) -> Stage:
     """Return one stage row; an unknown stage raises ValueError."""
     try:
         return STAGE_SPEC[name]
     except KeyError:
         raise ValueError(f"unknown navigator stage: {name!r}") from None
+
+
+def stage_profile(name: str | None) -> str | None:
+    """Activity profile (``planning`` or ``execution``) for ``name``, or None when unset/done."""
+    if not name or name == "done":
+        return None
+    if name == "improve":
+        return "planning"
+    stage(name)
+    return "execution" if name in EXECUTION_STAGES else "planning"
 
 
 def with_block(block: str) -> frozenset[str]:
@@ -730,6 +747,8 @@ def _check_table() -> None:
     phases = [row.phase for row in _ROWS]
     if phases != sorted(phases, key=PHASES.index):
         raise RuntimeError("stages must be grouped prelude, inner, outer")
+    if not EXECUTION_STAGES <= set(names):
+        raise RuntimeError("EXECUTION_STAGES must be a subset of STAGES")
 
 
 _check_table()

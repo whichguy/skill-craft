@@ -500,6 +500,7 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         need(retired is None, retired or "")
         navigator.validate(state)
         stage = navigator.current_stage(state)
+        profile = navigator.stage_spec.stage_profile(stage)
         action = navigator.current_action(state)
         iteration = _loop_iteration(root, state)
     except SystemExit:
@@ -519,6 +520,7 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
         # A run blocked on a person: the stop stays quiet until their reply resumes it.
         "awaiting": (navigator.awaiting(state) or (None, {}))[1].get("kind", ""),
         "stage": stage,
+        "profile": profile,
         "action": (action or {}).get("id"),
         "revision": state["revision"],
         # Keepalive progress: the revision, callback attempts (a refused callback is

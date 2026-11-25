@@ -10073,4 +10073,37 @@ Standing harness ops note: On macOS, passing `--output /tmp/...` without setting
 
 Limits: `open_item_settlement` was `0/0` on both live runs because neither clean run opened tracked follow-on `open_items`; multi-item settlement behavior on `gpt-6.2-sol` and `claude-sonnet-5-5` remains to be measured on an organically branching run. Both live E2E runs (`temperature-report`, `csv-report`) overlapped for `1515.0s`, making wall-clock comparisons non-isolated.
 
+## 2026-11-25 — Script-driven harness-to-model routing, passive `(model, effort)` telemetry, and live `agy` (Neon High ↔ Carbon Medium) + unrouted `codex` (`gpt-6.2-sol` / `medium`) E2E validation (`df05a20d4`..`9a98a21a3`)
+
+Designed, empirically tested across harnesses, implemented, and validated script-driven optional harness-to-model routing (`skills/shiploop/scripts/shiploop_model_routing.py`) where scripts own all profile mappings (`planning` vs `execution`), boundary enforcement, and `hook=model` trace telemetry while `state.md` and Layer 1 prompt cards stay model-agnostic:
+
+- **Isolated load-bearing experiments (`scratch/model-switch-exp`, `v2`, `v3/report_v3.json`):**
+  - **In-session `/model` switching rejected:** Script stdout `/model`, `Stop` `reason: "/model ..."`, `PreInvocation` `injectSteps.userMessage: "/model ..."`, and `stream-json` `/model` turns did not change active session models in `agy 1.5.16` or `codex 0.172.0`.
+  - **Warm `--resume` across model/effort changes verified:** `agy --resume`, `codex exec resume`, and `claude -p --resume` (`report_v3.json` `test_3_claude_resume`: `haiku` → `sonnet`, `same_sid: true`, `canary_ok: true` `FALCON-88`) all preserve conversational thread memory across model switches.
+  - **`agy` suffix/effort conflict (`test_2_agy_flags`):** `agy --model gemini-4-argon-low --effort high` fails (`rc=1`, conflicts with `--effort=high`), while suffixed slug alone (`rc=0`) or base slug + `--effort` (`rc=0`) succeeds; `host_model_args` omits `--effort` whenever an Antigravity slug ends with `-low|-medium|-high|-xhigh|-max`.
+  - **Script-owned boundary withholding (`test_5_boundary_stop`):** Withholding the next packet at `PROFILE_BOUNDARY` kept `next_calls=0`, `solver_untouched=True`, and `complete_calls=1` across `agy` (`33.92s`), `codex` (`16.95s`), and `claude` (`14.70s`).
+
+- **Live Scenario A — Antigravity (`agy`) WITH harness-to-model routing (`gemini-4-neon-high` planner ↔ `gemini-4-carbon-medium` executor; `scratch/live-routing-e2e/agy-work/runs/slugify/run`):**
+  - Routed config: `{"planning": {"antigravity": {"model": "gemini-4-neon-high"}}, "execution": {"antigravity": {"model": "gemini-4-carbon-medium"}}}` on a fresh `slugify.py` + `test_slugify.py` checkout build (`--delegation inline --planning-review none`).
+  - **Completed `status="done"`, `stage="done"`, `profile=null` at revision `26` (`2,637s` cumulative driver session time; `7/7` `unittest` cases `OK` in `0.001s` on returned `main` `b2a23c0`).**
+  - **All `6` bidirectional profile switches landed cleanly on the same warm `--resume` conversation (`ef4427d6-601d-4e9c-85df-8cfe3f5722ed`), with passive `hook=model` trace entries matching every transition (`df05a20d4` + `9a98a21a3`):**
+    1. `intake → implement` (`rev 0 → 9`, `585s`, `exit 0`): `gemini-4-neon-high` (`high`, `planning`) → `stop → allow` (`profile boundary reached ... at implement`)
+    2. `implement → reflect-and-revise` (`rev 9 → 13`, `565s`, `exit 0`): `gemini-4-carbon-medium` (`medium`, `execution`) → `stop → allow` (`... at reflect-and-revise`)
+    3. `reflect-and-revise → system-test` (`rev 13 → 17`, `286s`, `exit 0`): `gemini-4-neon-high` (`high`, `planning`) → `stop → allow` (`... at system-test`)
+    4. `system-test → product-acceptance` (`64s` timeout + `70s` resumed `exit 0`, `rev 17 → 18`): `gemini-4-carbon-medium` (`medium`, `execution`) → `stop → allow` (`... at product-acceptance`)
+    5. `product-acceptance → release-check` (`rev 18 → 21`, `277s`, `exit 0`): `gemini-4-neon-high` (`high`, `planning`) → `stop → allow` (`... at release-check`)
+    6. `release-check → operations → handoff` (`600s` timeout + `36s` resumed `exit 0`, `rev 21 → 25`): `gemini-4-carbon-medium` (`medium`, `execution`; also verified in-profile `stop → continue` at `release-verify` `rev 23`) → `stop → allow` (`... at handoff`)
+    7. `handoff → done` (`rev 25 → 26`, `154s`, `exit 0`): `gemini-4-neon-high` (`high`, `planning`) → `stop → allow (run is done)` → `shiploop-drive: run is done after 5 session(s).`
+
+- **Live Scenario B — Codex (`codex`) WITHOUT routing (inherit default `gpt-6.2-sol`, `medium` effort; `scratch/live-routing-e2e/codex-work/runs/slugify/run`):**
+  - Launched `shiploop-drive --host codex` with no `--routing` or `--planning-*`/`--execution-*` flags, passing default `-m gpt-6.2-sol -c model_reasoning_effort=medium`.
+  - **Completed full workflow at revision `29` (`878s` total across 2 unrouted sessions: `600s` timeout at `rev 23` `release-plan` + `278s` `exit 0`; `6/6` `unittest` cases `OK` in `0.002s` on returned `main` `480280f`).**
+  - Zero routing keys in `drive.log`, zero profile-boundary stops in `trace.jsonl`, and `hook=model` passive trace recorded `codex` / `gpt-6.2-sol` / `medium` (`planning`) without interference across planning → execution → outer planning → release.
+
+- **Two live-caught bugs fixed during E2E (`9a98a21a3`):**
+  1. `shiploop_stage_spec.stage_profile("done")` raised `ValueError: unknown navigator stage: 'done'` when `shiploop hook-status` inspected a completed run (because `navigator.current_stage(state)` returns `"done"` and `hook_status` called `stage_profile` outside its `try` guard); fixed `stage_profile("done") -> None`, `model_routing.resolve` guard, and `hook_status` `try` scope. Replayed on completed Codex run (`shiploop hook-status` -> `exit 0`, `status: "done"`, `profile: null`; `shiploop-drive` -> `exit 0`, `run is done after 0 session(s)`), and exercised live at completion of Antigravity (`exit 0`).
+  2. `_tail_jsonl` window bumped from `64 KB` to `256 KB` and `_record_observed_model` preserves prior `observed_effort` when a later rollout tail omits `turn_context` on the same `observed_model`, stopping Codex `medium → None` flapping mid-run.
+  - Also resolved `SliceCase.setUp` in `test/shiploop-e2e-slice.test.py:171` (`cd1d9e17ed`) for a pre-existing macOS `/var` vs `/private/var` loop receipt symlink mismatch from `0d38c7fefae63` (`73/73` slice tests OK in `305.6s`).
+
+
 

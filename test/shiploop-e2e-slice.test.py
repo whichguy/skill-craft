@@ -168,7 +168,7 @@ class SliceCase(unittest.TestCase):
     def setUp(self):
         # Register before seeding, which can start a writer before returning the run directory. Keep the tree
         # for diagnosis if shutdown fails rather than letting a TemporaryDirectory finalizer remove it anyway.
-        self.out = Path(tempfile.mkdtemp(prefix="shiploop-slice-"))
+        self.out = Path(tempfile.mkdtemp(prefix="shiploop-slice-")).resolve()
         self.addCleanup(remove_slice_output, self.out)
         self.work = self.out / "work"
         self.work.mkdir()
