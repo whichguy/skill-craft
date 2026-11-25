@@ -2594,6 +2594,28 @@ class GateCountsTest(unittest.TestCase):
             self.assertEqual(obs["work_item_slices"], {"spine": 1, "enrich": 1})
             self.assertEqual(obs["deferred_concerns_items"], ["W2"])
 
+            parked_state = {
+                "stage": "plan",
+                "action": {"id": "act-plan", "stage": "plan"},
+                "history": [{"action": "act-in", "stage": "intake"}],
+                "accepted": {"act-in": {"questions": [{"id": "Q1", "route": "experiment", "question": "Cap?"}]}},
+                "active_improve": {
+                    "stage": "plan",
+                    "action_id": "act-plan",
+                    "seed_result": {
+                        "assumptions": [{"id": "A1", "question": "Q1", "disposition": "probed", "effect": "Chunk <= 25"}],
+                        "work_items": [{"id": "W1", "title": "Spine", "slice": "spine"},
+                                       {"id": "W2", "title": "Enrich", "slice": "enrich"}],
+                        "concerns": {"W1": [], "W2": "deferred"},
+                    },
+                },
+                "work_items": [{"id": "W1", "title": "Placeholder"}],
+            }
+            parked_obs = metrics.planning_observability(run_dir, parked_state)
+            self.assertEqual(parked_obs["plan_probed_assumptions"], 1)
+            self.assertEqual(parked_obs["intake_experiment_questions_covered"], 1)
+            self.assertEqual(parked_obs["work_item_slices"], {"spine": 1, "enrich": 1})
+
     def test_each_owner_notes_refusal_is_a_refusal_line_and_classifies_under_its_own_gate(self) -> None:
         """The owner-notes refusals, built by the gate's own functions, never typed (shiploop_owner_notes): for both
         commands their first line is a refusal line, and it names the notes gate."""

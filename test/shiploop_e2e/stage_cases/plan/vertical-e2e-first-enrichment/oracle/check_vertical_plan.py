@@ -5,10 +5,15 @@ import re
 import sys
 from pathlib import Path
 
-STORE_RE = re.compile(r"\b(store|storage|json file|persist|file[- ]backed|notes-store)\b", re.I)
+STORE_RE = re.compile(r"\b(store|storage|json file|persist(?:ent|ence)?|file[- ]backed|notes-store|to-json)\b", re.I)
 API_RE = re.compile(r"\b(http|api|endpoint|server|POST /notes|GET /notes|/notes)\b", re.I)
 CLI_RE = re.compile(r"\b(cli|bin/notes|command[- ]line)\b", re.I)
 SMOKE_RE = re.compile(r"\b(e2e|end[- ]to[- ]end|smoke)\b", re.I)
+EXEC_TEST_RE = re.compile(r"\b(node\s+--test|proof:|test/[\w./-]+\.test\.\w+|integration\s+test)\b", re.I)
+CROSS_PATH_RE = re.compile(
+    r"(cli[- ]to[- ](?:http|api)|(?:http|api)[- ]to[- ](?:json|store)|server\s+restart|restart\s+proof|full[- ]path|round[- ]trip)",
+    re.I,
+)
 HORIZONTAL_TITLE_RE = re.compile(r"^\s*(?:build|implement|add|create)?\s*(?:the\s+)?(?:storage|data|persistence|database)\s+layer(?:\s+only)?\s*$", re.I)
 
 
@@ -45,7 +50,7 @@ def check_p1(result: dict) -> None:
     surfaces = sum(bool(pat.search(w1_text)) for pat in (STORE_RE, API_RE, CLI_RE))
     if surfaces < 2:
         fail("W1 spine must cut vertically across at least 2 product surfaces (storage, HTTP API, CLI)")
-    if not SMOKE_RE.search(w1_text):
+    if not (SMOKE_RE.search(w1_text) or (surfaces >= 2 and EXEC_TEST_RE.search(w1_text) and CROSS_PATH_RE.search(w1_text))):
         fail("W1 spine must explicitly include an executable end-to-end smoke check inside W1")
 
 

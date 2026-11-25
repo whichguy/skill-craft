@@ -3887,8 +3887,14 @@ def planning_observability(run_dir: Path | None, state: dict | None = None) -> d
         action_obj = state.get("action") if isinstance(state.get("action"), dict) else {}
         if state.get("stage") == "plan" and isinstance(action_obj.get("id"), str):
             plan_action = action_obj["id"]
-    plan_result = accepted.get(plan_action) if isinstance(plan_action, str) and isinstance(accepted, dict) else None
-    plan_result = plan_result if isinstance(plan_result, dict) else {}
+    plan_accepted = isinstance(accepted.get(plan_action), dict) if isinstance(plan_action, str) and isinstance(accepted, dict) else False
+    plan_result = accepted.get(plan_action) if plan_accepted else None
+    if not isinstance(plan_result, dict):
+        improve = state.get("active_improve")
+        if isinstance(improve, dict) and improve.get("stage") == "plan" and isinstance(improve.get("seed_result"), dict):
+            plan_result = improve["seed_result"]
+        else:
+            plan_result = {}
 
     loop_iters = None
     if run_path is not None and isinstance(plan_action, str):
@@ -3932,11 +3938,14 @@ def planning_observability(run_dir: Path | None, state: dict | None = None) -> d
         for row in assumptions:
             if not isinstance(row, dict):
                 continue
-            if row.get("question") == q_id or pat.search(str(row.get("statement") or "")) or pat.search(str(row.get("check") or "")):
+            stmt_text = str(row.get("statement") or row.get("assumption") or "")
+            if row.get("question") == q_id or pat.search(stmt_text) or pat.search(str(row.get("check") or "")):
                 covered_q_ids.add(q_id)
                 break
 
-    work_items = state.get("work_items") or plan_result.get("work_items") or []
+    raw_items = state.get("work_items") or []
+    plan_items = plan_result.get("work_items") or []
+    work_items = plan_items if (not plan_accepted and plan_items) else (raw_items or plan_items)
     slice_counts: dict[str, int] = {}
     for item in work_items if isinstance(work_items, list) else ():
         if isinstance(item, dict) and isinstance(item.get("slice"), str) and item["slice"]:
