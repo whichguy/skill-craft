@@ -107,7 +107,7 @@ What happens next, in order:
 Watch it without interrupting:
 
 ```sh
-python3 "$SKILL_ROOT/scripts/shiploop" runs                                # list all concurrent runs
+python3 "$SKILL_ROOT/scripts/shiploop" runs [--active] [--prune]           # list concurrent runs (or prune missing)
 python3 "$SKILL_ROOT/scripts/shiploop" status --run-dir "$RUN" [--watch]   # where it is, what is done, what is next
 open "$RUN/progress.html"                                                  # live page; no server needed
 python3 "$SKILL_ROOT/scripts/shiploop" view --serve [--background]         # multi-run hub in a browser at 127.0.0.1:41730

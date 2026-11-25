@@ -455,3 +455,40 @@ def active_viewer() -> dict[str, Any] | None:
         return record
     except (OSError, ValueError):
         return None
+
+
+def prune_registry() -> list[str]:
+    """Remove stale or malformed ``registry/*.json`` files whose run directory or ``state.md`` no longer exists."""
+    pruned: list[str] = []
+    reg_dir = registry_dir()
+    try:
+        if reg_dir.is_symlink() or not reg_dir.is_dir():
+            return pruned
+        for path in sorted(reg_dir.glob("*.json")):
+            if path.is_symlink():
+                continue
+            entry = _read_json_file(path)
+            remove = False
+            if not entry or not isinstance(entry.get("run_dir"), str):
+                remove = True
+            else:
+                try:
+                    rdir = Path(os.path.abspath(entry["run_dir"]))
+                    state_path = rdir / "state.md"
+                    if rdir.is_symlink() or not rdir.is_dir() or state_path.is_symlink():
+                        remove = True
+                    else:
+                        info = state_path.lstat()
+                        if not stat.S_ISREG(info.st_mode):
+                            remove = True
+                except OSError:
+                    remove = True
+            if remove:
+                try:
+                    path.unlink(missing_ok=True)
+                    pruned.append(path.stem)
+                except OSError:
+                    pass
+    except OSError:
+        return pruned
+    return pruned

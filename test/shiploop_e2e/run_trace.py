@@ -330,3 +330,67 @@ def summary(traced: dict | None, stream_failures: int | None = None) -> dict | N
                       "carried": sum(n.get("state") == "carried" for n in notes),
                       "open": sum(n.get("state") == "open" for n in notes)},
             "stream_failures": stream_failures, "checks": checks(traced)}
+
+
+_VIEW_SERVE_SEGMENT = re.compile(r"(?:^|[;&|]\s*|\bpython3\b[^;\n]*\s)(?:[^\s'\"]*[/\\])?shiploop\s+view\b[^\n;|&]*\s--serve\b")
+
+
+def startup_viewer_compliance(commands: list[str] | tuple[str, ...],
+                              assistant_texts: list[str] | tuple[str, ...]) -> dict:
+    """Audit whether an E2E run relayed startup viewer instructions without launching ``view --serve``.
+
+    Separate from ``checks(traced)``: reads shell command strings and initial assistant messages.
+    """
+    fg_calls: list[str] = []
+    bg_calls: list[str] = []
+    for raw in commands or ():
+        cmd = " ".join(str(raw).split())
+        if not cmd:
+            continue
+        for seg in re.split(r"(?:&&|\|\||[;\n])", cmd):
+            part = seg.strip()
+            if not part or re.match(r"^(?:echo|printf|grep|rg|cat)\b", part):
+                continue
+            if _VIEW_SERVE_SEGMENT.search(part) and "--stop-server" not in part:
+                if "--background" in part:
+                    bg_calls.append(part)
+                else:
+                    fg_calls.append(part)
+    sample_texts = [str(t) for t in (assistant_texts or ())[:3] if str(t).strip()]
+    joined = "\n".join(sample_texts)
+    relayed = bool(
+        re.search(r"https?://127\.0\.0\.1:\d+/(?:runs/[^\s)\]>]+/)?", joined)
+        or (re.search(r"\bview\b", joined) and "--serve" in joined)
+    )
+    if fg_calls:
+        return {
+            "verdict": "fail",
+            "relayed": relayed,
+            "foreground_serve_calls": fg_calls,
+            "background_serve_calls": bg_calls,
+            "evidence": f"agent launched foreground view --serve ({fg_calls[0][:120]})",
+        }
+    if not sample_texts and not bg_calls:
+        return {
+            "verdict": "not exercised",
+            "relayed": False,
+            "foreground_serve_calls": [],
+            "background_serve_calls": [],
+            "evidence": "no startup assistant messages captured",
+        }
+    if not relayed:
+        return {
+            "verdict": "fail",
+            "relayed": False,
+            "foreground_serve_calls": [],
+            "background_serve_calls": bg_calls,
+            "evidence": "startup messages omitted both live Hub URLs and the recommended view --serve command",
+        }
+    note = f"; unsolicited --background call ({bg_calls[0][:100]})" if bg_calls else ""
+    return {
+        "verdict": "pass",
+        "relayed": True,
+        "foreground_serve_calls": [],
+        "background_serve_calls": bg_calls,
+        "evidence": f"relayed startup viewer instruction without foreground --serve{note}",
+    }

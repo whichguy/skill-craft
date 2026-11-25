@@ -133,7 +133,7 @@ _WATCH_RUN_FILES = (
     "state.md", "timeline.json", "trace.jsonl", "skill-calls.jsonl",
     "progress-observations.jsonl", "callback-attempts", "report.html",
 )
-_WATCH_RUN_DIRS = ("loops", "checks", "tests", "expectations", "owner-notes", "inbox", "notes", "improve")
+_WATCH_RUN_DIRS = ("loops", "checks", "tests", "expectations", "owner-notes", "inbox", "notes", "improve", "experiments")
 
 
 def _stat_entry(path: Path) -> tuple[Any, ...]:
@@ -155,8 +155,22 @@ def _watch_signature(root: Path, previous: dict | None = None) -> tuple[Any, ...
         entries.append(_stat_entry(folder))
         try:
             if folder.is_dir() and not folder.is_symlink():
+                exp_subdirs = 0
                 for child in sorted(folder.iterdir()):
                     entries.append(_stat_entry(child))
+                    if (folder_name == "experiments" and exp_subdirs < 24
+                            and child.is_dir() and not child.is_symlink()):
+                        exp_subdirs += 1
+                        entries.append(_stat_entry(child / "decision.md"))
+                        entries.append(_stat_entry(child / "meta.json"))
+                        try:
+                            for idx, sub in enumerate(sorted(child.iterdir())):
+                                if idx >= 64:
+                                    break
+                                if not sub.is_symlink():
+                                    entries.append(_stat_entry(sub))
+                        except OSError:
+                            pass
         except OSError:
             pass
     doc_paths: set[str] = set()
@@ -175,6 +189,21 @@ def _watch_signature(root: Path, previous: dict | None = None) -> tuple[Any, ...
                     for rel in ("docs/ARCHITECTURE.md", "ARCHITECTURE.md", "docs/architecture.md",
                                 "docs/shiploop/architecture.md"):
                         doc_paths.add(str(repo_path / rel))
+                    run_id = prev_state.get("run_id")
+                    if isinstance(run_id, str) and run_id:
+                        imp_exp_root = repo_path / ".shiploop-improve" / ".experiments" / run_id
+                        doc_paths.add(str(imp_exp_root))
+                        if imp_exp_root.is_dir() and not imp_exp_root.is_symlink():
+                            action_dirs = [d for d in sorted(imp_exp_root.iterdir())
+                                           if d.is_dir() and not d.is_symlink() and not d.name.startswith(".")][:4]
+                            for action_dir in action_dirs:
+                                doc_paths.add(str(action_dir))
+                                exp_dirs = [d for d in sorted(action_dir.iterdir())
+                                            if d.is_dir() and not d.is_symlink()][:24]
+                                for exp_dir in exp_dirs:
+                                    doc_paths.add(str(exp_dir))
+                                    doc_paths.add(str(exp_dir / "decision.md"))
+                                    doc_paths.add(str(exp_dir / "meta.json"))
                     child = prev_state.get("active_improve")
                     if isinstance(child, dict) and child.get("skill"):
                         import shiploop_standalone_improve as standalone
