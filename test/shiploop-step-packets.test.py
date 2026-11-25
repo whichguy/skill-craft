@@ -175,7 +175,7 @@ class StepPacketTests(unittest.TestCase):
                 printed = navigator.printed_text(None, run_dir, saved, navigator.packet_path(run_dir, saved), full,
                                                  measure=budget.reference_measure(temp))
         self.assertTrue(shown.getvalue().endswith("\n" + navigator.HEAD_END + "\n"))
-        self.assertGreater(len(full), navigator.PRINT_LIMIT)
+        self.assertGreater(len(full), 20_000)
         self.assertEqual(printed, full + navigator.HEAD_END + "\n")
         self.assertEqual(shown.getvalue(), printed)
         self.assertIn("Current stage guidance:", printed)

@@ -40,12 +40,12 @@ import shiploop_store as store  # noqa: E402
 CLI_PATH_LENGTH = 96          # a plugin-cache install: <root>/skills/shiploop/scripts/shiploop
 INSTALL_RUN_DIR = 83          # the run directory a normal install has
 LIVE_RUN_DIR = 163            # the run directory of the live run the plan was measured on
-HOST_CUT = 20_000             # what Grok gives a model whole (measured 2026-10-17)
-GROK_PART = 10_000            # the first and the last characters Grok keeps of a longer print
+HOST_CUT = 30_000             # lowest common stdout ceiling across Claude Code, Codex, and Antigravity
+GROK_PART = 15_000            # simulated half-window kept at either end when modeling a host middle cut above HOST_CUT
 
 
 def grok_view(text: str) -> str:
-    """What Grok gives the model of a print: all of it up to 20,000 characters, else its first and last 10,000."""
+    """Simulated middle-eliding host view above ``HOST_CUT`` (first and last ``GROK_PART`` characters)."""
     return text if len(text) <= HOST_CUT else text[:GROK_PART] + text[-GROK_PART:]
 
 
@@ -248,9 +248,9 @@ class PrintedPacketTests(unittest.TestCase):
         self.assertGreater(over, 0)
 
     def test_grok_view_helper_keeps_the_first_and_last_ten_thousand(self) -> None:
-        text = "a" * 10_000 + "b" * 500 + "c" * 10_000
-        self.assertEqual(grok_view(text), "a" * 10_000 + "c" * 10_000)
-        self.assertEqual(grok_view(text[:20_000]), text[:20_000])
+        text = "a" * 15_000 + "b" * 500 + "c" * 15_000
+        self.assertEqual(grok_view(text), "a" * 15_000 + "c" * 15_000)
+        self.assertEqual(grok_view(text[:30_000]), text[:30_000])
 
 
 class OrderTests(unittest.TestCase):
@@ -549,16 +549,16 @@ class BlockBudgetTests(unittest.TestCase):
 
     def test_legacy_head_helper_limits_and_other_command_limit_remain_independent(self) -> None:
         self.assertEqual(navigator.HEAD_LIMIT, HOST_CUT)
-        self.assertEqual(navigator.PRINT_LIMIT, 16_000)
-        self.assertEqual(protocol.OUTPUT_LIMIT, 16_000)
+        self.assertEqual(navigator.PRINT_LIMIT, 30_000)
+        self.assertEqual(protocol.OUTPUT_LIMIT, 30_000)
 
     def test_required_blocks_are_never_left_out_even_over_the_limit(self) -> None:
-        blocks = [self.block("a", navigator.P0, 15_000), self.block("b", navigator.P1, 6_000),
+        blocks = [self.block("a", navigator.P0, 25_000), self.block("b", navigator.P1, 6_000),
                   self.block("c", navigator.P0), self.block("d", navigator.LOOKUP), self.block("e", navigator.CHROME)]
         self.assertEqual([block.name for block in navigator._select_head(blocks)], ["a", "b", "c"])
 
     def test_optional_blocks_are_kept_while_they_fit_and_nothing_after_the_first_that_does_not(self) -> None:
-        blocks = [self.block("a", navigator.P0, 19_000), self.block("l1", navigator.LOOKUP, 400),
+        blocks = [self.block("a", navigator.P0, 29_000), self.block("l1", navigator.LOOKUP, 400),
                   self.block("l2", navigator.LOOKUP, 900), self.block("c1", navigator.CHROME, 50)]
         self.assertEqual([block.name for block in navigator._select_head(blocks)], ["a", "l1"])
 
@@ -567,16 +567,16 @@ class BlockBudgetTests(unittest.TestCase):
         them says nothing more (the stub line that did is gone: plan 6.2, "the Knowledge-files sentence (folded into line B)")."""
         small = [self.block("a", navigator.P0, 5_000), self.block("q", navigator.QUOTED, 5_000)]
         self.assertEqual([block.name for block in navigator._select_head(small)], ["a", "q"])
-        large = [self.block("a", navigator.P0, 17_000), self.block("l", navigator.LOOKUP, 500),
+        large = [self.block("a", navigator.P0, 27_000), self.block("l", navigator.LOOKUP, 500),
                  self.block("q", navigator.QUOTED, 5_000)]
         self.assertEqual([block.name for block in navigator._select_head(large)], ["a", "l"])
         # a block before the quoted files that does not fit ends the head: the quoted files go with it
-        crowded = [self.block("a", navigator.P0, 18_900), self.block("l", navigator.LOOKUP, 1_100),
+        crowded = [self.block("a", navigator.P0, 28_900), self.block("l", navigator.LOOKUP, 1_100),
                    self.block("q", navigator.QUOTED, 10)]
         self.assertEqual([block.name for block in navigator._select_head(crowded)], ["a"])
 
     def test_an_optional_block_is_kept_exactly_when_the_printed_head_then_fits_the_limit(self) -> None:
-        for size in range(19_600, 19_990, 50):
+        for size in range(29_600, 29_990, 50):
             with self.subTest(required=size):
                 blocks = [self.block("a", navigator.P0, size), self.block("q", navigator.QUOTED, 200)]
                 printed_with_q = len(navigator._text_of(blocks, head=True)) + 1 + len(navigator.HEAD_END) + 1
@@ -589,7 +589,7 @@ class BlockBudgetTests(unittest.TestCase):
         self.assertEqual(navigator._text_of([block], head=True), "short")
 
     def test_the_length_a_head_is_judged_by_is_replaceable(self) -> None:
-        blocks = [self.block("a", navigator.P0, 10_000), self.block("l", navigator.LOOKUP, 5_000)]
+        blocks = [self.block("a", navigator.P0, 16_000), self.block("l", navigator.LOOKUP, 5_000)]
         self.assertEqual(len(navigator._select_head(blocks)), 2)
         self.assertEqual(len(navigator._select_head(blocks, measure=lambda text: 2 * len(text))), 1)
 
