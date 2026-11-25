@@ -20,6 +20,23 @@ DEFAULT_RESUME = "warm"
 _TOP_KEYS = frozenset({"planning", "execution", "review", "stages", "resume"})
 _ENTRY_KEYS = frozenset({"host", "model", "effort", "args", "resume"})
 
+# Default built-in per-host profiles applied by `shiploop-drive` unless opted out (`--no-routing`,
+# explicit routing config/flags, or an explicit model flag after `--`). Antigravity assigns both
+# planning and execution to `gemini-pro-orchestrator-neon` so Orchestrator runs unbroken in one session
+# while switching Neon (plan) <-> Carbon (execute) internally.
+DEFAULT_ROUTING: dict[str, dict[str, dict[str, str]]] = {
+    "planning": {
+        "claude": {"model": "claude-opus-5-5", "effort": "high"},
+        "codex": {"model": "gpt-6.2-astra", "effort": "high"},
+        "antigravity": {"model": "gemini-pro-orchestrator-neon"},
+    },
+    "execution": {
+        "claude": {"model": "claude-sonnet-5-5", "effort": "high"},
+        "codex": {"model": "gpt-6.2-sol", "effort": "xhigh"},
+        "antigravity": {"model": "gemini-pro-orchestrator-neon"},
+    },
+}
+
 
 @dataclass(frozen=True)
 class RouteTarget:
@@ -114,9 +131,11 @@ def _normalize_bucket(raw: Any, *, where: str) -> Any:
 
 
 def load_config(source: str | Path | Mapping[str, Any]) -> dict[str, Any]:
-    """Load and validate a routing configuration from a mapping, JSON path, or JSON text."""
+    """Load and validate a routing configuration from a mapping, JSON path, JSON text, or ``'default'`` preset."""
     if isinstance(source, Mapping):
         data = dict(source)
+    elif isinstance(source, str) and source.strip().lower() == "default":
+        data = dict(DEFAULT_ROUTING)
     else:
         raw_text: str
         if isinstance(source, Path):
@@ -188,6 +207,40 @@ def from_cli_flags(
     if resume_mode:
         raw["resume"] = resume_mode
     return load_config(raw)
+
+
+def default_routing(host: str | None = None) -> dict[str, Any] | None:
+    """Return the built-in routing config for ``host``, or None if ``host`` has no built-in default."""
+    if host is None:
+        return load_config(DEFAULT_ROUTING)
+    norm = normalize_host(host)
+    if norm in DEFAULT_ROUTING["planning"] or norm in DEFAULT_ROUTING["execution"]:
+        return load_config(DEFAULT_ROUTING)
+    return None
+
+
+def extra_sets_model(extra: list[str] | tuple[str, ...]) -> bool:
+    """True when pass-through CLI arguments after ``--`` explicitly select a model."""
+    expect_config_value = False
+    for arg in extra:
+        if expect_config_value:
+            expect_config_value = False
+            if arg.split("=", 1)[0].strip() == "model":
+                return True
+            continue
+        if arg in ("--model", "-m") or arg.startswith(("--model=", "-m=")):
+            return True
+        if arg in ("-c", "--config"):
+            expect_config_value = True
+            continue
+        if arg.startswith("--config="):
+            value = arg.split("=", 1)[1]
+            if value.split("=", 1)[0].strip() == "model":
+                return True
+        elif arg.startswith("-c") and len(arg) > 2:
+            if arg[2:].split("=", 1)[0].strip() == "model":
+                return True
+    return False
 
 
 def _select_entry(bucket: Any, default_host: str) -> Mapping[str, Any] | None:

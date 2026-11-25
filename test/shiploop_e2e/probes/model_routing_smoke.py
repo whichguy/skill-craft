@@ -44,21 +44,17 @@ import shiploop_store as store  # noqa: E402
 
 ALL_HOSTS = ("claude", "codex", "antigravity")
 SMOKE_STAGES = ("system-test-author", "system-test", "product-acceptance")
-DEFAULT_ROUTES: dict[str, dict[str, dict[str, str]]] = {
-    "antigravity": {
-        "planning": {"model": "gemini-4-neon-high", "effort": "high"},
-        "execution": {"model": "gemini-4-carbon-medium", "effort": "medium"},
-    },
-    "codex": {
-        "planning": {"model": "gpt-6.2-astra", "effort": "high"},
-        "execution": {"model": "gpt-6.2-sol", "effort": "medium"},
-    },
-    "claude": {
-        "planning": {"model": "sonnet", "effort": "high"},
-        "execution": {"model": "haiku", "effort": "low"},
-    },
+DEFAULT_ROUTES: dict[str, dict[str, dict[str, str | None]]] = {
+    host: {
+        profile: {
+            "model": model_routing.DEFAULT_ROUTING[profile][host]["model"],
+            "effort": model_routing.DEFAULT_ROUTING[profile][host].get("effort"),
+        }
+        for profile in ("planning", "execution")
+    }
+    for host in ALL_HOSTS
 }
-CODEX_UNROUTED_DEFAULT = ("gpt-6.2-sol", "medium")
+CODEX_UNROUTED_DEFAULT = ("gpt-6.2-sol", "xhigh")
 
 SMOKE_GREET_PY = '''"""Minimal greeting helper for routing smoke checks."""
 
@@ -228,28 +224,51 @@ def grade_run(
 
     if mode == "routed":
         sessions = [row for row in drive_rows if row.get("session") is not None]
-        resumed_ids = [row.get("resumed") for row in sessions[1:3] if isinstance(row.get("resumed"), str) and row.get("resumed")]
-        warm_resume_ok = len(sessions) >= 3 and len(resumed_ids) == 2 and len(set(resumed_ids)) == 1
-        boundary_stops_ok = (
-            (any("at system-test)" in why for why in boundary_stages)
-             and any("at product-acceptance)" in why for why in boundary_stages))
-            if check_boundary_stops else True
-        )
-        observed_models_ok = _subsequence_match(
-            model_rows,
-            [
-                (expected_planning[0], expected_planning[1], "planning"),
-                (expected_execution[0], expected_execution[1], "execution"),
-                (expected_planning[0], expected_planning[1], "planning"),
-            ],
-        )
-        passed = stages_ok and warm_resume_ok and boundary_stops_ok and observed_models_ok
-        checks = {
-            "stages_ok": stages_ok,
-            "warm_resume_ok": warm_resume_ok,
-            "boundary_stops_ok": boundary_stops_ok,
-            "observed_models_ok": observed_models_ok,
-        }
+        single_target = expected_planning == expected_execution
+        if single_target:
+            single_session_ok = len(sessions) >= 1 and len(boundary_stages) == 0
+            target_recorded_ok = bool(sessions) and sessions[0].get("model") == expected_planning[0]
+            if norm_host == "antigravity" and expected_planning[0] == "gemini-pro-orchestrator-neon":
+                orchestrator_prefixes = ("gemini-pro-orchestrator-neon", "gemini-4-neon", "gemini-4-carbon")
+                observed_models_ok = any(
+                    any(prefix in str(ev.get("model") or "").lower() for prefix in orchestrator_prefixes)
+                    for ev in model_rows
+                )
+            else:
+                observed_models_ok = any(
+                    _model_matches(ev.get("model"), ev.get("effort"), expected_planning[0], expected_planning[1])
+                    for ev in model_rows
+                )
+            passed = stages_ok and single_session_ok and target_recorded_ok and observed_models_ok
+            checks = {
+                "stages_ok": stages_ok,
+                "single_session_ok": single_session_ok,
+                "target_recorded_ok": target_recorded_ok,
+                "observed_models_ok": observed_models_ok,
+            }
+        else:
+            resumed_ids = [row.get("resumed") for row in sessions[1:3] if isinstance(row.get("resumed"), str) and row.get("resumed")]
+            warm_resume_ok = len(sessions) >= 3 and len(resumed_ids) == 2 and len(set(resumed_ids)) == 1
+            boundary_stops_ok = (
+                (any("at system-test)" in why for why in boundary_stages)
+                 and any("at product-acceptance)" in why for why in boundary_stages))
+                if check_boundary_stops else True
+            )
+            observed_models_ok = _subsequence_match(
+                model_rows,
+                [
+                    (expected_planning[0], expected_planning[1], "planning"),
+                    (expected_execution[0], expected_execution[1], "execution"),
+                    (expected_planning[0], expected_planning[1], "planning"),
+                ],
+            )
+            passed = stages_ok and warm_resume_ok and boundary_stops_ok and observed_models_ok
+            checks = {
+                "stages_ok": stages_ok,
+                "warm_resume_ok": warm_resume_ok,
+                "boundary_stops_ok": boundary_stops_ok,
+                "observed_models_ok": observed_models_ok,
+            }
     else:
         has_routing_keys = any("profile" in row or "target" in row for row in drive_rows)
         unrouted_clean = (not has_routing_keys) and (len(boundary_stages) == 0)
@@ -297,6 +316,7 @@ def stage_host(
     execution: tuple[str, str | None],
     session_timeout: int,
     max_minutes: int,
+    use_default_routing: bool = False,
 ) -> dict[str, Any]:
     """Stage an isolated workspace, seeded run, plugin, env, and `shiploop-drive` argv for `host`."""
     norm_host = model_routing.normalize_host(host)
@@ -404,13 +424,15 @@ def stage_host(
         "--max-minutes", str(max_minutes),
         "--session-timeout", str(session_timeout),
     ]
-    if mode == "routed":
+    if mode == "routed" and not use_default_routing:
         routing_cfg = {
             "planning": {norm_host: _route_entry(planning[0], planning[1])},
             "execution": {norm_host: _route_entry(execution[0], execution[1])},
         }
         routing_path.write_text(json.dumps(routing_cfg, indent=2) + "\n", encoding="utf-8")
         argv += ["--routing", str(routing_path)]
+    elif mode == "unrouted":
+        argv += ["--no-routing"]
     argv += ["--", *extra]
 
     return {
@@ -421,7 +443,7 @@ def stage_host(
         "run_id": run_id,
         "cli": str(cli),
         "drive_log": str(drive_log),
-        "routing_path": str(routing_path) if mode == "routed" else None,
+        "routing_path": str(routing_path) if (mode == "routed" and not use_default_routing) else None,
         "argv": argv,
         "env": base_env,
         "expected_planning": planning,
@@ -509,12 +531,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="let each host run all outer stages to `done` instead of pausing at release-plan")
     parser.add_argument("--dry-run", action="store_true",
                         help="stage workspaces and print driver commands without invoking live models")
-    parser.add_argument("--antigravity-planning", help="model[/effort], default gemini-4-neon-high")
-    parser.add_argument("--antigravity-execution", help="model[/effort], default gemini-4-carbon-medium")
+    parser.add_argument("--antigravity-planning", help="model[/effort], default gemini-pro-orchestrator-neon")
+    parser.add_argument("--antigravity-execution", help="model[/effort], default gemini-pro-orchestrator-neon")
     parser.add_argument("--codex-planning", help="model[/effort], default gpt-6.2-astra/high")
-    parser.add_argument("--codex-execution", help="model[/effort], default gpt-6.2-sol/medium")
-    parser.add_argument("--claude-planning", help="model[/effort], default sonnet/high")
-    parser.add_argument("--claude-execution", help="model[/effort], default haiku/low")
+    parser.add_argument("--codex-execution", help="model[/effort], default gpt-6.2-sol/xhigh")
+    parser.add_argument("--claude-planning", help="model[/effort], default claude-opus-5-5/high")
+    parser.add_argument("--claude-execution", help="model[/effort], default claude-sonnet-5-5/high")
     return parser.parse_args(argv)
 
 
@@ -550,6 +572,7 @@ def main(argv: list[str] | None = None) -> int:
     staged: list[dict[str, Any]] = []
     for host in hosts:
         planning, execution = overrides[host]
+        has_override = bool(getattr(args, f"{host}_planning") or getattr(args, f"{host}_execution"))
         for mode in modes:
             cell_out = out_root / f"{host}-{mode}"
             staged.append(stage_host(
@@ -564,6 +587,7 @@ def main(argv: list[str] | None = None) -> int:
                 execution=execution,
                 session_timeout=args.session_timeout,
                 max_minutes=args.timeout_minutes,
+                use_default_routing=(mode == "routed" and not has_override),
             ))
 
     if args.dry_run:

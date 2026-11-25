@@ -10118,6 +10118,16 @@ Added a reusable 3-host model-switching smoke runner (`test/shiploop_e2e/probes/
   - **Codex (`codex/routed`, `248.9s`):** `stages_ok=True`, `warm_resume_ok=True` (`01a2143e-b8a6-7f13-b26e-59b2614d3083` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`gpt-6.2-astra/high` `110s` rev `16→18` → `gpt-6.2-sol/medium` `34s` rev `18→19` → `gpt-6.2-astra/high` `104s` rev `19→21`).
   - **Antigravity (`antigravity/routed`, `498.57s`):** `stages_ok=True`, `warm_resume_ok=True` (`107ab34f-846f-423a-b652-6fed82fb55c8` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`gemini-4-neon-high/high` `295s` rev `16→18` → `gemini-4-carbon-medium/medium` `107s` rev `18→19` → `gemini-4-neon-high/high` `96s` rev `19→21`).
 
+## 2026-11-25 — Default-On Per-Host `shiploop-drive` Profiles (`claude-opus-5-5` ↔ `claude-sonnet-5-5`, `gpt-6.2-astra` ↔ `gpt-6.2-sol/xhigh`, `gemini-pro-orchestrator-neon`)
+
+Configured built-in default-on planning vs. execution profiles in `skills/shiploop/scripts/shiploop_model_routing.py` (`DEFAULT_ROUTING`) and `shiploop_keepalive.drive_main()` (with `--no-routing` and automatic bypass whenever pass-through `--model` / `-m` is supplied after `--`, plus `--routing default`):
+
+- **Live Run 3 (`routing-smoke-defaults-live`, `task-1334`, `--mode routed` with zero `--routing` flag) — `3/3 PASS` (`exit 0`, all 4 checks `True` per host):**
+  - **Claude (`claude/routed`, `352.6s`):** `stages_ok=True`, `warm_resume_ok=True` (`244d585d-b5a9-4b19-8418-48f27b86939d` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`claude-opus-5-5/high` `188s` rev `16→18` → `claude-sonnet-5-5/high` `41s` rev `18→19` → `claude-opus-5-5/high` `123s` rev `19→21`).
+  - **Codex (`codex/routed`, `301.71s`):** `stages_ok=True`, `warm_resume_ok=True` (`01a214ac-3aa1-7c33-bb8d-e36683d39a6e` across Sessions 2 & 3), `boundary_stops_ok=True` (`2/2` stops), `observed_models_ok=True` (`gpt-6.2-astra/high` `132s` rev `16→18` → `gpt-6.2-sol/xhigh` `54s` rev `18→19` → `gpt-6.2-astra/high` `115s` rev `19→21`).
+  - **Antigravity (`antigravity/routed`, `268.74s`):** `stages_ok=True`, `single_session_ok=True` (`1` unbroken `gemini-pro-orchestrator-neon` session `38ff245f-39c0-43e0-8b15-69813d832a5b`, `0` driver boundary stops, rev `16→21`), `target_recorded_ok=True`, `observed_models_ok=True` (`hook=model` recorded internal Orchestrator switch `gemini-4-neon-high/high` → `gemini-4-hydrogen-high/high`).
+
+
 
 
 

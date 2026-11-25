@@ -56,7 +56,11 @@ python3 -B test/shiploop-e2e-ticket-semantics.test.py
 
 # Live 3-host model-routing smoke runner
 
-`model_routing_smoke.py` verifies `shiploop-drive` harness-to-model switching across **Claude, Codex, and Antigravity** (and optional unrouted controls) on a minimal seeded outer workflow (`system-test-author` → `system-test` → `product-acceptance`):
+`model_routing_smoke.py` verifies `shiploop-drive` built-in default routing (and optional per-host overrides / `--no-routing` unrouted controls) across **Claude, Codex, and Antigravity** on a minimal seeded outer workflow (`system-test-author` → `system-test` → `product-acceptance`):
+
+- **Claude** (default): `claude-opus-5-5` (`high`) planning ↔ `claude-sonnet-5-5` (`high`) execution (`warm --resume`)
+- **Codex** (default): `gpt-6.2-astra` (`high`) planning ↔ `gpt-6.2-sol` (`xhigh`) execution (`warm --resume`)
+- **Antigravity** (default): `gemini-pro-orchestrator-neon` single-session Orchestrator (Neon plan ↔ Carbon execute internally); pass `--antigravity-planning gemini-4-neon-high --antigravity-execution gemini-4-carbon-medium` to exercise explicit `agy` driver boundary switching.
 
 ```sh
 python3 -B test/shiploop_e2e/probes/model_routing_smoke.py --hosts claude,codex,antigravity --mode routed --dry-run
