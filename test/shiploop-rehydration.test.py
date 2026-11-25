@@ -294,6 +294,28 @@ class PacketTests(unittest.TestCase):
             log.write_text("")
             self.assertEqual(nav.render(dry_run.CORE, root, state), before)
 
+    def test_index_surfaces_entered_loop_summary_and_latest_check(self) -> None:
+        state = drive_to("implement")
+        action = nav.current_action(state)["id"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            (root / "loops").mkdir()
+            (root / "loops" / f"{action}-terminal.json").write_text(
+                json.dumps({"status": "open", "progress": {"action_number": 3}}), encoding="utf-8",
+            )
+            (root / "checks").mkdir()
+            (root / "checks" / f"{action}.md").write_text(
+                "# Check failure\nExit 1: missing unit test assertion.\n", encoding="utf-8",
+            )
+            rendered = context_index.render(
+                state, root, nav.current_stage(state),
+                timeline={"started": "2026-01-01T10:00:00Z", "accepted": {}, "entered": {action: "2026-01-01T10:15:00Z"}},
+            )
+            self.assertIn(f"- Action {action} (implement); entered 2026-01-01T10:15:00Z", rendered)
+            self.assertIn("[status=open, pass=3]", rendered)
+            self.assertIn("Latest check (", rendered)
+            self.assertIn("Exit 1: missing unit test assertion.", rendered)
+
 
 class GoalFirstTests(unittest.TestCase):
     def test_every_producer_packet_leads_with_its_goal_and_done_when(self) -> None:

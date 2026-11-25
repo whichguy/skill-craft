@@ -2243,7 +2243,7 @@ def emit(core: Any, root: Path, state: Mapping[str, Any], *, host: str | None = 
     # The References block names the run's master index; a run saved without it gets it here (as reference.md does).
     if not (Path(root) / context_index.INDEX_FILE).is_file():
         store.atomic_write_text(Path(root) / context_index.INDEX_FILE,
-                                context_index.render(state, root, current_stage(state)))
+                                context_index.render(state, root, current_stage(state), timeline=timeline or None))
     if not (Path(root) / request_file.REQUEST_FILE).is_file():
         store.atomic_write_text(Path(root) / request_file.REQUEST_FILE, request_file.render(state["prompt"]))
     # The pass log every packet names lives here; the directory is ShipLoop's, the log stays the model's to create.
@@ -10193,7 +10193,7 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     # Derived display copy of the status block; refreshed only by transitions.
     writes["status.md"] = "```text\n" + status_block(state, root, timeline=timeline) + "\n```\n"
     # Derived index of everything the run has accepted, for every stage to read.
-    writes[context_index.INDEX_FILE] = context_index.render(state, root, current_stage(state))
+    writes[context_index.INDEX_FILE] = context_index.render(state, root, current_stage(state), timeline=timeline)
     # Derived run reference: the run-wide detail packets name by section (shiploop_reference).
     writes[run_reference.REFERENCE_FILE] = run_reference.render(state, root, run_reference.package_version())
     # Derived request file: the request verbatim and its sentence index S1..Sn (shiploop_request).
