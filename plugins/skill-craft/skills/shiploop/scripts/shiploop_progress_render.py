@@ -623,7 +623,12 @@ def _planning_panel(snapshot: Mapping[str, Any]) -> str:
     experiments = _rows(planning.get("experiments"))
     snapshots = _rows(planning.get("snapshots"))
     probed_rows = _rows(planning.get("probed_rows"))
-    if not (planning.get("active") or loop_info or questions or experiments or snapshots or probed_rows):
+    draft_items = _rows(planning.get("work_items")) if not planning.get("plan_accepted") else []
+    draft_slices = [
+        it for it in draft_items
+        if _value(it.get("slice")) or _value(it.get("concerns_mode"))
+    ]
+    if not (planning.get("active") or loop_info or questions or experiments or snapshots or probed_rows or draft_slices):
         return ""
 
     badge = "Pending"
@@ -683,6 +688,21 @@ def _planning_panel(snapshot: Mapping[str, Any]) -> str:
             effect = _value(row.get("effect")) or _value(row.get("statement"))
             parts.append('<li><strong>' + _escape_html(label) + '</strong> '
                          + ('<span>' + _escape_html(effect) + '</span>' if effect else '') + '</li>')
+        parts.append('</ul></div>')
+
+    if draft_slices:
+        parts.append('<div class="planning-group"><h3>Proposed slices (pending Plan Improve)</h3><ul class="planning-list">')
+        for row in draft_slices:
+            r_id = _escape_html(row.get("id"), "W?")
+            r_title = _escape_html(row.get("title"))
+            slice_tag = _value(row.get("slice"))
+            concerns_mode = _value(row.get("concerns_mode"))
+            pills = ""
+            if slice_tag:
+                pills += ' <span class="pill pill-slice">' + _escape_html(slice_tag) + '</span>'
+            if concerns_mode == "deferred":
+                pills += ' <span class="pill pill-deferred">rolling-wave · concerns deferred</span>'
+            parts.append(f'<li><strong>{r_id}</strong> <span>{r_title}</span>{pills}</li>')
         parts.append('</ul></div>')
 
     if snapshots:
@@ -1528,6 +1548,10 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
         inflight_bits.append(f"<span>Step <b>{_escape_html(inflight['step_id'])} ({int(inflight.get('step_number') or 0)}/{int(inflight['step_total'])})</b></span>")
     if inflight.get("loop_iteration"):
         inflight_bits.append(f"<span>Loop pass <b>{int(inflight['loop_iteration'])}</b></span>")
+    if inflight.get("plan_sandboxes"):
+        inflight_bits.append(f"<span>Sandboxes <b>{int(inflight['plan_sandboxes'])}</b></span>")
+    if inflight.get("plan_questions"):
+        inflight_bits.append(f"<span>Exp Qs <b>{int(inflight['plan_questions'])}</b></span>")
     if inflight.get("improve_active"):
         mode_note = f" ({_escape_html(inflight['improve_review_mode'])})" if inflight.get("improve_review_mode") else ""
         pass_note = f" · pass {int(inflight['improve_passes'])}" if inflight.get("improve_passes") else ""
