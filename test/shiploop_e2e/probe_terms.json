@@ -124,6 +124,9 @@
       "\\bDUE_TIMES\\b",
       "\\bticket[- ]due[- ]times\\b",
       "\\boverdue\\b"
+    ],
+    "cloudybot": [
+      "\\bcloudybot\\b"
     ]
   },
   "exempt": [

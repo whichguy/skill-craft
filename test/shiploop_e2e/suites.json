@@ -36,6 +36,7 @@
     "not_covered": {
       "smoke": "hello covers it in the smoke suite and as the batch gate; breadth is the generality gate for product styles",
       "parallel-graph": "no parallel-graph case has a qualified passing baseline (SPEC Promotion: a style whose focused suite has never passed is not used to judge other changes); the four cases stay opt-in with --case",
+      "hosted-platform": "its opt-in cases (such as cloudybot) deploy to a real hosted Salesforce Developer Edition org and need the owner's explicit go for each deploy, so hosted-platform stays opt-in with --case rather than in the local breadth gate",
       "brownfield": "its cases, user-listing (build step 6, R10) and the ticket chain, ticket-assignment, its follow-on ticket-escalation (D7 of the brownfield-baseline design) the third link ticket-comments (2026-10-31) and the fourth, ticket-sla (2026-10-31, the first that changes an earlier rule), and the separate small node-base chains user-roles/user-team-listing/user-page-size and user-teams/user-summary/user-team-casefold (2026-11-01, each final link changes an earlier rule), have not all run live, so the style has no qualified passing baseline (SPEC Promotion: a style whose focused suite has never passed is not used to judge other changes); they remain opt-in with --case; the small chains cover the in-memory store, routes, filters and paging only"
     }
   },

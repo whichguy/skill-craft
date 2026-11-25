@@ -111,6 +111,7 @@
     "test/shiploop-e2e-baseline.test.py": 32.549,
     "test/shiploop-e2e-brownfield-tickets.test.py": 356.094,
     "test/shiploop-e2e-brownfield.test.py": 39.703,
+    "test/shiploop-e2e-cloudybot.test.py": 4.709,
     "test/shiploop-e2e-commit-counters.test.py": 14.15,
     "test/shiploop-e2e-corpus.test.py": 5.845,
     "test/shiploop-e2e-cycle.test.py": 49.234,

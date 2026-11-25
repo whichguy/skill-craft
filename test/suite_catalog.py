@@ -174,6 +174,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-packet-anatomy.test.py",
     "test/shiploop-e2e-render-diff.test.py",
     "test/shiploop-e2e-commit-counters.test.py",
+    "test/shiploop-e2e-cloudybot.test.py",
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-status-card.test.py",
     "test/shiploop-e2e-efficiency.test.py",

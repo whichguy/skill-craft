@@ -22,6 +22,20 @@ For independent builds of the Codybot Salesforce package, use the
 fresh Git project from the complete brief by default. Use `--run` to start
 one Codex session for a new project.
 
+For the opt-in **CloudyBot** Salesforce Developer Edition bot-harness case
+(`hosted-platform`, blank repo start, org `de`, prefix `CloudyBot`), preflight
+read-only, run with `--keep-platform` to keep the deployed Lightning app in
+`de` on pass, and evaluate independently with `iterate.py`:
+
+```sh
+python3 -B test/shiploop_e2e/run.py --preflight-only --case cloudybot --source marketplace --host codex --codex-auto-review --output ~/e2e-runs/cloudybot-preflight/check
+python3 -B test/shiploop_e2e/run.py --case cloudybot --keep-platform --source marketplace --host codex --model gpt-6.2-sol --effort xhigh --codex-auto-review --output ~/e2e-runs/cloudybot/<run-name>
+python3 -B test/shiploop_e2e/iterate.py --case cloudybot --review-run ~/e2e-runs/cloudybot/<run-name> --output ~/e2e-runs/cloudybot/<run-name>-review
+```
+
+Pass `--platform-prefix <OtherPrefix>` on `run.py` to run a second isolated
+CloudyBot deployment in `de` without colliding with an existing kept install.
+
 ## Inspect and repair retained evidence
 
 Identify the current owned checkout without starting a host or changing a saved run:
