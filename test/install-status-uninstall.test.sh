@@ -17,10 +17,6 @@ fresh_home() {
   mkdir -p "$HOME"
 }
 
-opencode_skills_dir() {
-  printf '%s/opencode/skills\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
-}
-
 tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/skill-craft-status.XXXXXX")"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
@@ -32,22 +28,21 @@ fresh_home s1
 out1="$("$install_sh" --status --skill skill-interop --claude-only 2>&1)" || fail "S1: $out1"
 printf '%s\n' "$out1" | grep -q 'state=absent' || fail "S1 absent: $out1"
 
-# S2: install then status owned (--all: Claude and OpenCode both need an
-# explicit host flag now that the default installs only OpenCode/Hermes).
+# S2: install then status owned (--all: exercise Claude + Codex)
 fresh_home s2
 "$install_sh" --all --skill skill-interop >/dev/null
 out2="$("$install_sh" --status --all --skill skill-interop 2>&1)" || fail "S2: $out2"
 printf '%s\n' "$out2" | grep -q 'Claude Code' || fail "S2 missing Claude"
-printf '%s\n' "$out2" | grep -q 'OpenCode' || fail "S2 missing OpenCode"
+printf '%s\n' "$out2" | grep -q 'Codex' || fail "S2 missing Codex"
 printf '%s\n' "$out2" | grep -q 'state=symlink-owned' || fail "S2 symlink-owned: $out2"
 
-# S4: uninstall owned symlinks (--all: exercise Claude + OpenCode explicitly)
+# S4: uninstall owned symlinks (--all: exercise Claude + Codex)
 fresh_home s4
 "$install_sh" --all --skill skill-interop >/dev/null
 out4="$("$install_sh" --uninstall --all --skill skill-interop 2>&1)" || fail "S4: $out4"
 printf '%s\n' "$out4" | grep -q 'Uninstalled symlink' || fail "S4 symlink: $out4"
 [[ ! -e "$HOME/.claude/skills/skill-interop" ]] || fail "S4 claude remains"
-[[ ! -e "$HOME/.config/opencode/skills/skill-interop" ]] || fail "S4 OpenCode remains"
+[[ ! -e "$HOME/.codex/skills/skill-interop" ]] || fail "S4 codex remains"
 
 # S5: dry-run uninstall no mutate
 fresh_home s5
@@ -79,19 +74,19 @@ printf '%s\n' "$out7u" | grep -q 'Skipped uninstall (not owned)' || fail "S7 ski
 
 # S8: status copy-owned-stale after managed --copy install then dest content drift
 fresh_home s8
-"$install_sh" --skill skill-interop --opencode-only --copy >/dev/null
-printf 'drift-s8\n' >>"$(opencode_skills_dir)/skill-interop/SKILL.md"
-out8="$("$install_sh" --status --skill skill-interop --opencode-only 2>&1)" || fail "S8 status: $out8"
+"$install_sh" --skill skill-interop --codex-only --copy >/dev/null
+printf 'drift-s8\n' >>"$HOME/.codex/skills/skill-interop/SKILL.md"
+out8="$("$install_sh" --status --skill skill-interop --codex-only 2>&1)" || fail "S8 status: $out8"
 printf '%s\n' "$out8" | grep -q 'state=copy-owned-stale' || fail "S8 stale: $out8"
 # uninstall still owns stale managed copy
-out8u="$("$install_sh" --uninstall --skill skill-interop --opencode-only 2>&1)" || fail "S8 uninstall: $out8u"
+out8u="$("$install_sh" --uninstall --skill skill-interop --codex-only 2>&1)" || fail "S8 uninstall: $out8u"
 printf '%s\n' "$out8u" | grep -q 'Uninstalled copy' || fail "S8 uninstall owned: $out8u"
-[[ ! -e "$(opencode_skills_dir)/skill-interop" ]] || fail "S8 dest remains"
+[[ ! -e "$HOME/.codex/skills/skill-interop" ]] || fail "S8 dest remains"
 
 printf 'install-status-uninstall.test.sh: PASS S1–S2, S4–S8 (continued)\n'
 
 # --- S9–S13: marker-invalid foreign (byte-identical under install/status/uninstall) ---
-# Shared setup: foreign tree + invalid marker for the OpenCode copy-mode skill-interop leaf.
+# Shared setup: foreign tree + invalid marker for the Codex copy-mode skill-interop leaf.
 
 marker_invalid_case() {
   local case_id="$1"
@@ -99,9 +94,9 @@ marker_invalid_case() {
   local expect_snip="$3"
   fresh_home "mi-$case_id"
   local dest
-  dest="$(opencode_skills_dir)/skill-interop"
+  dest="$HOME/.codex/skills/skill-interop"
   local mdir
-  mdir="$(opencode_skills_dir)/.skill-craft"
+  mdir="$HOME/.codex/skills/.skill-craft"
   mkdir -p "$dest" "$mdir"
   printf 'foreign-body-%s\n' "$case_id" >"$dest/SKILL.md"
   printf 'keep-me\n' >"$dest/extra-$case_id.txt"
@@ -112,18 +107,18 @@ marker_invalid_case() {
   local mbefore mafter
   mbefore="$(shasum "$mdir/skill-interop.json" | awk '{print $1}')"
 
-  out_st="$("$install_sh" --status --skill skill-interop --opencode-only 2>&1)" || fail "S$case_id status: $out_st"
+  out_st="$("$install_sh" --status --skill skill-interop --codex-only 2>&1)" || fail "S$case_id status: $out_st"
   printf '%s\n' "$out_st" | grep -q 'state=foreign' || fail "S$case_id status foreign: $out_st"
 
   set +e
-  out_in="$("$install_sh" --skill skill-interop --opencode-only --copy 2>&1)"
+  out_in="$("$install_sh" --skill skill-interop --codex-only --copy 2>&1)"
   rc_in=$?
   set -e
   [[ "$rc_in" -eq 3 ]] || fail "S$case_id install want exit 3 got $rc_in: $out_in"
   printf '%s\n' "$out_in" | grep -qi 'foreign\|Skipped' || fail "S$case_id install skip: $out_in"
 
   set +e
-  out_un="$("$install_sh" --uninstall --skill skill-interop --opencode-only 2>&1)"
+  out_un="$("$install_sh" --uninstall --skill skill-interop --codex-only 2>&1)"
   rc_un=$?
   set -e
   [[ "$rc_un" -eq 3 ]] || fail "S$case_id uninstall want exit 3 got $rc_un: $out_un"
@@ -318,57 +313,21 @@ printf '%s\n' "$out23" | grep -q 'plugin-track: skill-craft@other-market  versio
 printf '%s\n' "$out23" | grep -q 'double-install' && fail "S23 mixed cache false duplicate: $out23"
 pass "S23 mixed false and unknown remains unknown"
 
-# S24: OpenCode's XDG target supports the normal symlink lifecycle from a path
-# with spaces: install, idempotent re-run, status, and owned uninstall.
-fresh_home s24
-export XDG_CONFIG_HOME="$tmpdir/opencode config s24"
-opencode_dest="$(opencode_skills_dir)/skill-interop"
-out24i="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "S24 install: $out24i"
-[[ -L "$opencode_dest" ]] || fail "S24 expected symlink: $opencode_dest"
-[[ "$(readlink "$opencode_dest")" == "$source_interop" ]] || fail "S24 wrong symlink target"
-out24r="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "S24 rerun: $out24r"
-printf '%s\n' "$out24r" | grep -q 'Already installed' || fail "S24 idempotent rerun: $out24r"
-out24s="$("$install_sh" --status --opencode-only --skill skill-interop 2>&1)" || fail "S24 status: $out24s"
-printf '%s\n' "$out24s" | grep -q 'OpenCode' || fail "S24 OpenCode status label: $out24s"
-printf '%s\n' "$out24s" | grep -q 'state=symlink-owned' || fail "S24 owned status: $out24s"
-out24u="$("$install_sh" --uninstall --opencode-only --skill skill-interop 2>&1)" || fail "S24 uninstall: $out24u"
-printf '%s\n' "$out24u" | grep -q 'Uninstalled symlink' || fail "S24 owned uninstall: $out24u"
-[[ ! -e "$opencode_dest" && ! -L "$opencode_dest" ]] || fail "S24 destination remains"
-
-# S25: a foreign real OpenCode tree is reported and survives install/uninstall.
-fresh_home s25
-export XDG_CONFIG_HOME="$tmpdir/opencode config s25"
-opencode_dest="$(opencode_skills_dir)/skill-interop"
-mkdir -p "$opencode_dest"
-printf 'foreign-opencode\n' >"$opencode_dest/SKILL.md"
-out25s="$("$install_sh" --status --opencode-only --skill skill-interop 2>&1)" || fail "S25 status: $out25s"
-printf '%s\n' "$out25s" | grep -q 'state=foreign' || fail "S25 foreign status: $out25s"
-out25i="$("$install_sh" --opencode-only --skill skill-interop 2>&1)" || fail "S25 install: $out25i"
-printf '%s\n' "$out25i" | grep -q 'Skipped existing path' || fail "S25 foreign install skip: $out25i"
-set +e
-out25u="$("$install_sh" --uninstall --opencode-only --skill skill-interop 2>&1)"
-rc25u=$?
-set -e
-[[ "$rc25u" -eq 3 ]] || fail "S25 uninstall want exit 3 got $rc25u: $out25u"
-printf '%s\n' "$out25u" | grep -q 'Skipped uninstall (not owned)' || fail "S25 foreign uninstall skip: $out25u"
-[[ "$(cat "$opencode_dest/SKILL.md")" == 'foreign-opencode' ]] || fail "S25 foreign content changed"
-
-# S26: --copy uses the marker-backed ownership lifecycle at the OpenCode path.
+# S26: --copy uses the marker-backed ownership lifecycle at the Codex path.
 fresh_home s26
-export XDG_CONFIG_HOME="$tmpdir/opencode config s26"
-opencode_skills="$(opencode_skills_dir)"
-opencode_dest="$opencode_skills/skill-interop"
-opencode_marker="$opencode_skills/.skill-craft/skill-interop.json"
-out26i="$("$install_sh" --opencode-only --copy --skill skill-interop 2>&1)" || fail "S26 copy install: $out26i"
-[[ -d "$opencode_dest" && ! -L "$opencode_dest" ]] || fail "S26 expected real copied directory"
-[[ -f "$opencode_marker" ]] || fail "S26 copy marker missing"
-diff -rq "$source_interop" "$opencode_dest" >/dev/null || fail "S26 copy differs from source"
-out26s="$("$install_sh" --status --opencode-only --skill skill-interop 2>&1)" || fail "S26 status: $out26s"
+codex_skills="$HOME/.codex/skills"
+codex_dest="$codex_skills/skill-interop"
+codex_marker="$codex_skills/.skill-craft/skill-interop.json"
+out26i="$("$install_sh" --codex-only --copy --skill skill-interop 2>&1)" || fail "S26 copy install: $out26i"
+[[ -d "$codex_dest" && ! -L "$codex_dest" ]] || fail "S26 expected real copied directory"
+[[ -f "$codex_marker" ]] || fail "S26 copy marker missing"
+diff -rq "$source_interop" "$codex_dest" >/dev/null || fail "S26 copy differs from source"
+out26s="$("$install_sh" --status --codex-only --skill skill-interop 2>&1)" || fail "S26 status: $out26s"
 printf '%s\n' "$out26s" | grep -q 'state=copy-owned' || fail "S26 copy-owned status: $out26s"
-out26u="$("$install_sh" --uninstall --opencode-only --skill skill-interop 2>&1)" || fail "S26 uninstall: $out26u"
+out26u="$("$install_sh" --uninstall --codex-only --skill skill-interop 2>&1)" || fail "S26 uninstall: $out26u"
 printf '%s\n' "$out26u" | grep -q 'Uninstalled copy' || fail "S26 copy uninstall: $out26u"
-[[ ! -e "$opencode_dest" ]] || fail "S26 copied destination remains"
-[[ ! -e "$opencode_marker" ]] || fail "S26 copy marker remains"
+[[ ! -e "$codex_dest" ]] || fail "S26 copied destination remains"
+[[ ! -e "$codex_marker" ]] || fail "S26 copy marker remains"
 
 # S27: --copy over an owned symlink install is not auto-migrated. Without
 # --relink it is skipped with a hint; --copy --relink replaces it with a managed

@@ -14,7 +14,6 @@ Optional commands (never part of default CI):
   help, --help, -h   Show this help without checking host prerequisites.
   cursor-imports     Verify imported Cursor skills are available on this host.
   marketplace-claude  Install local candidate plugins in a disposable Claude profile.
-  marketplace-grok    Install local candidate plugins in a disposable Grok profile.
   marketplace-codex   Install local candidate plugins in a disposable Codex profile.
   marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
   shiploop-e2e [--case NAME | --prompt TEXT --check CMD] [run.py options]
@@ -40,7 +39,7 @@ case "${1:-list}" in
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }
     exec bash "$root/test/cursor-imported-skills.test.sh"
     ;;
-  marketplace-claude|marketplace-grok|marketplace-codex)
+  marketplace-claude|marketplace-codex)
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }
     exec python3 "$root/test/marketplace-host-smoke.py" --host "${1#marketplace-}"
     ;;

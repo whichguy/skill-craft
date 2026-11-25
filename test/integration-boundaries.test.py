@@ -57,6 +57,11 @@ class IntegrationBoundaryTests(unittest.TestCase):
             self.assertIn("shiploop-stages", result.stdout)
             self.assertIn("cursor-imports", result.stdout)
             self.assertIn("marketplace-claude", result.stdout)
+            self.assertNotIn("marketplace-grok", result.stdout)
+
+        result = invoke(["bash", str(RUNNER), "marketplace-grok"], empty_env)
+        self.assertEqual(64, result.returncode)
+        self.assertIn("unknown command", result.stderr)
 
         result = invoke(["bash", str(RUNNER), "marketplace-codex", "extra"], empty_env)
         self.assertEqual(64, result.returncode, result.stdout + result.stderr)

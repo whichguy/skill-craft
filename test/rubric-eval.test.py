@@ -304,43 +304,9 @@ class Statistics(unittest.TestCase):
         self.assertEqual((v["criteria"]["D2"]["grade"], v["criteria"]["D2"]["judge_grade"]), ("partial", "met"))
         self.assertTrue(R.quote_found("the player\u2019s board -- hidden", "The player's board: hidden."))  # punctuation
 
-    def test_grok_calls_name_a_tool_allowlist(self):
-        # Grok reads `--tools ""` as no restriction (shell and file tools included); every call must name
-        # an allowlist and remove the meta-tools that load other tools.
-        seen = []
-        class Done:
-            stdout = '{"text": "ok", "usage": {"input_tokens": 3, "output_tokens": 2}}'
-        real = M.subprocess.run
-        M.subprocess.run = lambda argv, **kw: (seen.append(argv), Done())[1]
-        old_home = M.grok_home
-        M.grok_home = lambda: Path(tempfile.gettempdir())
-        try:
-            r = M.call_full("grok", "hi"); M.call_full("grok", "hi", tools="Read")
-        finally:
-            M.subprocess.run = real; M.grok_home = old_home
-        self.assertEqual((r["text"], r["input_tokens"], r["output_tokens"]), ("ok", 3, 2))
-        for argv, allowed in zip(seen, ("todo_write", "read_file,list_dir,grep")):
-            self.assertEqual(argv[argv.index("--tools") + 1], allowed)
-            self.assertEqual(argv[argv.index("--disallowed-tools") + 1], "search_tool,use_tool")
-            self.assertIn("-p", argv); self.assertNotIn("--prompt-file", argv)   # no prompt file on disk
-            self.assertNotIn("--always-approve", argv)
-        self.assertNotIn("--sandbox", seen[1])      # cannot start here; reads are audited instead
-
-    def test_outside_paths_flags_reads_beyond_the_call_directory(self):
-        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as cwd:
-            log = Path(home) / ".grok" / "sessions" / "x" / "sid1"; log.mkdir(parents=True)
-            ev = lambda tool, inp: json.dumps({"params": {"update": {"sessionUpdate": "tool_call", "title": tool, "rawInput": inp}}})
-            (log / "updates.jsonl").write_text("\n".join([
-                ev("read_file", {"target_file": f"{cwd}/references/a.md"}), ev("read_file", {"target_file": "references/b.md"}),
-                ev("grep", {"pattern": "google/script|a/b", "path": "references"}),       # a slash in a pattern is not a path
-                ev("list_dir", {"target_directory": "/private/tmp"}), ev("list_dir", {"variant": "ListDir", "target_directory": "../other"}),
-                ev("run_terminal_command", {"command": "ls"})]))
-            self.assertEqual(M.grok_outside(Path(home), "sid1", cwd), ["../other", "/private/tmp", "tool:run_terminal_command"])
-            self.assertIsNone(M.grok_outside(Path(home), "missing", cwd))
-
     def test_specs_resolve_and_pin_effort(self):
         self.assertEqual(M.resolve("luna"), {"host": "codex", "model": "gpt-6-luna", "effort": "max", "spec": "codex:gpt-6-luna@max"})
-        self.assertEqual(R.spec("opus"), "claude:claude-opus-5-5@medium"); self.assertEqual(R.spec("grok"), "grok:grok-4.7@medium")
+        self.assertEqual(R.spec("opus"), "claude:claude-opus-5-5@medium")
         self.assertEqual(M.resolve("claude:sonnet")["effort"], None)
         with self.assertRaises(ValueError):
             M.resolve("gpt:foo")

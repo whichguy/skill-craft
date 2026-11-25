@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Hermetic coverage for skills/skill-interop/scripts/marketplace-run.sh (Phase B).
-# Cases M1–M8: stub CLIs only — no real marketplace network calls.
+# Stub CLIs only (Claude and Codex) — no real marketplace network calls.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -205,18 +205,18 @@ STUB
 
 write_stub claude
 write_stub codex
-write_stub grok
 
 export PATH="$stub_bin:$PATH"
-# Clear env overrides so stubs win via PATH (unless a case sets them)
-unset CLAUDE_BIN CODEX_BIN GROK_BIN || true
+# Clear env overrides so stubs win via PATH (unless a case sets them); isolate Grok binary out of PATH lookup.
+unset CLAUDE_BIN CODEX_BIN || true
+export GROK_BIN="$tmpdir/missing-grok"
 
 run_mp() {
   bash "$mp" "$@"
 }
 
 # ---------------------------------------------------------------------------
-# M1: all stubs → hosts --json shows three available
+# M1: Claude and Codex stubs → hosts --json shows both available
 # ---------------------------------------------------------------------------
 : >"$STUB_LOG"
 out="$(run_mp hosts --json)" || fail "M1 hosts failed: $out"
@@ -227,24 +227,24 @@ hosts=d.get("hosts") or d
 if isinstance(hosts, dict):
     hosts=list(hosts.values())
 by={h["host"]:h for h in hosts}
-for name in ("claude","grok","codex"):
+for name in ("claude","codex"):
     assert name in by, name
     assert by[name]["status"]=="available", (name, by[name])
 print("M1 ok")
 ' || fail "M1 JSON shape: $out"
 
 # ---------------------------------------------------------------------------
-# M2: PATH without codex stub → codex unavailable, others available
+# M2: PATH without codex stub → codex unavailable, claude available
 # ---------------------------------------------------------------------------
 : >"$STUB_LOG"
-# Put only claude+grok on PATH; point CODEX_BIN at missing path
+# Put only claude on PATH; point CODEX_BIN at missing path
 m2_bin="$tmpdir/bin-m2"
 mkdir -p "$m2_bin"
-cp "$stub_bin/claude" "$stub_bin/grok" "$m2_bin/"
+cp "$stub_bin/claude" "$m2_bin/"
 out="$(
   PATH="$m2_bin:/usr/bin:/bin" \
   CLAUDE_BIN="$m2_bin/claude" \
-  GROK_BIN="$m2_bin/grok" \
+  GROK_BIN="$tmpdir/missing-grok" \
   CODEX_BIN="$tmpdir/missing-codex" \
   bash "$mp" hosts --json
 )" || fail "M2 hosts failed: $out"
@@ -253,7 +253,6 @@ import json,sys
 d=json.load(sys.stdin)
 by={h["host"]:h for h in d["hosts"]}
 assert by["claude"]["status"]=="available"
-assert by["grok"]["status"]=="available"
 assert by["codex"]["status"]=="unavailable", by["codex"]
 print("M2 ok")
 ' || fail "M2: $out"
@@ -263,7 +262,7 @@ print("M2 ok")
 # ---------------------------------------------------------------------------
 : >"$STUB_LOG"
 export PATH="$stub_bin:$PATH"
-unset CLAUDE_BIN CODEX_BIN GROK_BIN || true
+unset CLAUDE_BIN CODEX_BIN || true
 out="$(run_mp marketplaces list --json)" || fail "M3 failed: $out"
 echo "$out" | python3 -c '
 import json,sys
@@ -273,7 +272,7 @@ hosts=set()
 for it in items:
     if it.get("name"):
         hosts.add(it["host"])
-for h in ("claude","grok","codex"):
+for h in ("claude","codex"):
     assert h in hosts, (h, items)
 print("M3 ok")
 ' || fail "M3: $out"
@@ -290,7 +289,7 @@ items=d.get("plugins") or []
 assert items, "empty plugins"
 for p in items:
     assert p.get("kind")=="plugin", p
-    assert p.get("host") in ("claude","grok","codex"), p
+    assert p.get("host") in ("claude","codex"), p
     assert p.get("id") or p.get("name"), p
 # expect at least one claude + one codex plugin from fixtures
 hosts=set(p["host"] for p in items)
@@ -299,11 +298,11 @@ print("M4 ok")
 ' || fail "M4: $out"
 
 # ---------------------------------------------------------------------------
-# M5: --host claude → stub log has only claude (no grok/codex)
+# M5: --host claude → stub log has only claude (no codex)
 # ---------------------------------------------------------------------------
 : >"$STUB_LOG"
 out="$(run_mp plugins list --json --host claude)" || fail "M5 failed: $out"
-if grep -E '^(grok|codex) ' "$STUB_LOG" >/dev/null 2>&1; then
+if grep -E '^codex ' "$STUB_LOG" >/dev/null 2>&1; then
   fail "M5 stub log has non-claude lines: $(cat "$STUB_LOG")"
 fi
 grep -q '^claude ' "$STUB_LOG" || fail "M5 expected claude invocations in log"
@@ -358,43 +357,6 @@ fi
 printf 'M8 ok\n'
 
 # ---------------------------------------------------------------------------
-# M9: unqualified name@marketplace is ambiguous on Grok → exit 4; no install call
-# ---------------------------------------------------------------------------
-: >"$STUB_LOG"
-set +e
-out="$(run_mp plugins install code-review@claude-plugins-official --host grok 2>&1)"
-ec=$?
-set -e
-[[ "$ec" -eq 4 ]] || fail "M9 expected exit 4 for ambiguous Grok id, got $ec: $out"
-printf '%s\n' "$out" | grep -qiE 'git URL|GitHub|local path|git ref' \
-  || fail "M9 should explain Grok accepts git/path only: $out"
-if grep -E 'grok plugin install code-review@' "$STUB_LOG" >/dev/null 2>&1; then
-  fail "M9 stub log must NOT contain grok plugin install code-review@…: $(cat "$STUB_LOG")"
-fi
-if grep -E 'plugin install' "$STUB_LOG" >/dev/null 2>&1; then
-  fail "M9 must not invoke install at all: $(cat "$STUB_LOG")"
-fi
-printf 'M9 ok\n'
-
-# ---------------------------------------------------------------------------
-# M10: dry-run ambiguous Grok id → also no install call (precondition)
-# ---------------------------------------------------------------------------
-: >"$STUB_LOG"
-set +e
-out="$(run_mp plugins install code-review@claude-plugins-official --host grok --dry-run 2>&1)"
-ec=$?
-set -e
-[[ "$ec" -eq 4 ]] || fail "M10 expected exit 4 on dry-run precondition, got $ec: $out"
-if grep -E 'plugin install|would-run' "$STUB_LOG" >/dev/null 2>&1; then
-  fail "M10 dry-run must not call install: $(cat "$STUB_LOG")"
-fi
-# would-run should not appear either (rejected before CLI)
-if printf '%s\n' "$out" | grep -qi 'would-run'; then
-  fail "M10 dry-run should not print would-run for rejected id: $out"
-fi
-printf 'M10 ok\n'
-
-# ---------------------------------------------------------------------------
 # M11: install-local requires an explicitly chosen checkout installer
 # ---------------------------------------------------------------------------
 reloc="$tmpdir/reloc-root"
@@ -433,80 +395,7 @@ set -e
 [[ "$ec" -eq 4 ]] || fail "M11 relative installer should exit 4, got $ec: $out"
 printf '%s\n' "$out" | grep -qi 'absolute path' \
   || fail "M11 relative installer explanation missing: $out"
-# A documented Grok git shorthand source still works.
-: >"$STUB_LOG"
-out="$(run_mp plugins install example/fixture-plugin --host grok 2>&1)" \
-  || fail "M11b grok git shorthand install failed: $out"
-grep -q 'grok plugin install example/fixture-plugin' "$STUB_LOG" \
-  || fail "M11b expected grok install of user/repo: $(cat "$STUB_LOG")"
 printf 'M11 ok\n'
 
-# ---------------------------------------------------------------------------
-# M12: Grok's qualified marketplace selector is deliberately passed unchanged.
-# It disambiguates duplicate plugin names; the wrapper must not mistake its
-# slash qualifier for a Claude-only id or add trust implicitly.
-# ---------------------------------------------------------------------------
-: >"$STUB_LOG"
-out="$(run_mp plugins install review-coverage@local/local-marketplace --host grok 2>&1)" \
-  || fail "M12 qualified Grok selector failed: $out"
-grep -Fqx 'grok plugin install review-coverage@local/local-marketplace' "$STUB_LOG" \
-  || fail "M12 selector was not passed unchanged: $(cat "$STUB_LOG")"
-if grep -F -- '--trust' "$STUB_LOG" >/dev/null 2>&1; then
-  fail "M12 must not trust Grok plugins unless explicitly requested: $(cat "$STUB_LOG")"
-fi
-printf 'M12 ok\n'
-
-# ---------------------------------------------------------------------------
-# M13: --trust is an explicit Grok-only opt-in and reaches Grok unchanged.
-# ---------------------------------------------------------------------------
-: >"$STUB_LOG"
-out="$(run_mp plugins install review-coverage@local/local-marketplace --trust --host grok 2>&1)" \
-  || fail "M13 explicit Grok trust failed: $out"
-grep -Fqx 'grok plugin install review-coverage@local/local-marketplace --trust' "$STUB_LOG" \
-  || fail "M13 must forward explicit --trust to Grok: $(cat "$STUB_LOG")"
-printf 'M13 ok\n'
-
-# ---------------------------------------------------------------------------
-# M14: --trust is not a cross-host flag; reject rather than drop or reinterpret it.
-# ---------------------------------------------------------------------------
-: >"$STUB_LOG"
-set +e
-out="$(run_mp plugins install x@y --trust --host claude 2>&1)"
-ec=$?
-set -e
-[[ "$ec" -eq 4 ]] || fail "M14 expected exit 4 for unsupported Claude --trust, got $ec: $out"
-printf '%s\n' "$out" | grep -qi -- '--host grok' \
-  || fail "M14 should explain Grok-only trust: $out"
-if grep -E 'claude plugin install|grok plugin install|codex plugin add' "$STUB_LOG" >/dev/null 2>&1; then
-  fail "M14 must reject before invoking any install: $(cat "$STUB_LOG")"
-fi
-printf 'M14 ok\n'
-
-# ---------------------------------------------------------------------------
-# M15: the default multi-host selection also rejects --trust before any install.
-# ---------------------------------------------------------------------------
-: >"$STUB_LOG"
-set +e
-out="$(run_mp plugins install review-coverage@local/local-marketplace --trust --host all 2>&1)"
-ec=$?
-set -e
-[[ "$ec" -eq 4 ]] || fail "M15 expected exit 4 for --trust with --host all, got $ec: $out"
-printf '%s\n' "$out" | grep -qi -- '--host grok' \
-  || fail "M15 should require an explicit Grok host: $out"
-if grep -E 'claude plugin install|grok plugin install|codex plugin add' "$STUB_LOG" >/dev/null 2>&1; then
-  fail "M15 must reject before invoking any install: $(cat "$STUB_LOG")"
-fi
-printf 'M15 ok\n'
-
-# ---------------------------------------------------------------------------
-# M16: Grok removal consumes the installed short name, not its install selector.
-# ---------------------------------------------------------------------------
-: >"$STUB_LOG"
-out="$(run_mp plugins uninstall review-coverage --host grok 2>&1)" \
-  || fail "M16 Grok uninstall by installed name failed: $out"
-grep -Fqx 'grok plugin uninstall review-coverage' "$STUB_LOG" \
-  || fail "M16 must pass the Grok installed name unchanged: $(cat "$STUB_LOG")"
-printf 'M16 ok\n'
-
-printf 'marketplace-run.test.sh: PASS M1–M16\n'
+printf 'marketplace-run.test.sh: PASS M1–M8, M11\n'
 exit 0

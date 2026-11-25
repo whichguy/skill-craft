@@ -340,7 +340,6 @@ class TestGroupTests(unittest.TestCase):
                                                  "shiploop-keepalive"},
             "skills/shiploop/scripts/shiploop_protocol.py": {"shiploop-delegation", "shiploop-lint"},
             "skills/shiploop/host-hooks.json": {"shiploop-package-integrity"},
-            "skills/shiploop/hooks/opencode-keepalive.js": {"shiploop-package-integrity"},
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
@@ -860,7 +859,7 @@ class StateHomeGuardTest(unittest.TestCase):
         self.assert_the_developers_state_is_untouched()
 
     def test_ci_stand_in_markers_let_the_guard_see_a_keepalive_leak(self) -> None:
-        """GitHub runners have no host session, so keepalive never wrote there and CI never saw its leaks (round 3)."""
+        """Both run_suites.py's own default stand-in markers and CI's workflow markers expose keepalive leaks."""
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         markers = dict(re.findall(r"^\s+(CLAUDECODE|CLAUDE_CODE_SESSION_ID): '?([^'\n]+)'?$", workflow,
                                   re.MULTILINE))
@@ -870,11 +869,11 @@ class StateHomeGuardTest(unittest.TestCase):
         argv = (sys.executable, "-B", "-c", notice, str(ROOT / "skills/shiploop/scripts"))
         hosts = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID",
                  "ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID")
-        for given, leaks in (({}, False), (markers, True)):
+        for given in ({}, markers):
             environment = {key: value for key, value in os.environ.items() if key not in hosts}
             with self.subTest(markers=sorted(given)), mock.patch.dict(os.environ, {**environment, **given}, clear=True):
                 outcome = run_suites.run_process(argv, cwd=self.root, timeout_seconds=60)
-                self.assertEqual(outcome.status, "failed" if leaks else "passed", outcome.error or outcome.stderr)
+                self.assertEqual(outcome.status, "failed", outcome.error or outcome.stderr)
         self.assert_the_developers_state_is_untouched()
 
     def test_a_suite_that_gives_the_runtime_its_own_state_root_passes(self) -> None:

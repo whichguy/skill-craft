@@ -1621,8 +1621,6 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             "codex": "Host hint (codex):",
             "claude": "Host hint (claude):",
             "cursor": "Host hint (cursor, pilot-ide):",
-            "grok": "Host hint (grok):",
-            "opencode": "Host hint (opencode, unqualified):",
             "antigravity": "Host hint (antigravity):",
             "unknown": "Host hint (unknown):",
         }

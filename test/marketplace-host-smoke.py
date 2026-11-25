@@ -3,7 +3,7 @@
 
 Tests a build of the current local source, not the committed plugins/ tree
 or its published Git catalog pins.
-Run with --host claude|grok|codex. The personal host profiles are never used.
+Run with --host claude|codex. The personal host profiles are never used.
 """
 from __future__ import annotations
 
@@ -116,7 +116,6 @@ def package_tree_digests(root: Path) -> dict[str, str]:
 def installed_skill_card(home: Path, host: str, name: str) -> Path:
     """Return one materialized cache card confined to the disposable profile."""
     installed_root = home / {
-        "grok": ".grok/installed-plugins",
         "claude": ".claude/plugins/cache",
         "codex": ".codex/plugins/cache",
     }[host]
@@ -166,16 +165,14 @@ def run_smoke(host: str, binary: str) -> dict:
         # home, authenticate, or copy personal configuration/credentials here.
         env = isolated_environment(parent, home)
         env.update({f"{host.upper()}_BIN": resolved})
-        for path in (home / ".codex", home / ".claude", home / ".grok"):
+        for path in (home / ".codex", home / ".claude"):
             path.mkdir()
         # Every skill ships in the one skill-craft bundle now, so the local
         # catalog carries exactly one plugin entry covering every LEAVES skill.
         source = package_build.plugins() / PLUGIN_NAME
         shutil.copytree(source, market / "plugins" / PLUGIN_NAME,
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        if host == "grok":
-            plugin_entry = {"name": PLUGIN_NAME, "source": {"type": "local", "path": f"./plugins/{PLUGIN_NAME}"}}
-        elif host == "codex":
+        if host == "codex":
             plugin_entry = {"name": PLUGIN_NAME, "source": {"source": "local", "path": f"./plugins/{PLUGIN_NAME}"},
                             "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
                             "category": "Productivity"}
@@ -185,7 +182,7 @@ def run_smoke(host: str, binary: str) -> dict:
         catalog = {"name": catalog_name, "plugins": [plugin_entry]}
         if host == "claude":
             catalog["owner"] = {"name": "Skill Craft local test"}
-        manifest_dir = market / ({"grok": ".grok-plugin", "claude": ".claude-plugin", "codex": ".agents/plugins"}[host])
+        manifest_dir = market / ({"claude": ".claude-plugin", "codex": ".agents/plugins"}[host])
         manifest_dir.mkdir(parents=True)
         (manifest_dir / "marketplace.json").write_text(json.dumps(catalog), encoding="utf-8")
 
@@ -211,10 +208,8 @@ def run_smoke(host: str, binary: str) -> dict:
         # Bootstrap the plugin itself via the real host CLI; subsequent catalog
         # and plugin operations deliberately go through its installed wrapper.
         call([resolved, "plugin", "marketplace", "add", str(market)])
-        helper_id = PLUGIN_NAME if host == "grok" else f"{PLUGIN_NAME}@{catalog_name}"
+        helper_id = f"{PLUGIN_NAME}@{catalog_name}"
         install = [resolved, "plugin", "add" if host == "codex" else "install", helper_id]
-        if host == "grok":
-            install.append("--trust")
         call(install)
         helper = installed_skill("skill-interop").parent / "scripts/marketplace-run.sh"
         wrapper = ["bash", str(helper), "--host", host]
@@ -243,15 +238,12 @@ def run_smoke(host: str, binary: str) -> dict:
         # The whole bundle is one plugin, so removing it removes every skill;
         # verify via the raw host CLI rather than the wrapper the bundle owns
         # (that script is itself removed by this call).
-        remove_id = PLUGIN_NAME if host == "grok" else helper_id
         raw_remove = {
-            "grok": [resolved, "plugin", "uninstall", remove_id],
-            "claude": [resolved, "plugin", "uninstall", remove_id],
-            "codex": [resolved, "plugin", "remove", remove_id, "--json"],
+            "claude": [resolved, "plugin", "uninstall", helper_id],
+            "codex": [resolved, "plugin", "remove", helper_id, "--json"],
         }[host]
         call(raw_remove)
         raw_list = {
-            "grok": [resolved, "plugin", "list", "--json"],
             "claude": [resolved, "plugin", "list", "--json"],
             "codex": [resolved, "plugin", "list", "--json"],
         }[host]
@@ -521,7 +513,7 @@ def run_ask_agent_consumer(
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--host", required=True, choices=("claude", "grok", "codex"))
+    parser.add_argument("--host", required=True, choices=("claude", "codex"))
     parser.add_argument("--bin", help="explicit host CLI executable")
     parser.add_argument("--ask-agent", action="store_true", help="run the installed Ask Agent consumer probe (codex only)")
     args = parser.parse_args()

@@ -47,7 +47,7 @@ def finish_loop(run_dir: Path, *, outcome: str = "done", note: str = "fixture") 
 
     ``outcome`` "done" ends the loop satisfied; "blocked" stops it blocked.  An existing terminal receipt is reused.
     """
-    run_dir = Path(run_dir)
+    run_dir = Path(run_dir).resolve()
     state = store.read_record(run_dir / "state.md")
     cursor = loops.cursor(state)
     if cursor is None:

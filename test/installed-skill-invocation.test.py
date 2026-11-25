@@ -249,7 +249,6 @@ two consecutive clean residual rounds with green suite
         overrides: dict[str, str] = {}
         for host, variable in (
             ("claude", "CLAUDE_BIN"),
-            ("grok", "GROK_BIN"),
             ("codex", "CODEX_BIN"),
         ):
             stub = bin_dir / host
@@ -260,12 +259,11 @@ two consecutive clean residual rounds with green suite
         hosts = self.invoke(("/bin/bash", cli, "hosts", "--json"), extra_env=overrides)
         self.assert_ok(hosts, "marketplace-run hosts")
         payload = json.loads(hosts.stdout)
-        self.assertEqual([row["host"] for row in payload["hosts"]], ["claude", "grok", "codex"])
-        self.assertTrue(all(row["status"] == "available" for row in payload["hosts"]))
+        by_host = {row["host"]: row["status"] for row in payload["hosts"]}
+        self.assertEqual((by_host.get("claude"), by_host.get("codex")), ("available", "available"))
 
         routes = (
             ("claude", "fixture@market", "plugin install fixture@market"),
-            ("grok", "owner/fixture", "plugin install owner/fixture"),
             ("codex", "fixture@market", "plugin add fixture@market"),
         )
         for host, identifier, expected_argv in routes:

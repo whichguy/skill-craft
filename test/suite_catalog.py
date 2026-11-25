@@ -451,8 +451,11 @@ _FULL_ONLY_IDS = frozenset({
 # full CI receipt recorded in suite_durations.json. Keep their coverage, explicitly.
 # A new over-budget suite requires a full-only decision or a documented exception.
 _QUICK_OVER_BUDGET_IDS = frozenset({
+    "closed-loop",
     "shiploop-navigator-contract", "shiploop-actual-improve-cli", "shiploop-loops",
     "shiploop-test-loop", "shiploop-keepalive", "shiploop-skill-calls",
+    "shiploop-owner-notes", "shiploop-loophole-gates",
+    "shiploop-e2e-resources", "shiploop-e2e-stage-build", "shiploop-e2e-user-chain",
     "shiploop-e2e-slice", "shiploop-e2e-platform",
     "shiploop-e2e-stages", "shiploop-e2e-stage-live", "shiploop-e2e-brownfield-tickets",
     "shiploop-callback-contract",
@@ -678,6 +681,10 @@ _HUB_SUITE_IDS = (
     "shiploop-privacy",
     "shiploop-keepalive",
     "shiploop-planning-handoff",
+    "shiploop-rehydration",
+    "shiploop-consumer-delivery",
+    "shiploop-consumer-delivery-cli",
+    "shiploop-literal-transport",
 )
 
 # Code paths whose names suites mention; a document's name says nothing.

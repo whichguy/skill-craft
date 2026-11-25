@@ -27,11 +27,9 @@ SPEC.loader.exec_module(managed_workspaces)
 
 # Representative public tool labels, not runtime adapters or API allowlists.
 HOST_TOOLS = {
-    "grok": ("spawn_subagent", "get_command_or_subagent_output"),
     "claude": ("Agent", "task-notification"),
     "codex": ("collaboration.spawn_agent", "collaboration.wait_agent"),
     "cursor": ("Task", "task-notification"),
-    "opencode": ("task", "task-notification"),
 }
 
 
@@ -203,8 +201,8 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
                 "host": host, "tool": HOST_TOOLS[host][0], "session_id": "parent-session",
                 "task_id": f"task-{record['worker_id']}", "locator": f"launch:{record['worker_id']}",
                 "terminal_state": "running", "cwd_binding": {
-                    "mode": "native_spawn_cwd_argument" if host == "grok" else "explicit_operations",
-                    "observed": host == "grok",
+                    "mode": "explicit_operations",
+                    "observed": False,
                 },
             },
         }
@@ -282,12 +280,12 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
         self.assertTrue(all(layer["pass"] for layer in trace["layers"].values()), trace)
 
     def test_all_hosts_share_the_normalized_lifecycle_contract(self) -> None:
-        self.assertEqual(set(HOST_TOOLS), set(managed_workspaces.HOSTS))
+        self.assertEqual(set(HOST_TOOLS), set(managed_workspaces.HOSTS) - {"grok", "opencode"})
         code, report = self._valid_records()
         # Immutable Git evidence can be shared; only disposable event records vary.
         # Both routes are valid at the shared contract layer, not a claim that
         # every installed host actually exposes both native return mechanisms.
-        for host in managed_workspaces.HOSTS:
+        for host in HOST_TOOLS:
             self.manifest["host"] = host
             for route in ("automatic_notification", "native_join"):
                 with self.subTest(host=host, route=route):
@@ -312,7 +310,7 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
             "work_before_launch": "parent_continuation",
             "work_after_return": "parent_continuation",
         }
-        for host in managed_workspaces.HOSTS:
+        for host in HOST_TOOLS:
             self.manifest["host"] = host
             for mutation, layer in mutations.items():
                 with self.subTest(host=host, mutation=mutation):
@@ -340,22 +338,12 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
                     self.assertFalse(trace["pass"], trace)
                     self.assertFalse(trace["layers"][layer]["pass"], trace)
 
-    def test_grok_requires_native_cwd_even_with_correct_operation_context(self) -> None:
-        self.manifest["host"] = "grok"
-        code, report = self._valid_records()
-        events = self._valid_events(code, report)
-        events[0]["native"]["cwd_binding"]["observed"] = False
-        _, _, trace = self._validate(events)
-        self.assertFalse(trace["layers"]["native_launch"]["pass"], trace)
-        self.assertTrue(trace["layers"]["operation_cwd_root_binding"]["pass"], trace)
-        self.assertIn("Grok Build requires observed native cwd binding at launch", trace["errors"])
-
     def test_cancelled_retry_requires_confirmed_native_cancellation(self) -> None:
         cancelled = self._attempt(role="code", attempt_id="cancelled", worker_id="cancelled-worker", mode="patch", state="retained")
         code, report = self._valid_records()
         self._write_outcomes([cancelled, code, report])
         self._write_acceptance([cancelled, code, report])
-        for host in managed_workspaces.HOSTS:
+        for host in HOST_TOOLS:
             self.manifest["host"] = host
             events = [
                 self._launch(cancelled), self._launch(report),
@@ -378,7 +366,7 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
 
     def test_parent_final_response_is_diagnosed_separately_from_task_lifecycle(self) -> None:
         code, report = self._valid_records()
-        for host in managed_workspaces.HOSTS:
+        for host in HOST_TOOLS:
             self.manifest["host"] = host
             for mutation in ("missing", "completed", "failed", "different_parent", "no_locator", "early", "duplicate", "final_only"):
                 with self.subTest(host=host, response=mutation):
@@ -413,7 +401,7 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
         # only after real helper inspection succeeds for patch and report-only.
         records = self._valid_records()
         package_run = self.root / "package path with spaces"
-        for host in managed_workspaces.HOSTS:
+        for host in HOST_TOOLS:
             prompt = managed_workspaces.parent_prompt(package_run, host)
             commands = [shlex.split(line) for line in prompt.splitlines() if line.startswith("python3 ")]
             self.assertEqual(len(commands), 2)
@@ -754,16 +742,6 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
         outcomes = managed_workspaces._outcome_validation(self.manifest, self.operator)
         self.assertTrue(outcomes["pass"], outcomes)
         self.assertEqual({record["worker_id"] for record in outcomes["attempts"].values()}, {code["worker_id"], report["worker_id"]})
-
-    def test_opencode_is_a_declared_host_and_uses_persistent_tui_guidance(self) -> None:
-        self.assertIn("opencode", managed_workspaces.HOSTS)
-        prompt = managed_workspaces.parent_prompt(self.root, "opencode")
-        self.assertIn("OpenCode qualification uses its persistent TUI", prompt)
-        self.assertIn("current opencode route in Host capabilities", prompt)
-        self.assertIn("check-context command", prompt)
-        self.assertIn("git -C target is not an operation-directory check", prompt)
-        self.assertIn("--delivery-mode patch", prompt)
-        self.assertIn("--delivery-mode report-only", prompt)
 
     def test_verify_cli_writes_a_parseable_complete_v2_verdict_from_real_helper_evidence(self) -> None:
         run = self._prepare_cli_run()

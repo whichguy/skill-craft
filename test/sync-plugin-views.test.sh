@@ -371,7 +371,7 @@ sed 's|scripts/shiploop-status-hook|../SKILL.md|' "$decl.orig" > "$decl"
 expect_fail "declaration outside scripts/" "script must be scripts/<file>" bash scripts/sync-plugin-views.sh --check
 sed 's|scripts/shiploop-status-hook|scripts/shiploop_status_hook.py|' "$decl.orig" > "$decl"
 expect_fail "non-executable declared script" "must be an executable regular file" bash scripts/sync-plugin-views.sh --check
-sed 's|"grok"|"opencode"|' "$decl.orig" > "$decl"
+sed 's|"grok"|"unknown-host"|' "$decl.orig" > "$decl"
 expect_fail "unknown host" "hosts must be distinct values" bash scripts/sync-plugin-views.sh --check
 # The Skill-tool event exists on Claude Code only: a declaration naming another host for it is refused, not dropped.
 python3 - "$decl.orig" "$decl" <<'PY'
