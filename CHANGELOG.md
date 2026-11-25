@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.13.2
+
+- Skills: shiploop 2.15.2
+
+### shiploop 2.15.2
+
+- Trigger a focused mid-run Improve review on non-final `reflect-and-revise` results when either remaining `work_items` or `docs/shiploop/spec.md` changed, keeping end-of-work review gates scoped to the final item.
+- Trigger `step-plan` Improve review for corrective work items added after `plan` (via `add-work` or `reflect-and-revise`) and for work items marked `concerns: "deferred"` at `plan`.
+- Enforce `navigator-worktree` return readiness early at `release-check` (decided `return-plan.md`) and `release` (verified `return-receipt.md`), while preserving post-`release` staleness checks at `handoff`.
+
 ### skill-craft 4.13.1
 
 - Skills: ask-agent 0.12.1, shiploop 2.15.1
