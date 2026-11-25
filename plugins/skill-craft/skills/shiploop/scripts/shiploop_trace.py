@@ -208,6 +208,17 @@ def record_session_end(run_dir: Any, host: str, session: str | None, *, released
                   reason=reason)
 
 
+def record_model(run_dir: Any, host: str, session: str | None, *, model: str | None,
+                 effort: str | None = None, stage: str | None = None, profile: str | None = None) -> bool:
+    """Record an observed host model/effort change in the bound run's trace."""
+    if not isinstance(run_dir, str) or not run_dir or current_state(run_dir) is None:
+        return False
+    if not model and not effort:
+        return False
+    return record(run_dir, "hook", hook="model", host=host, session=session,
+                  model=model, effort=effort, stage=stage, profile=profile)
+
+
 def _flag(argv: Sequence[str], name: str) -> str | None:
     for index, value in enumerate(argv):
         if value == name and index + 1 < len(argv):
@@ -856,6 +867,13 @@ def event_line(event: Mapping[str, Any]) -> str:
         printed = "printed whole" if event.get("whole") else f"printed head {event.get('printed'):,}"
         return f"{head}{where} {_short(event.get('action'))} {event.get('chars', 0):,} chars, {printed} → {sent}"
     if kind == "hook":
+        if event.get("hook") == "model":
+            model_name = event.get("model") or "?"
+            effort = event.get("effort")
+            spec = f"{model_name}/{effort}" if effort and not str(model_name).endswith(f"-{effort}") else str(model_name)
+            where = f" at {event['stage']}" if event.get("stage") else ""
+            prof = f" ({event['profile']})" if event.get("profile") else ""
+            return f"{head}model {event.get('host') or '?'} {spec}{where}{prof}"
         text = f"{event.get('hook')} → {event.get('decision')} ({event.get('why')})"
         if event.get("text"):
             text += f": “{_one_line(event.get('text'), 140)}”"

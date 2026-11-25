@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-25
 
+### skill-craft 4.18.0
+
+- Skills: shiploop 2.19.0
+
+### shiploop 2.19.0
+
+- Add optional harness-to-model routing (`--routing` and `--planning-*`/`--execution-*` flags on `shiploop-drive`), script-driven profile boundaries, `hook-status` activity `profile`, and passive `(model, effort)` trace telemetry.
+
 ### skill-craft 4.17.3
 
 - Skills: ask-agent 0.12.3, compare-prompts 0.1.4, plan-dispatcher 0.6.7

@@ -49,7 +49,9 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping
 
+import shiploop_model_routing as model_routing
 import shiploop_skill_calls as skill_calls
+import shiploop_stage_spec as stage_spec
 import shiploop_trace as trace
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -372,6 +374,122 @@ def _is_subagent(payload: Mapping[str, Any]) -> bool:
     return any(payload.get(key) for key in ("subagentType", "agent_id", "agent_type"))
 
 
+def _tail_jsonl(path_value: Any, max_bytes: int = 262144) -> list[dict[str, Any]]:
+    """Read complete JSON lines from the tail of a transcript/rollout file; fail open."""
+    if not isinstance(path_value, str) or not path_value:
+        return []
+    path = Path(path_value)
+    if not path.is_file():
+        return []
+    try:
+        with path.open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            size = handle.tell()
+            offset = max(0, size - max_bytes)
+            handle.seek(offset)
+            chunk = handle.read().decode("utf-8", errors="ignore")
+    except OSError:
+        return []
+    lines = chunk.splitlines()
+    if offset > 0 and lines:
+        lines = lines[1:]
+    rows: list[dict[str, Any]] = []
+    for line in lines:
+        s = line.strip()
+        if not s.startswith("{"):
+            continue
+        try:
+            obj = json.loads(s)
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            rows.append(obj)
+    return rows
+
+
+def observed_model(host: str, payload: Mapping[str, Any]) -> tuple[str | None, str | None]:
+    """Extract ``(model, effort)`` observed from a host hook payload; fail open."""
+    norm = model_routing.normalize_host(host)
+    if norm == "antigravity":
+        model_name = payload.get("modelName")
+        if not isinstance(model_name, str) or not model_name.strip():
+            return None, None
+        model_name = model_name.strip()
+        for suffix in model_routing.EFFORT_SUFFIXES:
+            if model_name.endswith(suffix):
+                return model_name, suffix[1:]
+        return model_name, None
+    if norm == "codex":
+        model_name = payload.get("model") if isinstance(payload.get("model"), str) else None
+        effort = payload.get("effort") if isinstance(payload.get("effort"), str) else None
+        if not effort:
+            for row in reversed(_tail_jsonl(payload.get("transcript_path"))):
+                if row.get("type") == "turn_context" and isinstance(row.get("payload"), Mapping):
+                    tc = row["payload"]
+                    effort = tc.get("effort") or tc.get("reasoning_effort")
+                    if not model_name and isinstance(tc.get("model"), str):
+                        model_name = tc["model"]
+                    break
+        return (model_name.strip() if model_name else None), (effort.strip() if isinstance(effort, str) and effort.strip() else None)
+    if norm == "claude":
+        effort = payload.get("effort") if isinstance(payload.get("effort"), str) else None
+        model_name = payload.get("model") if isinstance(payload.get("model"), str) else None
+        if not model_name:
+            for row in reversed(_tail_jsonl(payload.get("transcript_path"))):
+                msg = row.get("message")
+                if isinstance(msg, Mapping) and msg.get("role") == "assistant" and isinstance(msg.get("model"), str):
+                    model_name = msg["model"]
+                    break
+        return (model_name.strip() if model_name else None), (effort.strip() if effort and effort.strip() else None)
+    raw_model = payload.get("model") or payload.get("modelName")
+    raw_effort = payload.get("effort")
+    return (
+        raw_model.strip() if isinstance(raw_model, str) and raw_model.strip() else None,
+        raw_effort.strip() if isinstance(raw_effort, str) and raw_effort.strip() else None,
+    )
+
+
+def _record_observed_model(
+    host: str,
+    session: str,
+    binding: dict[str, Any],
+    payload: Mapping[str, Any],
+    *,
+    stage: str | None = None,
+    profile: str | None = None,
+) -> bool:
+    """Update ``binding`` and append a trace row when the observed ``(model, effort)`` changes."""
+    obs_model, obs_effort = observed_model(host, payload)
+    if not obs_model and not obs_effort:
+        return False
+    prev_model = binding.get("observed_model")
+    prev_effort = binding.get("observed_effort")
+    if obs_effort is None and obs_model == prev_model and prev_effort:
+        obs_effort = prev_effort
+    prev = (prev_model, prev_effort)
+    curr = (obs_model, obs_effort)
+    if curr == prev:
+        return False
+    binding["observed_model"] = obs_model
+    binding["observed_effort"] = obs_effort
+    run_dir = binding.get("run_dir")
+    if isinstance(run_dir, str) and run_dir:
+        if stage is None:
+            st = run_status(run_dir)
+            if not st.get("error"):
+                stage = st.get("stage")
+                profile = st.get("profile")
+        if profile is None and stage:
+            try:
+                profile = stage_spec.stage_profile(stage)
+            except ValueError:
+                profile = None
+        session_hash = hashlib.sha256(session.encode()).hexdigest()[:12]
+        trace.record_model(run_dir, host, session_hash, model=obs_model, effort=obs_effort,
+                           stage=stage, profile=profile)
+    return True
+
+
 def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     """Bind the session to the run named by a marker in this tool output.
 
@@ -398,6 +516,11 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
     if marker is None:
         existing = load_binding(host, session)
         if existing is not None:
+            path = _binding_path(host, session)
+            with _locked(path):
+                current = load_binding(host, session)
+                if current is not None and _record_observed_model(host, session, current, payload):
+                    _write_json(path, current)
             owner = _load_owner(existing["run_dir"])
             if owner.get("owner") == _owner_id(host, session):
                 claim_owner(existing["run_dir"], host, session)
@@ -422,6 +545,8 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             # Binding the same run again keeps the stop memory: running `next` is not progress, and a turn's
             # continuation count is the host's, not this command's.
             binding.update({key: previous[key] for key in STOP_MEMORY if key in previous})
+        _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
+                               profile=status.get("profile"))
         _write_json(path, binding)
     claim_owner(status["run_dir"], host, session)
     try:
@@ -503,7 +628,7 @@ def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool
 # Hosts that force a turn to end after this many stop-hook continuations.
 CONTINUATION_CAPS = {"grok": 8}
 # What a stop remembers about the last refusal; a re-bind of the same run keeps it (``observe``).
-STOP_MEMORY = ("last_block_progress", "turn_blocks")
+STOP_MEMORY = ("last_block_progress", "turn_blocks", "observed_model", "observed_effort")
 # A refused callback counts as progress so the host fixes and resubmits it.  No
 # count of continuations without an accepted result releases the turn (owner
 # 2026-10-24: no run caps); only a host's own cap above ends one.
@@ -569,7 +694,7 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
             return {key: value for key, value in last.items() if key != "at"}
         if not _turn_continued(payload):
             binding["turn_blocks"] = 0
-        decision = _decide(host, session, binding, waiting=_background_tasks(payload))
+        decision = _decide(host, session, binding, waiting=_background_tasks(payload), payload=payload)
         if decision.pop("drop", False):
             path.unlink(missing_ok=True)
         else:
@@ -582,14 +707,19 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
     return {**decision, "run_dir": binding["run_dir"]}
 
 
-def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) -> dict:
+def _decide(host: str, session: str, binding: dict, *, waiting: bool = False,
+            payload: Mapping[str, Any] | None = None) -> dict:
     """Decide whether a stop hook lets the host stop or asks it to continue the run; stopping is allowed when the
-    run is unreadable, not active, owned by another session, or made no progress without a pending completion.
+    run is unreadable, not active, owned by another session, crossed a driver routing boundary, or made no progress
+    without a pending completion.
     """
     status = run_status(binding["run_dir"])
     if status.get("error") or status.get("run_id") != binding["run_id"]:
         return {"decision": "allow", "drop": True,
                 "why": f"run cannot be read: {status.get('error', 'run changed')}"}
+    if payload is not None:
+        _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
+                               profile=status.get("profile"))
     if status["status"] != "active":
         reason = status.get("status_reason")
         waiting = ((" (waiting on an outside service)" if status.get("awaiting") == "service" else " (waiting on the user)")
@@ -601,6 +731,10 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False) ->
                 "notice": ("ShipLoop keepalive: another session owns this run, so this one is not "
                            "kept going. Continue the run from that session, or close it and run: "
                            + status["next"])}
+    boundary = model_routing.active_boundary(status.get("stage"), status.get("run_id"))
+    if boundary is not None:
+        return {"decision": "allow",
+                "why": f"profile boundary reached ({boundary['from_label']} -> {boundary['to_label']} at {boundary['stage']})"}
     # Revision, callback attempts and reported loop iterations all count as progress.
     progress = status.get("progress", str(status["revision"]))
     if binding.get("last_block_progress") == progress and not waiting and not status.get("completion"):
@@ -1126,13 +1260,16 @@ def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> 
     """Command line that starts a non-interactive ``host`` session with ``prompt`` (resuming ``session`` where the
     host supports it).
     """
+    host = model_routing.normalize_host(host)
     if host == "antigravity":
         return ["agy", *(["--resume", session] if session else []), *extra, f"--print={prompt}"]
     if host == "claude":
-        return ["claude", "-p", prompt, *extra]
+        return ["claude", "-p", *(["--resume", session] if session else []), prompt, *extra]
     if host == "grok":
-        return ["grok", "-p", prompt, *extra]
+        return ["grok", "-p", *(["--resume", session] if session else []), prompt, *extra]
     if host == "codex":
+        if session:
+            return ["codex", "exec", "resume", *extra, session, prompt]
         return ["codex", "exec", *extra, prompt]
     if host == "cursor":
         return ["cursor-agent", "-p", *(["--resume", session] if session else []), *extra, prompt]
@@ -1143,15 +1280,19 @@ def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> 
 
 def drive(host: str, run_dir: str, *, session_timeout: int, extra: list[str], cwd: str | None,
           max_minutes: int | None = None, out: Callable[[str], Any] = print,
-          runner: Callable[..., Any] = subprocess.run, clock: Callable[[], float] = time.monotonic) -> int:
+          runner: Callable[..., Any] = subprocess.run, clock: Callable[[], float] = time.monotonic,
+          routing: Mapping[str, Any] | None = None) -> int:
     """Start or resume host sessions until the run stops being active.
 
     No ceiling by default (owner, 2026-10-28: runs are meant to go on for a very long time); ``max_minutes``, when
-    given, bounds the whole drive by wall clock.
+    given, bounds the whole drive by wall clock.  When ``routing`` is given, each session receives its resolved
+    profile target and stops cleanly at profile boundaries so the driver can switch models or harnesses.
     """
     if session_timeout < 1 or (max_minutes is not None and max_minutes < 1):
         raise ValueError(f"shiploop-drive needs session_timeout >= 1 and, when given, max_minutes >= 1, "
                          f"got {session_timeout} and {max_minutes}")
+    host = model_routing.normalize_host(host)
+    normalized_routing = model_routing.load_config(routing) if routing is not None else None
     status = run_status(run_dir)
     if status.get("error"):
         out(f"shiploop-drive: cannot read the run: {status['error']}")
@@ -1172,21 +1313,51 @@ def drive(host: str, run_dir: str, *, session_timeout: int, extra: list[str], cw
         deadline = None if max_minutes is None else clock() + max_minutes * 60
         return _drive_sessions(host, run_dir, logs, journal, deadline=deadline, max_minutes=max_minutes,
                                session_timeout=session_timeout, extra=extra, cwd=cwd,
-                               out=out, runner=runner, clock=clock)
+                               out=out, runner=runner, clock=clock, routing=normalized_routing)
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         os.close(lock_fd)
 
 
+def _load_sessions(path: Path) -> dict[str, str]:
+    try:
+        data = _read_json(path)
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(k): str(v) for k, v in data.items() if isinstance(k, str) and isinstance(v, str) and v}
+
+
+def _capture_session(host: str, run_dir: str, wall_started: float, previous: str | None) -> str | None:
+    bound = bindings_for_run(host, run_dir)
+    if not bound:
+        return previous
+    newest = bound[0]
+    if previous and newest.get("session") == previous:
+        return previous
+    if float(newest.get("bound_at") or 0) >= wall_started - 2.0 and isinstance(newest.get("session"), str):
+        return newest["session"]
+    return previous
+
+
 def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadline: float | None,
                     max_minutes: int | None, session_timeout: int, extra: list[str], cwd: str | None,
-                    out: Callable[[str], Any], runner: Callable[..., Any], clock: Callable[[], float]) -> int:
+                    out: Callable[[str], Any], runner: Callable[..., Any], clock: Callable[[], float],
+                    routing: dict[str, Any] | None = None) -> int:
     """Run host sessions in turn, checking the run's status around each; stops when the run is no longer active,
     needs the user or stalls, or when a given wall-clock ``deadline`` passes.  A session never runs past that deadline:
     its timeout is cut to the time left.
     """
     stalled = 0
     number = 0
+    routing_file = logs / "routing.json"
+    sessions_file = logs / "sessions.json"
+    sessions: dict[str, str] = {}
+    last_target_key: str | None = None
+    if routing is not None:
+        _write_json(routing_file, routing)
+        sessions = _load_sessions(sessions_file)
     while deadline is None or clock() < deadline:
         number += 1
         before = run_status(run_dir)
@@ -1196,37 +1367,85 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
         if before["status"] != "active":
             out(f"shiploop-drive: run is {before['status']} after {number - 1} session(s).")
             return EXIT_DONE if before["status"] == "done" else EXIT_NEEDS_USER
+        target = model_routing.resolve(routing, before.get("stage"), host) if routing is not None else None
+        active_host = target.host if target is not None else host
         session = None
-        if host in RESUMING_HOSTS:
-            bound = bindings_for_run(host, run_dir)
-            session = bound[0]["session"] if bound else None
-        prompt = _continue_reason(before) if session else _driver_prompt(before)
-        argv = host_argv(host, prompt, session, extra)
+        if target is not None:
+            if target.resume == "warm":
+                session = sessions.get(active_host)
+                if not session and active_host in RESUMING_HOSTS:
+                    bound = bindings_for_run(active_host, run_dir)
+                    session = bound[0]["session"] if bound else None
+            switched = last_target_key is not None and last_target_key != target.target_key
+            prompt = (_continue_reason(before)
+                      if (session and active_host in RESUMING_HOSTS and not switched)
+                      else _driver_prompt(before))
+            session_extra = [*extra, *model_routing.host_model_args(active_host, target)]
+            run_env = {
+                **os.environ,
+                "SHIPLOOP_DRIVE_ROUTING": str(routing_file),
+                "SHIPLOOP_DRIVE_HOST": host,
+                "SHIPLOOP_DRIVE_TARGET": target.target_key,
+                "SHIPLOOP_DRIVE_LABEL": target.label,
+                "SHIPLOOP_DRIVE_RUN_ID": str(before.get("run_id") or ""),
+            }
+        else:
+            if active_host in RESUMING_HOSTS:
+                bound = bindings_for_run(active_host, run_dir)
+                session = bound[0]["session"] if bound else None
+            prompt = _continue_reason(before) if session else _driver_prompt(before)
+            session_extra = extra
+            run_env = None
+        argv = host_argv(active_host, prompt, session, session_extra)
         started = clock()
+        wall_started = time.time()
         timeout = session_timeout if deadline is None else max(1, min(session_timeout, round(deadline - started)))
+        run_kwargs: dict[str, Any] = {
+            "cwd": cwd or before.get("repo") or None,
+            "capture_output": True,
+            "text": True,
+            "timeout": timeout,
+            "stdin": subprocess.DEVNULL,
+        }
+        if run_env is not None:
+            run_kwargs["env"] = run_env
         try:
-            proc = runner(argv, cwd=cwd or before.get("repo") or None, capture_output=True,
-                          text=True, timeout=timeout, stdin=subprocess.DEVNULL)
+            proc = runner(argv, **run_kwargs)
             code, stdout, stderr = proc.returncode, proc.stdout or "", proc.stderr or ""
         except subprocess.TimeoutExpired as exc:
             code, stdout, stderr = "timeout", str(exc.stdout or ""), str(exc.stderr or "")
         except OSError as exc:
             out(f"shiploop-drive: cannot start {argv[0]}: {exc}")
             return EXIT_NEEDS_USER
+        if target is not None and target.resume == "warm":
+            captured = _capture_session(active_host, run_dir, wall_started, session)
+            if captured:
+                sessions[active_host] = captured
+                _write_json(sessions_file, sessions)
+        if target is not None:
+            last_target_key = target.target_key
         # The session is over however it ended; let the next one own the run.
         release_owner(run_dir)
         session_log = logs / f"session-{number}.log"
         session_log.write_text(f"$ {shlex.join(argv)}\n{stdout}\n--- stderr ---\n{stderr}", encoding="utf-8")
         after = run_status(run_dir)
         moved = not after.get("error") and after["revision"] != before["revision"]
-        entry = {"session": number, "host": host, "resumed": session, "exit": code,
-                 "seconds": round(clock() - started), "revision": [before["revision"], after.get("revision")],
-                 "status": after.get("status"), "log": str(session_log)}
+        entry: dict[str, Any] = {
+            "session": number, "host": active_host, "resumed": session, "exit": code,
+            "seconds": round(clock() - started), "revision": [before["revision"], after.get("revision")],
+            "status": after.get("status"), "log": str(session_log),
+        }
+        if target is not None:
+            entry["profile"] = target.profile
+            entry["target"] = target.label
+            entry["model"] = target.model
+            entry["effort"] = target.effort
+            entry["stage"] = [before.get("stage"), after.get("stage")]
         with journal.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry) + "\n")
         out("shiploop-drive: " + json.dumps(entry))
         if not moved and code not in (0, "timeout"):
-            out(f"shiploop-drive: {host} exited with {code} without advancing the run; "
+            out(f"shiploop-drive: {active_host} exited with {code} without advancing the run; "
                 f"it may have failed to start. See {session_log}")
             return EXIT_STUCK
         stalled = 0 if moved else stalled + 1
@@ -1296,18 +1515,67 @@ def drive_main(argv: list[str] | None = None) -> int:
         prog="shiploop-drive",
         description="Run host sessions until a ShipLoop run is done, paused, blocked or stuck. "
                     "Arguments after -- go to the host command unchanged (model, permissions).")
-    parser.add_argument("--host", choices=HOSTS, required=True)
+    parser.add_argument("--host", choices=(*HOSTS, "agy"),
+                        help="default host CLI (required unless --routing pins hosts on both planning and execution)")
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--max-minutes", type=_positive_int,
                         help="optional wall-clock ceiling for the whole drive; none unless given")
     parser.add_argument("--session-timeout", type=_positive_int, default=3600, help="seconds per host session")
     parser.add_argument("--cwd", help="directory to run the host in (default: the run's repository)")
+    parser.add_argument("--routing", help="optional JSON file or inline JSON mapping planning/execution profiles to models")
+    parser.add_argument("--planning-model", help="optional model for planning stages")
+    parser.add_argument("--planning-effort", help="optional reasoning effort for planning stages")
+    parser.add_argument("--planning-host", choices=(*HOSTS, "agy"), help="optional host override for planning stages")
+    parser.add_argument("--execution-model", help="optional model for execution stages")
+    parser.add_argument("--execution-effort", help="optional reasoning effort for execution stages")
+    parser.add_argument("--execution-host", choices=(*HOSTS, "agy"), help="optional host override for execution stages")
+    parser.add_argument("--review-model", help="optional model override for improve stages")
+    parser.add_argument("--review-effort", help="optional reasoning effort override for improve stages")
+    parser.add_argument("--review-host", choices=(*HOSTS, "agy"), help="optional host override for improve stages")
+    parser.add_argument("--resume-mode", choices=model_routing.RESUME_MODES,
+                        help="with routing enabled: warm (default, --resume same host thread) or fresh session per switch")
     raw = list(sys.argv[1:] if argv is None else argv)
     extra: list[str] = []
     if "--" in raw:
         split = raw.index("--")
         raw, extra = raw[:split], raw[split + 1:]
     args = parser.parse_args(raw)
-    return drive(args.host, str(Path(args.run_dir).expanduser().resolve()),
+    cli_routing = model_routing.from_cli_flags(
+        planning_model=args.planning_model,
+        planning_effort=args.planning_effort,
+        planning_host=args.planning_host,
+        execution_model=args.execution_model,
+        execution_effort=args.execution_effort,
+        execution_host=args.execution_host,
+        review_model=args.review_model,
+        review_effort=args.review_effort,
+        review_host=args.review_host,
+        resume_mode=args.resume_mode,
+    )
+    if args.routing and cli_routing is not None:
+        parser.error("pass either --routing or --planning-*/--execution-* flags, not both")
+    try:
+        routing = model_routing.load_config(args.routing) if args.routing else cli_routing
+    except (OSError, ValueError) as exc:
+        parser.error(f"invalid routing configuration: {exc}")
+    host = args.host
+    if not host:
+        if routing and args.planning_host and args.execution_host:
+            host = args.planning_host
+        elif routing:
+            # Allow omitting --host when both planning and execution resolve to explicit hosts.
+            p_res = model_routing.resolve(routing, "plan", "claude")
+            e_res = model_routing.resolve(routing, "implement", "claude")
+            p_bucket = routing.get("planning")
+            e_bucket = routing.get("execution")
+            if (isinstance(p_bucket, Mapping) and p_bucket.get("host")
+                    and isinstance(e_bucket, Mapping) and e_bucket.get("host")
+                    and p_res is not None and e_res is not None):
+                host = p_res.host
+            else:
+                parser.error("--host is required unless routing specifies explicit hosts for both planning and execution")
+        else:
+            parser.error("--host is required")
+    return drive(host, str(Path(args.run_dir).expanduser().resolve()),
                  max_minutes=args.max_minutes, session_timeout=args.session_timeout,
-                 extra=extra, cwd=args.cwd)
+                 extra=extra, cwd=args.cwd, routing=routing)

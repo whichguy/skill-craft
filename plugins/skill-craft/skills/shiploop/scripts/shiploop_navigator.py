@@ -59,6 +59,7 @@ import shiploop_reference as run_reference
 import shiploop_request as request_file
 import shiploop_narrative as narrative
 import shiploop_owner_notes as owner_notes
+import shiploop_model_routing as model_routing
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
 import shiploop_trace as trace
@@ -2272,7 +2273,19 @@ def emit(core: Any, root: Path, state: Mapping[str, Any], *, host: str | None = 
     text = render(core, root, state, timeline=timeline, host=host)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
-    printed = printed_text(core, root, state, path, text, timeline=timeline)
+    boundary = model_routing.active_boundary(current_stage(state), state.get("run_id")) if state["status"] == "active" else None
+    if boundary is not None:
+        printed = "\n".join([
+            f"ShipLoop navigator | profile boundary | revision {state['revision']}",
+            f"Keepalive marker: {KEEPALIVE_MARKER} run={state['run_id']} rev={state['revision']} dir={root}",
+            f"Profile boundary reached: session target ({boundary['from_label']}) finished; "
+            f"next stage `{boundary['stage']}` ({boundary['profile']}) requires target ({boundary['to_label']}).",
+            f"Stop this turn now without running `next` or starting `{boundary['stage']}`. "
+            "The outer driver will resume this run with the new target.",
+            HEAD_END,
+        ]) + "\n"
+    else:
+        printed = printed_text(core, root, state, path, text, timeline=timeline)
     print(printed, end="")
     # The run trace keeps every packet as sent (``next`` rewrites the file above in place); a display record, never state.
     trace.record_packet(root, state, text, printed)
