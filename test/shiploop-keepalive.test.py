@@ -833,6 +833,12 @@ class ConcurrencyTests(KeepaliveTestCase):
     def test_antigravity_reactive_subagent_wait_preserves_ownership_and_execution_num_tracks_continuation(self) -> None:
         self.assertEqual(keepalive.detected_host(self.payload("antigravity", "observe")), "antigravity")
         self.assertEqual(keepalive.detected_host(self.payload("grok", "observe")), "grok")
+        quoted = self.payload("antigravity", "observe", "quoted-1")
+        quoted["toolCall"]["args"]["CommandLine"] = f'python3 "{SCRIPTS / "shiploop"}" next --run-dir "{self.run_dir}"'
+        self.assertEqual(keepalive.command_run_dir(quoted), str(self.run_dir))
+        self.hook("observe", "antigravity", quoted)
+        self.assertEqual(keepalive.load_binding("antigravity", "quoted-1")["run_dir"], str(self.run_dir))
+        keepalive.release_owner(str(self.run_dir))
         self.hook("observe", "antigravity", self.payload("antigravity", "observe", "parent-1"))
         # Parent yields with fullyIdle=False while invoke_subagent runs: allow without releasing or caching last_decision.
         yielding = {**self.payload("antigravity", "stop", "parent-1"), "fullyIdle": False}
