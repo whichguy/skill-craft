@@ -10026,4 +10026,30 @@ Standing evaluation questions: measure `open_item_settlement` and zero-edit Impr
 
 Limits: Verification covers hermetic unit suites, isolated empty-repo CLI checks, `ruff`, `check-release-boundary.py`, slow contract suites (`shiploop-callback-contract`, `shiploop-test-loop`), and the `--group quick` sweep; live E2E subject runs were not re-executed.
 
+## 2026-11-24 — Evidence-driven testing follow-ups: automatic `<ID> (<letter>)` sub-cases, `A`-file Proof gate, live observability, and multi-host stage validation (`dd667f9c7`..`e1c6d398c`)
+
+Implemented and validated the five follow-up improvements to evidence-driven testing across ShipLoop (`dd667f9c7`, `e1c6d398c`) and `shiploop_e2e` (`149f35db0`), rebased onto `origin/main` (`89db38b60`, `skill-craft 4.15.2` / `shiploop 2.16.2`):
+
+- **Implementation & seed-seam safety (`dd667f9c7`, `e1c6d398c`):**
+  - Automatic `<ID> (<letter>)` sub-case discovery (`shiploop_test_counts.subcase_ids`, `shiploop_test_loop.discovered_subcases`, plus `*, root=None` forwarding across `registered`, `stage_commands`, `base_commands`, `new_ids`, `floor_detail`, `rerun_lines`, `_document_rerun`, and `improve_changes.rerun_commands`) while keeping `root=None` pure-state/seed-seam behavior unchanged.
+  - Tightened `_test_edited_product_code` in `shiploop_navigator.py` to also trigger `test`-stage `step_proof` on newly added (`A`) non-`docs/shiploop/` code files inside step/plan `paths`, and migrated `calc_item` in `test/shiploop-test-loop.test.py`.
+  - Added read-only `shiploop_testing_status.py` (`testing_observability`, `fingerprint_digest`, path-free/command-free `status_lines`) wired into `shiploop status`, `progress_data`, conditional `_testing_evidence_panel` HTML, `report.html`, and `test/shiploop_e2e/metrics.py` (`testing_evidence_audit`), plus `not-exercisable` mutant forwarding to `reflect-and-revise` and whitespace-normalized fallback in `test/shiploop_e2e/obligations.py:source_violations`.
+  - Trimmed `skills/shiploop/references/inner-loop.md` (`7378 B`) and `test-loop.md` (`6157 B` with verbatim `## Confirmation is a passing command` section restored, passing `shiploop-guidance` 95/95 OK), and added `step-plan/amend-after-replan-remaining` and `reflect-and-revise/triage-test-findings` `INNER` scenarios.
+- **Bounded live `stage_suite` validation (pre-rebase commits `ff7e06edb` / `5dadf678a`, `--samples 1 --timeout 600`; later `e1c6d398c` touched only `test-loop.md` confirmation wording and test limit pin):**
+  - **Codex (`codex/gpt-6.2-sol/xhigh`, `stages-live-20261124-220237-0b7517`): `3/3 PASS` (`1.00`, `0/3` overshoot):**
+    - `step-plan/amend-after-replan-remaining #1`: **PASS `1.00`** (`P1 1/1`, `P2 1/1`, `C1 1/1`), `findings_settled: 1`, `replans: 1`.
+    - `test/evidence-defect-and-findings #1`: **PASS `1.00`** (`P1 1/1`, `P2 1/1`, `C1 1/1`), **`auto_subcases_total: 2`** captured in `nav-1a48bdc7009849829f54e5af81806dab-verify1.md` with `added_tests_total: 0`.
+    - `reflect-and-revise/triage-test-findings #1`: **PASS `1.00`** (`P1 1/1`, `P2 1/1`, `C1 1/1`), `findings_total: 1`, `not_exercisable_total: 1`.
+  - **Claude (`claude:anthropic/claude-sonnet-5-5/default`, `stages-live-20261124-220827-a83887`): `2/3 PASS` (`1.00`, `0.67`, `1.00`, `0/3` overshoot):**
+    - `step-plan/amend-after-replan-remaining #1`: **PASS `1.00`** (`P1 1/1`, `P2 1/1`, `C1 1/1`, `findings_settled: 1`).
+    - `document/commit-then-replan-remaining #1`: **PASS `1.00`** (`P1 1/1`, `P2 1/1`, `C1 1/1`).
+    - `test/evidence-defect-and-findings #1`: **`0.67`** (`P1 1/1`, `C1 1/1` across `6` passing `node --test` cases; `P2 0/1` because Claude omitted optional `test_findings` once `paginate()` passed). Notably, Claude also omitted `added_tests`, and automatic sub-case discovery captured **`auto_subcases_total: 3`** (`TC-1 (a)`..`(c)`) without manual registration.
+- **Hermetic & CI verification:**
+  - `stages.py verify` & `render` across `test/evidence-defect-and-findings`, `document/commit-then-replan-remaining`, `step-plan/amend-after-replan-remaining`, and `reflect-and-revise/triage-test-findings`: **8/8 PASS**.
+  - `--group quick --changed-from origin/main --jobs 4` (pre-rebase): **103/105 suites PASS** (`1219.0 s` wall, including `shiploop-test-loop` 241/241, `shiploop-e2e-stages` 69/69, `shiploop-navigator-contract` 128/128, `shiploop-package-integrity` 130/130); both contract pin failures (`shiploop-packet-bounds` + `shiploop-guidance`) fixed in `e1c6d398c`.
+  - **Post-rebase (`e1c6d398c` onto `89db38b60`) verification:** `shiploop-evidence-testing` (`7/7`), `shiploop-e2e-analysis` (`312/312`), `shiploop-progress-data` (`47/47`), `shiploop-progress-render` (`40/40`), `shiploop-status-display` (`34/34`), `shiploop-packet-bounds` (`21/21`), `shiploop-guidance` (`95/95`), `shiploop-packet-obligations` (`16/16`), and `shiploop-package-integrity` (`24/24`) all passed.
+
+Limits: Multi-sample variance (`samples > 1`) and `OUTER` (`system-test-author` / `system-test`) live `stage_suite` scenarios (wave 3 just landed on `origin/main` in `b3c281e09`) were not yet added or exercised live.
+
+
 
