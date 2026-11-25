@@ -1,0 +1,21 @@
+{
+  "artifactDirectoryPath": "/tmp/shiploop-keepalive-fixture/artifacts/__SESSION__",
+  "conversationId": "__SESSION__",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "error": "",
+  "hookEventName": "PostToolUse",
+  "lastUserInput": "Run shiploop next",
+  "modelName": "claude-sonnet-5-5-medium",
+  "stepIdx": 2,
+  "toolCall": {
+    "args": {
+      "CommandLine": "python3 /tmp/shiploop-keepalive-fixture/shiploop next --run-dir __RUN_DIR__"
+    },
+    "id": "toolu_agy_obs_1",
+    "name": "run_command"
+  },
+  "transcriptPath": "/tmp/shiploop-keepalive-fixture/artifacts/__SESSION__/transcript_full.jsonl",
+  "workspacePaths": [
+    "/tmp/shiploop-keepalive-fixture"
+  ]
+}

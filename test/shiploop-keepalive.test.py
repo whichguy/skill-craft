@@ -36,7 +36,7 @@ import shiploop_store as store  # noqa: E402
 import shiploop_trace as trace  # noqa: E402
 from shiploop_packet_view import assert_top_block, head_packet_path  # noqa: E402
 
-RECORDED_HOSTS = ("claude", "codex", "cursor", "grok")
+RECORDED_HOSTS = ("antigravity", "claude", "codex", "cursor", "grok")
 
 
 def shiploop(*argv: str) -> subprocess.CompletedProcess:
@@ -93,7 +93,9 @@ class KeepaliveTestCase(unittest.TestCase):
 
     def payload(self, host: str, event: str, session: str = "session-1") -> dict:
         text = (FIXTURES / f"{host}-{event}.json").read_text(encoding="utf-8")
-        text = text.replace("__SESSION__", session).replace("__MARKER__", self.marker_line())
+        text = (text.replace("__SESSION__", session)
+                .replace("__MARKER__", self.marker_line())
+                .replace("__RUN_DIR__", str(self.run_dir)))
         return json.loads(text)
 
     def hook(self, event: str, host: str, payload: dict) -> dict | None:
@@ -354,11 +356,15 @@ class HookDecisionTests(KeepaliveTestCase):
             with self.subTest(host=host):
                 keepalive.release_owner(str(self.run_dir))  # each host on its own
                 session = f"{host}-session"
-                self.assertIsNone(self.hook("observe", host, self.payload(host, "observe", session)))
+                self.assertEqual(self.hook("observe", host, self.payload(host, "observe", session)),
+                                 {} if host == "antigravity" else None)
                 self.assertEqual(keepalive.load_binding(host, session)["run_dir"], str(self.run_dir))
                 reply = self.hook("stop", host, self.payload(host, "stop", session))
                 if host == "cursor":
                     self.assertIn("next --run-dir", reply["followup_message"])
+                elif host == "antigravity":
+                    self.assertEqual(reply["decision"], "continue")
+                    self.assertIn("next --run-dir", reply["reason"])
                 else:
                     self.assertEqual(reply["decision"], "block")
                     self.assertIn("next --run-dir", reply["reason"])
@@ -809,13 +815,52 @@ class ConcurrencyTests(KeepaliveTestCase):
     def test_plugin_hooks_resolve_the_calling_host(self) -> None:
         for env, payload_host, expected in ((
                 {"GROK_PLUGIN_ROOT": "/p"}, "grok", "grok"), ({"CURSOR_PLUGIN_ROOT": "/p"}, "cursor", "cursor"),
-                ({}, "codex", "codex"), ({}, "claude", "claude")):
+                ({}, "antigravity", "antigravity"), ({}, "codex", "codex"), ({}, "claude", "claude")):
             with self.subTest(expected=expected), mock.patch.dict(os.environ, env):
                 keepalive.release_owner(str(self.run_dir))
-                self.hook("observe", "auto", self.payload(payload_host, "observe", f"auto-{expected}"))
+                raw_obs = keepalive.run_hook("observe", "auto", json.dumps(self.payload(payload_host, "observe", f"auto-{expected}")))
+                if expected == "antigravity":
+                    self.assertEqual(raw_obs, "{}")
+                else:
+                    self.assertEqual(raw_obs, "")
                 self.assertIsNotNone(keepalive.load_binding(expected, f"auto-{expected}"))
                 reply = self.hook("stop", "auto", self.payload(payload_host, "stop", f"auto-{expected}"))
-                self.assertIn("followup_message" if expected == "cursor" else "decision", reply)
+                if expected == "antigravity":
+                    self.assertEqual(reply.get("decision"), "continue")
+                else:
+                    self.assertIn("followup_message" if expected == "cursor" else "decision", reply)
+
+    def test_antigravity_reactive_subagent_wait_preserves_ownership_and_execution_num_tracks_continuation(self) -> None:
+        self.assertEqual(keepalive.detected_host(self.payload("antigravity", "observe")), "antigravity")
+        self.assertEqual(keepalive.detected_host(self.payload("grok", "observe")), "grok")
+        self.hook("observe", "antigravity", self.payload("antigravity", "observe", "parent-1"))
+        # Parent yields with fullyIdle=False while invoke_subagent runs: allow without releasing or caching last_decision.
+        yielding = {**self.payload("antigravity", "stop", "parent-1"), "fullyIdle": False}
+        self.assertEqual(self.hook("stop", "antigravity", yielding), {"decision": "allow"})
+        self.assertEqual(keepalive._load_owner(str(self.run_dir)).get("owner"), "antigravity:parent-1")
+        self.assertNotIn("last_decision", keepalive.load_binding("antigravity", "parent-1") or {})
+        # Subagent observing/stopping on the same run is not kept alive and cannot steal ownership.
+        self.hook("observe", "antigravity", self.payload("antigravity", "observe", "child-1"))
+        self.assertEqual(self.hook("stop", "antigravity", self.payload("antigravity", "stop", "child-1")),
+                         {"decision": "allow"})
+        # When parent resumes and hits a real idle turn end within 3s, it still gets continue cleanly.
+        resumed_stop = self.hook("stop", "antigravity", self.payload("antigravity", "stop", "parent-1"))
+        self.assertEqual(resumed_stop["decision"], "continue")
+        # Non-NO_TOOL_CALL terminationReason allows even when active.
+        cancelled = {**self.payload("antigravity", "stop", "parent-1"), "terminationReason": "USER_CANCELED"}
+        with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
+            self.assertEqual(self.hook("stop", "antigravity", cancelled), {"decision": "allow"})
+        # executionNum > 0 counts as turn continuation even with continuationActive=False.
+        self.assertTrue(keepalive._turn_continued({"executionNum": 1, "continuationActive": False}))
+        self.assertFalse(keepalive._turn_continued({"executionNum": 0, "continuationActive": False}))
+
+    def test_antigravity_health_notice_and_nested_skill_gate_exemption(self) -> None:
+        env = {"ANTIGRAVITY_AGENT": "1", "ANTIGRAVITY_CONVERSATION_ID": "conv-1"}
+        self.assertIsNone(keepalive.health_notice(str(self.run_dir), env))
+        notice = keepalive.health_notice(str(self.run_dir), env)
+        self.assertIn("keepalive is not active in this antigravity session", notice)
+        self.assertIn("shiploop-hook install --host antigravity", notice)
+        self.assertEqual(keepalive.skill_gate(str(self.run_dir), {**env, "CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": "s"})[0], False)
 
 
 class SessionEndTests(KeepaliveTestCase):
@@ -922,10 +967,17 @@ class InstallTests(KeepaliveTestCase):
         settings.parent.mkdir(parents=True)
         other = {"type": "command", "command": "python3 /opt/other.py"}
         settings.write_text(json.dumps({"model": "opus", "hooks": {"Stop": [{"hooks": [other]}]}}))
+        agy_cfg = self.home() / ".gemini" / "config" / "hooks.json"
+        agy_cfg.parent.mkdir(parents=True)
+        other_agy = {"Stop": [{"type": "command", "command": "./other.sh"}]}
+        agy_cfg.write_text(json.dumps({"other-hook": other_agy}))
         for host in keepalive.HOSTS:
             keepalive.install(host)
             self.assertEqual(keepalive.status(host), "installed", host)
             keepalive.install(host)  # idempotent
+        agy_data = json.loads(agy_cfg.read_text())
+        self.assertEqual(agy_data["other-hook"], other_agy)
+        self.assertIn("observe --host antigravity", agy_data[keepalive.ANTIGRAVITY_HOOK_KEY]["PostToolUse"][0]["hooks"][0]["command"])
         data = json.loads(settings.read_text())
         self.assertEqual(len(data["hooks"]["Stop"]), 2)
         self.assertEqual(data["hooks"]["PostToolUse"][0]["matcher"], "Bash")
@@ -939,10 +991,16 @@ class InstallTests(KeepaliveTestCase):
         for host in keepalive.HOSTS:
             keepalive.install(host, remove=True)
             self.assertEqual(keepalive.status(host), "absent", host)
+        self.assertEqual(json.loads(agy_cfg.read_text()), {"other-hook": other_agy})
         self.assertEqual(json.loads(settings.read_text()),
                          {"model": "opus", "hooks": {"Stop": [{"hooks": [other]}]}})
         self.assertFalse((self.home() / ".cursor" / "hooks.json").exists())
         self.assertFalse((self.home() / ".grok" / "hooks" / "shiploop-keepalive.json").exists())
+        agy_cfg.unlink()
+        keepalive.install("antigravity")
+        self.assertTrue(agy_cfg.is_file())
+        keepalive.install("antigravity", remove=True)
+        self.assertFalse(agy_cfg.exists())
 
     def test_foreign_or_invalid_files_are_refused(self) -> None:
         plugin = self.home() / ".config" / "opencode" / "plugins" / "shiploop-keepalive.js"
@@ -1077,6 +1135,26 @@ class MarketplacePackageTests(KeepaliveTestCase):
                 self.assertEqual((ended_run.returncode, ended_run.stdout), (0, ""), ended_run.stderr)
                 self.assertIsNone(keepalive.load_binding(host, session))  # the host ended the session: run released
 
+        # Antigravity native plugin root hooks.json runs with cwd=plugin via relative ./skills/... paths.
+        keepalive.release_owner(str(self.run_dir))
+        root_hooks = json.loads((plugin / "hooks.json").read_text())
+        agy_spec = root_hooks["shiploop"]
+        obs_cmd = agy_spec["PostToolUse"][0]["hooks"][0]["command"]
+        stop_cmd = agy_spec["Stop"][0]["command"]
+        self.assertTrue(obs_cmd.startswith("./skills/shiploop/scripts/"))
+        self.assertTrue(stop_cmd.startswith("./skills/shiploop/scripts/"))
+        obs_run = subprocess.run(["sh", "-c", obs_cmd], cwd=plugin,
+                                 input=json.dumps(self.payload("antigravity", "observe", "plugin-agy")),
+                                 capture_output=True, text=True, check=False)
+        self.assertEqual((obs_run.returncode, obs_run.stdout.strip()), (0, "{}"), obs_run.stderr)
+        stop_run = subprocess.run(["sh", "-c", stop_cmd], cwd=plugin,
+                                  input=json.dumps(self.payload("antigravity", "stop", "plugin-agy")),
+                                  capture_output=True, text=True, check=False)
+        self.assertEqual(stop_run.returncode, 0, stop_run.stderr)
+        agy_reply = json.loads(stop_run.stdout)
+        self.assertEqual(agy_reply["decision"], "continue")
+        self.assertIn(str(self.run_dir), agy_reply["reason"])
+
 
 class DriverTests(KeepaliveTestCase):
     def drive(self, host: str, runner, **options) -> tuple[int, list[str]]:
@@ -1181,6 +1259,9 @@ class DriverTests(KeepaliveTestCase):
                 argv = keepalive.host_argv(host, fresh, None, [])
                 self.assertIn(fresh, argv)
                 self.assertNotIn("--resume", argv)
+        agy_argv = keepalive.host_argv("antigravity", fresh, None, ["--model", "claude-sonnet-5-5-medium", "--dangerously-skip-permissions"])
+        self.assertEqual(agy_argv[-1], f"--print={fresh}")
+        self.assertLess(agy_argv.index("--dangerously-skip-permissions"), agy_argv.index(f"--print={fresh}"))
 
     def test_a_host_that_fails_without_progress_is_reported_at_once(self) -> None:
         code, lines = self.drive("opencode", lambda argv, **kwargs: self.done(argv, returncode=1))

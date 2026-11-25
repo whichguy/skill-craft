@@ -262,7 +262,7 @@ function readSkillFrontmatter(leaf) {
 // Host hooks: an optional skills/<leaf>/host-hooks.json declares host-neutral
 // hooks; each host gets its own generated file, in its own format and plugin
 // root variable, and may only run an executable in the skill's own scripts/.
-const HOOK_HOSTS = ["claude", "codex", "cursor", "grok"];
+const HOOK_HOSTS = ["antigravity", "claude", "codex", "cursor", "grok"];
 // after-shell: after a shell command. turn-end: when the host is about to end
 // the agent's turn (Claude-format Stop; Cursor stop). after-skill: after a Skill-tool
 // call (Claude-format PostToolUse matching Skill); only Claude Code has that tool event.
@@ -276,6 +276,7 @@ const CURSOR_TURN_END_LOOP_LIMIT = 50;
 const HOOK_ID_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 const HOOK_SCRIPT_RE = /^scripts\/[A-Za-z0-9._-]+$/;
 const HOOK_FILES = {
+  antigravity: "hooks.json", // Native Antigravity plugins read root hooks.json.
   claude: "hooks/hooks.json", // Claude's default path; Grok loads Claude plugin hooks.
   codex: "hooks/codex.json",
   cursor: "hooks/cursor.json",
@@ -384,6 +385,36 @@ function buildHostHooks(leaves) {
       events.sessionEnd = sessionEnd.map((hook) => ({ command: command("${CURSOR_PLUGIN_ROOT}", hook), timeout: hook.timeout }));
     }
     files[HOOK_FILES.cursor] = { version: 1, hooks: events };
+  }
+  const antigravity = forHost("antigravity");
+  if (antigravity.length) {
+    const grouped = {};
+    const leavesUsed = [...new Set(antigravity.map((hook) => hook.leaf))];
+    for (const leaf of leavesUsed) {
+      const leafHooks = antigravity.filter((hook) => hook.leaf === leaf);
+      const shell = leafHooks.filter((hook) => hook.event === "after-shell");
+      const turnEnd = leafHooks.filter((hook) => hook.event === "turn-end");
+      const spec = {};
+      if (shell.length) {
+        spec.PostToolUse = [{
+          matcher: "run_command",
+          hooks: shell.map((hook) => ({
+            type: "command",
+            command: `./skills/${hook.leaf}/${hook.script}`,
+            timeout: hook.timeout,
+          })),
+        }];
+      }
+      if (turnEnd.length) {
+        spec.Stop = turnEnd.map((hook) => ({
+          type: "command",
+          command: `./skills/${hook.leaf}/${hook.script}`,
+          timeout: hook.timeout,
+        }));
+      }
+      if (Object.keys(spec).length) grouped[leaf] = spec;
+    }
+    if (Object.keys(grouped).length) files[HOOK_FILES.antigravity] = grouped;
   }
   return files;
 }
@@ -744,13 +775,17 @@ function parseArgs(args) {
 function writeOrCheckPackage(generated, doWrite, doCheck) {
   const name = PLUGIN_NAME;
   const base = path.join(root, "plugins", name);
+  const antigravityPath = path.join(base, ".antigravity-plugin", "plugin.json");
   const claudePath = path.join(base, ".claude-plugin", "plugin.json");
   const cursorPath = path.join(base, ".cursor-plugin", "plugin.json");
   const codexPath = path.join(base, ".codex-plugin", "plugin.json");
   const readmePath = path.join(base, "README.md");
 
   const hookPaths = Object.keys(generated.hooks || {});
+  const dirHookPaths = hookPaths.filter((rel) => rel.startsWith("hooks/"));
+  const hasRootHooks = hookPaths.includes("hooks.json");
   if (doCheck) {
+    checkGeneratedJson(antigravityPath, generated.plugin, `${name} Antigravity plugin manifest`);
     checkClaudePlugin(claudePath, generated.plugin, name);
     checkGeneratedJson(cursorPath, generated.cursor, `${name} Cursor plugin manifest`);
     checkGeneratedJson(codexPath, generated.codex, `${name} Codex plugin manifest`);
@@ -760,20 +795,25 @@ function writeOrCheckPackage(generated, doWrite, doCheck) {
     }
     const hookDir = path.join(base, "hooks");
     const present = fs.existsSync(hookDir) ? fs.readdirSync(hookDir).map((f) => `hooks/${f}`).sort() : [];
-    if (present.join() !== [...hookPaths].sort().join()) {
-      fail(`${name} hooks/ holds ${present.join(", ") || "nothing"}; host-hooks.json generates ${hookPaths.join(", ") || "nothing"}`);
+    if (present.join() !== [...dirHookPaths].sort().join()) {
+      fail(`${name} hooks/ holds ${present.join(", ") || "nothing"}; host-hooks.json generates ${dirHookPaths.join(", ") || "nothing"}`);
+    }
+    if (!hasRootHooks && fs.existsSync(path.join(base, "hooks.json"))) {
+      fail(`${name} hooks.json exists; host-hooks.json generates no root hooks.json`);
     }
     process.stdout.write(`skill-frontmatter-to-plugin-json: CHECK OK ${name}\n`);
     return;
   }
 
   if (doWrite) {
+    writeGeneratedJson(antigravityPath, generated.plugin);
     writeGeneratedJson(claudePath, generated.plugin);
     writeGeneratedJson(cursorPath, generated.cursor);
     writeGeneratedJson(codexPath, generated.codex);
     writeGeneratedText(readmePath, generated.readme);
     const hookDir = path.join(base, "hooks");
     fs.rmSync(hookDir, { recursive: true, force: true });
+    fs.rmSync(path.join(base, "hooks.json"), { force: true });
     for (const rel of hookPaths) writeGeneratedJson(path.join(base, rel), generated.hooks[rel]);
     process.stdout.write(
       `skill-frontmatter-to-plugin-json: wrote plugins/${name} host manifests and README.md\n`

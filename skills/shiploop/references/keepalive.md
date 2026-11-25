@@ -156,12 +156,15 @@ A marketplace install of the ShipLoop plugin carries the hooks. ShipLoop
 declares them in `host-hooks.json` (`keepalive-observe` on `after-shell`,
 `keepalive-stop` on `turn-end`, `keepalive-session-end` on `session-end`, and for Claude Code only `skill-calls` on `after-skill`), and the package generator writes each host's
 own file: `hooks/hooks.json` for Claude and Grok, `hooks/codex.json`,
-`hooks/cursor.json`. Their argument-free entry scripts
+`hooks/cursor.json`, and plugin-root `hooks.json` for native Antigravity plugins. Their argument-free entry scripts
 (`scripts/shiploop-keepalive-observe`, `scripts/shiploop-keepalive-stop`, `scripts/shiploop-keepalive-session-end`) run
-`shiploop-hook … --host auto`, which tells Grok (`GROK_PLUGIN_ROOT`), Cursor
+`shiploop-hook … --host auto`, which tells Antigravity (`artifactDirectoryPath` / `conversationId`), Grok (`GROK_PLUGIN_ROOT`), Cursor
 (`CURSOR_PLUGIN_ROOT`), Codex and Claude apart. Claude Code runs them as
 installed. Codex asks you once, in an interactive session, to trust the new
-plugin hooks; approve the ShipLoop entries.
+plugin hooks; approve the ShipLoop entries. On Antigravity, when a parent turn ends
+with `fullyIdle: false` (waiting reactively on a subagent), `stop` returns `allow`
+without releasing ownership or updating the duplicate window so the subagent is not
+blocked and parent re-entry stays guarded.
 
 Grok runs a trusted plugin's hooks, but a Grok session loads them only when its
 leader process starts: a plugin installed (or updated) while a leader is running
@@ -193,6 +196,7 @@ Hermes is not supported.
 
 | Host | Registered in | Continue signal | Unattended (headless) |
 |------|---------------|-----------------|-----------------------|
+| Antigravity | Plugin root `hooks.json` or `~/.gemini/config/hooks.json` (`PostToolUse` `run_command`, `Stop`) | `{"decision":"continue","reason":…}`; allows `fullyIdle: false` subagent waits without releasing ownership | Hook keeps `agy --print=...` going (put flags before `--print=`). |
 | Claude Code | `~/.claude/settings.json` (`PostToolUse` Bash and Skill, `Stop`, `SessionEnd`) | `{"decision":"block","reason":…}` | Hook alone keeps `claude -p` going. |
 | Codex | `~/.codex/hooks.json` (`PostToolUse`, `Stop`, `SessionEnd`); approve once when Codex asks | `{"decision":"block","reason":…}` | Hook alone keeps `codex exec` going. |
 | Grok | `~/.grok/hooks/shiploop-keepalive.json`, written by ShipLoop on its first command under Grok | `{"decision":"block","reason":…}`; at most 8 per turn | Hook alone keeps `grok -p` going. |

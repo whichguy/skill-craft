@@ -88,6 +88,8 @@ fi
 [[ -f "$BASE/skills/skill-interop/SKILL.md" ]] || fail "missing materialised SKILL.md"
 [[ -f "$BASE/agents/skill-interop.md" ]] || fail "missing materialised agent card"
 [[ -f "$BASE/.claude-plugin/plugin.json" ]] || fail "missing plugin.json"
+[[ -f "$BASE/.antigravity-plugin/plugin.json" ]] || fail "missing .antigravity-plugin/plugin.json"
+[[ -f "$BASE/hooks.json" ]] || fail "missing Antigravity root hooks.json"
 
 # plugin.json is derived from every bundled SKILL.md (version/description/license)
 node scripts/skill-frontmatter-to-plugin-json.js --package --check \
@@ -322,18 +324,21 @@ hooks_json() { python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.
   || fail "Codex hook file content"
 [[ "$(hooks_json "$BASE/hooks/cursor.json")" == '{"hooks": {"afterShellExecution": [{"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook", "timeout": 10}, {"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe", "timeout": 30}], "sessionEnd": [{"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-session-end", "timeout": 10}], "stop": [{"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop", "loop_limit": 50, "timeout": 30}]}, "version": 1}' ]] \
   || fail "Cursor hook file content"
+[[ "$(hooks_json "$BASE/hooks.json")" == '{"shiploop": {"PostToolUse": [{"hooks": [{"command": "./skills/shiploop/scripts/shiploop-keepalive-observe", "timeout": 30, "type": "command"}], "matcher": "run_command"}], "Stop": [{"command": "./skills/shiploop/scripts/shiploop-keepalive-stop", "timeout": 30, "type": "command"}]}}' ]] \
+  || fail "Antigravity root hooks.json content"
 grep -q '"hooks": "./hooks/codex.json"' "$BASE/.codex-plugin/plugin.json" || fail "Codex manifest hooks field"
 grep -q '"hooks": "./hooks/cursor.json"' "$BASE/.cursor-plugin/plugin.json" || fail "Cursor manifest hooks field"
 ! grep -q '"hooks"' "$BASE/.claude-plugin/plugin.json" || fail "Claude manifest must use the default hooks path"
 python3 scripts/check-marketplace-packages.py "$BASE" >/dev/null || fail "package check of generated hooks"
 
-# When no skill declares hooks, the bundle may not carry hooks/ at all.
+# When no skill declares hooks, the bundle may not carry hooks/ or hooks.json at all.
 mv skills/shiploop/host-hooks.json skills/shiploop/host-hooks.json.bak-sync-test
 mkdir -p "$BASE/hooks" && printf '{}\n' > "$BASE/hooks/hooks.json"
 expect_fail "hooks/ with no declaring skill" "$BASE/hooks is not generated" \
   bash scripts/sync-plugin-views.sh --check
 bash scripts/sync-plugin-views.sh >/dev/null || fail "sync over undeclared hooks/"
 [[ ! -e "$BASE/hooks" ]] || fail "sync must remove undeclared hooks/"
+[[ ! -e "$BASE/hooks.json" ]] || fail "sync must remove undeclared hooks.json"
 mv skills/shiploop/host-hooks.json.bak-sync-test skills/shiploop/host-hooks.json
 bash scripts/sync-plugin-views.sh >/dev/null || fail "restore shiploop's hooks declaration"
 
@@ -343,6 +348,11 @@ printf '{}\n' > "$BASE/hooks/hooks.json"
 expect_fail "package check of an empty hook file" "declares no hook commands" \
   python3 scripts/check-marketplace-packages.py "$BASE"
 mv "$BASE/hooks/hooks.json.bak-sync-test" "$BASE/hooks/hooks.json"
+cp "$BASE/hooks.json" "$BASE/hooks.json.bak-sync-test"
+printf '{}\n' > "$BASE/hooks.json"
+expect_fail "package check of an empty Antigravity hooks.json" "declares no hook commands" \
+  python3 scripts/check-marketplace-packages.py "$BASE"
+mv "$BASE/hooks.json.bak-sync-test" "$BASE/hooks.json"
 
 # Edited or extra hook files are drift; a command outside scripts/ is refused.
 printf 'extra\n' > "$BASE/hooks/extra.json"

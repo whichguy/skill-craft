@@ -18,7 +18,7 @@ start` or `init` instructions and each returned command exactly.
 | Claude Code | `/skill-craft:shiploop` | `skill-craft@whichguy` |
 | Grok | Select the installed plugin's ShipLoop skill | Native marketplace package |
 | Cursor | Select the installed plugin's ShipLoop skill | Native marketplace package |
-| Antigravity | Select the installed ShipLoop skill (`.agents/skills/shiploop`) | Native skill/plugin package |
+| Antigravity | Select the installed ShipLoop skill (`.agents/skills/shiploop` or `skill-craft` plugin) | Native Antigravity plugin (`1.1.2`, `1.5.16`; keepalive via `hooks.json`) |
 | Hermes | Select the installed ShipLoop card | Host-supported materialized package |
 
 The marketplace name identifies the catalog; the plugin name supplies the

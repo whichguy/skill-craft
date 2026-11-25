@@ -1,0 +1,17 @@
+{
+  "artifactDirectoryPath": "/tmp/shiploop-keepalive-fixture/artifacts/__SESSION__",
+  "continuationActive": false,
+  "conversationId": "__SESSION__",
+  "cwd": "/tmp/shiploop-keepalive-fixture",
+  "error": "",
+  "executionNum": 0,
+  "fullyIdle": true,
+  "hookEventName": "Stop",
+  "lastUserInput": "Run shiploop next",
+  "modelName": "claude-sonnet-5-5-medium",
+  "terminationReason": "NO_TOOL_CALL",
+  "transcriptPath": "/tmp/shiploop-keepalive-fixture/artifacts/__SESSION__/transcript_full.jsonl",
+  "workspacePaths": [
+    "/tmp/shiploop-keepalive-fixture"
+  ]
+}

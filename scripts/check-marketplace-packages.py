@@ -221,6 +221,41 @@ def validate_hooks(package: Path, skills: list[str], errors: list[str]) -> None:
                 errors.append(f"hooks/{file_name}: command must run an executable in a bundled "
                               f"skills/<skill>/scripts/ via {variable}: {command!r}")
 
+    root_hooks = package / "hooks.json"
+    if root_hooks.is_file():
+        try:
+            data = json.loads(root_hooks.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, ValueError) as exc:
+            errors.append(f"hooks.json: unreadable or invalid JSON: {exc}")
+            data = None
+        if data is not None:
+            if not isinstance(data, dict) or not data:
+                errors.append("hooks.json: declares no hook commands")
+            else:
+                entries = []
+                for spec in data.values():
+                    if not isinstance(spec, dict):
+                        continue
+                    for items in spec.values():
+                        if not isinstance(items, list):
+                            continue
+                        for item in items:
+                            if isinstance(item, dict) and isinstance(item.get("hooks"), list):
+                                entries.extend(item["hooks"])
+                            else:
+                                entries.append(item)
+                if not entries:
+                    errors.append("hooks.json: declares no hook commands")
+                pattern = re.compile(r"\./skills/([a-z0-9][a-z0-9-]*)/scripts/([^/]+)")
+                for entry in entries:
+                    command = entry.get("command") if isinstance(entry, dict) else None
+                    match = pattern.fullmatch(command) if isinstance(command, str) else None
+                    target = package / "skills" / match[1] / "scripts" / match[2] if match else None
+                    if (not match or match[1] not in skills or not target.is_file()
+                            or not os.access(target, os.X_OK)):
+                        errors.append(f"hooks.json: command must run an executable in a bundled "
+                                      f"skills/<skill>/scripts/ via ./: {command!r}")
+
 
 def validate_package(package: Path) -> list[str]:
     """Return all actionable errors, including malformed/unreadable payloads."""
@@ -292,6 +327,27 @@ def validate_package(package: Path) -> list[str]:
         for field in ("name", "version", "description", "license"):
             if codex.get(field) != base.get(field):
                 errors.append(f"manifest {field} differs across host adapters")
+    agy_path = package / ".antigravity-plugin" / "plugin.json"
+    if agy_path.exists():
+        try:
+            agy = json.loads(agy_path.read_text(encoding="utf-8"))
+            if not isinstance(agy, dict):
+                raise ValueError("manifest must be an object")
+        except (OSError, UnicodeError, ValueError) as exc:
+            errors.append(f".antigravity-plugin/plugin.json: missing/unreadable/invalid JSON: {exc}")
+            agy = {}
+        if agy:
+            if agy.get("name") != name:
+                errors.append(f".antigravity-plugin/plugin.json: name must match folder {name}")
+            if not SEMVER.fullmatch(str(agy.get("version", ""))):
+                errors.append(".antigravity-plugin/plugin.json: version must be semantic version")
+            for key in ("description", "license"):
+                if not isinstance(agy.get(key), str) or not agy[key].strip():
+                    errors.append(f".antigravity-plugin/plugin.json: missing {key}")
+            if base:
+                for field in ("name", "version", "description", "license"):
+                    if agy.get(field) != base.get(field):
+                        errors.append(f".antigravity-plugin/plugin.json: manifest {field} differs across host adapters")
     if codex and codex.get("skills") != "./skills/":
         errors.append("Codex skills must declare ./skills/ for the shared package layout")
     if codex:

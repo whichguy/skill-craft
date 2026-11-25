@@ -123,7 +123,7 @@
       "name": "Antigravity",
       "section": "references/host-capabilities.md#antigravity",
       "status": "qualified",
-      "tested": ["1.1.2"],
+      "tested": ["1.1.2", "1.5.16"],
       "tools": {"spawn": ["invoke_subagent"], "stop": ["manage_subagents"]},
       "worker_type": "self",
       "serial_mode": "async-reactive",

@@ -272,6 +272,25 @@ class PackageTests(unittest.TestCase):
         self.assertEqual({"scripts/dispatch.js": "node"}, CHECK.NATIVE_SCRIPT_ENTRYPOINTS["plan-dispatcher"])
         self.assertEqual([], CHECK.validate_package(PLUGINS / "skill-craft"))
 
+    def test_antigravity_manifest_and_root_hooks_validation(self):
+        self.write_manifest(".antigravity-plugin", dict(self.manifest, version="9.9.9"))
+        self.assert_bad(".antigravity-plugin/plugin.json: manifest version differs")
+        self.write_manifest(".antigravity-plugin", self.manifest)
+        self.package.joinpath("hooks.json").write_text("{}")
+        self.assert_bad("hooks.json: declares no hook commands")
+        self.package.joinpath("hooks.json").write_text(
+            json.dumps({"sample": {"Stop": [{"type": "command", "command": "./skills/sample/scripts/missing"}]}})
+        )
+        self.assert_bad("hooks.json: command must run an executable")
+        script = self.skill / "scripts" / "hook-ok"
+        script.parent.mkdir(exist_ok=True)
+        script.write_text("#!/bin/sh\necho '{}'\n")
+        script.chmod(0o755)
+        self.package.joinpath("hooks.json").write_text(
+            json.dumps({"sample": {"Stop": [{"type": "command", "command": "./skills/sample/scripts/hook-ok"}]}})
+        )
+        self.assertEqual([], self.check())
+
     # A second top-level skills/<x>/SKILL.md is no longer a failure: bundling
     # more than one skill in the package is exactly the current design (see
     # test_nested_public_skill for the guard that does still apply — a

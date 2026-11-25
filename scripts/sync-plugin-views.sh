@@ -162,10 +162,11 @@ view_entries() {
 # agent card that left the package), as paths relative to the view.
 stale_view_entries() {
   local view="$1" entry
-  local top=".claude-plugin .codex-plugin .cursor-plugin LICENSE README.md skills"
+  local top=".antigravity-plugin .claude-plugin .codex-plugin .cursor-plugin LICENSE README.md skills"
   if [[ ${#agent_leaves[@]} -gt 0 ]]; then top="$top agents"; fi
-  # hooks/ is generated only from skills/<leaf>/host-hooks.json.
+  # hooks/ and hooks.json are generated only from skills/<leaf>/host-hooks.json.
   if [[ "$has_hooks" -eq 1 ]]; then top="$top hooks"; fi
+  if [[ "$has_antigravity_hooks" -eq 1 ]]; then top="$top hooks.json"; fi
   while IFS= read -r entry; do
     [[ -n "$entry" ]] || continue
     case " $top " in *" $entry "*) ;; *) printf '%s\n' "$entry" ;; esac
@@ -185,9 +186,15 @@ stale_view_entries() {
 view="$root/plugins/$plugin"
 agent_leaves=()
 has_hooks=0
+has_antigravity_hooks=0
 for name in "${leaves[@]}"; do
   [[ -f "$root/agents/${name}.md" ]] && agent_leaves+=("$name")
-  [[ -f "$root/skills/$name/host-hooks.json" ]] && has_hooks=1
+  if [[ -f "$root/skills/$name/host-hooks.json" ]]; then
+    has_hooks=1
+    if python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if any("antigravity" in (h.get("hosts") or []) for h in d.get("hooks", []) if isinstance(h, dict)) else 1)' "$root/skills/$name/host-hooks.json" 2>/dev/null; then
+      has_antigravity_hooks=1
+    fi
+  fi
 done
 
 # Any other plugins/<name> is not generated (for example a per-skill package
