@@ -4,75 +4,49 @@ Split from the ShipLoop skill card (`../SKILL.md`). Read at `step-plan`, `test-s
 
 ## Test loop
 
-`step-plan` records the work item's test command list in its result:
+`step-plan` records:
 `"test_commands": [{"command": "<shell command>", "suite": "focused" | "regression" | "check", "ids": ["TC-9"], "min_tests": 1}]`
-(`ids` and `min_tests` optional, and never on a `check` row). It also records
-`"paths"` (the repository-relative files or globs the item will change) and
-`"steps": [{"id": "S1", "task": "...", "deps": []}]`: every implementation step in
-order, each step's actual prerequisites as earlier step IDs in `deps` (`[]` for
-an independent step; order alone does not imply dependency). ShipLoop refuses a
-done `step-plan` without any of these; an empty command list needs
-`test_commands_na` with the reason, and a list with no `check` row (lint, type or
-build) needs `check_na`. A regression command marked `"minimum": true` runs at
-every step, an unmarked one at the item's last step only; a plan of two or more
-steps marks one or gives `minimum_na`
-([what each step runs](testing-and-documentation.md#what-each-step-runs)).
+(`ids`/`min_tests` optional, never on `check`), `"paths"` (repo-relative globs/files),
+and `"steps": [{"id": "S1", "task": "...", "deps": []}]` (real prerequisites only, `[]`
+when independent). Missing fields require explicit `_na` reasons (`test_commands_na`,
+`check_na`). Regression commands marked `"minimum": true` run at every step; unmarked
+ones run at the item's last step only (`>= 2` steps require one or `minimum_na`;
+[what each step runs](testing-and-documentation.md#what-each-step-runs)).
 
-The `test` stage follows `implement`. Tests run after build and assert each spec
-oracle; ShipLoop mutates changed product lines and refuses unkilled mutants
-without a `mutant_dispositions` entry. Its [Until Loop](inner-loop.md#stage-until-loops)
-adds a test per spec case (ID as its own word in the name), runs all recorded,
-`red-check` and lint commands, and fixes product code (recording independent reasons
-for test edits) until all pass. On `done`, after lint, ShipLoop runs two gates
-(`scripts/shiploop_test_loop.py`) with `/bin/sh -c` (10 min limit per command):
+`test` follows `implement`, asserting each spec oracle. ShipLoop mutates changed product
+lines and refuses unkilled mutants without a `mutant_dispositions` entry. Its
+[Until Loop](inner-loop.md#stage-until-loops) writes a test per spec case (ID as its
+own word), runs recorded/red-check/lint commands, and fixes code (recording test-edit
+reasons) until green. On `done`, after lint, ShipLoop runs two gates
+(`scripts/shiploop_test_loop.py`) with `/bin/sh -c` (10 min timeout):
 
-1. **Base run** (`base_check`): every focused and regression command in a
-   temporary detached worktree at the item's base (after any preparatory fix),
-   with only this item's test files copied in. A test ID new at this step must
-   not pass there: it must fail because the behaviour it asserts is missing, or
-   fail to load the code this item adds (a guard that only checks or prints a
-   file's path is not RED). An earlier step's cases already pass on a later
-   step's base: they are counted for the floor, not judged (`earlier_steps` in
-   the record). A command a platform card lists under Remote tests is not run on
-   the base. A new test that already passes (a characterisation test, or a case
-   committed before a send-back) goes in the result's `red_na: [{"id",
-   "reason"}]`, which may name only a test ID new at this step
-   (`tests/<action>-base<N>.md`).
-2. **Candidate run** (`loop_run`): every recorded command (focused, regression,
-   check) in the checkout. Each must exit 0, show every listed ID and run at
-   least its floor (`tests/<action>-verify<N>.md`). The refusal prints each
-   failing command, why it did not pass and the end of its output.
+1. **Base run** (`base_check`): runs focused/regression commands at item base (plus this
+   item's test files). New IDs must fail on missing behaviour or missing added module
+   (path guards are not RED). Earlier steps' cases are floor-counted, not judged
+   (`earlier_steps`); Remote tests skip base. Intentional base-passing cases go in
+   `red_na: [{"id", "reason"}]` (`tests/<action>-base<N>.md`).
+2. **Candidate run** (`loop_run`): runs all recorded commands in WORKTREE (`<= 0` exit,
+   every listed ID shown, count `>= floor`; `tests/<action>-verify<N>.md`).
 
-A focused or regression command's **floor** is the larger of its base count and
-the most any earlier ShipLoop run of this action ran, less each test the
-result's `retired_tests: [{"id", "reason"}]` names that the base run showed. A
-test removed or newly skipped to pass is refused; a test this item deliberately
-retires is declared in `retired_tests`. A command passes only when it exits 0
-**and ran tests** that ShipLoop can count and that show every listed ID.
+A command's **floor** is `max(base_count, max_prior_run) - len(retired_tests_on_base)`
+(`retired_tests: [{"id", "reason"}]`). Removing or skipping tests to pass fails.
+Passing requires exit 0, counted tests, and every listed ID shown.
 
-`shiploop red-check --run-dir <run> --action <test action> [--result <draft>]`
-runs the base check without completing. A draft result's `red_na` and `retired_tests` apply. It never gates and
-never counts toward the refused runs: exit 0 when no new test ID passes on the
-base, 1 when one does or a test did not run, 3 when the check cannot run.
+`shiploop red-check --run-dir <run> --action <test action> [--result <draft>]` runs
+the uncounted base check (`red_na`/`retired_tests` apply): 0 clean, 1 failed, 3 error.
 
-`document` reruns affected commands; outer stages run recorded commands.
-Unchanged checkout checks may reuse receipts; external and `release-verify` checks rerun.
-No count of refused runs
-stops `done` (the packet shows the tally; at `test`, base, candidate and
-mutation runs share one). When the plan or a recorded command is what is wrong,
-take the stage's own remedy — back to the step plan with `send-back` at an INNER
-stage (or `document` `done` with `replan_remaining` on a non-final step when done work commits cleanly), or
-`send-back` / `add-work` at `system-test` (`system-test-author`) and `release-verify` (`release-plan`). A run that
-times out or cannot start refuses the stage without counting.
+`document` reruns affected commands; outer stages run recorded commands. Unchanged
+checks may reuse receipts; external and `release-verify` checks rerun. No count of
+refused runs stops `done` (base, candidate, and mutation share one tally). Remedy wrong
+plans/commands via `send-back` (INNER, or non-final `document` `done` with
+`replan_remaining`) or `send-back` / `add-work` at `system-test` (`system-test-author`)
+and `release-verify` (`release-plan`). Timeouts or unstartable runs refuse uncounted.
 
-`test` is recorded as not applicable when the item has no test command and
-touches only documentation or configuration paths, and `document` when the
-item's real diff touches no code or test path. How a run is read, the floors'
-limits, these rules, the outer reruns and runs that reach no verdict:
-[how ShipLoop runs the recorded commands](testing-and-documentation.md#how-shiploop-runs-the-recorded-commands).
+`test` is skipped when no test command exists and only docs/config change; `document`
+is skipped when no code/test path changed
+([command rules](testing-and-documentation.md#how-shiploop-runs-the-recorded-commands)).
 
-ShipLoop runs the recorded commands outside the host's permission prompts; with an
-empty list it runs none and accepts `done` with the recorded reason.
+ShipLoop runs recorded commands outside host permission prompts (empty lists accept with reason).
 
 ## Confirmation is a passing command
 

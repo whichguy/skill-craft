@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.16.0
+
+- Skills: shiploop 2.17.0
+
+### shiploop 2.17.0
+
+- Auto-register passing `<ID> (<letter>)` sub-cases across `test`, `document`, and Improve reruns (seed-seam safe), tighten the `test`-stage product-edit Proof re-check gate for newly added code files inside step `paths`, surface live testing-evidence and fix-forward observability across `shiploop status`, `shiploop progress`, the HTML achievement report, and E2E `metrics.py`, forward `not-exercisable` mutants to `reflect-and-revise`, and harden reference size headroom and multi-line packet-obligation anchor matching.
+
 ### skill-craft 4.15.2
 
 - Skills: shiploop 2.16.2

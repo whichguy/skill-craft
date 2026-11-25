@@ -37,6 +37,7 @@ import shiploop_unverified as unverified
 import shiploop_follow_on as follow_on
 import shiploop_defaults as defaults
 import shiploop_planning_status as planning_status
+import shiploop_testing_status as testing_status
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
@@ -5112,7 +5113,7 @@ def _test_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) ->
 
 
 def _test_edited_product_code(root: Path, state: Mapping[str, Any], workitem: Any) -> bool:
-    """True when the active test action modified or deleted existing product code since entering the test stage."""
+    """True when the active test action modified/deleted product code or added step-declared product code."""
     if "stage" not in state or "repo" not in state:
         return False
     stage, action, _item = _active_cursor(state)
@@ -5127,11 +5128,21 @@ def _test_edited_product_code(root: Path, state: Mapping[str, Any], workitem: An
         diff = lint._git(repo, "diff-tree", "-r", "--no-commit-id", "--name-status", str(entry), str(current))
     except lint.LintError:
         return False
+    view = step_view(state, str(workitem))
+    step_paths = list(view.step.get("paths") or ()) if view is not None else []
+    if not step_paths:
+        _plan_id, plan = test_loop._step_plan(state, str(workitem))
+        step_paths = [str(p) for p in (plan.get("paths") or ()) if isinstance(p, str)]
     for line in diff.stdout.decode("utf-8", "replace").splitlines():
         if "\t" not in line:
             continue
         status_code, path = line.split("\t", 1)
-        if status_code[:1] in ("M", "D") and item_scope.classify(path) == "code" and not path.startswith("docs/shiploop/"):
+        if item_scope.classify(path) != "code" or path.startswith("docs/shiploop/"):
+            continue
+        code = status_code[:1]
+        if code in ("M", "D"):
+            return True
+        if code == "A" and any(item_scope._matches(path, str(pat)) for pat in step_paths):
             return True
     return False
 
@@ -5466,7 +5477,7 @@ def _document_rerun(root: Path, state: Mapping[str, Any], workitem: str,
     them) after edits to no code or test path, and every one after a code or test edit, or when the edits cannot be
     read.  The tests ``submitted`` registers are listed with their commands."""
     added = (submitted.get(test_loop.ADDED_TESTS) or ()) if isinstance(submitted, Mapping) else ()
-    commands = test_loop.stage_commands(state, test_loop.STEP_RERUN_STAGE, workitem, added)[0]
+    commands = test_loop.stage_commands(state, test_loop.STEP_RERUN_STAGE, workitem, added, root=root)[0]
     base = _stage_base(state)
     changed = improve_changes.paths_since(root, Path(state["repo"]), base["tree"]) if base else None
     if changed is None or item_scope.behavioural_paths(changed):
@@ -5621,7 +5632,7 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
     if not end_of_work and changes is not None and all(
             knowledge.in_home(path) or path.startswith("docs/") for path in changes[0]):
         return
-    commands = improve_changes.rerun_commands(state)
+    commands = improve_changes.rerun_commands(state, root=root)
     writes, refusal = test_loop.verify(root, state, "", action_id, stage_label, commands=commands)
     for relative, text in writes.items():
         store.atomic_write_text(root / relative, text)
@@ -6504,6 +6515,8 @@ def status_block(state: Mapping[str, Any], root: Path | None = None) -> str:
     if root is not None or stage == "plan":
         obs = planning_status.plan_observability(root, state)
         lines.extend(planning_status.status_lines(obs))
+    testing_obs = testing_status.testing_observability(root, state)
+    lines.extend(testing_status.status_lines(testing_obs))
     lines.append(STATUS_END)
     return "\n".join(lines)
 
@@ -8226,14 +8239,24 @@ def _test_evidence_lines(root: Path, state: Mapping[str, Any], stage: str, work_
         return lines
     if stage == "reflect-and-revise" and work_item is not None:
         findings = []
+        not_ex: list[str] = []
         for action in planning_revision.step_actions(state, work_item, "test"):
             res = accepted.get(action)
-            for row in (res.get("test_findings") or () if isinstance(res, Mapping) else ()):
+            if not isinstance(res, Mapping):
+                continue
+            for row in res.get("test_findings") or ():
                 if isinstance(row, Mapping):
                     findings.append(_format_finding(work_item, row))
+            for disp in res.get("mutant_dispositions") or ():
+                if isinstance(disp, Mapping) and disp.get("disposition") == "not-exercisable":
+                    not_ex.append("- " + work_item + " " + _one_line(disp.get("mutant"))
+                                  + " (" + _one_line(disp.get("evidence")) + ")")
         if findings:
             lines.append("Test findings recorded in " + work_item + ":")
             lines.extend(findings)
+        if not_ex:
+            lines.append("Mutants marked `not-exercisable` in " + work_item + " (carry to system-test-author or open assumptions):")
+            lines.extend(not_ex)
         return lines
     if stage in ("system-test-author", "system-test"):
         findings = []
@@ -9717,6 +9740,38 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
                 "<table><thead><tr><th>Assumption</th><th>Question</th><th>Check</th><th>Effect / Decision</th></tr></thead><tbody>"
                 + p_rows + "</tbody></table>"
             )
+    testing_obs = testing_status.testing_observability(root, state)
+    testing_section: list[str] = []
+    if testing_obs.get("has_evidence"):
+        testing_section.append("<h2>Testing evidence &amp; fix-forward</h2>")
+        f_list = testing_obs.get("findings") or ()
+        r_list = testing_obs.get("replans") or ()
+        m_list = testing_obs.get("not_exercisable_mutants") or ()
+        testing_section.append(
+            "<p>"
+            + html.escape(
+                f"Findings: {len(f_list)} ({int(testing_obs.get('findings_settled') or 0)} settled); "
+                f"fix-forward replans: {len(r_list)}; "
+                f"auto-registered sub-cases: {int(testing_obs.get('auto_subcases_count') or 0)}; "
+                f"not-exercisable mutants: {len(m_list)}; "
+                f"test Proof re-checks: {int(testing_obs.get('test_proof_rechecks') or 0)}."
+            )
+            + "</p>"
+        )
+        if f_list:
+            f_rows = "".join(
+                "<tr>"
+                f"<td>{html.escape(str(row.get('id') or ''))}</td>"
+                f"<td>{html.escape(str(row.get('impact') or ''))}</td>"
+                f"<td>{html.escape('settled' if row.get('settled') else 'open')}</td>"
+                f"<td>{html.escape(str(row.get('finding') or ''))}</td>"
+                "</tr>"
+                for row in f_list
+            )
+            testing_section.append(
+                "<table><thead><tr><th>Finding</th><th>Impact</th><th>Status</th><th>Detail</th></tr></thead><tbody>"
+                + f_rows + "</tbody></table>"
+            )
     workspace_return = _workspace_return_projection(root, state)
     workspace_section: list[str] = []
     if workspace_return is not None:
@@ -9736,7 +9791,7 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
         ]
     delivery_section = consumer_delivery.html_section(state)
     leftover_section = _leftovers_section(_leftovers(root, state))
-    report_tail = ["</tbody></table>", *progress_section, *planning_section, *_handoff_sections(state, root), *unverified.html_section(state),
+    report_tail = ["</tbody></table>", *progress_section, *planning_section, *testing_section, *_handoff_sections(state, root), *unverified.html_section(state),
                    *follow_on.html_section(state, root), *workspace_section,
                    *leftover_section, delivery_section, "</body></html>"]
     return "\n".join(

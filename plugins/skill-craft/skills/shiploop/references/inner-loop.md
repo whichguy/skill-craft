@@ -72,33 +72,25 @@ step-plan loop checks each draft. A duplicate command runs once.
 
 ## Expectations and validate-existing
 
-`step-plan` records the facts the item builds on:
+`step-plan` records item facts:
 `"expectations": [{"id": "E1", "state": "works" | "absent" | "broken", "statement": "...", "steps": ["S1"], "paths": ["src/a.js"], "check": "<one shell command>", "from": "A3"}]`.
-Each check is one read-only shell command, run from the repository root, that
-exits 0 when the stated state holds: `works`, an existing thing works today;
-`absent`, a new path's place is free; `broken`, the failure the request reports
-reproduces. ShipLoop refuses a step plan when an existing path a step changes
-has no works or broken expectation, a new path has no absent one, a check
-writes, or an open item due here is in no executed criterion's or expectation's
-`from` (`expectations.check_step_plan`).
+Each read-only command exits 0 when the state holds: `works`, an existing thing works today;
+`absent`, a new path is free; `broken`, the reported failure reproduces. ShipLoop
+refuses a step plan if a changed path lacks an expectation, a new path lacks `absent`,
+a check writes, or an open item due here is omitted from `from`
+(`expectations.check_step_plan`).
 
-At `validate-existing` entry ShipLoop runs every check on the unchanged
-checkout. When all match, it records the stage done by script and issues no
-packet. Otherwise the packet lists each check's result. A works expectation
-found broken whose fix is known and small is fixed in this stage, touching only
-that expectation's paths. Do not commit it: on `done` ShipLoop reruns every
-check, refuses a mismatch or a change outside those paths, and on accept commits
-the fix as its own preparatory commit. The test stage's base run starts from
-that commit. A wrong check, an unknown fix or a fact that changes the plan is
-`send-back`, with `failed_expectations: [{"id", "actual", "route": "check" | "steps"}]`.
+On `validate-existing` entry ShipLoop checks every expectation on the unchanged tree;
+if all match, it marks the stage done by script. Otherwise, small known `works` fixes
+edit only those paths uncommitted (`done` reruns checks and makes a preparatory commit;
+`test` base runs start there). Wrong checks, unknown fixes, or plan-changing facts report
+`send-back` with `failed_expectations: [{"id", "actual", "route": "check" | "steps"}]`.
 
 ## Reflect-and-revise skill decision
 
-A done result records `"skill": {"decision": "none" | "reuse" | "update" | "create", "reason", "path", "evidence"}`.
-For `update` and `create` ShipLoop refuses a `path` that is not an existing
-`SKILL.md` with `name` and `description` frontmatter, or empty repeat `evidence`,
-and on accept commits the skill's directory. When to create or update a skill:
-[reflect-and-revise contract](reflect-and-revise.md).
+`done` records `"skill": {"decision": "none" | "reuse" | "update" | "create", "reason", "path", "evidence"}`.
+`update`/`create` require an existing `SKILL.md` (`name`, `description` frontmatter) and
+repeat `evidence`, and commit the skill directory ([contract](reflect-and-revise.md)).
 
 ## Send-back: back to the step plan
 

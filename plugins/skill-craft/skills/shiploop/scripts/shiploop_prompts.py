@@ -1643,8 +1643,9 @@ preparatory commit); a mismatch there is a send-back.
    the full suites (they run at the last step); the summary says which. Test the new code in detail with deterministic,
    executable test scripts: unit and mock tests first, then any MCP server or skill this host offers where it observes
    more (capture repeatable checks as scripts in the test suite rather than relying on interactive or prompt-driven tool
-   calls alone). Use each skill this packet lists for the stage. Register newly added durable test IDs in optional
-   `added_tests` (`[{"id", "command"}]`) so document reruns them too.
+   calls alone). Use each skill this packet lists for the stage. Passing `<ID> (<letter>)` sub-cases in focused runs
+   are auto-registered for later reruns; register custom durable IDs or new commands in optional `added_tests`
+   (`[{"id", "command"}]`) so document reruns them too.
 2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions.
    Record a harness or suite decision the implementation changed in ## Harnesses and suites, and a real-boundary
    decision in KNOWLEDGE/architecture.md ## Real-boundary checks.

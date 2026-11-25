@@ -714,6 +714,76 @@ def _planning_panel(snapshot: Mapping[str, Any]) -> str:
     return "".join(parts)
 
 
+def _testing_evidence_panel(snapshot: Mapping[str, Any]) -> str:
+    """Render conditional testing-evidence findings, fix-forward replans, sub-cases, and mutants panel."""
+    ev = snapshot.get("testing_evidence")
+    if not isinstance(ev, Mapping) or not ev.get("has_evidence"):
+        return ""
+    findings = _rows(ev.get("findings"))
+    replans = _rows(ev.get("replans"))
+    subcases = _rows(ev.get("auto_subcases"))
+    mutants = _rows(ev.get("not_exercisable_mutants"))
+    by_impact = ev.get("by_impact") if isinstance(ev.get("by_impact"), Mapping) else {}
+    badge = (f"{len(findings)} finding{'s' if len(findings) != 1 else ''} · "
+             f"{len(replans)} replan{'s' if len(replans) != 1 else ''}")
+    parts = [
+        '<section class="panel" aria-labelledby="testing-evidence-heading">',
+        '<div class="section-heading"><div><p class="eyebrow">TESTING EVIDENCE</p>'
+        '<h2 id="testing-evidence-heading">Testing evidence &amp; fix-forward</h2></div>'
+        '<span class="small-note">' + _escape_html(badge) + '</span></div>',
+    ]
+    summary_bits = [f"{int(by_impact.get(t, 0))} {t}" for t in ("local", "amend-remaining", "system-test", "none")
+                    if int(by_impact.get(t, 0)) > 0]
+    if summary_bits or ev.get("auto_subcases_count") or ev.get("test_proof_rechecks"):
+        parts.append(
+            '<div class="focus-row"><span class="focus-label">Triage &amp; reruns</span><p>'
+            + _escape_html(
+                ", ".join(summary_bits or ["no tiered findings"])
+                + f" · auto sub-cases: {int(ev.get('auto_subcases_count') or 0)}"
+                + f" · added tests: {int(ev.get('added_tests_count') or 0)}"
+                + f" · test Proof re-checks: {int(ev.get('test_proof_rechecks') or 0)}"
+            )
+            + '</p></div>'
+        )
+    if findings:
+        parts.append('<div class="planning-group"><h3>Test findings</h3><ul class="planning-list">')
+        for row in findings:
+            impact = _value(row.get("impact"), "none")
+            pill_cls = ("pill-done" if row.get("settled")
+                        else "pill-blocked" if impact in ("amend-remaining", "system-test")
+                        else "pill-active")
+            parts.append(
+                '<li><div class="planning-row"><strong>' + _escape_html(row.get("id"), "TF?") + '</strong> '
+                '<span>' + _escape_html(row.get("finding")) + '</span>'
+                '<span class="pill ' + pill_cls + '">' + _escape_html(impact) + '</span></div>'
+                + ('<p class="work-plan">' + _escape_html(row.get("next_step")) + '</p>'
+                   if _value(row.get("next_step")) else '') + '</li>'
+            )
+        parts.append('</ul></div>')
+    if replans:
+        parts.append('<div class="planning-group"><h3>Fix-forward replans</h3><ul class="planning-list">')
+        for rp in replans:
+            affects = ", ".join(str(a) for a in (rp.get("affects") or ()))
+            parts.append(
+                '<li><div class="planning-row"><strong>' + _escape_html(rp.get("item"), "W?") + '</strong> '
+                '<span>' + _escape_html(rp.get("reason")) + '</span>'
+                + ('<span class="pill pill-active">' + _escape_html(affects) + '</span>' if affects else '')
+                + '</div></li>'
+            )
+        parts.append('</ul></div>')
+    if subcases:
+        all_ids = [str(tid) for row in subcases for tid in (row.get("ids") or ())]
+        if all_ids:
+            parts.append('<p class="small-note planning-snaps">Auto-registered sub-cases: '
+                         + _escape_html(", ".join(all_ids)) + '</p>')
+    if mutants:
+        m_labels = [f"{_value(m.get('mutant'))} ({'settled' if m.get('settled_outer') else 'open'})" for m in mutants]
+        parts.append('<p class="small-note planning-snaps">Not-exercisable mutants: '
+                     + _escape_html(", ".join(m_labels)) + '</p>')
+    parts.append('</section>')
+    return "".join(parts)
+
+
 def _dependency_graphs(snapshot: Mapping[str, Any]) -> str:
     """Render the Steps and dependencies panel as an HTML string from the ``graphs`` list or tuple in ``snapshot``;
     any other value is treated as no graphs. If there is no mapping entry, an empty-state message is shown.
@@ -1513,6 +1583,7 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
     stale_after_seconds = max(0, min(86400, round(_number(observer.get("stale_after_seconds"), 30))))
     activity_html, latest_activity = _activity(snapshot)
     planning_html = _planning_panel(snapshot)
+    testing_html = _testing_evidence_panel(snapshot)
     story = snapshot.get("story")
     if isinstance(story, Mapping) and story.get("last_event_at"):
         latest_activity = _value(story["last_event_at"])
@@ -1623,6 +1694,7 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
         _story(snapshot),
         _keyed_list('<div class="layout">', "layout") + _keyed_list('<div class="column">', "column-main")
         + (_keyed(planning_html, "planning-experiments") if planning_html else '')
+        + (_keyed(testing_html, "testing-evidence") if testing_html else '')
         + _keyed(_dependency_graphs(snapshot), "graphs") + _keyed(_work_items(snapshot), "work-items")
         + _keyed(_documents(snapshot), "documents") + _keyed(_status_details(snapshot), "status-details")
         + (_keyed('<section class="terminal-report"><strong>Terminal report</strong> · '
