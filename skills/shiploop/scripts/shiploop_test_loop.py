@@ -1209,24 +1209,34 @@ def regression_commands(state: Mapping[str, Any], *, last_item: bool = False) ->
 
 
 def dropped_regression_commands(state: Mapping[str, Any]) -> List[Tuple[str, str]]:
-    """Unique local ``(work_item_id, command)`` pairs recorded by earlier items' step plans that are absent from
-    ``regression_commands(state, last_item=True)``."""
+    """Unique ``(work_item_id, command)`` pairs from earlier items' step plans absent from the last item recording
+    non-stateful regression commands (pure state read; performs no file I/O during packet render)."""
+    items = state.get("work_items") or ()
+    if len(items) <= 1:
+        return []
     stateful = stateful_targets(state)
-    last_cmds = {row["command"] for row in regression_commands(state, last_item=True)}
-    seen: set[str] = set()
-    dropped: List[Tuple[str, str]] = []
-    for item in state.get("work_items", ()):
+    per_item: List[Tuple[str, List[str]]] = []
+    for item in items:
         item_id = str(item.get("id") or "")
         _action, result = _step_plan(state, item_id)
-        for row in result.get("test_commands") or ():
-            if not isinstance(row, Mapping):
-                continue
-            if row.get("suite") != "regression" and not row.get("regression"):
-                continue
-            if _remote_base(row, stateful) is not None:
-                continue
-            cmd = str(row.get("command") or "")
-            if cmd and cmd not in last_cmds and cmd not in seen:
+        cmds = [
+            str(row.get("command") or "")
+            for row in result.get("test_commands") or ()
+            if isinstance(row, Mapping)
+            and (row.get("suite") == "regression" or row.get("regression"))
+            and not (row.get("target") and row.get("target") in stateful)
+            and row.get("command")
+        ]
+        if cmds:
+            per_item.append((item_id, cmds))
+    if len(per_item) <= 1:
+        return []
+    last_cmds = set(per_item[-1][1])
+    seen: set[str] = set()
+    dropped: List[Tuple[str, str]] = []
+    for item_id, cmds in per_item[:-1]:
+        for cmd in cmds:
+            if cmd not in last_cmds and cmd not in seen:
                 seen.add(cmd)
                 dropped.append((item_id, cmd))
     return dropped
