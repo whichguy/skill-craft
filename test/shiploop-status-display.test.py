@@ -673,6 +673,54 @@ class DisplayStateAndStepProgressTests(StatusBlockTests):
             state = self.produce(state)
         self.assertEqual(set(observed_wheres), {"implement", "test", "document"}, observed_wheres)
 
+    def test_testing_evidence_status_line_and_report_section_are_conditional(self) -> None:
+        state = self.planned([{"id": "W1", "title": "Wire status display", "context": "Evidence test"}])
+        clean_block = navigator.status_block(state)
+        self.assertNotIn("Testing evidence:", clean_block)
+        clean_report = navigator._render_report(state)
+        self.assertNotIn("<h2>Testing evidence &amp; fix-forward</h2>", clean_report)
+
+        state = self.advance_to(state, "step-plan")
+        state = self.produce(state, steps=[{"id": "S1", "task": "First step."}, {"id": "S2", "task": "Second step."}])
+        state = self.advance_to(state, "test")
+        test_action = navigator.current_action(state)["id"]
+        run_dir = Path(self.temp.name) / "run-ev"
+        (run_dir / "tests").mkdir(parents=True)
+        (run_dir / "tests" / f"{test_action}-step-proof-1.md").write_text(
+            "```shiploop-state\n" + json.dumps({"kind": "step-proof", "stage": "test", "passed": True}) + "\n```\n",
+            encoding="utf-8",
+        )
+        state = self.produce(
+            state,
+            summary="Ran tests.",
+            test_findings=[
+                {"id": "TF1", "finding": "Check src/server.js boundary via node --test",
+                 "evidence": "test", "impact": "amend-remaining", "next_step": "Amend S2"},
+            ],
+            mutant_dispositions=[
+                {"mutant": "src/server.js:18:3", "disposition": "not-exercisable", "evidence": "outer"},
+            ],
+        )
+        state = self.produce(
+            state,
+            summary="Documented S1.",
+            replan_remaining={"reason": "Amend S2", "affects": ["S2"]},
+        )
+        ev_block = navigator.status_block(state, root=run_dir)
+        ev_line = line(ev_block, "Testing evidence")
+        self.assertTrue(ev_line.startswith("Testing evidence:"), ev_line)
+        self.assertIn("1 finding (1 amend-remaining)", ev_line)
+        self.assertIn("1 fix-forward replan", ev_line)
+        self.assertIn("1 not-exercisable mutant", ev_line)
+        self.assertIn("1 test Proof re-check", ev_line)
+        self.assertNotIn("/", ev_line)
+        self.assertNotIn("node --test", ev_line)
+
+        ev_report = navigator._render_report(state, run_dir)
+        self.assertIn("<h2>Testing evidence &amp; fix-forward</h2>", ev_report)
+        self.assertIn("TF1", ev_report)
+        self.assertIn("amend-remaining", ev_report)
+
 
 if __name__ == "__main__":
     unittest.main()

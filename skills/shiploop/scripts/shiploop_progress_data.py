@@ -17,6 +17,7 @@ import shiploop_knowledge_home as knowledge_home
 import shiploop_navigator as navigator
 import shiploop_planning_revision as planning_revision
 import shiploop_planning_status as planning_status
+import shiploop_testing_status as testing_status
 import shiploop_privacy as privacy
 import shiploop_store as store
 import shiploop_workspace as workspace
@@ -511,6 +512,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
 
     activity, activity_identity = _activity(state, run_root, timeline, warnings, mtimes)
     planning = planning_status.plan_observability(run_root, state)
+    testing_evidence = testing_status.testing_observability(run_root, state)
     facts = navigator.narrative_facts(state, timeline, root=run_root)
     facts = _redact_tree(facts)
     try:
@@ -573,6 +575,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
     source_changed_at = _mtime_text(max(mtimes) if mtimes else None)
     state_digest = _sha256_hex(state_raw)
     planning_digest = planning_status.fingerprint_digest(planning)
+    testing_digest = testing_status.fingerprint_digest(testing_evidence)
     fingerprint_value = {
         "schema": SCHEMA,
         "run": {"id": state["run_id"], "revision": state["revision"],
@@ -582,6 +585,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
         "state_sha256": state_digest,
         "plan_accepted": plan_accepted,
         "planning": planning_digest,
+        "testing_evidence": testing_digest,
         "documents": doc_identity,
         "activity": activity_identity,
         "graphs": graph_identity,
@@ -601,6 +605,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
         "status_block": status_block,
         "plan_accepted": plan_accepted,
         "planning": planning,
+        "testing_evidence": testing_evidence,
         "work_items": items,
         "graphs": graphs,
         "documents": docs,

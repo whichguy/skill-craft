@@ -417,7 +417,8 @@ def _latest_root_result(state: Mapping[str, Any], stage: str) -> Mapping[str, An
 
 
 def stage_commands(state: Mapping[str, Any], stage: str, work_item: str,
-                   added: Sequence[Mapping[str, Any]] = ()) -> Tuple[List[Dict[str, Any]], str]:
+                   added: Sequence[Mapping[str, Any]] = (),
+                   *, root: Optional[Path] = None) -> Tuple[List[Dict[str, Any]], str]:
     """This stage's commands and, when there are none, why.
 
     The outer stages run what their recording stage recorded (``OUTER_SOURCES``).  An implement step and its Improve
@@ -450,16 +451,68 @@ def stage_commands(state: Mapping[str, Any], stage: str, work_item: str,
         if not commands:
             return [], (NONE_DUE + str(_plan_steps(result)[-1].get("id")))
     if commands:
-        return _with_registered(commands, registered(state, work_item, added)), ""
+        return _with_registered(commands, registered(state, work_item, added, root=root)), ""
     return [], str(result.get("test_commands_na") or "")
 
 
+def _latest_passed_verify(root: Path, action: str) -> Optional[Mapping[str, Any]]:
+    """Most recent passed verify record (counted, or check) for ``action``, or None."""
+    root = Path(root)
+    candidates = [verify_path(action, n) for n in range(_verify_count(root, action), 0, -1)]
+    candidates.append(check_path(action))
+    for relative in candidates:
+        path = root / relative
+        if not path.is_file():
+            continue
+        try:
+            record = store.read_record(path)
+        except (OSError, store.StorageError):
+            continue
+        if isinstance(record, Mapping) and record.get("passed") is True:
+            return record
+    return None
+
+
+def discovered_subcases(root: Optional[Path], state: Mapping[str, Any], work_item: str) -> Dict[str, List[str]]:
+    """{command: [sub-case IDs]} discovered on passing focused candidate runs of this item's ``test`` steps.
+
+    Returns ``{}`` when ``root`` is None so pure-state / seed-seam transitions without run files remain identical.
+    """
+    if root is None or not work_item:
+        return {}
+    root = Path(root)
+    found: Dict[str, List[str]] = {}
+    for action in planning_revision.step_actions(state, work_item, STAGES[0]):
+        latest = _latest_passed_verify(root, action)
+        if not isinstance(latest, Mapping):
+            continue
+        for run in latest.get("runs") or ():
+            if not isinstance(run, Mapping) or run.get("suite") != "focused" or run.get("status") not in PASSING:
+                continue
+            command = str(run.get("command") or "")
+            if not command:
+                continue
+            base_ids = [str(tid) for tid in (run.get("ids") or ()) if tid]
+            subcases = run.get("discovered_subcases")
+            if not isinstance(subcases, list) and base_ids:
+                output = str(run.get("stdout") or "") + "\n" + str(run.get("stderr") or "")
+                subcases = counts.subcase_ids(output, base_ids)
+            for sid in subcases or ():
+                tid = str(sid)
+                if not tid or tid in base_ids:
+                    continue
+                bucket = found.setdefault(command, [])
+                if tid not in bucket:
+                    bucket.append(tid)
+    return found
+
+
 def registered(state: Mapping[str, Any], work_item: str,
-               added: Sequence[Mapping[str, Any]] = ()) -> Dict[str, List[str]]:
+               added: Sequence[Mapping[str, Any]] = (),
+               *, root: Optional[Path] = None) -> Dict[str, List[str]]:
     """{command: [test IDs]}: the tests registered for the item under its current step plan, from every step's accepted
-    test and document results (a step review's final result becomes its document's) and then ``added``.  Astra's §9
-    row 4: a test a review or test stage adds is registered by ID, so the reruns that follow run it, where an old
-    filter would leave it out unseen."""
+    test and document results (explicit ``added_tests`` plus auto-discovered ``<ID> (<letter>)`` sub-cases from passed
+    focused verify records when ``root`` is provided) and then ``added``."""
     rows: List[Any] = []
     for source_stage in (STAGES[0], STEP_RERUN_STAGE):
         for action in planning_revision.step_actions(state, work_item, source_stage):
@@ -471,6 +524,11 @@ def registered(state: Mapping[str, Any], work_item: str,
             ids = found.setdefault(str(row["command"]), [])
             if str(row["id"]) not in ids:
                 ids.append(str(row["id"]))
+    for command, subcases in discovered_subcases(root, state, work_item).items():
+        ids = found.setdefault(command, [])
+        for sid in subcases:
+            if sid not in ids:
+                ids.append(sid)
     return found
 
 
@@ -549,24 +607,24 @@ def step_command(state: Mapping[str, Any], work_item: str, *,
     return step, {"command": proof.strip(), "suite": "check"}
 
 
-def base_commands(state: Mapping[str, Any], work_item: str) -> List[Dict[str, Any]]:
+def base_commands(state: Mapping[str, Any], work_item: str, *, root: Optional[Path] = None) -> List[Dict[str, Any]]:
     """The focused and regression commands the base run takes, in recorded order."""
-    return [row for row in stage_commands(state, STAGES[0], work_item)[0] if row["suite"] in COUNTED_SUITES]
+    return [row for row in stage_commands(state, STAGES[0], work_item, root=root)[0] if row["suite"] in COUNTED_SUITES]
 
 
-def new_ids(state: Mapping[str, Any], work_item: str) -> List[str]:
+def new_ids(state: Mapping[str, Any], work_item: str, *, root: Optional[Path] = None) -> List[str]:
     """Every test ID a focused command lists that this step adds: the new tests, which must not pass on the base.  At an
     inline step (design T §8) an earlier step's cases already pass on this step's base, so only the cases due at this
     step are new (``iteration.new_cases``).  A registered test (``registered``) was added after an earlier test stage
     and passes on a later base, so it is never new."""
     number = step_number(state, work_item)
     cases = _test_cases(state, work_item)
-    earlier: set[str] = {test_id for ids in registered(state, work_item).values() for test_id in ids}
+    earlier: set[str] = {test_id for ids in registered(state, work_item, root=root).values() for test_id in ids}
     if number is not None:
         due = iteration.due_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number)
         earlier |= set(due) - set(iteration.new_cases(cases, _plan_steps(_step_plan(state, work_item)[1]), number))
     seen: Dict[str, None] = {}
-    for row in base_commands(state, work_item):
+    for row in base_commands(state, work_item, root=root):
         if row["suite"] == "focused":
             for test_id in row.get("ids") or ():
                 if test_id not in earlier:
@@ -831,7 +889,7 @@ def rerun_lines(root: Path, state: Mapping[str, Any], work_item: str, stage: str
     computed afresh at every render, and the note under the list says what that place does and does not hold.
     """
     commands, _reason = (release_commands(root, state) if stage == "release-verify"
-                         else stage_commands(state, stage, work_item))
+                         else stage_commands(state, stage, work_item, root=root))
     if not commands:
         return []
     # The outer stages rerun commands another stage recorded, and have no step plan.
@@ -1308,10 +1366,10 @@ def floor_detail(root: Path, state: Mapping[str, Any], work_item: str, action: s
     every, own = accepted_counts(root, state, work_item), action_counts(root, action)
     carried = accepted_counts(root, state, work_item, earlier_steps=True) if step_number(state, work_item) else {}
     exempt = {row["id"] for row in _id_records(result, RED_NA)}
-    new = [test_id for test_id in new_ids(state, work_item) if test_id not in exempt] if carried else []
+    new = [test_id for test_id in new_ids(state, work_item, root=root) if test_id not in exempt] if carried else []
     retired = [row["id"] for row in _id_records(result, RETIRED_TESTS)]
     detail: Dict[str, Dict[str, Any]] = {}
-    for row in base_commands(state, work_item):
+    for row in base_commands(state, work_item, root=root):
         command = row["command"]
         run = base_runs.get(command) or {}
         base_ran = (run.get("counts") or {}).get("ran") if isinstance(run.get("counts"), Mapping) else None
@@ -1618,7 +1676,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
     if commands is None:
         added_rows = (result.get(ADDED_TESTS) or ()) if isinstance(result, Mapping) else ()
         commands, _reason = (release_commands(root, state) if stage == "release-verify"
-                             else stage_commands(state, stage, work_item, added_rows))
+                             else stage_commands(state, stage, work_item, added_rows, root=root))
     if not commands:
         return {}, ""
     refused = refused_runs(root, action)
@@ -1675,6 +1733,10 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
                 run["floor_from"] = floor["from"]
                 if run["status"] == "passed" and run["counts"] and run["counts"]["ran"] < floor["floor"]:
                     run["status"] = "too-few-tests"
+            if stage in STAGES and row.get("suite") == "focused" and run.get("status") in PASSING and row.get("ids"):
+                subcases = [sid for sid in counts.subcase_ids(output, row["ids"]) if sid not in (row.get("ids") or ())]
+                if subcases:
+                    run["discovered_subcases"] = subcases
         runs.append(run)
     if stage == "system-test":
         def run_one(command: str) -> Optional[Tuple[int, str]]:
@@ -2183,14 +2245,14 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
               command_timeout: float = COMMAND_TIMEOUT_SECONDS) -> Tuple[Dict[str, Any], str]:
     """Run the focused and regression commands on the item's base; return (record, refusal text)."""
     root = Path(root)
-    commands = base_commands(state, work_item)
+    commands = base_commands(state, work_item, root=root)
     exempt = [row["id"] for row in _id_records(result, RED_NA)]
     retired = [row["id"] for row in _id_records(result, RETIRED_TESTS)]
     # RED holds only this step's new cases (design T §9 row 4): an earlier step's cases already pass on this step's base,
     # which is what they should do, so the base run does not judge them (``new_ids``), and a command holding only those
     # cases, with or without IDs, is counted (``_earlier_step``).  A test registered after an earlier test stage
     # (``registered``) is not new either, so it is counted here too (design T §9.1 step 3).
-    new = set(new_ids(state, work_item))
+    new = set(new_ids(state, work_item, root=root))
     earlier = [test_id for row in commands if row["suite"] == "focused" for test_id in row.get("ids") or ()
                if test_id not in new]
     record: Dict[str, Any] = {

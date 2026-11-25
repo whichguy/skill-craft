@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_assumptions as assumptions  # noqa: E402
 import shiploop_expectations as expectations  # noqa: E402
 import shiploop_head_plans as plans  # noqa: E402
+import shiploop_improve_changes as improve_changes  # noqa: E402
 import shiploop_inner_fixture as inner  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
@@ -33,6 +34,7 @@ import shiploop_planning_revision as planning_revision  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
+import shiploop_testing_status as testing_status  # noqa: E402
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -518,6 +520,253 @@ class EvidenceTestingTests(unittest.TestCase):
         ])
         self.assertEqual(test_loop.dropped_regression_commands(carried_rp), [])
         self.assertNotIn("Earlier items' regression commands", nav.render(None, run_dir, carried_rp))
+    def test_auto_discovered_subcases_register_without_added_tests(self) -> None:
+        _base, repo, run_dir = self._init_repo_run()
+        state = self._advance_to_test(repo, run_dir)
+        test_action = nav.current_action(state)["id"]
+        focused_cmd = "python3 -B -m unittest -v tests/test_mod.py"
+        with_subcase = (
+            "import unittest, mod\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_one(self):\n        \"\"\"TC-1\"\"\"\n        self.assertEqual(mod.fn(1), 2)\n"
+            "    def test_one_a(self):\n        \"\"\"TC-1 (a) boundary zero\"\"\"\n        self.assertEqual(mod.fn(0), 1)\n"
+        )
+        (repo / "tests" / "test_mod.py").write_text(with_subcase)
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Verified TC-1 and boundary TC-1 (a)."})
+
+        verify_files = sorted((run_dir / "tests").glob(f"{test_action}-verify*.md"))
+        self.assertTrue(verify_files)
+        last_verify = store.read_record(verify_files[-1])
+        focused_runs = [r for r in last_verify.get("runs") or () if r.get("suite") == "focused"]
+        self.assertTrue(focused_runs)
+        self.assertIn("TC-1 (a)", focused_runs[0].get("discovered_subcases") or ())
+
+        # Seed-seam purity: root=None sees only plan/explicit IDs; root=run_dir merges auto-discovered sub-cases.
+        self.assertNotIn("TC-1 (a)", test_loop.registered(state, "W1").get(focused_cmd, ()))
+        self.assertIn("TC-1 (a)", test_loop.registered(state, "W1", root=run_dir).get(focused_cmd, ()))
+        reruns = improve_changes.rerun_commands(state, root=run_dir)
+        self.assertTrue(any("TC-1 (a)" in row.get("ids", ()) for row in reruns), reruns)
+
+        # At document, replacing TC-1 (a) with an unnamed test (keeping test count 2) must fail rerun verification naming TC-1 (a)!
+        self.assertEqual(nav.current_stage(state), "document")
+        (repo / "tests" / "test_mod.py").write_text(
+            "import unittest, mod\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_one(self):\n        \"\"\"TC-1\"\"\"\n        self.assertEqual(mod.fn(1), 2)\n"
+            "    def test_one_a(self):\n        \"\"\"unnamed replacement\"\"\"\n        self.assertEqual(mod.fn(0), 1)\n"
+        )
+        with self.assertRaises(nav.NavigatorError) as err:
+            self._complete(run_dir, {"outcome": "done", "summary": "Doc.", "assumptions": [],
+                                     "knowledge": dict(inner.KNOWLEDGE_NONE)})
+        self.assertIn("TC-1 (a)", str(err.exception))
+
+        (repo / "tests" / "test_mod.py").write_text(with_subcase)
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Doc.", "assumptions": [],
+                                         "knowledge": dict(inner.KNOWLEDGE_NONE)})
+        state = self._finish_improve(run_dir)
+        # Entering S2: TC-1 (a) is already registered on root=run_dir and must not be re-treated as a new red-check ID.
+        self.assertEqual(nav.current_stage(state), "implement")
+        self.assertNotIn("TC-1 (a)", test_loop.new_ids(state, "W1", root=run_dir))
+
+    def test_new_added_code_file_inside_step_paths_triggers_test_step_proof(self) -> None:
+        _base, repo, run_dir = self._init_repo_run()
+        plan = _two_step_plan(
+            proof1='python3 -B -c "import mod, pathlib; assert mod.fn(1)==2; p=pathlib.Path(\'helper.py\'); assert not p.exists() or \'ready\' in p.read_text()"',
+        )
+        plan["steps"][0]["paths"] = ["mod.py", "helper.py"]
+        plan["paths"] = ["mod.py", "helper.py", "tests/test_mod.py", "tests/test_reg.py"]
+        plan["expectations"].append(
+            {"id": "E2", "state": "absent", "statement": "helper absent on base",
+             "steps": ["S1"], "paths": ["helper.py"], "check": "test ! -e helper.py"}
+        )
+        state = self._advance_to_test(repo, run_dir, step_plan=plan)
+        test_action = nav.current_action(state)["id"]
+        (repo / "tests" / "test_mod.py").write_text(
+            "import unittest, mod\nclass T(unittest.TestCase):\n"
+            "    def test_one(self):\n        \"\"\"TC-1\"\"\"\n        self.assertEqual(mod.fn(1), 2)\n"
+        )
+
+        # Untracked file outside step paths does not trigger test-stage step_proof.
+        (repo / "scratch_probe.py").write_text("x = 1\n")
+        self.assertFalse(nav._test_edited_product_code(run_dir, state, "W1"))
+        (repo / "scratch_probe.py").unlink()
+
+        # Brand-new untracked helper.py inside S1.paths DOES trigger test-stage step_proof.
+        (repo / "helper.py").write_text("# bad\n")
+        self.assertTrue(nav._test_edited_product_code(run_dir, state, "W1"))
+        _w, proof_refusal, _s = test_loop.step_proof(run_dir, state, "W1", test_action, count=False, stage="test")
+        self.assertIn("did not pass", proof_refusal)
+
+        (repo / "helper.py").write_text("# ready\n")
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Added helper.py cleanly during test."})
+        proof_files = sorted((run_dir / "tests").glob(f"{test_action}-step-proof*.md"))
+        self.assertTrue(proof_files)
+        self.assertEqual(store.read_record(proof_files[-1])["stage"], "test")
+
+    def test_testing_status_observability_and_path_free_status_line(self) -> None:
+        _base, repo, run_dir = self._init_repo_run()
+        state = self._advance_to_test(repo, run_dir)
+        test_action = nav.current_action(state)["id"]
+        (repo / "mod.py").write_text("def fn(x):\n    return x + 1\n# touched during test\n")
+        (repo / "tests" / "test_mod.py").write_text(
+            "import unittest, mod\nclass T(unittest.TestCase):\n"
+            "    def test_one(self):\n        \"\"\"TC-1\"\"\"\n        self.assertEqual(mod.fn(1), 2)\n"
+            "    def test_one_a(self):\n        \"\"\"TC-1 (a) empty\"\"\"\n        self.assertEqual(mod.fn(0), 1)\n"
+        )
+        secret_tok = "ghp_1234567890abcdefghijklmnopqrstuvwxyz12"
+        state = self._complete(run_dir, {
+            "outcome": "done",
+            "summary": "Tested with boundary subcase.",
+            "test_findings": [
+                {"id": "TF1", "finding": "S2 needs int guard", "evidence": "tests/test_mod.py",
+                 "impact": "amend-remaining", "next_step": "Amend S2"},
+                {"id": "TF2", "finding": f"Verify CLI flow with token {secret_tok}",
+                 "evidence": "probe", "impact": "system-test", "next_step": "Outer"},
+            ],
+            "mutant_dispositions": [
+                {"mutant": "mod.py:3:1", "evidence": "CLI outer", "disposition": "not-exercisable"},
+            ],
+        })
+        state = self._complete(run_dir, {
+            "outcome": "done", "summary": "Doc S1.", "assumptions": [],
+            "knowledge": dict(inner.KNOWLEDGE_NONE),
+            "replan_remaining": {"reason": "Amend S2", "affects": ["S2"]},
+        })
+        # Parked at Document Improve: live testing_observability already reports pending replan_remaining!
+        parked_obs = testing_status.testing_observability(run_dir, state)
+        self.assertEqual(len(parked_obs["replans"]), 1)
+
+        state = self._finish_improve(run_dir)
+        obs = testing_status.testing_observability(run_dir, state)
+        self.assertTrue(obs["has_evidence"])
+        self.assertEqual(obs["by_impact"], {"none": 0, "local": 0, "amend-remaining": 1, "system-test": 1})
+        self.assertEqual(len(obs["replans"]), 1)
+        self.assertGreaterEqual(obs["auto_subcases_count"], 1)
+        self.assertEqual(len(obs["not_exercisable_mutants"]), 1)
+        self.assertGreaterEqual(obs["test_proof_rechecks"], 1)
+        self.assertNotIn(secret_tok, json.dumps(obs))
+        self.assertTrue(test_action)
+
+        s_lines = testing_status.status_lines(obs)
+        self.assertEqual(len(s_lines), 1)
+        self.assertTrue(s_lines[0].startswith("Testing evidence: "), s_lines[0])
+        self.assertNotIn("/", s_lines[0])
+        self.assertNotIn("unittest", s_lines[0])
+        self.assertNotIn(secret_tok, s_lines[0])
+        self.assertTrue(testing_status.fingerprint_digest(obs))
+
+    def test_outer_system_test_author_and_system_test_consume_evidence_and_never_edit_product(self) -> None:
+        _base, repo, run_dir = self._init_repo_run()
+        one_step_plan = {
+            "outcome": "done", "summary": "Single step W1.", "follows": ["R-1"],
+            "criteria": [{"id": "C1", "text": "fn increments (R-1).", "confirm": "executed"}],
+            "steps": [{"id": "S1", "task": "Build fn (C1).", "deps": [], "criteria": ["C1"],
+                       "paths": ["mod.py"], "proof": "python3 -B -c 'import mod; assert mod.fn(1)==2'", "skills": []}],
+            "paths": ["mod.py", "tests/test_mod.py", "tests/test_reg.py"],
+            "expectations": [{"id": "E1", "state": "works", "statement": "mod exists",
+                              "steps": ["S1"], "paths": ["mod.py"], "check": "test -f mod.py"}],
+            "test_commands": [
+                {"command": "python3 -B -m unittest -v tests/test_mod.py", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+                {"command": "python3 -B -m unittest -v tests/test_reg.py", "suite": "regression", "ids": ["REG-1"], "criteria": ["C1"], "minimum": True},
+                {"command": "python3 -m py_compile mod.py", "suite": "check"},
+            ],
+        }
+        one_step_spec = {
+            "outcome": "done", "summary": "Spec W1.", "assumptions": [],
+            "test_cases": [{"id": "TC-1", "criterion": "C1", "requirement": "R-1", "oracle": "fn(1)==2",
+                            "red": "fn(1)==1", "green": "fn(1)==2"}],
+        }
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Intake."})
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Disc."})
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Res."})
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Spec."})
+        state = self._complete(run_dir, {"outcome": "done", "summary": "TS."})
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Plan.",
+                                         "work_items": [{"id": "W1", "title": "Core", "context": "fn"}]})
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Prep."})
+        state = self._complete(run_dir, one_step_plan)
+        state = self._complete(run_dir, one_step_spec)
+        if nav.current_stage(state) == "validate-existing":
+            state = self._complete(run_dir, {"outcome": "done", "summary": "Val."})
+        (repo / "mod.py").write_text("def fn(x):\n    return x + 1\n")
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Built.", "not_covered": [],
+                                         "learned": ["ok"], "decisions": ["ok"]})
+        (repo / "tests" / "test_mod.py").write_text(
+            "import unittest, mod\nclass T(unittest.TestCase):\n"
+            "    def test_one(self):\n        \"\"\"TC-1\"\"\"\n        self.assertEqual(mod.fn(1), 2)\n"
+        )
+        state = self._complete(run_dir, {
+            "outcome": "done", "summary": "Tested.",
+            "test_findings": [
+                {"id": "TF-SYS", "finding": "CLI outer check needed", "evidence": "unit boundary",
+                 "impact": "system-test", "next_step": "Cover in system-test-author"},
+            ],
+            "mutant_dispositions": [
+                {"mutant": "mod.py:2:5", "evidence": "CLI outer only", "disposition": "not-exercisable"},
+            ],
+        })
+        state = self._complete(run_dir, {"outcome": "done", "summary": "Doc.", "assumptions": [],
+                                         "knowledge": dict(inner.KNOWLEDGE_NONE)})
+        state = self._finish_improve(run_dir)
+        self.assertEqual(nav.current_stage(state), "reflect-and-revise")
+        rr_head = self._head(run_dir, state)
+        self.assertIn("TF-SYS", rr_head)
+        self.assertIn("mod.py:2:5", rr_head)
+
+        state = self._complete(run_dir, {
+            "outcome": "done", "summary": "Carried TF-SYS and mutant to system-test-author.",
+            "assumptions": [
+                {"id": "A-SYS", "assumption": "TF-SYS and mod.py:2:5 due at system-test-author",
+                 "disposition": "open", "settle": "Author SYS-1", "reason": "outer scope", "due_stage": "system-test-author"},
+            ],
+            "skill": dict(inner.SKILL_NONE),
+        })
+        if state.get("active_improve"):
+            state = self._finish_improve(run_dir)
+        self.assertEqual(nav.current_stage(state), "system-test-author")
+        sta_head = self._head(run_dir, state)
+        self.assertIn("TF-SYS", sta_head)
+        self.assertIn("mod.py:2:5", sta_head)
+
+        sys_author_payload = {
+            "outcome": "done",
+            "summary": "Authored SYS-1 for TF-SYS and mod.py:2:5.",
+            "assumptions": [
+                {"id": "A-SYS-OK", "assumption": "Covered TF-SYS and mod.py:2:5 in SYS-1",
+                 "disposition": "evidenced", "evidence": [str(repo / "tests" / "test_reg.py")]},
+            ],
+            "system_commands": [
+                {"command": "python3 -B -c \"import os, sys; print('SYS-1 PASS' if os.path.exists('sys_ok') else 'SYS-1 FAIL'); sys.exit(0 if os.path.exists('sys_ok') else 1)\"",
+                 "suite": "focused", "ids": ["SYS-1"]},
+            ],
+        }
+        state = self._complete(run_dir, sys_author_payload)
+        if state.get("active_improve"):
+            state = self._finish_improve(run_dir)
+        self.assertEqual(nav.current_stage(state), "system-test")
+        st_head = self._head(run_dir, state)
+        self.assertIn("TF-SYS", st_head)
+        self.assertIn("mod.py:2:5", st_head)
+        st_full = " ".join(nav.render(inner.CORE, run_dir, state).split())
+        self.assertIn("Never edit product code directly", st_full)
+        self.assertNotIn("Fix the code", st_full)
+
+        # Failing system_commands must block done, allow send-back to system-test-author, and allow add-work to step-plan!
+        with self.assertRaises(nav.NavigatorError):
+            self._complete(run_dir, {"outcome": "done", "summary": "Cannot pass while SYS-1 fails."})
+        state = self._complete(run_dir, {"outcome": "send-back", "summary": "Send back to fix system harness."})
+        self.assertEqual(nav.current_stage(state), "system-test-author")
+        state = self._complete(run_dir, sys_author_payload)
+        if state.get("active_improve"):
+            state = self._finish_improve(run_dir)
+        self.assertEqual(nav.current_stage(state), "system-test")
+        state = self._complete(run_dir, {
+            "outcome": "add-work",
+            "summary": "SYS-1 exposed missing product fix; queueing W2.",
+            "work_items": [{"id": "W2", "title": "Fix sys gap", "context": "Add sys_ok behavior", "follows": ["R-1"]}],
+        })
+        self.assertEqual(nav.current_stage(state), "step-plan")
+        self.assertEqual(nav._active_cursor(state)[2], "W2")
 
 
 if __name__ == "__main__":

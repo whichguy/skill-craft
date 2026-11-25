@@ -1759,17 +1759,21 @@ class TestLoopTests(unittest.TestCase):
                  "        self.assertTrue(calc.is_big(11))\n        self.assertFalse(calc.is_big(10))\n")
 
     def calc_item(self, test_text: str) -> None:
-        """Drive to the test stage of an item that adds calc.py, then write ``test_text`` as its focused test file.
+        """Drive to the test stage of an item that adds calc.py during implement, then write ``test_text`` as its focused test file.
 
         On the base calc.py is missing, so the test fails to load there: RED by the base rule, whatever it asserts."""
         isolated = mock.patch.dict(os.environ, {"PYTHONDONTWRITEBYTECODE": "1"})
         isolated.start()
         self.addCleanup(isolated.stop)
         self.start()
+
+        def build(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "calc.py").write_text(self.CALC)
+
         self.drive_to("test", step_plan={"test_commands": [
             {"command": "python3 -m unittest -v test_calc", "suite": "focused", "ids": ["test_tc1"]}, COMMANDS[1]],
-            "paths": ["a.py", "calc.py", "test_calc.py"]})
-        (self.repo / "calc.py").write_text(self.CALC)
+            "paths": ["a.py", "calc.py", "test_calc.py"]}, each=build)
         (self.repo / "test_calc.py").write_text(test_text)
 
     def item(self) -> str:

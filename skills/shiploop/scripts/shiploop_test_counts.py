@@ -395,4 +395,26 @@ def outcomes(output: str, ids: Sequence[str]) -> Dict[str, str]:
     return result
 
 
-__all__ = ("count", "named", "outcomes")
+def subcase_ids(output: str, base_ids: Sequence[str]) -> List[str]:
+    """Return unique `<ID> (<letter>)` sub-case IDs on passing/non-failing non-skip lines of ``output``, in order."""
+    lines = [line for line in _plain(output).splitlines() if not _ANNOUNCEMENT.match(line)]
+    found: List[str] = []
+    seen: set[str] = set()
+    for base_id in base_ids:
+        if not base_id:
+            continue
+        pattern = re.compile(r"(?<![\w-])(" + re.escape(base_id) + r" \([A-Za-z]\))(?![\w])")
+        for index, line in enumerate(lines):
+            if _skip_line(line):
+                continue
+            if _FAIL_LINE.search(line) or (index and _FAIL_HEADER.match(lines[index - 1])):
+                continue
+            for match in pattern.finditer(line):
+                token = match.group(1)
+                if token not in seen:
+                    seen.add(token)
+                    found.append(token)
+    return found
+
+
+__all__ = ("count", "named", "outcomes", "subcase_ids")

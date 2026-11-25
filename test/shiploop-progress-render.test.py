@@ -1094,6 +1094,35 @@ q.schedule(); assert(!q.scheduled());
         self.assertIn('class="pill pill-deferred">rolling-wave · concerns deferred</span>', page)
         self.assertIn("<span>Sandboxes <b>3</b></span>", page)
         self.assertIn("<span>Exp Qs <b>1</b></span>", page)
+    def test_testing_evidence_panel_is_conditional_and_escapes_html(self) -> None:
+        empty_data = snapshot()
+        empty_data["testing_evidence"] = {"has_evidence": False}
+        self.assertNotIn("Testing evidence", progress_render.render(empty_data))
+
+        data = snapshot()
+        data["testing_evidence"] = {
+            "has_evidence": True,
+            "by_impact": {"none": 0, "local": 0, "amend-remaining": 1, "system-test": 1},
+            "findings_settled": 1,
+            "findings": [
+                {"id": "TF1", "impact": "amend-remaining", "settled": True,
+                 "finding": "Validate integer query <script>bad()</script>", "next_step": "Amend S2"},
+            ],
+            "replans": [{"item": "W1", "action": "nav-d1", "reason": "Re-sequence S2", "affects": ["S2"]}],
+            "auto_subcases_count": 2,
+            "auto_subcases": [{"item": "W1", "command_label": "node --test", "ids": ["TC-1 (a)", "TC-1 (b)"]}],
+            "added_tests_count": 1,
+            "not_exercisable_mutants": [{"item": "W1", "mutant": "src/server.js:18:3", "settled_outer": False}],
+            "test_proof_rechecks": 1,
+        }
+        page = progress_render.render(data)
+        self.assertIn("Testing evidence &amp; fix-forward", page)
+        self.assertIn("1 finding · 1 replan", page)
+        self.assertIn("&lt;script&gt;bad()&lt;/script&gt;", page)
+        self.assertNotIn("<script>bad()</script>", page)
+        self.assertIn("Auto-registered sub-cases: TC-1 (a), TC-1 (b)", page)
+        self.assertIn("Not-exercisable mutants: src/server.js:18:3 (open)", page)
+        self.assertIn("test Proof re-checks: 1", page)
 
 
 if __name__ == "__main__":

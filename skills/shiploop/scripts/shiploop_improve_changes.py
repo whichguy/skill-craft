@@ -229,8 +229,8 @@ def commit_refusal(paths: List[str], message_path: str, command: str, complete_c
             + complete_command + " --no-commit \"<their instruction>\"")
 
 
-def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
-    """Every completed item's recorded test commands (plus registered added_tests), once each, in item order."""
+def rerun_commands(state: Mapping[str, Any], *, root: Optional[Path] = None) -> List[Dict[str, Any]]:
+    """Every completed item's recorded test commands (plus registered added_tests/sub-cases), once each, in item order."""
     items: List[str] = []
     for item in list(state.get("completed_work_items") or ()) + [
             row["id"] for row in state.get("work_items", ()) if isinstance(row, Mapping) and "id" in row]:
@@ -239,7 +239,8 @@ def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
     seen: Dict[str, Dict[str, Any]] = {}
     for item in items:
         _action, result = test_loop._step_plan(state, item)
-        rows = test_loop._with_registered(list(result.get("test_commands") or ()), test_loop.registered(state, item))
+        rows = test_loop._with_registered(list(result.get("test_commands") or ()),
+                                           test_loop.registered(state, item, root=root))
         for row in rows:
             command = row["command"]
             if command not in seen:

@@ -352,6 +352,47 @@ class ProgressDataTests(unittest.TestCase):
         post_inflight = progress_data.inflight_activity(self.run_root, post)
         self.assertEqual(post_inflight["plan_sandboxes"], 0)
         self.assertEqual(post_inflight["plan_questions"], 0)
+    def test_testing_evidence_observability_and_fingerprint_tracks_updates(self) -> None:
+        state = self.state()
+        self.save_state(state)
+        clean = progress_data.build_snapshot(self.run_root)
+        self.assertFalse(clean["testing_evidence"]["has_evidence"])
+
+        # Add a test-stage step-proof record and check fingerprint + counter update.
+        tests_dir = self.run_root / "tests"
+        tests_dir.mkdir(parents=True)
+        (tests_dir / "nav-1-step-proof-1.md").write_text(
+            store.dumps({"kind": "step-proof", "stage": "test", "passed": True, "step": "S1"}, "step proof"),
+            encoding="utf-8",
+        )
+        updated = progress_data.build_snapshot(self.run_root)
+        self.assertTrue(updated["testing_evidence"]["has_evidence"])
+        self.assertEqual(updated["testing_evidence"]["test_proof_rechecks"], 1)
+        self.assertNotEqual(clean["source_fingerprint"], updated["source_fingerprint"])
+
+        # Drive cleanly through step-plan -> test -> document (replan_remaining) via navigator.apply.
+        state = self.plan_state()
+        while navigator.current_stage(state) != "step-plan":
+            state = self.accept(state)
+        state = self.accept(state, steps=[{"id": "S1", "task": "One."}, {"id": "S2", "task": "Two."}])
+        while navigator.current_stage(state) != "test":
+            state = self.accept(state)
+        state = self.accept(
+            state,
+            test_findings=[{"id": "TF1", "finding": "Parse query", "evidence": "test",
+                            "impact": "amend-remaining", "next_step": "Replan"}],
+            mutant_dispositions=[{"mutant": "src/a.js:1:1", "disposition": "not-exercisable", "evidence": "outer"}],
+        )
+        state = self.accept(
+            state,
+            replan_remaining={"reason": "Amend S2", "affects": ["S2"]},
+        )
+        self.save_state(state)
+        rich = progress_data.build_snapshot(self.run_root)
+        self.assertEqual(rich["testing_evidence"]["by_impact"]["amend-remaining"], 1)
+        self.assertEqual(len(rich["testing_evidence"]["replans"]), 1)
+        self.assertEqual(len(rich["testing_evidence"]["not_exercisable_mutants"]), 1)
+        self.assertNotEqual(updated["source_fingerprint"], rich["source_fingerprint"])
 
 
 class StoryObservationTests(unittest.TestCase):
