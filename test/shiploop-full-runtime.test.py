@@ -739,9 +739,6 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             )
             plan_res = accepted.get(plan_row.get("action")) if isinstance(plan_row, dict) else None
             if isinstance(plan_res, dict):
-                concerns = plan_res.get("concerns")
-                if isinstance(concerns, dict) and concerns.get(item) == "deferred":
-                    return True
                 planned_items = plan_res.get("work_items")
                 if isinstance(planned_items, list) and planned_items:
                     planned_ids = {r.get("id") for r in planned_items if isinstance(r, dict) and r.get("id")}

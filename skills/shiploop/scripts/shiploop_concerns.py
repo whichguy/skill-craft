@@ -165,18 +165,28 @@ def canonical_step_plan(value: Any) -> List[Dict[str, Any]]:
 
 
 def check_step_plan(mapped: Sequence[Mapping[str, Any]], owned: Sequence[Mapping[str, str]],
-                    step_ids: Sequence[str], item: str) -> None:
-    """Every concern the plan gave this step plan is mapped to its steps, and nothing else is."""
-    want = [row["id"] for row in owned]
+                    step_ids: Sequence[str], item: str, *, deferred: bool = False) -> None:
+    """Every concern the plan gave this step plan is mapped to its steps, and nothing else is.
+
+    When ``deferred`` is True (rolling-wave item without upfront plan rows), ``mapped`` may be empty or name any
+    subset of ``CONCERN_IDS`` mapped to valid step IDs.
+    """
     got = {row["id"]: row["steps"] for row in mapped}
-    unmapped = [name for name in want if name not in got]
-    _need(not unmapped, f"{item}'s plan gives this step plan concerns no step delivers: " + ", ".join(unmapped)
-          + '. Map each to the steps that deliver it in concerns: [{"id": "<concern>", "steps": ["S1"]}]')
-    stray = [name for name in got if name not in want]
-    _need(not stray, "concerns maps concerns the plan does not give this step plan: " + ", ".join(stray))
+    if not deferred:
+        want = [row["id"] for row in owned]
+        unmapped = [name for name in want if name not in got]
+        _need(not unmapped, f"{item}'s plan gives this step plan concerns no step delivers: " + ", ".join(unmapped)
+              + '. Map each to the steps that deliver it in concerns: [{"id": "<concern>", "steps": ["S1"]}]')
+        stray = [name for name in got if name not in want]
+        _need(not stray, "concerns maps concerns the plan does not give this step plan: " + ", ".join(stray))
     for name, steps in got.items():
         unknown = [step for step in steps if step not in step_ids]
         _need(not unknown, f"concern {name} names steps the result does not list: " + ", ".join(unknown))
+
+
+def deferred_items(plan_concerns: Mapping[str, Any], item_ids: Sequence[str]) -> List[str]:
+    """Return ordered work item IDs whose plan concerns were left as ``"deferred"``."""
+    return [str(item) for item in item_ids if plan_concerns.get(item) == "deferred"]
 
 
 def packet_lines(plan_concerns: Mapping[str, Any], item: str) -> List[str]:
@@ -185,7 +195,8 @@ def packet_lines(plan_concerns: Mapping[str, Any], item: str) -> List[str]:
     if raw == "deferred":
         return [
             "Concerns for " + item + " were deferred at plan (rolling-wave enrichment): assess applicable concerns now "
-            "from KNOWLEDGE/ and completed slices; no pre-bound rows are required in `concerns` (pass [] or omit)."
+            "from KNOWLEDGE/ and completed slices; optionally record applicable step-mapped rows in `concerns` (or "
+            "pass []/omit). Deferred items are surfaced as a non-blocking checklist at product-acceptance and release-verify."
         ]
     rows = [row for row in _item_rows(plan_concerns, item) if row.get("applies") == "yes"]
     if not rows:
@@ -197,5 +208,5 @@ def packet_lines(plan_concerns: Mapping[str, Any], item: str) -> List[str]:
 
 
 __all__ = ("CD_FOLLOW_STAGES", "CONCERNS", "CONCERN_IDS", "ConcernError", "HANDOFF_STAGES", "OWNER_STAGES",
-           "ROWS_PRINT", "canonical_plan", "canonical_step_plan", "check_plan", "check_step_plan", "handoff_rows",
-           "owned_rows", "packet_lines")
+           "ROWS_PRINT", "canonical_plan", "canonical_step_plan", "check_plan", "check_step_plan",
+           "deferred_items", "handoff_rows", "owned_rows", "packet_lines")

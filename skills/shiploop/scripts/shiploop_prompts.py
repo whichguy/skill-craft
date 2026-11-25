@@ -1194,8 +1194,8 @@ DUTIES = {
    prerequisites, setup and isolation, fixture lifecycle, runner and coverage tool, rationale and revalidation
    condition. Keep inspection separate from retained assertions. In `test_layers`, one row per part of the code the
    run writes (`code`: a module, component or page) and layer (unit, component, e2e): its native harness and status.
-   All code has a unit or component row; a missing harness there is `prerequisite` work for prepare, never
-   `unverified`.
+   All authored code (including UI/client modules, not e2e alone) has a unit or component row; a missing harness there
+   is `prerequisite` work for prepare, never `unverified`.
 5. Reuse, configure or extend existing frameworks and helpers before defining the smallest missing facility
    (Reusable test facilities); never assume a named skill or MCP is available. Record each facility's locator,
    interface, readiness or gap, owner and revalidation condition under ## Harnesses and suites. A missing facility
@@ -1284,8 +1284,8 @@ DUTIES = {
    prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
    need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
-   platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
-   `{id, applies: "no", reason}`; one clause each; capture promotion, migration and settings choices in switchover,
+   platform-services, scale, security, observability, config, performance, accessibility: either
+   `{id, applies: "yes", decision, anchor, owner_stage}` or `{id, applies: "no", reason}`; one clause each; capture promotion, migration and settings choices in switchover,
    migrate-before/after and config. In multi-item plans, `W1` maps all 15 rows; `W2+` may map all 15 rows or set `"deferred"`.
    Carry each acceptance line's required surface and completion condition into the owning item's context. For a
    later or unavailable observation, retain its owner, due phase and unresolved status under the existing
@@ -1406,7 +1406,9 @@ DUTIES = {
 2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
    baseline identity (Workspace and return guidance).
 3. Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help
-   that proves it starts, not the suite); save the output and list each file in `evidence_refs`. Set up the harness
+   that proves it starts, not the suite); save the output and list each file in `evidence_refs`. Confirm recorded test
+   commands emit a readable summary reporter or plain TAP stream (never dot/junit alone) so ShipLoop counts executed
+   tests. Set up the harness
    of each Test layers row marked `prerequisite` (the repository's own tooling, within authority), run one test with
    it and record the command and its saved output, the runner's summary included, in `harness_runs`; one you cannot
    set up: report blocked.
@@ -1497,10 +1499,10 @@ Change no product file in this stage.
 6. **`expectations`**: each fact the steps build on, `{"id", "state", "statement", "steps", "paths", "check"}`;
    ShipLoop runs every check on the unchanged item base at validate-existing.
    - Every existing path a step changes or relies on is `works` or `broken` (the request says it is broken); every
-     new path is `absent` (its place is free).
+     new path (including any newly created standalone `proof` script) is `absent` (its place is free).
    - `check`: one read-only command from the repository root that exits 0 while the state holds. For `broken`, the
      reported failure still reproduces: `! npm test -- -t TC-3` or `node cli.js 2>&1 | grep -q 'TypeError'`.
-   - Cite an open item due here (`due: W<n>`) in `from` on an executed criterion, or on an expectation for a fact that
+   - Settle or carry any due-item open `assumptions` (`A<n>`), and cite them in `from` on an executed criterion, or on an expectation for a fact that
      exists; nowhere else.
 7. **`paths`**: every file the item changes (repository-relative files or globs), including the test files the test
    stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
@@ -1547,7 +1549,8 @@ Write no test code in this stage.
    themes and at both widths (a contrast measurement, an overflow check, a focus-state capture); structure alone does
    not close it.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
-   observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
+   observation, never only that a page loads. Preserve intermediate observable conditions ("while X is in progress, Y
+   holds or waits until Z") directly instead of collapsing them to final-state ordering. Pair each absence assertion with a presence or count assertion; drop
    one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
    behaviour is missing, or because the code this item adds does not load yet, given what earlier items and stages left
    deployed (the Test targets below say which target keeps state and how its base state is produced); a guard that only
@@ -1680,7 +1683,8 @@ preparatory commit); a mismatch there is a send-back.
    lint finding that must stay. Optional evidence/triage fields: `test_findings` (`[{"id", "finding", "evidence",
    "impact", "next_step"}]`), `added_tests`, `assumptions` (due at `reflect-and-revise` or a later outer stage), and
    `mutant_dispositions`: `[{"mutant", "disposition", "evidence"}]` (`equivalent`, `out-of-scope`, or
-   `not-exercisable`, which forwards to system testing).
+   `not-exercisable`, which forwards to system testing). ShipLoop's mutation check samples changed product files
+   (excluding test and stylesheet paths) and skips this field when clean.
 7. **Proof limits.** A passing command proves only the cases it runs; a smoke or subset run never stands for a
    recorded command; a local pass does not replace a required remote or real-boundary check (Real-boundary test
    guidance). Probes and experiments go in RUN/scratch or RUN/experiments. Install, download or fetch nothing. Never commit or push.
@@ -2016,7 +2020,7 @@ preparatory commit); a mismatch there is a send-back.
    controls for each check's claim per GUIDES/testing-and-documentation.md#release-entry-and-release-check;
    unqualified required checks remain open. Fix a faulty check in KNOWLEDGE/environment.md ## Commands and rerun.
    Never mutate or delete the target to manufacture absence; infer no grant or setup workaround.
-5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
+5. Isolated run only: run the packet's `plan-return` command (producing `return-plan.md`), then decide every undecided path with review-return (a
    dry run; decisions are kept for the return at release). Compare review-return's expected return and the
    rollback it prints (the keep rows filled in) with the procedure in KNOWLEDGE/environment.md; if they differ,
    correct the procedure and rerun plan-return.
@@ -2136,11 +2140,11 @@ preparatory commit); a mismatch there is a send-back.
    requirement met while a required observation is unrun.
 3. State where release-verify's consumer checks ran (the packet's "Consumer checks (release-verify)" line) or that
    none ran. Checks that ran in the work area did not observe the user's checkout: list that as a limit.
-4. `summary` lists every open item still unverified (product-acceptance's `unverified` list and every other stage's
+4. `summary` lists every open item still unverified (product-acceptance's `unverified` list, open `assumptions` (`A<n>`), and every other stage's
    result), each with who does what and what they report back; add follow-up work, blockers and revalidation
    conditions.
 5. Isolated run: handoff needs a current return receipt. If release did not return the candidate, run the packet's
-   plan-return, decide every undecided path with review-return, run its return command (Workspace return guidance);
+   `plan-return` (`return-plan.md`), decide every undecided path with review-return, run its return command (Workspace return guidance);
    receipt path in `evidence_refs`.
 6. From the returned project, without the run directory, check the knowledge survives: durable documentation links
    resolve in the returned repository (KNOWLEDGE/spec.md, KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md); the AD-<n> entries
