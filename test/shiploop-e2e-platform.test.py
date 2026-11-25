@@ -2870,5 +2870,136 @@ class ResumeGateTest(PlatformCase):
             self.resume_ahead(out)
 
 
+class GenericCleanupFacilityTests(PlatformCase):
+    """Tests for run.py --cleanup-case, --cleanup-run, platform.purge, and cleanup-receipt.json."""
+
+    def write_receipt_plat(self, *, fail_verified: bool = False) -> Path:
+        script = self.tmp / "receipt_plat.py"
+        script.write_text(
+            "import json, os, sys\n"
+            "verb = sys.argv[1]\n"
+            "pdir = os.environ['E2E_PLATFORM_DIR']\n"
+            "os.makedirs(pdir, exist_ok=True)\n"
+            "dry = os.environ.get('E2E_CLEANUP_DRY_RUN') == '1'\n"
+            "with open(os.environ['PLAT_LOG'], 'a') as log:\n"
+            "    log.write(json.dumps({'verb': verb, 'argv': sys.argv[2:], 'dry': dry, 'mode': os.environ.get('E2E_CLEANUP_MODE')}) + '\\n')\n"
+            "if verb in ('cleanup', 'purge'):\n"
+            "    verified = (not dry) and (not " + ("True" if fail_verified else "False") + ")\n"
+            "    with open(os.path.join(pdir, 'cleanup-receipt.json'), 'w') as fh:\n"
+            "        json.dump({'schema': 'shiploop-e2e-cleanup-receipt/1', 'mode': verb, 'dry_run': dry,\n"
+            "                   'target': {'kind': 'test', 'prefix': sys.argv[2] if len(sys.argv) > 2 else 'MyApp'},\n"
+            "                   'covered': ['Widget'], 'removed': {'Widget': [] if dry else ['MyApp_1']},\n"
+            "                   'remaining': ['MyApp_Leftover'] if " + ("True" if fail_verified else "False") + " else [],\n"
+            "                   'unverified': [], 'verified': verified}, fh)\n"
+            "print('ok ' + verb)\n",
+            encoding="utf-8",
+        )
+        return script
+
+    def test_validate_platform_accepts_purge_and_rejects_blank_purge(self):
+        self.assertEqual(run.validate_platform("c", {"purge": "echo ok"})["purge"], "echo ok")
+        with self.assertRaisesRegex(SystemExit, "purge must be a non-empty command string"):
+            run.validate_platform("c", {"purge": "   "})
+
+    def test_cleanup_case_non_platform_and_flag_validation(self):
+        self.use_case(None, name="hello")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = run.main(["--cleanup-case", "hello", "--json"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(json.loads(buf.getvalue())["mode"], "none")
+
+        with self.assertRaisesRegex(SystemExit, "cannot be used together"):
+            run.main(["--cleanup-case", "hello", "--dry-run", "--confirm"])
+        with self.assertRaisesRegex(SystemExit, "belong to --cleanup-run or --cleanup-case"):
+            run.main(["--confirm", "--case", "hello"])
+
+    def test_cleanup_case_dry_run_default_confirm_prefix_and_unverified_receipt(self):
+        script = self.write_receipt_plat(fail_verified=False)
+        spec = self.platform(
+            kind="salesforce", org="de", prefix="MyApp",
+            preflight=f"{shlex.quote(sys.executable)} {shlex.quote(str(script))} preflight MyApp",
+            purge=f"{shlex.quote(sys.executable)} {shlex.quote(str(script))} purge MyApp",
+        )
+        self.use_case(spec, name="mycase")
+        leases = self.tmp / "leases"
+        with mock.patch.dict(os.environ, {"SHIPLOOP_E2E_LEASES": str(leases)}):
+            dry_buf = io.StringIO()
+            with contextlib.redirect_stdout(dry_buf):
+                rc_dry = run.main(["--cleanup-case", "mycase", "--json"])
+            self.assertEqual(rc_dry, 0)
+            dry_data = json.loads(dry_buf.getvalue())
+            self.assertTrue(dry_data["dry_run"])
+            self.assertIsNone(dry_data["preflight"])
+            self.assertEqual([c["verb"] for c in self.calls()], ["purge"])
+
+            self.plat_log.unlink()
+            ok_buf = io.StringIO()
+            with contextlib.redirect_stdout(ok_buf):
+                rc_ok = run.main(["--cleanup-case", "mycase", "--platform-prefix", "AltApp", "--confirm", "--json"])
+            self.assertEqual(rc_ok, 0)
+            ok_data = json.loads(ok_buf.getvalue())
+            self.assertFalse(ok_data["dry_run"])
+            self.assertEqual(ok_data["prefix"], "AltApp")
+            self.assertTrue(ok_data["receipt"]["verified"])
+            self.assertEqual([(c["verb"], c["argv"]) for c in self.calls()], [("purge", ["AltApp"]), ("preflight", ["AltApp"])])
+
+        # Unverified receipt forces failure even when purge process exits 0
+        bad_script = self.write_receipt_plat(fail_verified=True)
+        bad_spec = self.platform(
+            kind="salesforce", org="de", prefix="MyApp",
+            preflight=f"{shlex.quote(sys.executable)} {shlex.quote(str(bad_script))} preflight MyApp",
+            purge=f"{shlex.quote(sys.executable)} {shlex.quote(str(bad_script))} purge MyApp",
+        )
+        self.use_case(bad_spec, name="mycase")
+        with mock.patch.dict(os.environ, {"SHIPLOOP_E2E_LEASES": str(leases)}):
+            bad_buf = io.StringIO()
+            with contextlib.redirect_stdout(bad_buf):
+                rc_bad = run.main(["--cleanup-case", "mycase", "--confirm", "--json"])
+            self.assertEqual(rc_bad, 1)
+            self.assertFalse(json.loads(bad_buf.getvalue())["ok"])
+
+    def test_cleanup_run_cleans_kept_run_and_seals_cleanup_record(self):
+        script = self.write_receipt_plat(fail_verified=False)
+        spec = self.platform(
+            preflight=f"{shlex.quote(sys.executable)} {shlex.quote(str(script))} preflight",
+            purge=f"{shlex.quote(sys.executable)} {shlex.quote(str(script))} purge",
+        )
+        self.use_case(spec, name="plat")
+        _, result, _ = self.invoke("claude", "done", "--keep-platform", tag="kept")
+        out = Path(result["output"])
+        self.assertTrue(run.earlier_cleanup_record(out)["kept"])
+
+        # Refuses when .harness-lock is held
+        lock = listeners.hold_case(out)
+        self.assertIsNotNone(lock)
+        try:
+            with self.assertRaisesRegex(SystemExit, "another harness is running"):
+                run.main(["--cleanup-run", str(out), "--confirm"])
+        finally:
+            lock.close()
+
+        # Dry-run preserves kept cleanup-record.json
+        dry_buf = io.StringIO()
+        with contextlib.redirect_stdout(dry_buf):
+            self.assertEqual(run.main(["--cleanup-run", str(out), "--json"]), 0)
+        self.assertTrue(run.earlier_cleanup_record(out)["kept"])
+
+        # Confirmed --purge works even without before.json and seals cleanup-record.json
+        (out / "platform" / "before.json").unlink()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = run.main(["--cleanup-run", str(out), "--confirm", "--json"])
+        self.assertEqual(rc, 0)
+        payload = json.loads(buf.getvalue())
+        self.assertEqual(payload["mode"], "purge")
+        self.assertTrue(payload["ok"])
+        sealed = run.earlier_cleanup_record(out)
+        self.assertTrue(sealed["ran"])
+        self.assertTrue(sealed["ok"])
+        self.assertFalse(sealed["kept"])
+        self.assertTrue(sealed["receipt"]["verified"])
+
+
 if __name__ == "__main__":
     unittest.main()

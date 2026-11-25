@@ -1048,6 +1048,14 @@ recorded checks; it is not proof that unobserved state was reset or every other 
 reset requirement remains unmet wherever coverage is missing. A detected test-owned leftover that the helper cannot safely remove keeps cleanup unsuccessful
 and blocks the next same-target attempt. The dispatch barrier does not expand cleanup coverage or prove a whole-org reset.
 
+**Generic standalone cleanup (`--cleanup-run`, `--cleanup-case`, `platform.purge`, added 2026-11-25).** Every case supports
+`run.py --cleanup-run <output>` (for kept, failed or interrupted runs: stops local leftovers via `lifecycle.py`, takes the
+case's exclusive platform lease, runs `cleanup` or `purge`, verifies `platform.preflight`, and seals `cleanup-record.json`)
+and `run.py --cleanup-case <case>` (standalone full-ownership reset via `platform.purge`). Both default to `--dry-run`
+until `--confirm` is passed. Platform cleanup/purge helpers may emit `<platform_dir>/cleanup-receipt.json`
+(`shiploop-e2e-cleanup-receipt/1`: `mode`, `dry_run`, `target`, `covered`, `removed`, `remaining`, `unverified`, `verified`),
+and `verified: false` keeps cleanup unsuccessful across both `PlatformGuard` and standalone cleanups.
+
 Fresh local files or browser data also do not establish a fresh deployed variant for an inner baseline or mutation check.
 Record which executable target was exercised, and leave unavailable discrimination unmeasured. This requirement changes
 neither historical frozen verdicts nor ShipLoop's loop limits.

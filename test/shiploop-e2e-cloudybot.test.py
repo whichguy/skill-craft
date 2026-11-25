@@ -12,6 +12,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 E2E = ROOT / "test" / "shiploop_e2e"
@@ -88,6 +89,29 @@ FAKE_SF_CODE = textwrap.dedent(r"""
                 recs.append(rec)
             print(json.dumps({"status": 0, "result": {"records": recs}}))
             raise SystemExit(0)
+        if "FROM CronTrigger" in soql:
+            import re
+            m = re.search(r"CronJobDetail\.Name LIKE '([^']+)%'", soql)
+            pref = m.group(1).lower() if m else ""
+            recs = [{"Id": r["Id"], "State": r.get("State", "WAITING"), "CronJobDetail": {"Name": r["Name"]}}
+                    for r in state.get("cron_triggers", []) if not pref or r["Name"].lower().startswith(pref)]
+            print(json.dumps({"status": 0, "result": {"records": recs}}))
+            raise SystemExit(0)
+        if "FROM GroupMember" in soql:
+            import re
+            m = re.search(r"Group\.DeveloperName LIKE '([^']+)%'", soql)
+            pref = m.group(1).lower() if m else ""
+            recs = [{"Id": r["Id"], "Group": {"DeveloperName": r["GroupName"]}}
+                    for r in state.get("group_members", []) if not pref or r["GroupName"].lower().startswith(pref)]
+            print(json.dumps({"status": 0, "result": {"records": recs}}))
+            raise SystemExit(0)
+        if "FROM ContentDocument" in soql:
+            import re
+            prefs = [p.lower() for p in re.findall(r"Title LIKE '([^']+)%'", soql)]
+            recs = [r for r in state.get("content_documents", [])
+                    if not prefs or any(r["Title"].lower().startswith(p) for p in prefs)]
+            print(json.dumps({"status": 0, "result": {"records": recs}}))
+            raise SystemExit(0)
         if "FROM PermissionSetTabSetting" in soql:
             print(json.dumps({"status": 0, "result": {"records": state.get("tab_visibility", [])}}))
             raise SystemExit(0)
@@ -95,10 +119,32 @@ FAKE_SF_CODE = textwrap.dedent(r"""
         raise SystemExit(0)
 
     if argv[:3] == ["data", "delete", "record"]:
+        sobject = argv[argv.index("--sobject") + 1]
         rid = argv[argv.index("--record-id") + 1]
-        state["assignments"] = [r for r in state.get("assignments", []) if r["Id"] != rid]
+        if sobject == "PermissionSetAssignment":
+            state["assignments"] = [r for r in state.get("assignments", []) if r["Id"] != rid]
+        elif sobject == "GroupMember":
+            state["group_members"] = [r for r in state.get("group_members", []) if r["Id"] != rid]
+        elif sobject == "ContentDocument":
+            state["content_documents"] = [r for r in state.get("content_documents", []) if r["Id"] != rid]
         save_state()
         print(json.dumps({"status": 0, "result": {"id": rid, "success": True}}))
+        raise SystemExit(0)
+
+    if argv[:2] == ["apex", "run"] and "--file" in argv:
+        import re
+        body = Path(argv[argv.index("--file") + 1]).read_text(encoding="utf-8")
+        aborted = set(re.findall(r"System\.abortJob\('([^']+)'\)", body))
+        state["cron_triggers"] = [r for r in state.get("cron_triggers", []) if r["Id"] not in aborted]
+        save_state()
+        print(json.dumps({"status": 0, "result": {"success": True}}))
+        raise SystemExit(0)
+
+    if argv[:3] == ["org", "list", "limits"]:
+        print(json.dumps({"status": 0, "result": [
+            {"name": "DataStorageMB", "remaining": 5, "max": 5},
+            {"name": "FileStorageMB", "remaining": 20, "max": 20},
+        ]}))
         raise SystemExit(0)
 
     if argv[:3] == ["project", "deploy", "start"]:
@@ -176,11 +222,13 @@ class CloudyBotCatalogTests(unittest.TestCase):
 
         spec = run.case_platform("cloudybot")
         self.assertIsNotNone(spec)
+        self.assertIn("purge", spec)
         run.refuse_unmatched_keep_checks("cloudybot", spec, checks)
 
         renamed = run.with_prefix(cases["cloudybot"], "NimbusBot")
         self.assertIn("NimbusBot", renamed["prompt"])
         self.assertIn("nimbusBot", renamed["prompt"])
+        self.assertIn("NimbusBot", renamed["platform"]["purge"])
         self.assertNotIn("CloudyBot", json.dumps(renamed))
         self.assertNotIn("cloudyBot", json.dumps(renamed))
         self.assertNotIn("cloudybot", renamed["prompt"])
@@ -236,6 +284,9 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
                     "LightningComponentBundle": {"existingOtherLwc": "2026-11-01T00:00:00.000+0000"},
                 },
                 "assignments": [],
+                "cron_triggers": [],
+                "group_members": [],
+                "content_documents": [],
                 "tab_visibility": [],
                 "apex_bodies": {},
                 "tap_output": "1..0\n",
@@ -436,6 +487,65 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
         self.assertNotIn("CloudyBot_GitHub", after["metadata"]["RemoteSiteSetting"])
         self.assertNotIn("CloudyBot_Api", after["metadata"]["CspTrustedSite"])
         self.assertNotIn("CloudyBot_Assets", after["metadata"]["StaticResource"])
+        receipt = json.loads((self.pdir / "cleanup-receipt.json").read_text(encoding="utf-8"))
+        self.assertEqual(receipt["schema"], "shiploop-e2e-cleanup-receipt/1")
+        self.assertTrue(receipt["verified"])
+
+    def test_purge_dry_run_and_confirm_clean_and_run_py_cleanup_case(self):
+        state = json.loads(self.state_file.read_text())
+        state["metadata"]["ApexClass"].extend(["CloudyBotDriver", "ForeignAppHelper"])
+        state["metadata"]["CustomPermission"].append("CloudyBotManage")
+        state["metadata"]["Group"].extend(["CloudyBot_RevOps", "ForeignPublicGroup"])
+        state["assignments"].append({"Id": "0Pa000000000001AAA", "PermissionSetName": "CloudyBot_User"})
+        state["cron_triggers"].extend([
+            {"Id": "08e000000000001AAA", "Name": "CloudyBotWake_123", "State": "WAITING"},
+            {"Id": "08e000000000002AAA", "Name": "OtherAppNightly", "State": "WAITING"},
+        ])
+        state["group_members"].append({"Id": "011000000000001AAA", "GroupName": "CloudyBot_RevOps"})
+        state["content_documents"].extend([
+            {"Id": "069000000000001AAA", "Title": "CloudyBot_Dialogue_1"},
+            {"Id": "069000000000002AAA", "Title": "Quarterly_Board_Deck"},
+        ])
+        self.state_file.write_text(json.dumps(state))
+
+        # 1. Dry-run (via run.py --cleanup-case cloudybot --dry-run) leaves org state untouched
+        leases_dir = self.root / "leases"
+        out_dir = self.root / "cleanup-out"
+        env = {**self.env, "SHIPLOOP_E2E_LEASES": str(leases_dir)}
+        dry_buf = io.StringIO()
+        with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(dry_buf):
+            rc = run.main(["--cleanup-case", "cloudybot", "--dry-run", "--output", str(out_dir), "--json"])
+        self.assertEqual(rc, 0, dry_buf.getvalue())
+        dry_payload = json.loads(dry_buf.getvalue())
+        self.assertTrue(dry_payload["dry_run"])
+        self.assertTrue(dry_payload["ok"])
+        self.assertEqual(dry_payload["receipt"]["mode"], "purge")
+        self.assertFalse(dry_payload["receipt"]["verified"])
+        still = json.loads(self.state_file.read_text())
+        self.assertIn("CloudyBotDriver", still["metadata"]["ApexClass"])
+        self.assertEqual(len(still["cron_triggers"]), 2)
+
+        # 2. Confirmed purge removes CloudyBot* artifacts and verifies preflight clean
+        confirm_buf = io.StringIO()
+        with mock.patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(confirm_buf):
+            rc2 = run.main(["--cleanup-case", "cloudybot", "--confirm", "--output", str(out_dir), "--json"])
+        self.assertEqual(rc2, 0, confirm_buf.getvalue())
+        payload = json.loads(confirm_buf.getvalue())
+        self.assertFalse(payload["dry_run"])
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["receipt"]["verified"])
+        self.assertEqual(payload["receipt"]["remaining"], [])
+        self.assertTrue(payload["preflight"]["ok"])
+
+        after = json.loads(self.state_file.read_text())
+        self.assertNotIn("CloudyBotDriver", after["metadata"]["ApexClass"])
+        self.assertNotIn("CloudyBotManage", after["metadata"]["CustomPermission"])
+        self.assertIn("ForeignAppHelper", after["metadata"]["ApexClass"])
+        self.assertIn("ForeignPublicGroup", after["metadata"]["Group"])
+        self.assertEqual(after["assignments"], [])
+        self.assertEqual(after["group_members"], [])
+        self.assertEqual([t["Name"] for t in after["cron_triggers"]], ["OtherAppNightly"])
+        self.assertEqual([f["Title"] for f in after["content_documents"]], ["Quarterly_Board_Deck"])
 
 
 if __name__ == "__main__":

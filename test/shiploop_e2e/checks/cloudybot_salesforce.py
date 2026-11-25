@@ -25,6 +25,8 @@ from pathlib import Path
 
 API_VERSION = "68.0"
 META_NS = "http://soap.sforce.com/2006/04/metadata"
+RECEIPT_SCHEMA = "shiploop-e2e-cleanup-receipt/1"
+SF_ID_RE = re.compile(r"^[A-Za-z0-9]{15,18}$")
 TOKEN_RE = re.compile(r"00D[A-Za-z0-9]{12,15}![A-Za-z0-9._]{20,}")
 SECRET_KEYS = ("accessToken", "refreshToken", "clientSecret", "sfdxAuthUrl")
 SECRET_FIELD_RE = re.compile(r'("(?:%s)"\s*:\s*)"(?:[^"\\]|\\.)*"' % "|".join(SECRET_KEYS))
@@ -230,14 +232,14 @@ def read_org_metadata(org: str, prefix: str) -> tuple[dict[str, list[str]], dict
     return metadata, unavailable, baseline_dates
 
 
-def current_permset_assignments(org: str, username: str, prefix: str) -> list[dict]:
-    if not username:
-        return []
-    safe_user = username.replace("'", "\\'")
+def all_permset_assignments(org: str, prefix: str, username: str | None = None) -> list[dict]:
+    where = [f"(PermissionSet.Name LIKE '{prefix}%' OR PermissionSetGroup.DeveloperName LIKE '{prefix}%')"]
+    if username:
+        safe_user = username.replace("'", "\\'")
+        where.append(f"Assignee.Username = '{safe_user}'")
     soql = (
-        "SELECT Id, PermissionSet.Name, PermissionSetGroup.DeveloperName FROM PermissionSetAssignment "
-        f"WHERE Assignee.Username = '{safe_user}' "
-        f"AND (PermissionSet.Name LIKE '{prefix}%' OR PermissionSetGroup.DeveloperName LIKE '{prefix}%')"
+        "SELECT Id, PermissionSet.Name, PermissionSetGroup.DeveloperName "
+        f"FROM PermissionSetAssignment WHERE {' AND '.join(where)}"
     )
     rows = tooling_or_data_query(org, soql, tooling=False)
     out = []
@@ -245,9 +247,159 @@ def current_permset_assignments(org: str, username: str, prefix: str) -> list[di
         ps = row.get("PermissionSet") or {}
         psg = row.get("PermissionSetGroup") or {}
         name = ps.get("Name") or psg.get("DeveloperName")
-        if row.get("Id") and name:
+        if row.get("Id") and name and str(name).lower().startswith(prefix.lower()):
             out.append({"Id": str(row["Id"]), "PermissionSetName": str(name)})
     return sorted(out, key=lambda r: r["Id"])
+
+
+def current_permset_assignments(org: str, username: str, prefix: str) -> list[dict]:
+    if not username:
+        return []
+    return all_permset_assignments(org, prefix, username=username)
+
+
+def active_cron_triggers(org: str, prefix: str) -> list[dict]:
+    soql = (
+        "SELECT Id, CronJobDetail.Name, State FROM CronTrigger "
+        f"WHERE State IN ('WAITING', 'ACQUIRED', 'EXECUTING') AND CronJobDetail.Name LIKE '{prefix}%'"
+    )
+    rows = tooling_or_data_query(org, soql, tooling=False)
+    out = []
+    for row in rows:
+        detail = row.get("CronJobDetail") or {}
+        name = str(detail.get("Name") or "")
+        if row.get("Id") and name.lower().startswith(prefix.lower()):
+            out.append({"Id": str(row["Id"]), "Name": name, "State": str(row.get("State") or "")})
+    return sorted(out, key=lambda r: r["Id"])
+
+
+def abort_cron_triggers(org: str, triggers: list[dict]) -> list[str]:
+    if not triggers:
+        return []
+    lines = []
+    aborted = []
+    for row in triggers:
+        tid = str(row.get("Id") or "")
+        if not SF_ID_RE.fullmatch(tid):
+            raise SfError(f"invalid CronTrigger id {tid!r}")
+        lines.append(f"System.abortJob('{tid}');")
+        aborted.append(row.get("Name") or tid)
+    with tempfile.TemporaryDirectory() as tmp:
+        apex_file = Path(tmp) / "abort.apex"
+        apex_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        need_ok(sf(["apex", "run", "--file", str(apex_file)], org, timeout=120), "abort CronTrigger jobs")
+    return aborted
+
+
+def prefixed_group_members(org: str, prefix: str) -> list[dict]:
+    soql = f"SELECT Id, Group.DeveloperName FROM GroupMember WHERE Group.DeveloperName LIKE '{prefix}%'"
+    rows = tooling_or_data_query(org, soql, tooling=False)
+    out = []
+    for row in rows:
+        grp = row.get("Group") or {}
+        gname = str(grp.get("DeveloperName") or "")
+        if row.get("Id") and gname.lower().startswith(prefix.lower()):
+            out.append({"Id": str(row["Id"]), "GroupName": gname})
+    return sorted(out, key=lambda r: r["Id"])
+
+
+def prefixed_content_documents(org: str, prefix: str) -> list[dict]:
+    lwc = camel_prefix(prefix)
+    soql = f"SELECT Id, Title FROM ContentDocument WHERE Title LIKE '{prefix}%' OR Title LIKE '{lwc}%'"
+    rows = tooling_or_data_query(org, soql, tooling=False)
+    out = []
+    for row in rows:
+        title = str(row.get("Title") or "")
+        if row.get("Id") and (title.lower().startswith(prefix.lower()) or title.lower().startswith(lwc.lower())):
+            out.append({"Id": str(row["Id"]), "Title": title})
+    return sorted(out, key=lambda r: r["Id"])
+
+
+def delete_records(org: str, sobject: str, ids: list[str]) -> list[str]:
+    deleted = []
+    for rid in ids:
+        need_ok(
+            sf(["data", "delete", "record", "--sobject", sobject, "--record-id", rid], org),
+            f"delete {sobject} {rid}",
+        )
+        deleted.append(rid)
+    return deleted
+
+
+def org_storage_headroom(org: str) -> dict:
+    try:
+        doc = need_ok(sf(["org", "list", "limits"], org, timeout=60), "org list limits")
+    except SfError:
+        return {}
+    out = {}
+    for entry in doc.get("result") or []:
+        if isinstance(entry, dict) and entry.get("name") in ("DataStorageMB", "FileStorageMB", "DailyApiRequests"):
+            out[str(entry["name"])] = {"remaining": entry.get("remaining"), "max": entry.get("max")}
+    return out
+
+
+def destructive_deploy(org: str, plan: dict[str, list[str]]) -> None:
+    if not any(plan.values()):
+        return
+    with tempfile.TemporaryDirectory() as tmp:
+        tdir = Path(tmp)
+        pkg = tdir / "package.xml"
+        dest = tdir / "destructiveChanges.xml"
+        pkg.write_text(empty_package_xml(), encoding="utf-8")
+        dest.write_text(destructive_xml(plan), encoding="utf-8")
+        need_ok(
+            sf(
+                [
+                    "project",
+                    "deploy",
+                    "start",
+                    "--manifest",
+                    str(pkg),
+                    "--post-destructive-changes",
+                    str(dest),
+                    "--ignore-warnings",
+                    "--wait",
+                    "10",
+                ],
+                org,
+                timeout=600,
+            ),
+            "destructive cleanup deploy",
+        )
+
+
+def resolve_dry_run(args, *, default_dry: bool) -> bool:
+    if getattr(args, "dry_run", False) and getattr(args, "confirm", False):
+        raise SfError("--dry-run and --confirm cannot be used together")
+    if getattr(args, "dry_run", False):
+        return True
+    if getattr(args, "confirm", False):
+        return False
+    env_flag = os.environ.get("E2E_CLEANUP_DRY_RUN")
+    if env_flag == "1":
+        return True
+    if env_flag == "0":
+        return False
+    return default_dry
+
+
+def write_receipt(pdir: Path, receipt: dict) -> None:
+    pdir.mkdir(parents=True, exist_ok=True)
+    target = pdir / "cleanup-receipt.json"
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=pdir, prefix=".cleanup-receipt-", suffix=".tmp", delete=False
+        ) as handle:
+            tmp_path = Path(handle.name)
+            handle.write(json.dumps(scrub(receipt), indent=2) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_path, target)
+        tmp_path = None
+    finally:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
 
 
 def check_prefix(prefix: str) -> None:
@@ -345,6 +497,7 @@ def empty_package_xml() -> str:
 
 def cmd_cleanup(args) -> int:
     check_prefix(args.prefix)
+    dry_run = resolve_dry_run(args, default_dry=False)
     pdir = platform_dir(args.platform_dir)
     before_path = pdir / "before.json"
     if not before_path.is_file():
@@ -355,22 +508,16 @@ def cmd_cleanup(args) -> int:
         before_meta = before["metadata"]
         before_dates = before["baseline_dates"]
         before_assign_ids = {row["Id"] for row in before.get("permset_assignments", [])}
-        username = str(before.get("username") or "")
     except (OSError, ValueError, KeyError, TypeError) as exc:
         say(f"FAIL: unreadable snapshot {before_path}: {exc}")
         return 1
 
-    # 1. Remove any newly created PermissionSetAssignments for prefixed permission sets first.
-    cur_assign = current_permset_assignments(args.org, username, args.prefix)
-    for row in cur_assign:
-        if row["Id"] not in before_assign_ids:
-            need_ok(
-                sf(["data", "delete", "record", "--sobject", "PermissionSetAssignment", "--record-id", row["Id"]], args.org),
-                f"delete PermissionSetAssignment {row['Id']}",
-            )
-
-    # 2. Identify strictly new prefixed metadata items absent from before.json.
-    now_meta, _unavail, _now_dates = read_org_metadata(args.org, args.prefix)
+    triggers = active_cron_triggers(args.org, args.prefix)
+    cur_assign = all_permset_assignments(args.org, args.prefix)
+    new_assign_ids = [row["Id"] for row in cur_assign if row["Id"] not in before_assign_ids]
+    group_members = prefixed_group_members(args.org, args.prefix)
+    files = prefixed_content_documents(args.org, args.prefix)
+    now_meta, unavailable, _now_dates = read_org_metadata(args.org, args.prefix)
     plan: dict[str, list[str]] = {}
     for kind in DESTRUCTIVE_ORDER:
         if kind not in now_meta or kind not in before_meta:
@@ -380,34 +527,34 @@ def cmd_cleanup(args) -> int:
         if new_prefixed:
             plan[kind] = new_prefixed
 
-    if any(plan.values()):
-        with tempfile.TemporaryDirectory() as tmp:
-            tdir = Path(tmp)
-            pkg = tdir / "package.xml"
-            dest = tdir / "destructiveChanges.xml"
-            pkg.write_text(empty_package_xml(), encoding="utf-8")
-            dest.write_text(destructive_xml(plan), encoding="utf-8")
-            need_ok(
-                sf(
-                    [
-                        "project",
-                        "deploy",
-                        "start",
-                        "--manifest",
-                        str(pkg),
-                        "--post-destructive-changes",
-                        str(dest),
-                        "--ignore-warnings",
-                        "--wait",
-                        "10",
-                    ],
-                    args.org,
-                    timeout=600,
-                ),
-                "destructive cleanup deploy",
-            )
+    covered = ["CronTrigger", "PermissionSetAssignment", "GroupMember", "ContentDocument", *DESTRUCTIVE_ORDER]
+    unverified = [f"business records outside {args.prefix}* objects"]
+    if unavailable:
+        unverified.append("unavailable metadata types: " + ", ".join(sorted(unavailable)))
 
-    # 3. Verify org matches snapshot for this prefix and baseline dates did not change.
+    if dry_run:
+        removed_count = sum(len(v) for v in plan.values())
+        write_receipt(pdir, {
+            "schema": RECEIPT_SCHEMA, "mode": "cleanup", "dry_run": True,
+            "target": {"kind": "salesforce", "org": args.org, "prefix": args.prefix},
+            "covered": covered,
+            "removed": {"CronTrigger": [t["Name"] or t["Id"] for t in triggers],
+                        "PermissionSetAssignment": new_assign_ids,
+                        "GroupMember": [g["Id"] for g in group_members],
+                        "ContentDocument": [f["Title"] or f["Id"] for f in files],
+                        **plan},
+            "remaining": [], "unverified": unverified, "verified": False,
+        })
+        say(f"DRY-RUN: would remove {removed_count} metadata item(s), {len(triggers)} job(s), "
+            f"{len(new_assign_ids)} assignment(s), {len(group_members)} group member(s), {len(files)} file(s)")
+        return 0
+
+    aborted = abort_cron_triggers(args.org, triggers)
+    deleted_assigns = delete_records(args.org, "PermissionSetAssignment", new_assign_ids)
+    deleted_members = delete_records(args.org, "GroupMember", [g["Id"] for g in group_members])
+    deleted_files = delete_records(args.org, "ContentDocument", [f["Id"] for f in files])
+    destructive_deploy(args.org, plan)
+
     after_meta, _unavail2, after_dates = read_org_metadata(args.org, args.prefix)
     leftover: list[str] = []
     foreign_notes: list[str] = []
@@ -427,9 +574,20 @@ def cmd_cleanup(args) -> int:
             if after_dates.get(kind, {}).get(name) != dt:
                 modified_base.append(f"{kind} {name}")
 
+    ok = not (leftover or modified_base)
+    write_receipt(pdir, {
+        "schema": RECEIPT_SCHEMA, "mode": "cleanup", "dry_run": False,
+        "target": {"kind": "salesforce", "org": args.org, "prefix": args.prefix},
+        "covered": covered,
+        "removed": {"CronTrigger": aborted, "PermissionSetAssignment": deleted_assigns,
+                    "GroupMember": deleted_members, "ContentDocument": deleted_files, **plan},
+        "remaining": leftover + [f"modified {m}" for m in modified_base],
+        "unverified": unverified, "verified": ok,
+    })
+
     if foreign_notes:
         say(f"NOTE: unrelated metadata left untouched: {', '.join(foreign_notes[:10])}")
-    if leftover or modified_base:
+    if not ok:
         problems = []
         if leftover:
             problems.append("leftover prefixed metadata: " + ", ".join(leftover))
@@ -440,6 +598,110 @@ def cmd_cleanup(args) -> int:
 
     removed_count = sum(len(v) for v in plan.values())
     say(f"PASS: cleanup verified for {args.prefix}* ({removed_count} new metadata item(s) removed)")
+    return 0
+
+
+def cmd_purge(args) -> int:
+    check_prefix(args.prefix)
+    dry_run = resolve_dry_run(args, default_dry=True)
+    pdir = platform_dir(args.platform_dir)
+    entry = org_entry(args.org)
+    if entry is None or str(entry.get("connectedStatus")) != "Connected":
+        say(f"FAIL: org {args.org!r} is not connected")
+        return 1
+
+    triggers = active_cron_triggers(args.org, args.prefix)
+    assignments = all_permset_assignments(args.org, args.prefix)
+    group_members = prefixed_group_members(args.org, args.prefix)
+    files = prefixed_content_documents(args.org, args.prefix)
+    now_meta, unavailable, _dates = read_org_metadata(args.org, args.prefix)
+
+    plan: dict[str, list[str]] = {}
+    for kind in DESTRUCTIVE_ORDER:
+        if kind not in now_meta:
+            continue
+        prefixed = [n for n in sorted(now_meta[kind]) if matches_prefix(kind, n, args.prefix)]
+        if prefixed:
+            plan[kind] = prefixed
+
+    covered = ["CronTrigger", "PermissionSetAssignment", "GroupMember", "ContentDocument", *DESTRUCTIVE_ORDER]
+    unverified = [f"business records outside {args.prefix}* objects"]
+    if unavailable:
+        unverified.append("unavailable metadata types: " + ", ".join(sorted(unavailable)))
+
+    planned = {
+        "CronTrigger": [t["Name"] or t["Id"] for t in triggers],
+        "PermissionSetAssignment": [f"{a['PermissionSetName']} ({a['Id']})" for a in assignments],
+        "GroupMember": [f"{g['GroupName']} ({g['Id']})" for g in group_members],
+        "ContentDocument": [f"{f['Title']} ({f['Id']})" for f in files],
+        **plan,
+    }
+
+    if dry_run:
+        write_receipt(pdir, {
+            "schema": RECEIPT_SCHEMA, "mode": "purge", "dry_run": True,
+            "target": {"kind": "salesforce", "org": args.org, "prefix": args.prefix},
+            "covered": covered, "removed": planned, "remaining": [], "unverified": unverified, "verified": False,
+        })
+        meta_count = sum(len(v) for v in plan.values())
+        if not any(planned.values()):
+            say(f"DRY-RUN: org {args.org!r} is already clean of {args.prefix}* / {camel_prefix(args.prefix)}* artifacts")
+        else:
+            say(
+                f"DRY-RUN: would purge {meta_count} metadata item(s), {len(triggers)} job(s), "
+                f"{len(assignments)} assignment(s), {len(group_members)} group member(s), {len(files)} file(s)"
+            )
+            for kind, items in planned.items():
+                if items:
+                    preview = ", ".join(items[:8]) + (f" (+{len(items) - 8} more)" if len(items) > 8 else "")
+                    say(f"  {kind} ({len(items)}): {preview}")
+        return 0
+
+    aborted = abort_cron_triggers(args.org, triggers)
+    deleted_assigns = delete_records(args.org, "PermissionSetAssignment", [a["Id"] for a in assignments])
+    deleted_members = delete_records(args.org, "GroupMember", [g["Id"] for g in group_members])
+    deleted_files = delete_records(args.org, "ContentDocument", [f["Id"] for f in files])
+    destructive_deploy(args.org, plan)
+
+    rem_triggers = active_cron_triggers(args.org, args.prefix)
+    rem_assigns = all_permset_assignments(args.org, args.prefix)
+    rem_members = prefixed_group_members(args.org, args.prefix)
+    rem_files = prefixed_content_documents(args.org, args.prefix)
+    after_meta, _unavail2, _after_dates = read_org_metadata(args.org, args.prefix)
+    remaining: list[str] = []
+    remaining += [f"CronTrigger {t['Name'] or t['Id']}" for t in rem_triggers]
+    remaining += [f"PermissionSetAssignment {a['Id']}" for a in rem_assigns]
+    remaining += [f"GroupMember {g['Id']}" for g in rem_members]
+    remaining += [f"ContentDocument {f['Title'] or f['Id']}" for f in rem_files]
+    for kind in DESTRUCTIVE_ORDER:
+        for name in sorted(after_meta.get(kind, [])):
+            if any(name.lower().startswith(p.lower()) for p in name_prefixes(kind, args.prefix)):
+                remaining.append(f"{kind} {name}")
+
+    limits = org_storage_headroom(args.org)
+    ok = not remaining
+    write_receipt(pdir, {
+        "schema": RECEIPT_SCHEMA, "mode": "purge", "dry_run": False,
+        "target": {"kind": "salesforce", "org": args.org, "prefix": args.prefix},
+        "covered": covered,
+        "removed": {"CronTrigger": aborted, "PermissionSetAssignment": deleted_assigns,
+                    "GroupMember": deleted_members, "ContentDocument": deleted_files, **plan},
+        "remaining": remaining, "unverified": unverified, "verified": ok, "limits": limits,
+    })
+    if not ok:
+        say("FAIL: leftover prefixed artifacts after purge: " + ", ".join(remaining[:10]))
+        return 1
+
+    meta_count = sum(len(v) for v in plan.values())
+    headroom = ""
+    if limits:
+        parts = [f"{k}={v['remaining']}/{v['max']}" for k, v in sorted(limits.items())]
+        headroom = " (" + ", ".join(parts) + ")"
+    say(
+        f"PASS: purge verified for {args.prefix}* "
+        f"({meta_count} metadata item(s), {len(aborted)} job(s), {len(deleted_assigns)} assignment(s), "
+        f"{len(deleted_members)} group member(s), {len(deleted_files)} file(s) removed){headroom}"
+    )
     return 0
 
 
@@ -663,6 +925,7 @@ DISPATCH = {
     "preflight": cmd_preflight,
     "snapshot": cmd_snapshot,
     "cleanup": cmd_cleanup,
+    "purge": cmd_purge,
     "project": cmd_project,
     "deployed": cmd_deployed,
     "tests": cmd_tests,
@@ -672,11 +935,14 @@ DISPATCH = {
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="subcommand", required=True)
-    for name in ("preflight", "snapshot", "cleanup", "project", "deployed"):
+    for name in ("preflight", "snapshot", "cleanup", "purge", "project", "deployed"):
         sp = sub.add_parser(name)
         sp.add_argument("--org", required=True)
         sp.add_argument("--prefix", required=True)
         sp.add_argument("--platform-dir")
+        if name in ("cleanup", "purge"):
+            sp.add_argument("--dry-run", action="store_true")
+            sp.add_argument("--confirm", action="store_true")
     tp = sub.add_parser("tests")
     tp.add_argument("--org", required=True)
     tp.add_argument("--prefix", required=True)

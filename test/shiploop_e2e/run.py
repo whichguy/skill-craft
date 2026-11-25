@@ -1837,6 +1837,7 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
 #   preflight  with the HOST's environment, before any model call: non-zero aborts the run (a bad home link shows up here)
 #   before     once, on a fresh run only, with E2E_PLATFORM_DIR=<output>/platform: a snapshot of what exists before the model
 #   cleanup    after grading, always (a `finally`: failure, crash, Ctrl-C): remove what the run created
+#   purge      optional full-ownership teardown command for a case/prefix (used by --cleanup-case / --cleanup-run --purge)
 #   home_links names under the real HOME linked into a throwaway HOME (Grok, Codex), so the model's CLI is already signed in
 #   model_bin  {command name: shell command}: a guarded stand-in for each name, written to <output>/platform/bin and put first on
 #              the host's PATH. It runs the command with the REAL HOME and the model's argv as "$@", so the case's policy decides
@@ -1852,7 +1853,8 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
 #   check_timeout  seconds (60..3600) one of the case's checks may run, in place of CHECK_TIMEOUT: a check that asks the platform many
 #              times and cannot be run again once the cleanup has reset it
 # Every command output the harness stores or prints goes through scrub().
-PLATFORM_COMMANDS = ("preflight", "before", "cleanup")
+PLATFORM_COMMANDS = ("preflight", "before", "cleanup", "purge")
+CLEANUP_RECEIPT_SCHEMA = "shiploop-e2e-cleanup-receipt/1"
 PLATFORM_TIMEOUT = 900  # seconds, one command's ceiling; a command that never ends, not a tuning value
 PLATFORM_TAIL = 2000  # characters of scrubbed output kept per command
 HOST_END_WAIT = 10  # seconds a platform cleanup waits for this case's hosts to be gone before it acts on the platform
@@ -1974,9 +1976,37 @@ def platform_existing_mode(asked: str | None, name: str, spec: dict | None, earl
     return mode
 
 
-def platform_env(base: dict, platform_dir: Path, existing: str = "fresh") -> dict:
-    return dict(base, E2E_CHECKS=str(HERE / "checks"), E2E_PLATFORM_DIR=str(platform_dir),
-                **({"E2E_PLATFORM_EXISTING": existing} if existing != "fresh" else {}))
+def scrub_value(value):
+    """Recursively apply scrub() to strings inside a JSON-like structure."""
+    if isinstance(value, str):
+        return scrub(value)
+    if isinstance(value, list):
+        return [scrub_value(item) for item in value]
+    if isinstance(value, dict):
+        return {k: (REDACTED if k in SECRET_KEYS else scrub_value(v)) for k, v in value.items()}
+    return value
+
+
+def read_cleanup_receipt(platform_dir: Path) -> dict | None:
+    """Read and scrub `<platform_dir>/cleanup-receipt.json` if present and valid."""
+    path = platform_dir / "cleanup-receipt.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return scrub_value(data) if isinstance(data, dict) else None
+
+
+def platform_env(base: dict, platform_dir: Path, existing: str = "fresh",
+                 *, dry_run: bool | None = None, cleanup_mode: str | None = None) -> dict:
+    extra = {}
+    if existing != "fresh":
+        extra["E2E_PLATFORM_EXISTING"] = existing
+    if dry_run is not None:
+        extra["E2E_CLEANUP_DRY_RUN"] = "1" if dry_run else "0"
+    if cleanup_mode:
+        extra["E2E_CLEANUP_MODE"] = cleanup_mode
+    return dict(base, E2E_CHECKS=str(HERE / "checks"), E2E_PLATFORM_DIR=str(platform_dir), **extra)
 
 
 def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
@@ -2710,8 +2740,11 @@ class PlatformGuard:
             self.record = {"ran": False, "ok": True, "reason": "the case names no cleanup command"}
             return self.record
         try:
-            done = run_platform_command(command, self.out, platform_env(dict(os.environ), self.out / "platform"))
-            self.record = {"ran": True, "ok": done["ok"], "returncode": done["returncode"], "output": done["output"]}
+            done = run_platform_command(command, self.out, platform_env(dict(os.environ), self.out / "platform", cleanup_mode="cleanup"))
+            receipt = read_cleanup_receipt(self.out / "platform")
+            ok = bool(done["ok"] and (receipt is None or receipt.get("verified", True)))
+            self.record = {"ran": True, "ok": ok, "returncode": done["returncode"], "output": done["output"],
+                           **({"receipt": receipt} if receipt is not None else {})}
         except BaseException as exc:  # noqa: BLE001 - the record of a cleanup that could not run is the point
             self.record = {"ran": True, "ok": False, "returncode": None,
                            "output": scrub(f"cleanup could not run: {type(exc).__name__}: {exc}")[-PLATFORM_TAIL:]}
@@ -2861,8 +2894,23 @@ def parser() -> argparse.ArgumentParser:
                    help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
     mode.add_argument("--inspect-recovery", type=Path, metavar="RUN_OUT",
                    help="inspect the selected run checkout without writes or launch")
+    mode.add_argument("--cleanup-run", type=Path, metavar="DIR",
+                   help="clean up a prior run directory (stops local leftovers and, for hosted-platform cases, runs cleanup/purge "
+                        "under an exclusive platform lease, verifies preflight, and seals cleanup-record.json; defaults to "
+                        "--dry-run unless --confirm is given)")
+    mode.add_argument("--cleanup-case", metavar="CASE",
+                   help="clean up all test-owned state for a declared case (+ optional --platform-prefix) directly from its "
+                        "platform target using platform.purge under an exclusive platform lease; defaults to --dry-run unless "
+                        "--confirm is given")
+    p.add_argument("--dry-run", action="store_true",
+                   help="with --cleanup-run or --cleanup-case: preview what would be removed without mutating the platform")
+    p.add_argument("--confirm", action="store_true",
+                   help="with --cleanup-run or --cleanup-case: execute the cleanup/purge and verify clean preflight")
+    p.add_argument("--purge", action="store_true",
+                   help="with --cleanup-run: run the case's full prefix purge command instead of snapshot-diff cleanup")
     p.add_argument("--recovery-phase", choices=("builder", "final"), default="builder")
-    p.add_argument("--json", action="store_true", help="with --baseline-report or --inspect-recovery: print JSON instead of text")
+    p.add_argument("--json", action="store_true",
+                   help="with --baseline-report, --inspect-recovery, --cleanup-run or --cleanup-case: print JSON instead of text")
     p.add_argument("--release-gate", action="store_true",
                    help="with --baseline-report: also print, per case style, the last pass a marketplace run recorded and how "
                         "many ShipLoop releases origin/main made since (the local ref; nothing is fetched)")
@@ -4151,6 +4199,159 @@ def _run_suite(args, argv: list[str]) -> int:
     return 0 if all(row.get("pass") for row in summary) else 1
 
 
+def _print_cleanup_summary(payload: dict, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(scrub_value(payload), indent=2), flush=True)
+        return
+    kind = payload.get("action", "cleanup")
+    mode = payload.get("mode") or "none"
+    dry_tag = " [DRY-RUN]" if payload.get("dry_run") else ""
+    status = "OK" if payload.get("ok") else "FAIL"
+    target = payload.get("case") or ""
+    if payload.get("prefix"):
+        target = f"{target} (prefix {payload['prefix']})"
+    print(f"{kind}{dry_tag}: {target} mode={mode} status={status}", flush=True)
+    for line in str(payload.get("output") or "").strip().splitlines()[-15:]:
+        print(f"  {line}", flush=True)
+    if payload.get("preflight"):
+        pf = payload["preflight"]
+        print(f"  preflight: {'OK' if pf.get('ok') else 'FAIL'}", flush=True)
+        if not pf.get("ok") and pf.get("output"):
+            for line in str(pf["output"]).strip().splitlines()[-5:]:
+                print(f"    {line}", flush=True)
+    if payload.get("note"):
+        print(f"  {payload['note']}", flush=True)
+
+
+def cleanup_run_main(args, held: list) -> int:
+    """Clean up a prior run directory: local processes plus hosted-platform cleanup/purge under lease."""
+    global RUN_PREFIX
+    out = args.cleanup_run.expanduser().resolve()
+    inv_path = out / "invocation.json"
+    if not inv_path.is_file():
+        raise SystemExit(f"--cleanup-run: missing invocation.json in {out}")
+    if listeners.case_alive(out):
+        raise SystemExit(f"--cleanup-run: another harness is running {out} (holds {out / listeners.LOCK_NAME}); stop it first")
+    dry_run = not args.confirm
+    earlier = json.loads(inv_path.read_text())
+    name = earlier["case"]
+    prefix = None
+    if name != "custom":
+        raw_cases = json.loads(CASES.read_text())
+        if name in raw_cases:
+            prefix = run_prefix(args.platform_prefix, name, raw_cases, resuming=True, earlier=earlier.get("platform_prefix"))
+            RUN_PREFIX = (name, prefix) if prefix else None
+    spec = earlier.get("platform")
+    current_spec = None if name == "custom" or name not in json.loads(CASES.read_text()) else case_platform(name)
+    if spec is None:
+        spec = current_spec
+    elif current_spec:
+        spec = dict(spec)
+        for key in ("purge", "preflight"):
+            if current_spec.get(key) and not spec.get(key):
+                spec[key] = current_spec[key]
+    effective_prefix = prefix or earlier.get("platform_prefix") or (spec or {}).get("prefix")
+    local_result = None if dry_run else {"lifecycle": lifecycle.cleanup(out), "reap": listeners.reap(out)}
+    if spec is None:
+        payload = {"action": "cleanup-run", "output_dir": str(out), "case": name, "prefix": effective_prefix,
+                   "dry_run": dry_run, "mode": "local", "ok": True, "local": local_result,
+                   "note": "no external platform target; local leftovers handled" if not dry_run
+                           else "dry-run: no external platform target; pass --confirm to stop any local leftovers"}
+        _print_cleanup_summary(payload, args.json)
+        return 0
+    lease = take_leases(name, spec, only_platform=True)
+    held.append(lease)
+    platform_dir = out / "platform"
+    platform_dir.mkdir(exist_ok=True)
+    has_before = (platform_dir / "before.json").is_file()
+    if args.purge:
+        if not spec.get("purge"):
+            raise SystemExit(f"--cleanup-run --purge: case {name!r} declares no platform.purge command")
+        mode_name, command = "purge", spec["purge"]
+    elif has_before and spec.get("cleanup"):
+        mode_name, command = "cleanup", spec["cleanup"]
+    elif spec.get("purge"):
+        mode_name, command = "purge", spec["purge"]
+    elif spec.get("cleanup"):
+        mode_name, command = "cleanup", spec["cleanup"]
+    else:
+        raise SystemExit(f"--cleanup-run: case {name!r} declares neither platform.cleanup nor platform.purge")
+
+    done = run_platform_command(command, out, platform_env(dict(os.environ), platform_dir,
+                                                          dry_run=dry_run, cleanup_mode=mode_name))
+    receipt = read_cleanup_receipt(platform_dir)
+    preflight_done = None
+    if not dry_run and done["ok"] and spec.get("preflight"):
+        preflight_done = run_platform_command(spec["preflight"], out, platform_env(dict(os.environ), platform_dir))
+    ok = bool(done["ok"]) if dry_run else bool(
+        done["ok"] and (receipt is None or receipt.get("verified", True))
+        and (preflight_done is None or preflight_done["ok"])
+    )
+    if not dry_run:
+        record = {"ran": True, "ok": ok, "kept": False, "mode": mode_name, "returncode": done["returncode"],
+                  "output": done["output"],
+                  **({"receipt": receipt} if receipt is not None else {}),
+                  **({"preflight": preflight_done} if preflight_done is not None else {})}
+        write_cleanup_record(out, record)
+    payload = {"action": "cleanup-run", "output_dir": str(out), "case": name, "prefix": effective_prefix,
+               "dry_run": dry_run, "mode": mode_name, "ok": ok, "returncode": done["returncode"],
+               "output": done["output"], "receipt": receipt, "preflight": preflight_done, "local": local_result,
+               **({"note": f"re-run with --confirm to execute {mode_name}"} if dry_run else {})}
+    _print_cleanup_summary(payload, args.json)
+    return 0 if ok else 1
+
+
+def cleanup_case_main(args, held: list) -> int:
+    """Purge all test-owned platform state for a declared case (+ optional --platform-prefix) under lease."""
+    global RUN_PREFIX
+    raw_cases = json.loads(CASES.read_text())
+    name = args.cleanup_case
+    if name not in raw_cases or name.startswith("_"):
+        raise SystemExit(f"--cleanup-case: unknown case {name!r}")
+    dry_run = not args.confirm
+    prefix = run_prefix(args.platform_prefix, name, raw_cases)
+    RUN_PREFIX = (name, prefix) if prefix else None
+    spec = case_platform(name)
+    if spec is None:
+        payload = {"action": "cleanup-case", "case": name, "prefix": None, "dry_run": dry_run,
+                   "mode": "none", "ok": True, "note": "case has no persistent external platform target"}
+        _print_cleanup_summary(payload, args.json)
+        return 0
+    if not spec.get("purge"):
+        raise SystemExit(f"--cleanup-case: case {name!r} declares no platform.purge command")
+    effective_prefix = prefix or spec.get("prefix")
+    lease = take_leases(name, spec, only_platform=True)
+    held.append(lease)
+    temp_dir = None
+    try:
+        if args.output:
+            platform_dir = args.output.expanduser().resolve() / "platform"
+            platform_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            temp_dir = tempfile.TemporaryDirectory(prefix="shiploop-cleanup-")
+            platform_dir = Path(temp_dir.name)
+        done = run_platform_command(spec["purge"], Path.cwd(),
+                                    platform_env(dict(os.environ), platform_dir, dry_run=dry_run, cleanup_mode="purge"))
+        receipt = read_cleanup_receipt(platform_dir)
+        preflight_done = None
+        if not dry_run and done["ok"] and spec.get("preflight"):
+            preflight_done = run_platform_command(spec["preflight"], Path.cwd(),
+                                                  platform_env(dict(os.environ), platform_dir))
+        ok = bool(done["ok"]) if dry_run else bool(
+            done["ok"] and (receipt is None or receipt.get("verified", True))
+            and (preflight_done is None or preflight_done["ok"])
+        )
+        payload = {"action": "cleanup-case", "case": name, "prefix": effective_prefix,
+                   "dry_run": dry_run, "mode": "purge", "ok": ok, "returncode": done["returncode"],
+                   "output": done["output"], "receipt": receipt, "preflight": preflight_done,
+                   **({"note": "re-run with --confirm to execute purge"} if dry_run else {})}
+        _print_cleanup_summary(payload, args.json)
+        return 0 if ok else 1
+    finally:
+        if temp_dir is not None:
+            temp_dir.cleanup()
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one case (or a suite) and return the exit code; see _main."""
     held: list = []  # the case lock, taken inside once the output folder is known, and released here whatever happens
@@ -4199,6 +4400,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          "or --baseline-report, nor with --seed-at, whose seeded product carries the case's own names")
     if args.baseline_report:
         return baseline_report_main(args)
+    if args.dry_run and args.confirm:
+        raise SystemExit("--dry-run and --confirm cannot be used together")
+    if (args.dry_run or args.confirm or args.purge) and not (args.cleanup_run or args.cleanup_case):
+        raise SystemExit("--dry-run, --confirm and --purge belong to --cleanup-run or --cleanup-case")
+    if args.cleanup_run:
+        return cleanup_run_main(args, held)
+    if args.cleanup_case:
+        return cleanup_case_main(args, held)
     if args.runs or args.json or args.release_gate:
         raise SystemExit("--runs, --json and --release-gate belong to --baseline-report")
     if not args.prompt and (args.preflight_only or not (args.resume_run or args.suite)):

@@ -2161,6 +2161,7 @@
       "preflight": "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" preflight --org de --prefix CloudyBot",
       "before": "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" snapshot --org de --prefix CloudyBot",
       "cleanup": "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" cleanup --org de --prefix CloudyBot",
+      "purge": "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" purge --org de --prefix CloudyBot",
       "model_bin": {
         "sf": "python3 \"$E2E_CHECKS/cloudybot_sf_guard.py\" --org de --prefix CloudyBot --",
         "sfdx": "python3 \"$E2E_CHECKS/cloudybot_sf_guard.py\" --org de --prefix CloudyBot --deny-all --name sfdx --",
