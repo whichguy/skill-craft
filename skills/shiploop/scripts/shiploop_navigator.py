@@ -559,9 +559,9 @@ def _is_item_revision_row(row: Mapping[str, Any], accepted: Mapping[str, Any] | 
 
 def _first_item_review(state: Mapping[str, Any], item: Any, earlier: Any) -> bool:
     """Whether a "first-item" stage's result for ``item`` is reviewed: the run's first work item, an item whose
-    send-back or commit-then-amend replan is in ``earlier`` (the history before that result, owner 2026-10-19), an item
-    whose plan ``concerns`` were ``deferred``, or a corrective item added after ``plan`` (by ``add-work`` or
-    ``reflect-and-revise``)."""
+    send-back or commit-then-amend replan is in ``earlier`` (the history before that result, owner 2026-10-19), or a
+    corrective item added after ``plan`` (by ``add-work`` or ``reflect-and-revise``). Rolling-wave ``"deferred"``
+    concerns on ``W2+`` do not trigger an upfront ``step-plan`` Improve review."""
     first = state["work_items"][0]["id"] if state["work_items"] else None
     if item == first:
         return True
@@ -576,9 +576,6 @@ def _first_item_review(state: Mapping[str, Any], item: Any, earlier: Any) -> boo
     )
     plan_res = accepted.get(plan_row.get("action")) if isinstance(plan_row, Mapping) else None
     if isinstance(plan_res, Mapping):
-        concerns = plan_res.get("concerns")
-        if isinstance(concerns, Mapping) and concerns.get(item) == "deferred":
-            return True
         planned_items = plan_res.get("work_items")
         if isinstance(planned_items, list) and planned_items:
             planned_ids = {r.get("id") for r in planned_items if isinstance(r, Mapping) and r.get("id")}
@@ -4149,10 +4146,16 @@ def _check_submitted_concerns(state: Mapping[str, Any], stage: str, result: Any)
                                 [str(row.get("id")) for row in queue if isinstance(row, Mapping)])
             return
         item = str(_current_work_item(state))
-        owned = concerns.owned_rows(_plan_concerns(state), item)
+        plan_concerns = _plan_concerns(state)
+        owned = concerns.owned_rows(plan_concerns, item)
         mapped = concerns.canonical_step_plan(result.get("concerns", []))
-        concerns.check_step_plan(mapped, owned, [str(step.get("id")) for step in result.get("steps") or ()
-                                                if isinstance(step, Mapping)], item)
+        concerns.check_step_plan(
+            mapped,
+            owned,
+            [str(step.get("id")) for step in result.get("steps") or () if isinstance(step, Mapping)],
+            item,
+            deferred=(plan_concerns.get(item) == "deferred"),
+        )
     except concerns.ConcernError as exc:
         raise NavigatorError(str(exc)) from exc
 
@@ -7837,6 +7840,24 @@ def _not_covered_lines(root: Path, state: Mapping[str, Any], group: list[Any]) -
                                    + str(len(group)) + " steps"] if missing else [])]
 
 
+def _deferred_concerns_lines(state: Mapping[str, Any], stage: str) -> list[str]:
+    """Non-blocking final acceptance/release reminder listing items whose plan concerns stayed ``deferred``."""
+    if stage not in ("product-acceptance", "release-verify"):
+        return []
+    item_ids = [
+        str(row["id"]) for row in (state.get("work_items") or ())
+        if isinstance(row, Mapping) and isinstance(row.get("id"), str) and row.get("id")
+    ]
+    deferred = concerns.deferred_items(_plan_concerns(state), item_ids)
+    if not deferred:
+        return []
+    return [
+        "Deferred concerns checklist (rolling-wave items without upfront plan maps: " + ", ".join(deferred) + "): "
+        "confirm no applicable cross-cutting concern (security, state, observability, switchover, accessibility, etc.) "
+        "was missed across those items."
+    ]
+
+
 def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, listed: Collection[str] = ()) -> list[str]:
     """What earlier stages handed this stage, by value, with pointers for overflowing concern rows and new file diffs.
 
@@ -7857,6 +7878,7 @@ def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, listed: Coll
             continue
         lines += _source_lines(root, state, source, listed, stage=stage)
         position += 1
+    lines += _deferred_concerns_lines(state, stage)
     scope = step_scope(state, stage) if lines else None
     if scope is not None:
         lines.insert(0, "Cut to step " + scope.step + ": its criteria (" + ", ".join(scope.criteria) + "), their test "
@@ -8820,12 +8842,9 @@ def _improve_line(state: Mapping[str, Any], stage: str) -> str:
         when = ("no Improve stage starts after this result in this run (planning_review: " + mode
                 + "); ShipLoop's own checks at complete are the only gate before the graph advances.")
     elif stage in stage_spec.with_improve("item"):
-        view = step_view(state, _current_work_item(state))
-        if view is not None and view.number < len(view.steps):
-            return ""  # rule item: no review follows a step before the item's last (packets name Improve only as a directive)
-        when = ("A done result starts the work item's Improve stage, before its test stage: it reviews the item's whole "
-                "change against its steps' tasks and criteria, Code craft and architecture.md, and commits warranted "
-                "edits.")
+        when = ("A done result starts this step's Improve stage over its full diff (code, tests, docs, and knowledge "
+                "updates) before ShipLoop commits the step; it checks criteria, Code craft and architecture.md, and "
+                "commits warranted edits.")
     elif stage == "reflect-and-revise":
         when = ("A done result that leaves no work item pending starts the run's "
                 "end-of-work Improve stage over every executed item's change; an earlier done result "

@@ -28,6 +28,9 @@ Improve handoff, not a new campaign.
 
 When correctness depends on ordering or interruption, control the operation's
 release or retain a trace showing the required intermediate states in order.
+Preserve intermediate observable conditions (for example, "while X is in
+progress, Y holds or waits until Z") directly in specs and tests instead of
+collapsing them to final-state ordering.
 An arbitrary delay followed by an eventual-state assertion does not prove that
 the intended interleaving occurred. Bound waits and release any held work during
 teardown, including when an assertion fails.

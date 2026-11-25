@@ -420,8 +420,15 @@ class VerticalSlicingAndRollingWaveTests(unittest.TestCase):
         lines = concerns.packet_lines(plan_map, "W2")
         self.assertEqual(len(lines), 1)
         self.assertIn("deferred at plan (rolling-wave enrichment)", lines[0])
-        # Step-plan for W2 succeeds with no mapped concerns.
-        concerns.check_step_plan([], concerns.owned_rows(plan_map, "W2"), ["S1"], "W2")
+        # Step-plan for deferred W2 succeeds with no mapped concerns OR optional step-mapped concerns,
+        # while still refusing unknown step IDs.
+        concerns.check_step_plan([], concerns.owned_rows(plan_map, "W2"), ["S1"], "W2", deferred=True)
+        concerns.check_step_plan([{"id": "security", "steps": ["S1"]}],
+                                 concerns.owned_rows(plan_map, "W2"), ["S1"], "W2", deferred=True)
+        with self.assertRaisesRegex(concerns.ConcernError, "names steps the result does not list"):
+            concerns.check_step_plan([{"id": "security", "steps": ["S99"]}],
+                                     concerns.owned_rows(plan_map, "W2"), ["S1"], "W2", deferred=True)
+        self.assertEqual(concerns.deferred_items(plan_map, ["W1", "W2"]), ["W2"])
 
     def test_vertical_slice_display_and_reflect_and_revise_enrichment_queue(self) -> None:
         with tempfile.TemporaryDirectory(prefix="shiploop-vertical-") as temp:
@@ -460,7 +467,8 @@ class VerticalSlicingAndRollingWaveTests(unittest.TestCase):
             rr_pkt = nav.render(None, run_dir, state)
             self.assertIn("progressive enrichment: when pending enrichment items (`W2+`) remain", rr_pkt)
 
-            # Replace future queue with sharpened W2 context; non-final reflect-and-revise queue edit starts mid-run Improve.
+            # Non-final reflect-and-revise queue edit starts mid-run Improve; move on to W2 step-plan without Improve,
+            # then verify product-acceptance and release-verify surface the deferred-concerns checklist for W2.
             rr_action = nav.current_action(state)["id"]
             state = nav.apply(state, rr_action, {
                 **done,
@@ -474,6 +482,28 @@ class VerticalSlicingAndRollingWaveTests(unittest.TestCase):
             self.assertIn("Work item slice: enrich", sp_w2)
             self.assertIn("deferred at plan (rolling-wave enrichment)", sp_w2)
             self.assertIn("Carry W1 E2E smoke as regression baseline.", sp_w2)
+            w2_sp_action = nav.current_action(state)["id"]
+            state = nav.apply(state, w2_sp_action, {
+                **done,
+                "steps": [{"id": "S1", "task": "Enrich", "proof": "true"}],
+                "concerns": [{"id": "ui", "steps": ["S1"]}],
+            })
+            self.assertIsNone(state.get("active_improve"), "deferred W2 step-plan must not start upfront Improve")
+            while nav.current_stage(state) != "product-acceptance":
+                st_name, act_id = nav.current_stage(state), nav.current_action(state)["id"]
+                extra = {"work_items": []} if st_name == "reflect-and-revise" else {}
+                state = nav.apply(state, act_id, {**done, **extra})
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, act_id, {"summary": "Synthetic review."})
+            pa_pkt = nav.render(None, run_dir, state)
+            self.assertIn("Deferred concerns checklist (rolling-wave items without upfront plan maps: W2)", pa_pkt)
+            while nav.current_stage(state) != "release-verify":
+                st_name, act_id = nav.current_stage(state), nav.current_action(state)["id"]
+                state = nav.apply(state, act_id, dict(done))
+                if state.get("active_improve") is not None:
+                    state = nav.finish_improve(state, act_id, {"summary": "Synthetic review."})
+            rv_pkt = nav.render(None, run_dir, state)
+            self.assertIn("Deferred concerns checklist (rolling-wave items without upfront plan maps: W2)", rv_pkt)
 
 
 class PlanningLoopStatusAndObservabilityTests(PlanningLoopCliBase):
