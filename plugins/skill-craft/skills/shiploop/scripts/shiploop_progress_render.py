@@ -329,11 +329,19 @@ def _work_items(snapshot: Mapping[str, Any]) -> str:
             if not isinstance(dependencies, (list, tuple)):
                 dependencies = []
             plan = _value(row.get("plan"))
+            slice_kind = _value(row.get("slice")).strip()
+            concerns_mode = _value(row.get("concerns_mode")).strip()
+            pills = []
+            if slice_kind:
+                pills.append('<span class="pill pill-slice">' + _escape_html(slice_kind) + '</span>')
+            if concerns_mode == "deferred":
+                pills.append('<span class="pill pill-deferred">rolling-wave · concerns deferred</span>')
+            pills.append('<span class="pill pill-' + state_class + '">' + _escape_html(status) + '</span>')
             parts.append(
                 '<article class="work-card"><div class="work-heading"><div>'
                 '<span class="work-id">' + _escape_html(row.get("id"), "Item") + '</span>'
                 '<h3>' + _escape_html(row.get("title"), "Untitled work item") + '</h3></div>'
-                '<span class="pill pill-' + state_class + '">' + _escape_html(status) + '</span></div>'
+                '<div class="work-pills">' + "".join(pills) + '</div></div>'
             )
             if plan:
                 parts.append('<p class="work-plan">' + _escape_html(plan) + '</p>')
@@ -602,6 +610,87 @@ def _graph_text(nodes: list[Mapping[str, Any]], display_ids: list[str], edges: l
             parts.append('<p class="graph-dependencies">Dependencies not recorded; order is unknown.</p>')
         parts.append('</li>')
     parts.append('</ul></details>')
+    return "".join(parts)
+
+
+def _planning_panel(snapshot: Mapping[str, Any]) -> str:
+    """Render live planning-loop iteration, experiment-question, sandbox, and snapshot details when present."""
+    planning = snapshot.get("planning")
+    if not isinstance(planning, Mapping):
+        return ""
+    loop_info = planning.get("loop") if isinstance(planning.get("loop"), Mapping) else None
+    questions = _rows(planning.get("experiment_questions"))
+    experiments = _rows(planning.get("experiments"))
+    snapshots = _rows(planning.get("snapshots"))
+    probed_rows = _rows(planning.get("probed_rows"))
+    if not (planning.get("active") or loop_info or questions or experiments or snapshots or probed_rows):
+        return ""
+
+    badge = "Pending"
+    if isinstance(loop_info, Mapping):
+        badge = f"Until Loop iter {loop_info.get('action_number', 1)} · {_value(loop_info.get('status'), 'active')}"
+    elif planning.get("plan_accepted"):
+        badge = "Accepted"
+    parts = [
+        '<section class="panel" aria-labelledby="planning-heading">',
+        '<div class="section-heading"><div><p class="eyebrow">PLANNING</p>'
+        '<h2 id="planning-heading">Planning &amp; experiments</h2></div>'
+        '<span class="small-note">' + _escape_html(badge) + '</span></div>',
+    ]
+    if isinstance(loop_info, Mapping) and _value(loop_info.get("summary")):
+        parts.append('<div class="focus-row"><span class="focus-label">Latest loop iteration</span><p>'
+                     + _escape_html(loop_info.get("summary")) + '</p></div>')
+
+    if questions:
+        parts.append('<div class="planning-group"><h3>Experiment questions (from intake)</h3><ul class="planning-list">')
+        for row in questions:
+            q_status = _value(row.get("status"), "pending")
+            pill_cls = ("pill-done" if q_status in ("probed", "evidenced")
+                        else "pill-active" if q_status == "probing"
+                        else "pill-blocked" if q_status == "open" else "pill-pending")
+            effect = _value(row.get("effect"))
+            parts.append(
+                '<li><div class="planning-row"><strong>' + _escape_html(row.get("id"), "Q?") + '</strong> '
+                '<span>' + _escape_html(row.get("question")) + '</span>'
+                '<span class="pill ' + pill_cls + '">' + _escape_html(q_status) + '</span></div>'
+                + ('<p class="work-plan">' + _escape_html(effect) + '</p>' if effect else '') + '</li>'
+            )
+        parts.append('</ul></div>')
+
+    if experiments:
+        parts.append('<div class="planning-group"><h3>Experiment sandboxes</h3><ul class="planning-list">')
+        for exp in experiments:
+            exp_status = _value(exp.get("status"), "recorded")
+            origin = _value(exp.get("origin"), "plan")
+            meta_line = f"{origin} · {exp.get('file_count', 0)} file(s)"
+            if _value(exp.get("question")):
+                meta_line += " · " + _value(exp.get("question"))
+            exp_summary = _value(exp.get("summary"))
+            parts.append(
+                '<li><div class="planning-row"><strong>' + _escape_html(exp.get("id"), "exp") + '</strong> '
+                '<span class="small-note">' + _escape_html(meta_line) + '</span>'
+                '<span class="pill pill-active">' + _escape_html(exp_status) + '</span></div>'
+                + ('<p class="work-plan">' + _escape_html(exp_summary) + '</p>' if exp_summary else '') + '</li>'
+            )
+        parts.append('</ul></div>')
+
+    if probed_rows:
+        parts.append('<div class="planning-group"><h3>Probed assumptions</h3><ul class="planning-list">')
+        for row in probed_rows:
+            label = _value(row.get("id"), "A?")
+            if _value(row.get("question")):
+                label += " · " + _value(row.get("question"))
+            effect = _value(row.get("effect")) or _value(row.get("statement"))
+            parts.append('<li><strong>' + _escape_html(label) + '</strong> '
+                         + ('<span>' + _escape_html(effect) + '</span>' if effect else '') + '</li>')
+        parts.append('</ul></div>')
+
+    if snapshots:
+        snap_labels = [f"Iter {snap.get('iteration', '?')} ({_value(snap.get('name'))})" for snap in snapshots]
+        parts.append('<p class="small-note planning-snaps">Plan draft snapshots: '
+                     + _escape_html(", ".join(snap_labels)) + '</p>')
+
+    parts.append('</section>')
     return "".join(parts)
 
 
@@ -1010,7 +1099,7 @@ main{max-width:1120px;margin:auto;padding:38px 28px 64px}.masthead{display:flex;
 .toolbar{display:flex;gap:8px;margin-left:auto}.button{font:inherit;font-size:.78rem;font-weight:650;border:1px solid #cddbd1;background:#fff;color:#244c3d;border-radius:8px;padding:7px 11px;cursor:pointer}.button:hover:not(:disabled){background:var(--soft)}.button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #82b7da;outline-offset:2px}.button:disabled{cursor:default;color:#87958d;background:#f5f7f5}.noscript{margin:0 0 20px;padding:10px 14px;border-radius:9px;background:#fff7e6;color:#75541a;font-size:.83rem}
 .phase-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}.phase-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px 18px}.phase-top{display:flex;justify-content:space-between;align-items:center}.phase-number{font-size:.7rem;letter-spacing:.13em;color:#8a9a91;font-weight:750}.phase-state{font-size:.73rem;color:var(--muted);font-weight:650}.phase-card h3{margin:7px 0 15px;font-size:1.05rem}.phase-current{border-color:#87b89c;box-shadow:inset 0 0 0 1px #b8dac4}.phase-done .phase-state{color:var(--green)}.phase-current .phase-state{color:var(--green)}.meter{height:5px;border-radius:99px;overflow:hidden;background:#e7ede8}.meter span{display:block;height:100%;background:var(--green);border-radius:inherit}
 .layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.85fr);gap:16px;align-items:start}.column{display:grid;gap:16px}.panel{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px 23px}.section-heading{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:17px}.section-heading h2{margin:0;font-size:1.2rem;letter-spacing:-.02em}.small-note{font-size:.76rem;color:var(--muted)}.focus-row{padding:14px 16px;border-left:3px solid var(--green);background:#f0f6f1;border-radius:0 9px 9px 0}.focus-label{display:block;margin-bottom:3px;font-weight:750;color:#205c46}.focus-row p{margin:0;color:#43574c}.narrative-list{margin-top:17px}.narrative-list h3{margin:0 0 7px;font-size:.79rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.narrative-list ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}.narrative-list li{display:grid;grid-template-columns:minmax(115px,.55fr) minmax(0,1fr);gap:10px;padding-top:8px;border-top:1px solid #edf1ed;font-size:.82rem}.narrative-list strong{color:#365548}.narrative-list li span{color:var(--muted)}
-.empty-state,.muted{color:var(--muted)}.empty-state{margin:5px 0 0;font-size:.88rem}.work-list,.work-card,.work-heading,.work-heading>div,.work-plan,.dependencies{min-width:0;overflow-wrap:anywhere}.work-heading>.pill{max-width:100%;white-space:normal;overflow-wrap:anywhere}.work-list{display:grid;gap:10px}.work-card{border:1px solid #e4ebe6;border-radius:11px;padding:15px 16px}.work-heading{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.work-id{font-size:.7rem;color:var(--muted);font-weight:750;letter-spacing:.08em}.work-heading h3{margin:2px 0 0;font-size:.98rem;line-height:1.35}.pill{display:inline-flex;align-items:center;white-space:nowrap;border-radius:99px;padding:4px 9px;font-size:.68rem;font-weight:700;background:#edf1ee;color:#58665e}.pill-active,.pill-current{background:#e1f1e7;color:#216343}.pill-done,.pill-accepted{background:#e1f1e7;color:#216343}.pill-blocked{background:#f8e6e5;color:#953d42}.pill-pending,.pill-queued{background:#f2f0e9;color:#776738}.work-plan{margin:10px 0 0;color:#53635a;font-size:.83rem}.dependencies{margin:8px 0 0;font-size:.76rem;color:#596b61}.dependencies span{font-weight:700;color:#7a8981}
+.empty-state,.muted{color:var(--muted)}.empty-state{margin:5px 0 0;font-size:.88rem}.work-list,.work-card,.work-heading,.work-heading>div,.work-plan,.dependencies{min-width:0;overflow-wrap:anywhere}.work-heading>.pill,.work-pills{max-width:100%}.work-pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.work-list{display:grid;gap:10px}.work-card{border:1px solid #e4ebe6;border-radius:11px;padding:15px 16px}.work-heading{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.work-id{font-size:.7rem;color:var(--muted);font-weight:750;letter-spacing:.08em}.work-heading h3{margin:2px 0 0;font-size:.98rem;line-height:1.35}.pill{display:inline-flex;align-items:center;white-space:nowrap;border-radius:99px;padding:4px 9px;font-size:.68rem;font-weight:700;background:#edf1ee;color:#58665e}.pill-active,.pill-current{background:#e1f1e7;color:#216343}.pill-done,.pill-accepted{background:#e1f1e7;color:#216343}.pill-blocked{background:#f8e6e5;color:#953d42}.pill-pending,.pill-queued{background:#f2f0e9;color:#776738}.pill-slice{background:#e7eff5;color:#2d5673}.pill-deferred{background:#f4eef6;color:#664973}.planning-group{margin-top:15px}.planning-group h3{margin:0 0 8px;font-size:.78rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.planning-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}.planning-list li{border:1px solid #e4ebe6;border-radius:9px;padding:10px 12px;font-size:.82rem}.planning-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}.planning-snaps{margin:12px 0 0}.work-plan{margin:10px 0 0;color:#53635a;font-size:.83rem}.dependencies{margin:8px 0 0;font-size:.76rem;color:#596b61}.dependencies span{font-weight:700;color:#7a8981}
 .document-list{display:grid;gap:9px}.document{border:1px solid #e1e9e3;border-radius:10px;overflow:hidden}.document summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 14px}.document summary::-webkit-details-marker{display:none}.document summary:after{content:"+";order:2;color:#72837a;font-size:1.15rem}.document[open] summary:after{content:"−"}.document-title{min-width:0;overflow-wrap:anywhere;font-weight:700;font-size:.86rem}.document-body{padding:0 14px 14px}.document-summary{margin:0 0 9px;color:#516259;font-size:.81rem}.file-path{overflow-wrap:anywhere;margin:7px 0;color:#78867f;font-size:.72rem}.file-path span{font-weight:750;color:#56685e}.file-link{font-size:.78rem;color:#236747;font-weight:700}.document-error{margin:8px 0;color:var(--rose);font-size:.8rem}.preview,.status-pre{margin:10px 0 0;padding:13px 14px;max-height:420px;overflow:auto;border-radius:8px;background:#f4f6f4;color:#34443b;white-space:pre-wrap;overflow-wrap:anywhere;font: .78rem/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}.preview{border:1px solid #e7ece8}
 .activity-list{list-style:none;margin:0;padding:0}.activity-list li{display:grid;grid-template-columns:10px minmax(0,1fr);gap:12px;position:relative;padding:0 0 18px}.activity-list li:last-child{padding-bottom:0}.activity-marker{width:8px;height:8px;margin-top:7px;border-radius:50%;background:#69a27e;box-shadow:0 0 0 3px #e7f1e9}.activity-content{min-width:0}.activity-meta{display:flex;justify-content:space-between;gap:8px;color:#315d48;font-weight:700;font-size:.77rem}.activity-meta time{font-weight:500;text-align:right;color:#87958d;font-size:.7rem}.activity-summary{margin:4px 0 0;color:#53635a;font-size:.81rem;overflow-wrap:anywhere}.activity-detail{margin:5px 0 0;color:#8a978f;font-size:.7rem}
 .status-details{padding:0}.status-details>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:17px 21px}.status-details>summary::-webkit-details-marker{display:none}.status-details>summary .eyebrow{margin-bottom:1px}.status-details strong{font-size:.91rem}.disclosure{color:var(--green);font-size:.77rem;font-weight:700}.status-pre{margin:0 20px 20px}.terminal-report{padding:17px 20px;border-radius:12px;background:#e8f1eb;color:#3b5a48;font-size:.84rem}.terminal-report a{color:#205b41;font-weight:750}
@@ -1403,6 +1492,7 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
     refresh_seconds = max(1, min(3600, round(_number(observer.get("refresh_seconds"), 5))))
     stale_after_seconds = max(0, min(86400, round(_number(observer.get("stale_after_seconds"), 30))))
     activity_html, latest_activity = _activity(snapshot)
+    planning_html = _planning_panel(snapshot)
     story = snapshot.get("story")
     if isinstance(story, Mapping) and story.get("last_event_at"):
         latest_activity = _value(story["last_event_at"])
@@ -1508,6 +1598,7 @@ def render_main(snapshot: Mapping[str, Any]) -> tuple[str, str]:
         _keyed(_narrative(snapshot, facts), "narrative"),
         _story(snapshot),
         _keyed_list('<div class="layout">', "layout") + _keyed_list('<div class="column">', "column-main")
+        + (_keyed(planning_html, "planning-experiments") if planning_html else '')
         + _keyed(_dependency_graphs(snapshot), "graphs") + _keyed(_work_items(snapshot), "work-items")
         + _keyed(_documents(snapshot), "documents") + _keyed(_status_details(snapshot), "status-details")
         + (_keyed('<section class="terminal-report"><strong>Terminal report</strong> · '

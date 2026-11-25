@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.14.0
+
+- Skills: shiploop 2.16.0
+
+### shiploop 2.16.0
+
+- Prompt-guided multi-iteration cadence and automatic per-iteration plan draft snapshots (`RUN/experiments/plan-iter-<n>.md`) for `plan`'s Until Loop, live planning-loop/experiment/vertical-slice visibility in `shiploop status`, `shiploop progress`, `shiploop_story`, and the HTML achievement report, and E2E planning telemetry in `metrics.py`.
+
 ### skill-craft 4.13.2
 
 - Skills: shiploop 2.15.2

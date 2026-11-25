@@ -16,6 +16,7 @@ import shiploop_context_index as context_index
 import shiploop_knowledge_home as knowledge_home
 import shiploop_navigator as navigator
 import shiploop_planning_revision as planning_revision
+import shiploop_planning_status as planning_status
 import shiploop_privacy as privacy
 import shiploop_store as store
 import shiploop_workspace as workspace
@@ -509,10 +510,11 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
                                          "status": document["status"], "error": document.get("error")})
 
     activity, activity_identity = _activity(state, run_root, timeline, warnings, mtimes)
-    facts = navigator.narrative_facts(state)
+    planning = planning_status.plan_observability(run_root, state)
+    facts = navigator.narrative_facts(state, timeline, root=run_root)
     facts = _redact_tree(facts)
     try:
-        status_block = navigator.status_block(state)
+        status_block = navigator.status_block(state, run_root)
     except Exception as exc:
         raise ValueError("navigator status projection failed") from exc
     if privacy.sensitive_text(status_block):
@@ -536,6 +538,8 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
 
     prompt = _display_text(state.get("prompt"))
     reason = _display_text(state.get("status_reason")) if state.get("status_reason") else None
+    concerns_map = (state["accepted"].get(plan_action, {}).get("concerns")
+                    if plan_accepted and isinstance(plan_action, str) else None)
     items: list[dict[str, Any]] = []
     for index, item in enumerate(state["work_items"]):
         item_id = item["id"]
@@ -550,8 +554,17 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
         plan_text = step_plan.get("summary") if isinstance(step_plan, Mapping) else None
         if not isinstance(plan_text, str) or not plan_text.strip():
             plan_text = item.get("context", "")
-        items.append({"id": item_id, "title": _display_text(item.get("title")),
-                      "status": item_status, "plan": _display_text(plan_text), "dependencies": []})
+        entry = {"id": item_id, "title": _display_text(item.get("title")),
+                 "status": item_status, "plan": _display_text(plan_text), "dependencies": []}
+        if isinstance(item.get("slice"), str) and item.get("slice"):
+            entry["slice"] = _display_text(item.get("slice"))
+        if isinstance(concerns_map, Mapping) and item_id in concerns_map:
+            raw_concern = concerns_map.get(item_id)
+            entry["concerns_mode"] = ("deferred" if raw_concern == "deferred"
+                                      else "mapped" if isinstance(raw_concern, list) else None)
+            if entry["concerns_mode"] is None:
+                entry.pop("concerns_mode")
+        items.append(entry)
 
     graphs, graph_identity = _implementation_graphs(state, run_root, current, warnings, mtimes)
     display_status, display_label = navigator.display_status(state)
@@ -559,6 +572,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
 
     source_changed_at = _mtime_text(max(mtimes) if mtimes else None)
     state_digest = _sha256_hex(state_raw)
+    planning_digest = planning_status.fingerprint_digest(planning)
     fingerprint_value = {
         "schema": SCHEMA,
         "run": {"id": state["run_id"], "revision": state["revision"],
@@ -567,6 +581,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
                 "reason": reason, "prompt": prompt},
         "state_sha256": state_digest,
         "plan_accepted": plan_accepted,
+        "planning": planning_digest,
         "documents": doc_identity,
         "activity": activity_identity,
         "graphs": graph_identity,
@@ -585,6 +600,7 @@ def build_snapshot(root: Path, *, core=None, optional_cache=None) -> dict[str, A
         "facts": facts,
         "status_block": status_block,
         "plan_accepted": plan_accepted,
+        "planning": planning,
         "work_items": items,
         "graphs": graphs,
         "documents": docs,
