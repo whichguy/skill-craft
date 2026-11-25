@@ -10051,5 +10051,26 @@ Implemented and validated the five follow-up improvements to evidence-driven tes
 
 Limits: Multi-sample variance (`samples > 1`) and `OUTER` (`system-test-author` / `system-test`) live `stage_suite` scenarios (wave 3 just landed on `origin/main` in `b3c281e09`) were not yet added or exercised live.
 
+## 2026-11-24 — Antigravity `1.5.16` keepalive hooks, native plugin packaging, `AntigravityHost` E2E adapter, and post-Tier-3 settlement check (`a1109d7fb`..`00578e56b`)
+
+Implemented and live-validated Antigravity (`agy 1.5.16`) keepalive hooks + native `.antigravity-plugin/plugin.json` & root `hooks.json` packaging (`a1109d7fb`), the first-class `AntigravityHost` / `AntigravityTranslator` E2E adapter (`06781c2b6`), and quoted-executable `COMMAND_RUN_DIR` binding (`00578e56b`):
+
+- **Native plugin manifest & non-bypass permission probes (`agy 1.5.16`):**
+  - `agy plugin validate` on built `plugins/skill-craft` passed with **exit `0`** (`0` errors, `4` warnings: root `hooks.json` supersedes `hooks/hooks.json`; `24 KB` instruction-body warnings on `ask-agent`, `compare-prompts`, `plan-dispatcher`; `skills 24`, `agents 3`, `hooks 1`).
+  - Live `agy --mode accept-edits` probe confirmed sibling reads outside the workspace fail without `--add-dir` (`denied_actions: [{"action": "read_file", "display_name": "ReadFile"}]`) and succeed with `--add-dir` (`exit 0`, `SIBLING_SECRET_42`), matching `skills/shiploop/scripts/shiploop_grants.py` remediation.
+- **Live keepalive `PostToolUse` + reactive subagent + `Stop` continuation (`00578e56b`):**
+  - Initial live probe revealed `agy 1.5.16` `PostToolUse` omits `tool_input`/`cwd` and supplies a quoted executable in `toolCall.args.CommandLine` (`python3 "/.../shiploop" next --run-dir "..."`); updated `COMMAND_RUN_DIR` in `skills/shiploop/scripts/shiploop_keepalive.py` to match optional quotes (`['\"]?`) and verified `test/shiploop-keepalive.test.py -k antigravity` (`2/2 OK`).
+  - Re-probed live on `agy 1.5.16` (`/tmp/agy-keepalive-live-93065b`): bound to `antigravity:dca4e761-1556-4438-935b-42772ced539e`, `fullyIdle: false` during reactive subagent wait returned `"allow"` (`"waiting on background task or subagent"`) without releasing ownership, pure-idle `Stop` emitted `{"decision": "continue", ...}` (`"run can move; continuation 1"`), kept `agy` in-turn to run `shiploop pause`, and exited cleanly with `{"decision": "allow", "why": "run is paused: probe complete"}`.
+- **Live E2E Run A — `temperature-report` on `agy 1.5.16` (`claude-sonnet-5-5-medium`, `--delegation agents`, `--source checkout`):**
+  - **Every verdict `PASS`** (`1549.9s`, `1` session `end_turn`, `resumes: 0`, `136` turns, `input_peak: 313163`, `processed: 26056730`, `output: 99074`, `0` compactions, `6/6` checks `PASS`, `HEAD 0b595f7fd5c0ddbbef433dea34a5cc114edce175`, `14` commits, `10` files, `0` untracked, `docs/shiploop/spec.md` `R-1`..`R-7`).
+  - Native plugin keepalive ran cleanly (`keepalive.installed: True`, `output: "the plugin's native hooks.json"`, `decisions: {'allow': 21}`); `events.jsonl` recorded `549` events and `24` `invoke_subagent` mentions (`0` `swarm` mentions); `10` Improve children ran `17` passes (`7` edited, `max_passes: 2`), `14/14` script verifications passed, `0` dodges, `0` model glue, and `open_item_settlement: {'total': 0, 'due_completed': 0, 'settled': 0, 'unsettled': []}`.
+- **Live E2E Run B — `csv-report` on Codex (`gpt-6.2-sol`, `--effort medium`, `--delegation agents`, `--source checkout`):**
+  - Switched from `user-listing` because an unrelated external run (`pid 13196`) held `port-3000`.
+  - **Every verdict `PASS`** (`1981.9s`, `1` session `end_turn`, `144` turns, `input_peak: 160783`, `processed: 13919797`, `output: 25354`, `0` compactions, `5/5` checks `PASS`, `HEAD cc87bd7b8ccd5515752c8867b067b1362bdc1d44`, `13` commits, `6` files, `0` untracked, `docs/shiploop/spec.md` `R-1`..`R-5`).
+  - `8` Improve children (`14` passes, `6` edited, `max_passes: 2`), `6/8` script verifications passed, `0` dodges, `5` refusals (`0` repeated), and `open_item_settlement: {'total': 0, 'due_completed': 0, 'settled': 0, 'unsettled': []}` (both clean single-spine runs opened zero tracked follow-on items, so post-Tier-3 settlement rate vs the pre-Tier-3 `7/36` / `19%` Codex baseline remains unmeasured on multi-item work).
+
+Standing harness ops note: On macOS, passing `--output /tmp/...` without setting `SHIPLOOP_E2E_RUNS_ROOT` causes `test/shiploop_e2e/environment.py` `runs_root()` to walk all of `/tmp` (`tempfile.gettempdir()` is `/var/folders/.../T`, not `/private/tmp`). Always scope `SHIPLOOP_E2E_RUNS_ROOT` when placing live outputs under `/tmp`.
+
+Limits: `open_item_settlement` was `0/0` on both live runs because neither clean run opened tracked follow-on `open_items`; multi-item settlement behavior on `gpt-6.2-sol` and `claude-sonnet-5-5` remains to be measured on an organically branching run. Both live E2E runs (`temperature-report`, `csv-report`) overlapped for `1515.0s`, making wall-clock comparisons non-isolated.
 
 
