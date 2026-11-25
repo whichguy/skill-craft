@@ -1,0 +1,26 @@
+{
+  "outcome": "done",
+  "summary": "Carried TF-SYS-1 and src/server.js:18:3, but improperly edited src/server.js.",
+  "assumptions": [
+    {
+      "id": "A-SYS-1",
+      "assumption": "TF-SYS-1 HTTP server pagination integration needs system testing",
+      "disposition": "open",
+      "settle": "Cover in system-test-author",
+      "reason": "Deferred beyond W1 unit boundary",
+      "due_stage": "system-test-author"
+    },
+    {
+      "id": "A-MUT-1",
+      "assumption": "Not-exercisable mutant src/server.js:18:3",
+      "disposition": "open",
+      "settle": "Exercise listener binding in outer system tests",
+      "reason": "Not exercisable at unit boundary",
+      "due_stage": "system-test"
+    }
+  ],
+  "skill": {
+    "decision": "none",
+    "reason": "Single fix."
+  }
+}

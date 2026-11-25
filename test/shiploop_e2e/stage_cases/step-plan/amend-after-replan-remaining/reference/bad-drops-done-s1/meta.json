@@ -1,0 +1,4 @@
+{
+  "fails": ["P1"],
+  "why": "Rewrites S1 without done: true, violating the fix-forward invariant."
+}

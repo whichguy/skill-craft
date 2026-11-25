@@ -1,0 +1,37 @@
+{
+  "outcome": "done",
+  "summary": "Amended S2 for query parameter validation, but omitted done: true on S1.",
+  "follows": ["R-1"],
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "paginate([1,2,3,4,5], 3, 2) returns {page: 3, pages: 3, items: [5]}.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "GET /items validates integer query params and returns 400 on invalid input.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Fix paginate() with Math.ceil (C1).",
+      "deps": [],
+      "criteria": ["C1"],
+      "paths": ["src/paginate.js"],
+      "proof": "node -e 'const {paginate}=require(\"./src/paginate\");if(paginate([1,2,3,4,5],3,2).pages!==3)process.exit(1)'",
+      "skills": []
+    },
+    {
+      "id": "S2",
+      "task": "Add /items route parsing and validating integer query params with 400 status (C2).",
+      "deps": ["S1"],
+      "criteria": ["C2"],
+      "paths": ["src/server.js"],
+      "proof": "node --test test/server.test.js",
+      "skills": []
+    }
+  ]
+}

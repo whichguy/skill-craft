@@ -1,0 +1,4 @@
+{
+  "fails": ["C1"],
+  "why": "Modifies src/server.js directly during step-plan."
+}

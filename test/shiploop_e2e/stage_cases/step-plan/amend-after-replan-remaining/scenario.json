@@ -1,0 +1,196 @@
+{
+  "stage": "step-plan",
+  "about": "After document emits replan_remaining on S1 because TF1 uncovered string query-param validation needed in S2, step-plan preserves S1 verbatim with done: true and amends S2 to parse and validate query parameters.",
+  "tags": [
+    "fix-forward",
+    "replan-remaining",
+    "evidence-testing"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "node-base",
+  "request": {
+    "prompt": "Fix paginate() in src/paginate.js so trailing partial pages work accurately and expose paginated /items in src/server.js. R-1: Return all items for trailing partial pages (Math.ceil total pages) and expose paginated /items in server.js.",
+    "work_item": {
+      "id": "W1",
+      "title": "Fix pagination and add paginated /items route",
+      "context": "Fix src/paginate.js (S1) then add /items in src/server.js (S2)."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": true
+  },
+  "seed_records": {},
+  "seed_route": [
+    {
+      "stage": "step-plan",
+      "result": {
+        "outcome": "done",
+        "summary": "Two steps: S1 fixes paginate (C1); S2 exposes paginated /items (C2).",
+        "follows": ["R-1"],
+        "criteria": [
+          {
+            "id": "C1",
+            "text": "paginate([1,2,3,4,5], 3, 2) returns {page: 3, pages: 3, items: [5]}. Confirm by: running node --test --test-reporter=spec test/paginate.test.js; pass when exit 0. Serves R-1.",
+            "confirm": "executed"
+          },
+          {
+            "id": "C2",
+            "text": "GET /items returns paginated response in server.js. Confirm by: running node --test test/server.test.js; pass when exit 0. Serves R-1.",
+            "confirm": "executed"
+          }
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "task": "Fix paginate() with Math.ceil (C1).",
+            "deps": [],
+            "criteria": ["C1"],
+            "paths": ["src/paginate.js"],
+            "proof": "node -e 'const {paginate}=require(\"./src/paginate\");if(paginate([1,2,3,4,5],3,2).pages!==3)process.exit(1)'",
+            "skills": []
+          },
+          {
+            "id": "S2",
+            "task": "Add paginated /items route in src/server.js (C2).",
+            "deps": ["S1"],
+            "criteria": ["C2"],
+            "paths": ["src/server.js"],
+            "proof": "node --test test/server.test.js",
+            "skills": []
+          }
+        ],
+        "paths": ["src/paginate.js", "src/server.js", "test/paginate.test.js", "test/server.test.js"],
+        "expectations": [
+          {"id": "E1", "state": "works", "statement": "src/paginate.js exists.", "steps": ["S1"], "paths": ["src/paginate.js"], "check": "test -f src/paginate.js"},
+          {"id": "E2", "state": "works", "statement": "src/server.js exists.", "steps": ["S2"], "paths": ["src/server.js"], "check": "test -f src/server.js"}
+        ],
+        "test_commands": [
+          {"command": "node --test --test-reporter=spec test/paginate.test.js", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+          {"command": "node --test --test-reporter=spec test/server.test.js", "suite": "focused", "ids": ["TC-2"], "criteria": ["C2"]},
+          {"command": "node --test", "suite": "regression", "ids": ["TC-1"], "criteria": ["C1", "C2"], "minimum": true}
+        ],
+        "check_na": "Dependency-free Node fixture has no separate lint or build step."
+      }
+    },
+    {
+      "stage": "test-spec",
+      "result": {
+        "outcome": "done",
+        "summary": "Test cases TC-1 and TC-2.",
+        "assumptions": [],
+        "test_cases": [
+          {
+            "id": "TC-1",
+            "criterion": "C1",
+            "requirement": "R-1",
+            "oracle": "paginate([1,2,3,4,5], 3, 2) returns {page: 3, pages: 3, items: [5]}.",
+            "red": "paginate uses Math.floor on base.",
+            "green": "paginate uses Math.ceil."
+          },
+          {
+            "id": "TC-2",
+            "criterion": "C2",
+            "requirement": "R-1",
+            "oracle": "GET /items paginates items.",
+            "red": "/items absent on base.",
+            "green": "/items works."
+          }
+        ]
+      }
+    },
+    {
+      "stage": "implement",
+      "overlay": "route/1-implement",
+      "result": {
+        "outcome": "done",
+        "summary": "Fixed src/paginate.js page calculation with Math.ceil.",
+        "not_covered": [],
+        "learned": ["paginate throws RangeError for non-integer query arguments."],
+        "decisions": ["Keep strict Number.isInteger validation inside paginate."]
+      }
+    },
+    {
+      "stage": "test",
+      "overlay": "route/1-test",
+      "result": {
+        "outcome": "done",
+        "summary": "Verified TC-1 and boundary TC-1 (a); recorded TF1 noting S2 must parse and validate integer query params.",
+        "added_tests": [
+          {"id": "TC-1 (a)", "command": "node --test --test-reporter=spec test/paginate.test.js"}
+        ],
+        "test_findings": [
+          {
+            "id": "TF1",
+            "finding": "S2 server.js GET /items receives string query params and must parse and validate positive integer page/size bounds (returning 400 on invalid input) before calling paginate().",
+            "evidence": "test/paginate.test.js TC-1 (a) and RangeError guard in src/paginate.js",
+            "impact": "amend-remaining",
+            "next_step": "Emit replan_remaining at document so S1 commits and step-plan amends S2."
+          }
+        ]
+      }
+    },
+    {
+      "stage": "document",
+      "overlay": "route/1-document",
+      "result": {
+        "outcome": "done",
+        "summary": "Documented S1 paginate() trailing partial-page behavior and emitted replan_remaining for S2.",
+        "assumptions": [],
+        "knowledge": {
+          "spec": "Noted R-1 trailing partial-page pagination contract (W1/S1).",
+          "architecture": "Unchanged; S1 keeps strict Number.isInteger validation inside paginate().",
+          "environment": "Recorded `node --test --test-reporter=spec test/paginate.test.js` under ## Commands."
+        },
+        "replan_remaining": {
+          "reason": "TF1 showed S2 server.js GET /items must parse and validate string query parameters before calling paginate().",
+          "affects": ["S2", "C2"]
+        }
+      }
+    }
+  ],
+  "planted": [
+    {
+      "id": "P1",
+      "what": "Preserves committed step S1 verbatim as steps[0] with done: true and leaves S2+ pending.",
+      "signature": "Fix forward: S1 is done"
+    },
+    {
+      "id": "P2",
+      "what": "Amends pending step S2 / C2 to incorporate TF1 query-parameter parsing and positive integer validation.",
+      "signature": "TF1"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "Amends the plan cleanly without modifying src/paginate.js or src/server.js directly during step-plan."
+    }
+  ],
+  "render": [
+    {"packet_issued": true},
+    {"current_stage": "step-plan"},
+    {"proves": "P1", "packet_contains": "Fix forward: S1 is done"},
+    {"proves": "P2", "packet_contains": "TF1"},
+    {"proves": "P2", "packet_contains": "replan_remaining"}
+  ],
+  "oracle": [
+    {"proves": "P1", "outcome": ["done"]},
+    {"proves": "P1", "command": "python3 \"$STAGE_ORACLE/check.py\" fidelity", "exit": 0},
+    {"proves": "P2", "command": "python3 \"$STAGE_ORACLE/check.py\" amendment", "exit": 0},
+    {"proves": "C1", "changed_only": ["docs/shiploop/**"]},
+    {"proves": "C1", "file": "src/paginate.js", "unchanged": true},
+    {"proves": "C1", "file": "src/server.js", "unchanged": true}
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

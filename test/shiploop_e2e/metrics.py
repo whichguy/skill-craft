@@ -2446,6 +2446,154 @@ def open_item_settlement(state: dict | None) -> dict:
     }
 
 
+def testing_evidence_audit(state: dict | None, run_dir: Path | None = None) -> dict:
+    """Non-refusing audit of test_findings, replan_remaining, added_tests, discovered sub-cases, not-exercisable
+    mutants, and test-stage step-proof re-checks across a run's history and tests/ records."""
+    tiers = ("none", "local", "amend-remaining", "system-test")
+    empty = {
+        "findings_total": 0,
+        "by_impact": {t: 0 for t in tiers},
+        "findings_settled": 0,
+        "replans_total": 0,
+        "added_tests_total": 0,
+        "auto_subcases_total": 0,
+        "not_exercisable_total": 0,
+        "not_exercisable_settled_outer": 0,
+        "test_proof_rechecks": 0,
+    }
+    history = state.get("history") if isinstance(state, dict) else None
+    accepted = state.get("accepted") if isinstance(state, dict) else None
+    if (not isinstance(history, list) or not isinstance(accepted, dict)) and run_dir is None:
+        return empty
+    by_impact = {t: 0 for t in tiers}
+    findings: list[tuple[int, str, str, object]] = []
+    seen_findings: set[tuple[object, str]] = set()
+    replans_total = 0
+    seen_replans: set[str] = set()
+    added_tests_total = 0
+    mutants: list[tuple[int, str, object]] = []
+    seen_mutants: set[tuple[object, str]] = set()
+    replan_stages = {"document", "step-plan", "reflect-and-revise", "system-test-author", "system-test"}
+
+    if isinstance(history, list) and isinstance(accepted, dict):
+        for index, entry in enumerate(history):
+            if not isinstance(entry, dict) or entry.get("outcome") != "done":
+                continue
+            stage = entry.get("stage")
+            action = entry.get("action")
+            workitem = entry.get("workitem")
+            res = accepted.get(action) if isinstance(action, str) else None
+            if not isinstance(res, dict):
+                continue
+            if stage in ("test", "document") and isinstance(res.get("added_tests"), list):
+                added_tests_total += sum(1 for row in res["added_tests"] if isinstance(row, dict) and row.get("id"))
+            if stage == "document" and isinstance(res.get("replan_remaining"), dict) and action not in seen_replans:
+                seen_replans.add(action)
+                replans_total += 1
+            if stage == "test":
+                for row in res.get("test_findings") or ():
+                    if not isinstance(row, dict):
+                        continue
+                    fid = row.get("id")
+                    if not isinstance(fid, str) or not fid:
+                        continue
+                    fkey = (workitem, fid)
+                    if fkey in seen_findings:
+                        continue
+                    seen_findings.add(fkey)
+                    impact = str(row.get("impact") or "none")
+                    if impact in by_impact:
+                        by_impact[impact] += 1
+                    findings.append((index, fid, impact, workitem))
+                for mrow in res.get("mutant_dispositions") or ():
+                    if not isinstance(mrow, dict) or mrow.get("disposition") != "not-exercisable":
+                        continue
+                    mutant = mrow.get("mutant")
+                    if not isinstance(mutant, str) or not mutant:
+                        continue
+                    mkey = (workitem, mutant)
+                    if mkey in seen_mutants:
+                        continue
+                    seen_mutants.add(mkey)
+                    mutants.append((index, mutant, workitem))
+
+    findings_settled = 0
+    if isinstance(history, list) and isinstance(accepted, dict):
+        for index, fid, impact, workitem in findings:
+            tok = re.compile(rf"(?<![A-Za-z0-9_-]){re.escape(fid)}(?![A-Za-z0-9_-])")
+            for later in history[index + 1:]:
+                if not isinstance(later, dict) or later.get("outcome") != "done":
+                    continue
+                l_stage = later.get("stage")
+                if l_stage not in replan_stages:
+                    continue
+                if impact == "amend-remaining" and l_stage == "step-plan" and later.get("workitem") == workitem:
+                    findings_settled += 1
+                    break
+                l_res = accepted.get(later.get("action")) if isinstance(later.get("action"), str) else None
+                if not isinstance(l_res, dict):
+                    continue
+                blob = json.dumps(
+                    {k: l_res.get(k) for k in ("summary", "replan_remaining", "assumptions", "system_commands")
+                     if k in l_res},
+                    sort_keys=True,
+                )
+                if tok.search(blob):
+                    findings_settled += 1
+                    break
+
+    mutants_settled = 0
+    if isinstance(history, list) and isinstance(accepted, dict):
+        for index, mutant, _workitem in mutants:
+            for later in history[index + 1:]:
+                if not isinstance(later, dict) or later.get("outcome") != "done":
+                    continue
+                if later.get("stage") not in ("system-test-author", "system-test"):
+                    continue
+                l_res = accepted.get(later.get("action")) if isinstance(later.get("action"), str) else None
+                if not isinstance(l_res, dict):
+                    continue
+                blob = json.dumps(
+                    {k: l_res.get(k) for k in ("summary", "assumptions", "system_commands") if k in l_res},
+                    sort_keys=True,
+                )
+                if mutant in blob or "not-exercisable" in blob:
+                    mutants_settled += 1
+                    break
+
+    auto_subcases: set[tuple[str, str]] = set()
+    test_proof_rechecks = 0
+    tests_dir = run_dir / "tests" if run_dir else None
+    if tests_dir is not None and tests_dir.is_dir():
+        for path in sorted(tests_dir.glob("*-verify*.md")):
+            rec = _record(path)
+            if not isinstance(rec, dict) or rec.get("passed") is not True or rec.get("stage") != "test":
+                continue
+            for r in rec.get("runs") or ():
+                if not isinstance(r, dict) or r.get("suite") != "focused" or r.get("status") != "passed":
+                    continue
+                cmd = str(r.get("command") or "")
+                for sid in r.get("discovered_subcases") or ():
+                    if isinstance(sid, str) and sid:
+                        auto_subcases.add((cmd, sid))
+        for path in sorted(tests_dir.glob("*-step-proof*.md")):
+            rec = _record(path)
+            if isinstance(rec, dict) and rec.get("kind") == "step-proof" and rec.get("stage") == "test":
+                test_proof_rechecks += 1
+
+    return {
+        "findings_total": len(findings),
+        "by_impact": by_impact,
+        "findings_settled": findings_settled,
+        "replans_total": replans_total,
+        "added_tests_total": added_tests_total,
+        "auto_subcases_total": len(auto_subcases),
+        "not_exercisable_total": len(mutants),
+        "not_exercisable_settled_outer": mutants_settled,
+        "test_proof_rechecks": test_proof_rechecks,
+    }
+
+
 def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None, *,
             planning_cli: Path | None = None) -> dict:
     """The run's metrics. ``tools`` is the ToolLog to fill (a caller that reads the tool calls itself, as fidelity.py does,
@@ -2740,6 +2888,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "improve_children": sum(1 for p in improve.iterdir() if p.is_dir()) if improve and improve.is_dir() else 0,
         "improve_reviews": improve_reviews(run_dir),
         "open_item_settlement": open_item_settlement(state),
+        "testing_evidence": testing_evidence_audit(state, run_dir),
         **({"fork_completeness": fc} if (fc := fork_completeness.collect(out, run_dir)) is not None else {}),
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in tools.reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),
@@ -3313,6 +3462,19 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
             extra = f" (unsettled: {', '.join(labels)}{more})"
         lines.append(f"open items settled {settlement['settled']}/{settlement['due_completed']} "
                      f"(total {settlement['total']}){extra}")
+    te = metrics.get("testing_evidence") or {}
+    if any(int(te.get(k) or 0) > 0 for k in ("findings_total", "replans_total", "added_tests_total",
+                                             "auto_subcases_total", "not_exercisable_total", "test_proof_rechecks")):
+        by_imp = te.get("by_impact") or {}
+        tiers_str = ", ".join(f"{t}={by_imp[t]}" for t in ("local", "amend-remaining", "system-test", "none")
+                              if by_imp.get(t))
+        lines.append(
+            f"testing evidence: findings {te['findings_total']} ({te['findings_settled']} settled"
+            + (f"; {tiers_str}" if tiers_str else "")
+            + f"), replans {te['replans_total']}, auto-subcases {te['auto_subcases_total']}, "
+            f"added-tests {te['added_tests_total']}, not-exercisable {te['not_exercisable_total']} "
+            f"({te['not_exercisable_settled_outer']} outer), test-proof-rechecks {te['test_proof_rechecks']}"
+        )
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
         # Named as the display contract it is, not as "compliance": on a long recorded run a model relayed 2 of 6 blocks

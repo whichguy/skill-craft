@@ -4703,5 +4703,92 @@ class StateSummaryTests(unittest.TestCase):
             })
 
 
+class TestingEvidenceAuditTests(unittest.TestCase):
+    def _run_with_state(self, tmp: str, state: dict, *, setup_tests=None) -> dict:
+        out = Path(tmp) / "out"
+        run_dir = out / "run"
+        run_dir.mkdir(parents=True)
+        (out / "events.jsonl").write_text("", encoding="utf-8")
+        (out / "timeline.jsonl").write_text("", encoding="utf-8")
+        if setup_tests is not None:
+            (run_dir / "tests").mkdir(parents=True)
+            setup_tests(run_dir / "tests")
+        (run_dir / "state.md").write_text("```shiploop-state\n" + json.dumps(state) + "\n```\n", encoding="utf-8")
+        return metrics.collect(out, run_dir)
+
+    def test_empty_testing_evidence_is_zero_and_omitted_from_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self._run_with_state(tmp, {"history": [], "accepted": {}})
+            self.assertEqual(m["testing_evidence"], {
+                "findings_total": 0,
+                "by_impact": {"none": 0, "local": 0, "amend-remaining": 0, "system-test": 0},
+                "findings_settled": 0,
+                "replans_total": 0,
+                "added_tests_total": 0,
+                "auto_subcases_total": 0,
+                "not_exercisable_total": 0,
+                "not_exercisable_settled_outer": 0,
+                "test_proof_rechecks": 0,
+            })
+            self.assertFalse(any("testing evidence:" in line for line in metrics.summary_lines(m)))
+
+    def test_populated_findings_replans_subcases_mutants_and_rechecks(self):
+        def write_tests(tests_dir: Path) -> None:
+            (tests_dir / "a-t1-verify-1.md").write_text("```shiploop-state\n" + json.dumps({
+                "kind": "verify", "stage": "test", "passed": True,
+                "runs": [{"suite": "focused", "status": "passed", "command": "node --test",
+                          "discovered_subcases": ["TC-1 (a)", "TC-1 (b)"]}],
+            }) + "\n```\n", encoding="utf-8")
+            (tests_dir / "a-t1-step-proof-1.md").write_text("```shiploop-state\n" + json.dumps({
+                "kind": "step-proof", "stage": "test", "passed": True,
+            }) + "\n```\n", encoding="utf-8")
+
+        state = {
+            "history": [
+                {"stage": "test", "outcome": "done", "workitem": "W1", "action": "a-t1"},
+                {"stage": "document", "outcome": "done", "workitem": "W1", "action": "a-d1"},
+                {"stage": "step-plan", "outcome": "done", "workitem": "W1", "action": "a-sp2"},
+                {"stage": "system-test-author", "outcome": "done", "workitem": None, "action": "a-sta"},
+            ],
+            "accepted": {
+                "a-t1": {
+                    "outcome": "done", "summary": "Tested.",
+                    "added_tests": [{"id": "TC-extra", "command": "node --test"}],
+                    "test_findings": [
+                        {"id": "TF1", "finding": "Parse query", "evidence": "test",
+                         "impact": "amend-remaining", "next_step": "Replan S2"},
+                        {"id": "TF2", "finding": "Check HTTP", "evidence": "test",
+                         "impact": "system-test", "next_step": "Outer"},
+                    ],
+                    "mutant_dispositions": [
+                        {"mutant": "src/server.js:18:3", "disposition": "not-exercisable", "evidence": "outer"},
+                    ],
+                },
+                "a-d1": {"outcome": "done", "summary": "Doc.", "replan_remaining": {"reason": "Fix S2", "affects": ["S2"]}},
+                "a-sp2": {"outcome": "done", "summary": "Amended S2 for TF1."},
+                "a-sta": {"outcome": "done", "summary": "Covered TF2 and not-exercisable mutant src/server.js:18:3."},
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self._run_with_state(tmp, state, setup_tests=write_tests)
+            self.assertEqual(m["testing_evidence"], {
+                "findings_total": 2,
+                "by_impact": {"none": 0, "local": 0, "amend-remaining": 1, "system-test": 1},
+                "findings_settled": 2,
+                "replans_total": 1,
+                "added_tests_total": 1,
+                "auto_subcases_total": 2,
+                "not_exercisable_total": 1,
+                "not_exercisable_settled_outer": 1,
+                "test_proof_rechecks": 1,
+            })
+            lines = metrics.summary_lines(m)
+            self.assertTrue(any(
+                "testing evidence: findings 2 (2 settled; amend-remaining=1, system-test=1), replans 1, "
+                "auto-subcases 2, added-tests 1, not-exercisable 1 (1 outer), test-proof-rechecks 1" == line
+                for line in lines
+            ), lines)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,38 @@
+{
+  "outcome": "done",
+  "summary": "Kept S1 done: true and left S2 verbatim without query-parameter validation.",
+  "follows": ["R-1"],
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "paginate([1,2,3,4,5], 3, 2) returns {page: 3, pages: 3, items: [5]}. Confirm by: running node --test --test-reporter=spec test/paginate.test.js; pass when exit 0. Serves R-1.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "GET /items returns paginated response in server.js. Confirm by: running node --test test/server.test.js; pass when exit 0. Serves R-1.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "done": true,
+      "task": "Fix paginate() with Math.ceil (C1).",
+      "deps": [],
+      "criteria": ["C1"],
+      "paths": ["src/paginate.js"],
+      "proof": "node -e 'const {paginate}=require(\"./src/paginate\");if(paginate([1,2,3,4,5],3,2).pages!==3)process.exit(1)'",
+      "skills": []
+    },
+    {
+      "id": "S2",
+      "task": "Add paginated /items route in src/server.js (C2).",
+      "deps": ["S1"],
+      "criteria": ["C2"],
+      "paths": ["src/server.js"],
+      "proof": "node --test test/server.test.js",
+      "skills": []
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "fails": ["P2"],
+  "why": "Preserves S1 with done: true but leaves S2 and C2 unamended, ignoring TF1 query-param validation."
+}

@@ -70,7 +70,8 @@ def source_violations(ledger: dict) -> list[dict]:
     for row in ledger["obligations"]:
         for anchor in row["anchors"]:
             text = (ROOT / anchor["source"]).read_text(errors="replace")
-            if not any(token in text for token in anchor["any"]):
+            flat = " ".join(text.split())
+            if not any(token in text or " ".join(token.split()) in flat for token in anchor["any"]):
                 found.append({"id": row["id"], "source": anchor["source"], "any": anchor["any"]})
     return found
 

@@ -63,6 +63,30 @@ class LedgerShapeTests(unittest.TestCase):
         bad["obligations"][0]["anchors"][0]["any"] = ["a sentence no ShipLoop source contains"]
         self.assertEqual([v["id"] for v in obligations.source_violations(bad)], [bad["obligations"][0]["id"]])
 
+    def test_multiline_wrapped_anchor_matches_across_whitespace(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            src = Path(temp) / "wrapped.md"
+            src.write_text("First line ends with split\n    phrase across line break.\n", encoding="utf-8")
+            ledger = {
+                "obligations": [
+                    {
+                        "id": "wrapped-row",
+                        "anchors": [{"any": ["split phrase across line"], "source": str(src)}],
+                    },
+                    {
+                        "id": "missing-row",
+                        "anchors": [{"any": ["absent phrase across line"], "source": str(src)}],
+                    },
+                ]
+            }
+            orig_root = obligations.ROOT
+            obligations.ROOT = Path(temp)
+            try:
+                violations = obligations.source_violations(ledger)
+            finally:
+                obligations.ROOT = orig_root
+        self.assertEqual([v["id"] for v in violations], ["missing-row"])
+
     def test_a_malformed_ledger_is_refused(self) -> None:
         cases = {
             "schema": lambda d: d.update(schema="shiploop-packet-obligations/v0"),

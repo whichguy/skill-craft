@@ -1,0 +1,4 @@
+{
+  "fails": ["P2"],
+  "why": "Omits required skill decision."
+}
