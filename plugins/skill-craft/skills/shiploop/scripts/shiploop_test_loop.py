@@ -1208,6 +1208,40 @@ def regression_commands(state: Mapping[str, Any], *, last_item: bool = False) ->
     return [dict(row) for row in found.values() if _remote_base(row, stateful) is None]
 
 
+def dropped_regression_commands(state: Mapping[str, Any]) -> List[Tuple[str, str]]:
+    """Unique ``(work_item_id, command)`` pairs from earlier items' step plans absent from the last item recording
+    non-stateful regression commands (pure state read; performs no file I/O during packet render)."""
+    items = state.get("work_items") or ()
+    if len(items) <= 1:
+        return []
+    stateful = stateful_targets(state)
+    per_item: List[Tuple[str, List[str]]] = []
+    for item in items:
+        item_id = str(item.get("id") or "")
+        _action, result = _step_plan(state, item_id)
+        cmds = [
+            str(row.get("command") or "")
+            for row in result.get("test_commands") or ()
+            if isinstance(row, Mapping)
+            and (row.get("suite") == "regression" or row.get("regression"))
+            and not (row.get("target") and row.get("target") in stateful)
+            and row.get("command")
+        ]
+        if cmds:
+            per_item.append((item_id, cmds))
+    if len(per_item) <= 1:
+        return []
+    last_cmds = set(per_item[-1][1])
+    seen: set[str] = set()
+    dropped: List[Tuple[str, str]] = []
+    for item_id, cmds in per_item[:-1]:
+        for cmd in cmds:
+            if cmd not in last_cmds and cmd not in seen:
+                seen.add(cmd)
+                dropped.append((item_id, cmd))
+    return dropped
+
+
 def release_commands(root: Path, state: Mapping[str, Any]) -> Tuple[List[Dict[str, Any]], str]:
     """release-verify's commands and, when there are none, why.
 
@@ -2355,6 +2389,7 @@ __all__ = (
     "check_result_fields",
     "criteria_without_ids",
     "default_suite_drift",
+    "dropped_regression_commands",
     "floor_detail",
     "floors",
     "judge",

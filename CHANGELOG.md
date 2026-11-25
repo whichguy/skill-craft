@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.15.2
+
+- Skills: shiploop 2.16.2
+
+### shiploop 2.16.2
+
+- Require `handoff` results to account for open assumptions with `due_stage: "handoff"` (either in `follow_on` via `source: "assumption:<id>"` or by ID in `summary`), and surface explicit ID-citation guidance on packet open-item blocks across due stages.
+- Surface earlier items' regression commands dropped from the last item's `step-plan` inside `release-plan` packets so `release-plan` can include still-valid suites in `consumer_checks` or note why they were superseded while preserving `release_commands(..., last_item=True)`.
+
 ### skill-craft 4.15.1
 
 - Skills: shiploop 2.16.1
