@@ -934,26 +934,56 @@ def plan_dodges(plan: dict) -> dict:
     return {"grep": grep, "guarded": guarded, "inspected": inspected}
 
 
-def surviving_mutants(run_dir: Path | None) -> int | None:
-    """Mutants that survived, from each action's last counted ``tests/<action>-mutation<N>.md``; None with no record."""
+def mutant_survival(run_dir: Path | None) -> tuple[int | None, int | None, int | None]:
+    """``(raw_survived, disposed, undisposed)`` across each action's last counted ``tests/<action>-mutation<N>.md``."""
     folder = run_dir / "tests" if run_dir else None
     if folder is None or not folder.is_dir():
-        return None
+        return None, None, None
     last: dict[str, tuple[int, Path]] = {}
     for path in folder.glob("*-mutation*.md"):
         found = MUTATION_RECORD.match(path.name)
         if found and int(found["n"]) >= last.get(found["action"], (-1, path))[0]:
             last[found["action"]] = (int(found["n"]), path)
     if not last:
-        return None
-    return sum(int((_record(path) or {}).get("survived") or 0) for _n, path in last.values())
+        return None, None, None
+    raw_total = 0
+    disposed_total = 0
+    undisposed_total = 0
+    for action, (_n, path) in last.items():
+        record = _record(path) or {}
+        raw = int(record.get("survived") or 0)
+        res_rec = _record(run_dir / "results" / f"{action}.md") or {}
+        res = res_rec.get("result") if isinstance(res_rec, dict) else None
+        disposed_ids = (
+            {str(d.get("mutant")) for d in (res.get("mutant_dispositions") or ()) if isinstance(d, dict) and d.get("mutant")}
+            if isinstance(res, dict) else set()
+        )
+        mutants = record.get("mutants")
+        if isinstance(mutants, list) and mutants:
+            survived_ids = {
+                f"{m.get('file')}:{m.get('line')}:{m.get('column')}"
+                for m in mutants if isinstance(m, dict) and m.get("status") == "survived"
+            }
+            action_disposed = min(raw, len(survived_ids & disposed_ids))
+        else:
+            action_disposed = min(raw, len(disposed_ids))
+        raw_total += raw
+        disposed_total += action_disposed
+        undisposed_total += max(0, raw - action_disposed)
+    return raw_total, disposed_total, undisposed_total
+
+
+def surviving_mutants(run_dir: Path | None) -> int | None:
+    """Mutants that survived, from each action's last counted ``tests/<action>-mutation<N>.md``; None with no record."""
+    return mutant_survival(run_dir)[0]
 
 
 def dodge_counts(run_dir: Path | None) -> dict:
     """Run-level test-quality dodges (the template experiments E2/E3), counted over every accepted step-plan result.
 
     ``grep_executed`` (grep-only checks on code files serving an executed criterion; step-plan refuses these, so 0 shows
-    the gate held), ``guarded`` (focused commands with a file guard) and ``surviving_mutants`` sum into ``dodges``.
+    the gate held), ``guarded`` (focused commands with a file guard) and undisposed ``surviving_mutants`` sum into
+    ``dodges``. Accepted ``mutant_dispositions`` are reported separately in ``disposed_mutants`` and ``undisposed_mutants``.
     ``grep_searched`` (a docstring or contract duty) and ``grep_unmatched`` (no criterion, or a step's proof) are context;
     ``inspected`` (criteria confirmed by inspection) is its own count. ``surviving_mutants`` is None when the run wrote no
     mutation record. ``plans`` 0 means nothing was measured."""
@@ -964,14 +994,17 @@ def dodge_counts(run_dir: Path | None) -> dict:
             record = _record(path)
             if isinstance(record, dict) and record.get("stage") == "step-plan" and isinstance(record.get("result"), dict):
                 plans.append((record.get("action") or path.stem, plan_dodges(record["result"])))
+    raw_survived, disposed, undisposed = mutant_survival(run_dir)
     counts = {"plans": len(plans),
               "grep_searched": sum(len(p["grep"]["searched"]) for _a, p in plans),
               "grep_executed": sum(len(p["grep"]["executed"]) for _a, p in plans),
               "grep_unmatched": sum(len(p["grep"]["unmatched"]) for _a, p in plans),
               "guarded": sum(len(p["guarded"]) for _a, p in plans),
               "inspected": sum(len(p["inspected"]) for _a, p in plans),
-              "surviving_mutants": surviving_mutants(run_dir)}
-    counts["dodges"] = counts["grep_executed"] + counts["guarded"] + (counts["surviving_mutants"] or 0)
+              "surviving_mutants": raw_survived,
+              "disposed_mutants": disposed,
+              "undisposed_mutants": undisposed}
+    counts["dodges"] = counts["grep_executed"] + counts["guarded"] + (undisposed or 0)
     counts["by_action"] = {action: p for action, p in plans
                            if any(p["grep"].values()) or p["guarded"] or p["inspected"]}
     return counts
@@ -980,9 +1013,15 @@ def dodge_counts(run_dir: Path | None) -> dict:
 def dodge_text(counts: dict) -> str:
     """``Test-quality dodges: N (...)`` for the printed report."""
     mutants = counts.get("surviving_mutants")
+    if mutants is None:
+        mutant_note = "none recorded"
+    elif counts.get("disposed_mutants"):
+        mutant_note = f"{mutants} ({counts['disposed_mutants']} disposed)"
+    else:
+        mutant_note = str(mutants)
     return (f"Test-quality dodges: {counts['dodges']} over {plural(counts['plans'], 'step plan')} "
             f"(grep-only on code for an executed criterion {counts['grep_executed']}; guarded RED {counts['guarded']}; "
-            f"surviving mutants " + ("none recorded" if mutants is None else str(mutants)) + "); "
+            f"surviving mutants {mutant_note}); "
             f"inspected criteria {counts['inspected']}; context: {counts['grep_searched']} searched greps, "
             f"{counts['grep_unmatched']} greps with no criterion")
 
@@ -2422,10 +2461,9 @@ def open_item_settlement(state: dict | None) -> dict:
             if not isinstance(d_res, dict):
                 continue
             parts = [str(d_res.get("summary") or "")]
-            if d_res.get("assumptions") is not None:
-                parts.append(json.dumps(d_res.get("assumptions"), sort_keys=True))
-            if d_res.get("follow_on") is not None:
-                parts.append(json.dumps(d_res.get("follow_on"), sort_keys=True))
+            for field in ("assumptions", "follow_on", "criteria", "expectations"):
+                if d_res.get(field) is not None:
+                    parts.append(json.dumps(d_res.get(field), sort_keys=True))
             if token.search("\n".join(parts)):
                 matched = True
                 break

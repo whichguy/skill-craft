@@ -57,6 +57,22 @@ class RoleDefaultsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown ShipLoop E2E role"):
             hosts.resolve_role("unknown")
 
+    def test_antigravity_orchestrator_alias_and_env_indirection(self):
+        import os
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(hosts.ANTIGRAVITY_ORCHESTRATOR_ENV, None)
+            self.assertEqual(hosts.resolve_role("reviewer", {"model": "orchestrator"}),
+                             {"host": "antigravity", "model": hosts.ANTIGRAVITY_ORCHESTRATOR_MODEL, "effort": None})
+        with mock.patch.dict(os.environ, {hosts.ANTIGRAVITY_ORCHESTRATOR_ENV: "gemini-pro-orchestrator"}):
+            self.assertEqual(hosts.resolve_role("reviewer", {"model": "orchestrator"}),
+                             {"host": "antigravity", "model": "gemini-pro-orchestrator", "effort": None})
+            self.assertEqual(hosts.resolve_role("judge"),
+                             {"host": "antigravity", "model": "gemini-pro-orchestrator", "effort": None})
+            # Explicit model override still wins over the orchestrator env override.
+            self.assertEqual(hosts.resolve_role("improver", {"model": "gemini-pro-orchestrator-argon"}),
+                             {"host": "antigravity", "model": "gemini-pro-orchestrator-argon", "effort": None})
+        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], hosts.ANTIGRAVITY_ORCHESTRATOR_MODEL)
+
     def test_run_slice_and_experiment_parser_defaults_and_overrides(self):
         self.assertEqual(run.parser().parse_args([]).host, "codex")
         self.assertEqual(step_slice.parser().parse_args([]).host, "codex")

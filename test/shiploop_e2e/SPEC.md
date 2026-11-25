@@ -106,8 +106,9 @@ subject, reviewer, judge and improver profiles. For new work, the owner selected
 independent reviewers, independent judges and improvers (2026-11-25, superseding Codex / GPT-6.2 Astra / high
 reviewers/judges and Codex / GPT-6.2 Sol / max improvers from 2026-11-19, GPT-6.1 Sol max improvers from
 2026-11-15, and GPT-6 Astra high reviewers/judges from 2026-11-08; explicit overrides such as
-`--improver-host codex` for Sol `max` or `--improver-host claude` for Sonnet 5.5 `max` and
-`--reviewer-host codex` / `--judge-host codex` remain available).
+`--improver-host codex` for Sol `max`, `--improver-host claude` for Sonnet 5.5 `max`,
+`--reviewer-host codex` / `--judge-host codex`, and the Antigravity `--*-model orchestrator` alias resolved via
+`SHIPLOOP_E2E_ANTIGRAVITY_ORCHESTRATOR` or `hosts.ANTIGRAVITY_ORCHESTRATOR_MODEL` remain available).
 This is an owner preference, not a measured model improvement.
 Explicit role choices override that default; without an override, resumed runs retain their recorded identities.
 Frozen registrations and historical evidence are not relabelled; continue existing strict epochs on their original pinned

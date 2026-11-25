@@ -117,11 +117,49 @@ class RunCounts(unittest.TestCase):
         self.assertIn("Test-quality dodges: 4", line)
         self.assertIn("surviving mutants 2", line)
 
-    def test_absent_records_are_unmeasured_not_zero_mutants(self) -> None:
+    def test_absent_records_are_unmeasured_not_zero_mutants(self):
         with tempfile.TemporaryDirectory() as tmp:
             counts = metrics.dodge_counts(Path(tmp))
-        self.assertEqual((counts["plans"], counts["dodges"], counts["surviving_mutants"]), (0, 0, None))
+        self.assertEqual((counts["plans"], counts["dodges"], counts["surviving_mutants"],
+                          counts["disposed_mutants"], counts["undisposed_mutants"]),
+                         (0, 0, None, None, None))
         self.assertEqual(metrics.dodge_counts(None)["plans"], 0)
+
+    def test_disposed_mutants_are_excluded_from_dodges_while_raw_survived_remains(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            plan = step_plan([{"id": "C1", "text": "Runs behavior.", "confirm": "executed"}],
+                             [{"command": "node --test test/app.test.js", "criteria": ["C1"], "suite": "focused"}])
+            write_record(run / "results" / "nav-sp.md", {"action": "nav-sp", "stage": "step-plan", "result": plan})
+            write_record(run / "tests" / "nav-t1-mutation1.md", {
+                "survived": 3,
+                "mutants": [
+                    {"file": "src/a.js", "line": 10, "column": 5, "status": "survived"},
+                    {"file": "src/a.js", "line": 20, "column": 3, "status": "survived"},
+                    {"file": "src/b.js", "line": 7, "column": 1, "status": "survived"},
+                    {"file": "src/c.js", "line": 2, "column": 1, "status": "killed"},
+                ],
+            })
+            write_record(run / "results" / "nav-t1.md", {
+                "action": "nav-t1",
+                "stage": "test",
+                "result": {
+                    "outcome": "done",
+                    "summary": "Disposed two.",
+                    "mutant_dispositions": [
+                        {"mutant": "src/a.js:10:5", "disposition": "equivalent", "evidence": "unreachable branch"},
+                        {"mutant": "src/a.js:20:3", "disposition": "not-exercisable", "evidence": "remote only"},
+                    ],
+                },
+            })
+            counts = metrics.dodge_counts(run)
+        self.assertEqual(counts["surviving_mutants"], 3)
+        self.assertEqual(counts["disposed_mutants"], 2)
+        self.assertEqual(counts["undisposed_mutants"], 1)
+        self.assertEqual(counts["dodges"], 1)
+        line = metrics.dodge_text(counts)
+        self.assertIn("Test-quality dodges: 1", line)
+        self.assertIn("surviving mutants 3 (2 disposed)", line)
 
 
 if __name__ == "__main__":

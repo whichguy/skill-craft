@@ -102,7 +102,7 @@ New runs, step slices and experiment invocations default to **Codex / GPT-6.2 So
 and judges default to **Antigravity / Orchestrator (Neon) (`gemini-pro-orchestrator-neon`)** (owner, 2026-11-25, replacing Codex / GPT-6.2 Astra / high from 2026-11-19) and remain
 separate fresh sessions. The improver defaults to
 **Antigravity / Orchestrator (Neon) (`gemini-pro-orchestrator-neon`)** (owner, 2026-11-25, replacing Codex / GPT-6.2 Sol / max from 2026-11-19); `--improver-host codex` selects **Codex / GPT-6.2 Sol / max** and `--improver-host claude` selects
-**Claude / Sonnet 5.5 / max**, because the improver's `max` holds across hosts (`hosts.ROLE_EFFORT`) when not overridden by an orchestrator profile. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
+**Claude / Sonnet 5.5 / max**, because the improver's `max` holds across hosts (`hosts.ROLE_EFFORT`) when not overridden by an orchestrator profile. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides (including `--*-model orchestrator`, which resolves via `SHIPLOOP_E2E_ANTIGRAVITY_ORCHESTRATOR` or `hosts.ANTIGRAVITY_ORCHESTRATOR_MODEL`);
 its `--host`, `--model` and `--effort` select the subject only. With no explicit override, existing runs resume
 their recorded identities. Continue an already registered strict epoch on its original pinned harness checkout;
 its qualification fingerprint binds the specification and launcher bytes as well as the product build.

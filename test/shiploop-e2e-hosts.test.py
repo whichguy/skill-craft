@@ -23,6 +23,20 @@ class HostRunDefaultsTest(HarnessCase):
         self.assertEqual(hosts.HOST_DEFAULTS["codex"], {"model": "gpt-6.2-sol", "effort": "xhigh"})
         self.assertEqual(hosts.HOST_DEFAULTS["claude"]["model"], "claude-sonnet-5-5")
 
+    def test_antigravity_orchestrator_alias_resolves_before_argv(self):
+        agy = hosts.AntigravityHost("fake-agy")
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop(hosts.ANTIGRAVITY_ORCHESTRATOR_ENV, None)
+                argv_default = agy.argv(prompt="hi", prompt_file=root / "prompt.txt", cwd=root,
+                                        model="orchestrator", effort=None, permission_mode="read-only", max_turns=None)
+            self.assertEqual(argv_default[argv_default.index("--model") + 1], hosts.ANTIGRAVITY_ORCHESTRATOR_MODEL)
+            with mock.patch.dict(os.environ, {hosts.ANTIGRAVITY_ORCHESTRATOR_ENV: "gemini-pro-orchestrator"}):
+                argv_env = agy.argv(prompt="hi", prompt_file=root / "prompt.txt", cwd=root,
+                                    model="orchestrator", effort=None, permission_mode="read-only", max_turns=None)
+            self.assertEqual(argv_env[argv_env.index("--model") + 1], "gemini-pro-orchestrator")
+
     def test_run_that_does_nothing_fails_the_product_verdicts(self):
         code, result = self.invoke("codex", "nothing")
         self.assertEqual(code, 1)

@@ -71,8 +71,28 @@ CODEX_DEFAULT_MODEL = "gpt-6.2-sol"
 CODEX_DEFAULT_EFFORT = "xhigh"
 CODEX_AUTO_REVIEW = "auto-review"
 ANTIGRAVITY_DEFAULT_MODEL = "claude-sonnet-5-5-medium"
+# Note on Antigravity orchestrator indirection: `agy models` defines concrete orchestrator slugs
+# (`gemini-pro-orchestrator-neon` -> Orchestrator (Neon), `gemini-pro-orchestrator` -> Orchestrator (Carbon),
+# `gemini-pro-orchestrator-argon` -> Orchestrator (Argon)) and `agy` rejects a bare `--model orchestrator` slug while
+# omitting `--model` falls back to single-model `gemini-4-neon-high` rather than an orchestrator. The harness provides
+# the `orchestrator` alias and `SHIPLOOP_E2E_ANTIGRAVITY_ORCHESTRATOR` env override so callers can target the active
+# Antigravity orchestrator indirectly while resolving to a concrete model slug before launch and recording.
+ANTIGRAVITY_ORCHESTRATOR_ALIAS = "orchestrator"
+ANTIGRAVITY_ORCHESTRATOR_ENV = "SHIPLOOP_E2E_ANTIGRAVITY_ORCHESTRATOR"
 ANTIGRAVITY_ORCHESTRATOR_MODEL = "gemini-pro-orchestrator-neon"
 ANTIGRAVITY_DEFAULT_EFFORT = None
+
+
+def default_antigravity_orchestrator() -> str:
+    """Return the active Antigravity orchestrator model slug (env override or repo default)."""
+    return os.environ.get(ANTIGRAVITY_ORCHESTRATOR_ENV, "").strip() or ANTIGRAVITY_ORCHESTRATOR_MODEL
+
+
+def resolve_antigravity_model(model: str | None) -> str | None:
+    """Resolve the generic Antigravity ``orchestrator`` alias to its concrete model slug."""
+    if model == ANTIGRAVITY_ORCHESTRATOR_ALIAS:
+        return default_antigravity_orchestrator()
+    return model
 
 
 def permission_args(mode: str) -> list[str]:
@@ -98,6 +118,17 @@ def resolve_role(name: str, overrides: dict | None = None) -> dict:
         value = overrides.get(key)
         if value is not None:
             resolved[key] = value
+    if resolved["host"] == "antigravity":
+        env_orch = os.environ.get(ANTIGRAVITY_ORCHESTRATOR_ENV, "").strip()
+        if resolved["model"] == ANTIGRAVITY_ORCHESTRATOR_ALIAS:
+            resolved["model"] = default_antigravity_orchestrator()
+        elif (
+            overrides.get("model") is None
+            and (host_override is None or host_override == ROLE_DEFAULTS[name]["host"])
+            and name in ("reviewer", "judge", "improver")
+            and env_orch
+        ):
+            resolved["model"] = env_orch
     return resolved
 
 
@@ -789,6 +820,7 @@ class AntigravityHost(Host):
     def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
              max_budget_usd=None, plugin_dir=None, resume=None, allow=(), workspace_state=None):
         prompt_file.write_bytes(prompt.encode("utf-8"))
+        model = resolve_antigravity_model(model)
         argv = [self.binary, "--output-format", "stream-json"]
         if model:
             argv += ["--model", model]

@@ -411,6 +411,8 @@ class FakeReviewer:
         return {"HOME": str(home)}
 
     def argv(self, **kwargs):
+        if kwargs.get("permission_mode") == "read-only":
+            return ["offline-probe", "--mode", "plan", "--sandbox", "--dangerously-skip-permissions"]
         return ["offline-probe", "-s", "danger-full-access"]
 
     def prepare(self, **kwargs):
@@ -4644,6 +4646,44 @@ class OpenItemSettlementTests(unittest.TestCase):
                 "due_completed": 2,
                 "settled": 1,
                 "unsettled": [{"id": "A2", "source_stage": "release-verify", "due_stage": "handoff",
+                               "due_item": None}],
+            })
+
+    def test_step_plan_criteria_and_expectations_from_count_as_settled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = {
+                "history": [
+                    {"stage": "plan", "outcome": "done", "workitem": None, "action": "a-plan"},
+                    {"stage": "step-plan", "outcome": "done", "workitem": "W1", "action": "a-sp"},
+                    {"stage": "test-spec", "outcome": "done", "workitem": "W1", "action": "a-ts"},
+                ],
+                "accepted": {
+                    "a-plan": {"outcome": "done", "summary": "plan", "assumptions": [
+                        {"id": "A1", "assumption": "seam", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_item": "W1"},
+                        {"id": "A2", "assumption": "api", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_stage": "test-spec"},
+                        {"id": "A3", "assumption": "missed", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_stage": "test-spec"},
+                    ]},
+                    "a-sp": {
+                        "outcome": "done",
+                        "summary": "Step plan W1.",
+                        "criteria": [{"id": "C1", "text": "Check seam.", "from": "assumption:A1"}],
+                    },
+                    "a-ts": {
+                        "outcome": "done",
+                        "summary": "Test spec W1.",
+                        "expectations": [{"id": "E1", "text": "Check api.", "from": "assumption:A2"}],
+                    },
+                },
+            }
+            m = self._run_with_state(tmp, state)
+            self.assertEqual(m["open_item_settlement"], {
+                "total": 3,
+                "due_completed": 3,
+                "settled": 2,
+                "unsettled": [{"id": "A3", "source_stage": "plan", "due_stage": "test-spec",
                                "due_item": None}],
             })
 
