@@ -2148,7 +2148,7 @@ class ReleaseGateTest(unittest.TestCase):
         self.assertEqual(hello["driver"], "claude/claude-sonnet-5-5/-")
         old = gate["styles"]["cli-files"]
         self.assertEqual((old["driver"], old["shiploop_releases_since"]), (None, 3), "a row with no span is dated by its date")
-        self.assertNotIn("hosted-platform", gate["styles"])
+        self.assertIsNone(gate["styles"]["hosted-platform"])
         self.assertIsNone(gate["styles"]["brownfield"])
         text = run.render_release_gate(gate)
         self.assertIn("origin/main publishes skill-craft 2.9.0 / ShipLoop 1.9.0", text)
