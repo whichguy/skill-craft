@@ -11246,11 +11246,11 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 raise NavigatorError(str(exc)) from exc
         if state["status"] == "active" and action_id not in state["accepted"]:
             draft = _result_input_path(root, action_id)
-            if cursor_stage == "plan":
-                planning_status.snapshot_plan_draft(root, action_id, draft)
             reusable = test_loop.reuse_eligible(
                 state, cursor_stage, cursor_item, test_loop.stage_commands(state, cursor_stage, cursor_item)[0])
             if checking:
+                if cursor_stage == "plan":
+                    planning_status.snapshot_plan_draft(root, action_id, draft)
                 # The check: the same gates, recorded as one answer complete can take (phases B and C plan).
                 started = datetime.now(timezone.utc).timestamp()
                 try:
@@ -11344,6 +11344,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 _end_read(root, action_id, notes_read)
             updated = accept_effects(core, root, state, updated, action_id=action_id, preparatory=preparatory,
                                      terminal_closed=terminal_knowledge_closed)
+            if cursor_stage == "plan" and isinstance(action_id, str):
+                planning_status.snapshot_plan_draft(root, action_id, _result_input_path(root, action_id))
         else:
             updated = accept_effects(core, root, state, updated, advance=False)
     emit(core, root, updated)

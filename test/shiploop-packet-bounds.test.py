@@ -353,6 +353,8 @@ LIMIT_KINDS = {
     "shiploop_lint.DIFF_CELL_CAP": "guard",
     "shiploop_mutation.MAX_FILE_BYTES": "guard",
     "shiploop_planning_revision._MAX_ARCHIVE_BYTES": "guard",
+    "shiploop_planning_status._MAX_META_BYTES": "guard",
+    "shiploop_planning_status._MAX_RECEIPT_BYTES": "guard",
     "shiploop_progress_data._MAX_STATE_BYTES": "guard",
     "shiploop_progress_data._MAX_DOCUMENT_BYTES": "guard",
     "shiploop_progress_data._MAX_REPORT_BYTES": "guard",

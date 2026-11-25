@@ -64,7 +64,9 @@ SYNTHETIC = {"outcome": "done", "summary": "Synthetic: recorded by the seed with
 
 # The files only ``complete`` leaves: its packet (``emit`` runs after the effects) and the records a stage's gates write
 # (the step proof, the base run, the mutation check, validate-existing's rerun of its checks), which a seed skips by design.
-GATE_OWNED = re.compile(r"packets/|tests/|expectations/[^/]*-complete-|fields/[^/]*-product-diff\.patch")
+GATE_OWNED = re.compile(
+    r"packets/|tests/|expectations/[^/]*-complete-|fields/[^/]*-product-diff\.patch|experiments/plan-iter-\d+\.md"
+)
 # Files whose text is the runtime's own (session names, receipts, timestamps): their names are compared, not their text.
 RUNTIME_OWNED = ("until-loop/", "timeline.json")
 TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{4})?")
