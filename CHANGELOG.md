@@ -4,6 +4,22 @@ Written by scripts/release.py.
 
 ## 2026-11-25
 
+### skill-craft 4.17.3
+
+- Skills: ask-agent 0.12.3, compare-prompts 0.1.4, plan-dispatcher 0.6.7
+
+### ask-agent 0.12.3
+
+- Trim `SKILL.md` body below Antigravity's 24,000-byte skill load limit by referencing `references/` for legacy helper-managed and per-route continuation walkthroughs without altering any routing contracts.
+
+### compare-prompts 0.1.4
+
+- Trim `SKILL.md` body below Antigravity's 24,000-byte skill load limit by moving judge prompt and final report templates to `references/judge-and-report-templates.md`.
+
+### plan-dispatcher 0.6.7
+
+- Trim `SKILL.md` body below Antigravity's 24,000-byte skill load limit by delegating detailed protocol explanations to `references/protocol.md` without changing execution, recovery, or dispatch contracts.
+
 ### skill-craft 4.17.2
 
 - Skills: shiploop 2.18.1

@@ -16,15 +16,15 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 |-------|----------------|---------|---------|
 | [adversarial-review](skills/adversarial-review/SKILL.md) | `/skill-craft:adversarial-review` | 0.1.0 | Have an independent model try to break a proposed change and return its findings as testable hypotheses, each with the… |
 | [architect](skills/architect/SKILL.md) | `/skill-craft:architect` | 0.1.2 | Design system architecture and make technology decisions. Uses a structured inline design or an available independent… |
-| [ask-agent](skills/ask-agent/SKILL.md) | `/skill-craft:ask-agent` | 0.12.2 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main… |
+| [ask-agent](skills/ask-agent/SKILL.md) | `/skill-craft:ask-agent` | 0.12.3 | A delegation skill, not an agent type. Ask native agents to work in the background, continue useful work in the main… |
 | [c-plan](skills/c-plan/SKILL.md) | `/skill-craft:c-plan` | 0.1.2 | Resolve ambiguous user prompts by choosing whether to answer now, answer with assumptions, ask 1–2 high-value… |
 | [closed-loop](skills/closed-loop/SKILL.md) | `/skill-craft:closed-loop` | 0.1.1 | Use to improve a subject (a skill, a prompt set, a tool) by running it on cases, grading each run, finding fixes… |
-| [compare-prompts](skills/compare-prompts/SKILL.md) | `/skill-craft:compare-prompts` | 0.1.3 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results… |
+| [compare-prompts](skills/compare-prompts/SKILL.md) | `/skill-craft:compare-prompts` | 0.1.4 | Compare two prompt versions (A vs B) by running both against a directory of test input files, then evaluating results… |
 | [improve](skills/improve/SKILL.md) | `/skill-craft:improve` | 0.7.4 | Review and improve until a trivial pass |
 | [improve-agent](skills/improve-agent/SKILL.md) | `/skill-craft:improve-agent` | 0.1.3 | Run Improve in a fresh native agent |
 | [improve-system-prompt](skills/improve-system-prompt/SKILL.md) | `/skill-craft:improve-system-prompt` | 0.1.2 | Benchmark and compare system prompt variants (V2/V2a/V2b/V2c) for Sheets Chat by running test scenarios through the… |
 | [in-parallel](skills/in-parallel/SKILL.md) | `/skill-craft:in-parallel` | 0.1.1 | Use for "in parallel" or when one goal should be divided among independent native agents and returned as one verified… |
-| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.6 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
+| [plan-dispatcher](skills/plan-dispatcher/SKILL.md) | `/skill-craft:plan-dispatcher` | 0.6.7 | Use when executing or resuming an agreed dependency graph with one main dispatcher and parallel native workers: claim… |
 | [plan-test](skills/plan-test/SKILL.md) | `/skill-craft:plan-test` | 0.1.3 | Generate comprehensive tests for code. Uses an inline strategy or an available independent test specialist for complex… |
 | [prompt-align](skills/prompt-align/SKILL.md) | `/skill-craft:prompt-align` | 0.1.2 | Compare an agent or skill prompt against its test harness skill for phase-model, skip-condition, and wiring… |
 | [prompt-audit](skills/prompt-audit/SKILL.md) | `/skill-craft:prompt-audit` | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology… |
