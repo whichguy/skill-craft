@@ -1494,8 +1494,8 @@ def _unavailable_sentence(stage: str, refused: int, command_timeout: float) -> s
 DRIFT_STATUS = "host-dependent-in-default-suite"
 
 
-def default_suite_drift(state: Mapping[str, Any], rows: List[Dict[str, Any]], run_one: Callable[[str], Optional[Tuple[int, str]]]
-                        ) -> List[Dict[str, Any]]:
+def default_suite_drift(state: Mapping[str, Any], rows: List[Dict[str, Any]], run_one: Callable[[str], Optional[Tuple[int, str]]],
+                        clock: Optional[Callable[[], float]] = None) -> List[Dict[str, Any]]:
     """Run the accepted regression commands and report any host-dependent id they show.
 
     A system row marked ``host_dependent`` names cases that need a host tool (a browser, a device, an account).  The
@@ -1512,15 +1512,19 @@ def default_suite_drift(state: Mapping[str, Any], rows: List[Dict[str, Any]], ru
     marked = [test_id for row in rows if row.get("host_dependent") for test_id in row.get("ids") or ()]
     if not marked:
         return []
+    timer = clock or time.monotonic
     drift: List[Dict[str, Any]] = []
     for row in regression_commands(state):
+        started = timer()
         ran = run_one(row["command"])
+        elapsed = round(max(0.0, timer() - started), 3)
         if ran is None:
             continue
         code, output = ran
         shown = counts.named(output, marked)["shown"]
-        drift.append({**row, "exit": code, "seconds": 0.0, "stdout": _tail(output.encode()), "stderr": "",
-                      "host_dependent_ids_shown": shown, "status": DRIFT_STATUS if shown else "passed"})
+        parsed = counts.count(output, code)
+        drift.append({**row, "exit": code, "seconds": elapsed, "stdout": _tail(output.encode()), "stderr": "",
+                      "counts": parsed, "host_dependent_ids_shown": shown, "status": DRIFT_STATUS if shown else "passed"})
     return drift
 
 
@@ -1749,7 +1753,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
             except OSError:
                 return None
             return (code if code is not None else -1), out.decode("utf-8", "replace") + "\n" + err.decode("utf-8", "replace")
-        runs += default_suite_drift(state, commands, run_one)
+        runs += default_suite_drift(state, commands, run_one, clock=clock)
     disposition = _disposition(runs, PASSING)
     record = {
         "schema": SCHEMA, "action": action, "stage": stage, "work_item": work_item,

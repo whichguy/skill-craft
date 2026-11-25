@@ -108,16 +108,26 @@ def _fixes(grants: Sequence[Path]) -> List[Tuple[str, str]]:
     ]
 
 
-def report(error: GrantError, rerun: str, environ: Mapping[str, str] = os.environ) -> str:
+def report(error: GrantError, rerun: str, environ: Mapping[str, str] = os.environ, *, starting: bool = True) -> str:
     """The exact, host-first repair message printed on exit code 3."""
     host = detect_host(environ)
+    headline = (
+        f"{MARKER}: ShipLoop did not start. This session's sandbox refuses writes an isolated run needs."
+        if starting else
+        f"{MARKER}: ShipLoop could not continue this command. This session's sandbox refuses writes this isolated run needs."
+    )
+    unchanged = (
+        "Nothing was created; the source checkout is unchanged."
+        if starting else
+        "No changes were written by this command; existing run state and the source checkout are unchanged."
+    )
     lines = [
-        f"{MARKER}: ShipLoop did not start. This session's sandbox refuses writes an isolated run needs.",
+        headline,
         "Blocked:",
     ]
     lines += [f"  - {path}  ({purpose}): {reason}" for path, purpose, reason in error.blocked]
     lines += [
-        "Nothing was created; the source checkout is unchanged.",
+        unchanged,
         "",
         "Repair intent: give THIS session write access to exactly these directories, then rerun",
         "the same command. Grant:",

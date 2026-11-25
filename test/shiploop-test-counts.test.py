@@ -810,6 +810,36 @@ class HostDependentDriftTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(test_loop.TestLoopError):
                 test_loop.normalise_commands([dict(row, host_dependent=bad)])
 
+    def test_default_suite_drift_records_parsed_counts_and_measured_seconds(self) -> None:
+        import json
+        import tempfile
+        tap_output = "TAP version 13\n1..1\nok 1 - smoke\n"
+        now = 0.0
+
+        def fake_clock() -> float:
+            nonlocal now
+            now += 0.25
+            return now
+
+        def runner(argv, cwd, timeout, input_bytes=b"", env=None):
+            if argv[-1] == self.SYSTEM["command"]:
+                return "ok", 0, self.system_output().encode(), b""
+            return "ok", 0, tap_output.encode(), b""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "tests").mkdir()
+            writes, refusal = test_loop.verify(
+                root, self.state(root), "", "a-run", "system-test", runner=runner, clock=fake_clock
+            )
+        self.assertEqual(refusal, "")
+        record = json.loads(next(iter(writes.values())).split("```shiploop-state\n", 1)[1].rsplit("\n```", 1)[0])
+        drift_row = next(row for row in record["runs"] if row["command"] == self.REGRESSION["command"])
+        self.assertEqual(drift_row["seconds"], 0.25)
+        self.assertIsInstance(drift_row.get("counts"), dict)
+        self.assertEqual(drift_row["counts"]["ran"], 1)
+        self.assertEqual(drift_row["counts"]["failed"], 0)
+
 
 class CommandSchemaTests(unittest.TestCase):
     def test_ids_and_min_tests_are_validated(self):

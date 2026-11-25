@@ -8847,6 +8847,39 @@ def improve_route_path(child: Mapping[str, Any]) -> Path:
     return Path(child["skill"]["skill_card"]).parent / "references" / IMPROVE_ROUTE_FILE
 
 
+def _improve_next_command(child: Mapping[str, Any]) -> str | None:
+    """Return a validated, shell-quoted literal ``next_argv`` command for an active Improve receipt, or ``None``."""
+    import shiploop_standalone_improve as standalone
+
+    receipt = standalone.receipt_path(child)
+    try:
+        if receipt.is_symlink() or not receipt.is_file():
+            return None
+        packet = json.loads(receipt.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(packet, Mapping) or packet.get("status") != "active":
+        return None
+    argv = packet.get("next_argv")
+    if not isinstance(argv, list) or not argv or not all(isinstance(part, str) and part for part in argv):
+        return None
+    runtime_cli = (child.get("skill") or {}).get("runtime_cli")
+    if not isinstance(runtime_cli, str) or not runtime_cli:
+        return None
+    try:
+        expected_cli = Path(runtime_cli).resolve()
+        if not any(Path(part).resolve() == expected_cli for part in argv[:4]):
+            return None
+    except OSError:
+        return None
+    if packet.get("workspace") is not None and child.get("workspace"):
+        if os.path.realpath(str(packet["workspace"])) != os.path.realpath(str(child["workspace"])):
+            return None
+    # Keep printed commands interpreter-agnostic ("python3", never an absolute interpreter path).
+    cmd_argv = ["python3", *argv[1:]] if Path(argv[0]).name.startswith("python") else list(argv)
+    return shlex.join(cmd_argv)
+
+
 def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> list[str]:
     """The lines a bound handoff opens with: how to read it, CHILD, the route file, the files, the one command to finish.
 
@@ -8857,17 +8890,22 @@ def _improve_handoff_top(core: Any, root: Path, state: Mapping[str, Any]) -> lis
     child = state["active_improve"]
     inline = delegation(state) == guidance.INLINE
     done = _callback(core, root, "complete", action=improve_id(state))
-    # A step's review writes no commit message: its edits wait for the step's commit (design T §8).
-    writes = ("" if child["stage"] in stage_spec.with_improve("item") else "CHILD/commit-message.md, ")
+    next_cmd = _improve_next_command(child)
+    continue_line = (
+        "Run the receipt CHILD/packet.json's next_argv once"
+        + (": " + next_cmd + " —" if next_cmd else ",")
+        + " then follow each returned instruction until the runtime "
+        "returns complete (ShipLoop started it: start nothing). You write "
+        + ("" if child["stage"] in stage_spec.with_improve("item") else "CHILD/commit-message.md, ")
+        + "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json."
+    )
     return [
         IMPROVE_READ_SENTENCE,
         CHILD_SYMBOL + " = " + str(standalone.receipt_path(child).parent) + " · ROUTE = " + str(improve_route_path(child))
         + " · Route: " + delegation(state),
         # Each pass ends with improve-pass (unit U19); its line follows the commit command under Commit, because the
         # improve-commit line must end inside the first 4,500 characters of the longest implement handoff.
-        "Run the receipt CHILD/packet.json's next_argv once, then follow each returned instruction until the runtime "
-        "returns complete (ShipLoop started it: start nothing). You write " + writes
-        + "CHILD/reviews/review-<n>.md and CHILD/reviews/checks.md; never edit CHILD/packet.json.",
+        continue_line,
         ("When the runtime returns complete (its final receipt saved at CHILD/packet.json), run: " if inline else
          "Parent only, after the worker's result is collected and CHILD/packet.json verified (the worker never runs it): ")
         + done,
@@ -9045,6 +9083,8 @@ def improve_worker_brief_text(core: Any, root: Path, state: Mapping[str, Any]) -
         "   Because you inherited the parent conversation, avoid re-reading unchanged files already in your context; open only",
         "   the handoff, changed/unseen files, and verification outputs needed to check the stage result.",
     ) if mode == "fork" else ()
+    next_cmd = _improve_next_command(child)
+    next_cmd_lines = (f"   Literal continuation command: `{next_cmd}`",) if next_cmd else ()
     return "\n".join([
         f"# ShipLoop {mode} review worker brief",
         "",
@@ -9062,6 +9102,7 @@ def improve_worker_brief_text(core: Any, root: Path, state: Mapping[str, Any]) -
         f'   (Invoke the host\'s Skill tool for "improve" when available—hosts with a Skill gate refuse `improve-pass` until it is called; otherwise read `{card}` directly and follow its ShipLoop whole-skill subcall section.)',
         f"2. Read `{handoff}` and `{route}` with a file-reading tool (not cat), then continue the",
         f"   already-started loop from `{receipt}`'s `next_argv` until `{receipt}` has status `complete` (or `stopped`/`blocked`).",
+        *next_cmd_lines,
         *fork_read_lines,
         f"3. You are a coding-capable reviewer and the exclusive writer in `{worktree}` until you return:",
         f"   inspect, run checks, make warranted in-scope fixes and tests, write `{reviews}/review-<n>.md`",
@@ -10924,10 +10965,12 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
         saved_status = None
     # A complete loop the improve skill never ran is restarted too: complete's skill-call refusal names this exit (IMP-2).
     unreviewed = saved_status == "complete" and _skill_call_record(root, state, child) == (None, None)
+    next_cmd = _improve_next_command(child)
+    active_hint = f"active: run {next_cmd}" if next_cmd else "active: run its next_argv once"
     _need(not receipt.exists() or saved_status == "stopped" or _unchanged_first_pass(child) or unreviewed,
           "this review is still running; continue it from its saved receipt " + str(receipt)
-          + " (active: run its next_argv once; complete: run " + _callback(core, root, "complete",
-                                                                         action=improve_id(state)) + ")")
+          + " (" + active_hint + "; complete: run " + _callback(core, root, "complete",
+                                                                     action=improve_id(state)) + ")")
     if receipt.exists() and saved_status != "stopped":
         # A completed review that ended on one unchanged pass is restarted because files changed after its bind.  Those
         # files are committed (the gate refuses otherwise), so the new review's baseline is the tree as it stands now:

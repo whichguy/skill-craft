@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -294,6 +295,46 @@ def _run_focused(runner: Any, commands: Sequence[Mapping[str, Any]], cwd: Path, 
     return "survived", "", clock() - started
 
 
+# Stylesheets carry no logic that text-mutating operators test, and executed test_commands scripts belong to the test
+# harness rather than product code even when placed outside ``test/``.
+NON_BEHAVIOURAL_STYLE_EXTENSIONS = frozenset({".css", ".scss", ".sass", ".less", ".styl"})
+_TEST_SCRIPT_NAME = re.compile(r"(?:^|[._-])(?:test|tests|spec|check|checks|verify)(?:[._-]|$)", re.I)
+_TEST_RUNNER_BINS = frozenset({"pytest", "jest", "vitest", "mocha", "ava", "tap"})
+
+
+def _command_test_scripts(command: str) -> set[str]:
+    """Repo-relative test/check script paths invoked by a step-plan test command."""
+    import shiploop_item_scope as item_scope
+
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        words = command.split()
+    non_env = [w for w in words if "=" not in w or w.startswith("-")]
+    first_bin = Path(non_env[0]).name.lower() if non_env else ""
+    is_runner = (
+        first_bin in _TEST_RUNNER_BINS
+        or "--test" in words
+        or any(words[i] == "-m" and words[i + 1] in ("unittest", "pytest") for i in range(len(words) - 1))
+    )
+    found: set[str] = set()
+    for rel in item_scope.command_paths(command):
+        norm = rel.lstrip("./")
+        if is_runner or _TEST_SCRIPT_NAME.search(Path(norm).stem) is not None:
+            found.add(norm)
+    return found
+
+
+def _executed_test_scripts(state: Mapping[str, Any], work_item: str) -> set[str]:
+    """Every script path invoked by ``work_item``'s accepted focused or regression test commands."""
+    _action, result = test_loop._step_plan(state, work_item)
+    excluded: set[str] = set()
+    for row in result.get("test_commands") or ():
+        if isinstance(row, Mapping) and row.get("suite") in ("focused", "regression"):
+            excluded.update(_command_test_scripts(str(row.get("command") or "")))
+    return excluded
+
+
 def _check(root: Path, state: Mapping[str, Any], work_item: str, action: str, *, base_commit: Optional[str],
            runner: Any, env: Optional[Mapping[str, str]], clock: Optional[Callable[[], float]]) -> Dict[str, Any]:
     """Make, run and judge the mutants; return the record (without attempt or counted)."""
@@ -326,8 +367,14 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, action: str, *,
     top = Path(base["toplevel"])
     current = _current_tree(root, base)
     changes = test_loop._item_changes(root, base)
-    product = [path for status, path in changes if status in ("A", "M", "T")
-               and item_scope.classify(test_loop._relative(path, base)) == "code"]
+    excluded_scripts = _executed_test_scripts(state, work_item)
+    product = [
+        path for status, path in changes
+        if status in ("A", "M", "T")
+        and item_scope.classify(rel := test_loop._relative(path, base)) == "code"
+        and rel not in excluded_scripts
+        and Path(rel).suffix.lower() not in NON_BEHAVIOURAL_STYLE_EXTENSIONS
+    ]
     record.update(base_tree=base.get("tree"), base_commit=base.get("commit"), candidate_tree=current,
                   product_files=[test_loop._relative(path, base) for path in product])
     by_file: Dict[str, List[Dict[str, Any]]] = {}

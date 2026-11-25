@@ -1826,6 +1826,51 @@ class TestLoopTests(unittest.TestCase):
         self.assertTrue(record["passed"])
         self.assertEqual(record["mutants"], [])
 
+    def test_mutation_excludes_colocated_test_css_and_executed_test_scripts_not_app_code(self):
+        """Neutral polyglot fixture: *Test.* classes, CSS assets, and executed test scripts stay out of product_files."""
+        isolated = mock.patch.dict(os.environ, {"PYTHONDONTWRITEBYTECODE": "1"})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        self.start()
+
+        def build(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "scripts").mkdir(exist_ok=True)
+                (self.repo / "Foo.py").write_text(self.CALC)
+                (self.repo / "FooTest.py").write_text(
+                    "import unittest\n\nclass FooTest(unittest.TestCase):\n    def test_eq(self):\n"
+                    "        self.assertEqual(1 + 1, 2)\n"
+                )
+                (self.repo / "view.css").write_text(".badge { z-index: 10; opacity: 1; }\n")
+                (self.repo / "app_entry.py").write_text(
+                    "LIMIT = 10\ndef get_limit():\n    return LIMIT\n"
+                )
+                (self.repo / "scripts" / "check_foo.py").write_text(
+                    "import sys\nsys.path.insert(0, '.')\nimport Foo\nimport app_entry\n"
+                    "sys.exit(0 if Foo.add(2, 3) == 5 and Foo.is_big(11) and not Foo.is_big(10) and app_entry.get_limit() == 10 else 1)\n"
+                )
+
+        self.drive_to(
+            "test",
+            step_plan={
+                "test_commands": [
+                    {"command": "python3 scripts/check_foo.py && python3 app_entry.py", "suite": "focused", "ids": ["TC-1"]},
+                    {"command": "python3 -m unittest test_foo", "suite": "regression", "min_tests": 1},
+                ],
+                "paths": ["a.py", "Foo.py", "FooTest.py", "view.css", "app_entry.py", "scripts/check_foo.py", "test_foo.py"],
+            },
+            each=build,
+        )
+        lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        self.assertTrue(lines and lines[0].startswith("mutation: "), lines)
+        record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
+        self.assertEqual(sorted(record["product_files"]), ["Foo.py", "app_entry.py"])
+        self.assertNotIn("FooTest.py", record["product_files"])
+        self.assertNotIn("view.css", record["product_files"])
+        self.assertNotIn("scripts/check_foo.py", record["product_files"])
+        self.assertTrue(record["passed"])
+        self.assertGreater(record["killed"], 0)
+
     def test_a_focused_command_that_tests_a_deployed_target_is_skipped_with_the_card_named(self):
         """A live run (2026-10-18) refused good tests: the focused commands ran Apex tests in the org, which the mutated
         copy never reached, so 0 of 8 mutants were killed. A command a platform card lists under Remote tests is
@@ -3681,6 +3726,10 @@ class ItemScopePathClassTests(unittest.TestCase):
         documentation and its script is code, so document runs for a script change and not for a card change alone."""
         self.assertEqual(item_scope.classify("skills/x/scripts/run.py"), "code")
         self.assertEqual(item_scope.classify("skills/x/SKILL.md"), "docs")
+        self.assertEqual(item_scope.classify("force-app/main/default/classes/CloudyBotRuntimeTest.cls"), "test")
+        self.assertEqual(item_scope.classify("src/UserTests.swift"), "test")
+        self.assertEqual(item_scope.classify("force-app/main/default/classes/CloudyBotService.cls"), "code")
+        self.assertEqual(item_scope.classify("src/latest.js"), "code")
         self.assertFalse(item_scope.behavioural(["skills/x/SKILL.md"]))
         self.assertTrue(item_scope.behavioural(["skills/x/scripts/run.py"]))
         catalog = json.loads(item_scope.CATALOG.read_text(encoding="utf-8"))

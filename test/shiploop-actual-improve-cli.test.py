@@ -1208,6 +1208,48 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertEqual(full.count(self.bound["contract_marker"]), 1)  # the handoff file's head, once
         self.assertEqual(with_route(full).count("Never write or edit the receipt"), 1)    # in the route now, once
 
+    def test_printed_literal_improve_continuation_command_runs_without_glue(self):
+        """Handoff prints the validated, shell-quoted next_argv command verbatim and falls back when stale or done."""
+        handoff_path = navigator.improve_handoff_path(self.bound)
+        handoff = handoff_path.read_text(encoding="utf-8")
+        self.assertNotIn(sys.executable, handoff)
+        line = next(row for row in handoff.splitlines() if row.startswith("Run the receipt CHILD/packet.json's next_argv once"))
+        self.assertIn(": python3 ", line)
+        cmd = line.split(": ", 1)[1].split(" — then follow each returned instruction", 1)[0]
+        _raw, res = self.invoke_argv(shlex.split(cmd))
+        self.assertEqual(res["status"], "active")
+
+        # Stale/tampered receipt pointing to a mismatched workspace or wrong runtime_cli returns None.
+        receipt_path = bridge.receipt_path(self.bound)
+        raw_receipt = receipt_path.read_bytes()
+        try:
+            parsed = json.loads(raw_receipt)
+            for tampered in (
+                {**parsed, "status": "complete", "next_argv": None},
+                {**parsed, "workspace": str(self.base / "other-workspace")},
+                {**parsed, "next_argv": ["python3", "/nonexistent/other_cli.py", "next", "--state", parsed["state_file"]]},
+            ):
+                receipt_path.write_text(json.dumps(tampered), encoding="utf-8")
+                self.assertIsNone(navigator._improve_next_command(self.bound))
+        finally:
+            receipt_path.write_bytes(raw_receipt)
+
+        # Paths with spaces/quotes in a workspace still produce a directly executable shlex command.
+        quoted_child = dict(self.bound)
+        quoted_receipt = self.base / "child 'dir'" / "packet.json"
+        quoted_receipt.parent.mkdir(parents=True, exist_ok=True)
+        quoted_state = self.base / "state 'dir'" / "loop.json"
+        quoted_receipt.write_text(json.dumps({
+            "status": "active",
+            "workspace": self.bound["workspace"],
+            "next_argv": [sys.executable, self.bound["skill"]["runtime_cli"], "next", "--state", str(quoted_state)],
+        }), encoding="utf-8")
+        with mock.patch.object(bridge, "receipt_path", return_value=quoted_receipt):
+            quoted_cmd = navigator._improve_next_command(quoted_child)
+        self.assertIsNotNone(quoted_cmd)
+        self.assertNotIn(sys.executable, quoted_cmd)
+        self.assertEqual(shlex.split(quoted_cmd)[1:], [self.bound["skill"]["runtime_cli"], "next", "--state", str(quoted_state)])
+
     def test_shiploop_writes_the_opening_freezes_the_contract_and_starts_the_runtime(self):
         """ShipLoop writes the four opening sections, the contract and the receipt at the transition.
 

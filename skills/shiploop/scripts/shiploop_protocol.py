@@ -376,7 +376,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                               "next", "--run-dir", str(root / "run")]))
         return 0
     except grants.GrantError as exc:
-        print(grants.report(exc, shlex.join(rerun)), file=sys.stderr)
+        print(grants.report(exc, shlex.join(rerun), starting=(args.operation == "start")), file=sys.stderr)
         return grants.EXIT_GRANT_NEEDED
     except workspace.ReviewRefused as exc:
         # Line 1 carries the verb, the count and the paths: hosts and models read refusals through `head` and `cut`.
@@ -544,7 +544,7 @@ def _grant_refusal(core: Any, raw_argv: Sequence[str], run_dir: Optional[Path]) 
         workspace.require_grants(Path(run_dir).parent)
     except grants.GrantError as exc:
         print(grants.report(exc, shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
-                                             *raw_argv])), file=sys.stderr)
+                                             *raw_argv]), starting=False), file=sys.stderr)
         return grants.EXIT_GRANT_NEEDED
     except workspace.WorkspaceError:
         pass  # binding problems are reported by the verb's own checks

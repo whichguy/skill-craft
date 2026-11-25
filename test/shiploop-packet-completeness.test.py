@@ -697,6 +697,7 @@ def symbol_paths(block: list) -> dict:
 LITERAL_LINES = re.compile(
     r"^(?:Start \(the card runs exactly this|Keepalive marker: |Full packet: |Progress view: |\s*\"evidence_refs\": \[|"
     r"\s*(?:/improve )?ShipLoop Improve: |Lost context, or unsure\? Run |"
+    r"Run the receipt CHILD/packet\.json's next_argv once: |"
     r"python3 .+ start --receipt |Contract: .+ · Receipt: )")
 
 

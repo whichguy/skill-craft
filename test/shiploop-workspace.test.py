@@ -563,12 +563,20 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                  "--prompt", "Resume grant check.")
         self._read_only(root / "run")
         result = self.cli("next", "--run-dir", str(root / "run"), code=3)
+        self.assertIn("ShipLoop could not continue this command.", result.stderr)
+        self.assertIn("No changes were written by this command; existing run state and the source checkout are unchanged.",
+                      result.stderr)
+        self.assertNotIn("ShipLoop did not start", result.stderr)
+        self.assertNotIn("Nothing was created", result.stderr)
         self.assertIn(f"{(root / 'run').resolve()}  (run state)", result.stderr)
         self.assertIn("Then rerun: python3", result.stderr)
-        # lint writes run state too and is dispatched before next's path.
-        for verb in (("lint",),):
-            refused = self.cli(*verb, "--run-dir", str(root / "run"), code=3)
+        # lint writes run state too and is dispatched before next's path; non-start workspace verbs keep the same tone.
+        for verb in (("lint", "--run-dir", str(root / "run")),
+                     ("workspace", "plan-return", "--workspace-root", str(root))):
+            refused = self.cli(*verb, code=3)
             self.assertIn("SHIPLOOP-GRANT-NEEDED", refused.stderr, verb)
+            self.assertIn("ShipLoop could not continue this command.", refused.stderr, verb)
+            self.assertNotIn("ShipLoop did not start", refused.stderr, verb)
 
     def test_an_empty_directory_start_refused_by_the_sandbox_stays_empty(self) -> None:
         empty = self.base / "fresh project"
