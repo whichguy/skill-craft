@@ -552,6 +552,16 @@ def _abort_process(process: _SuiteProcess) -> None:
 
 # Overrides that would send a suite's state to the developer's own directories, so a suite never inherits them.
 _STATE_OVERRIDES = ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME", "SHIPLOOP_STATE_HOME")
+# Host session markers that key ShipLoop keepalive/registry state in XDG_STATE_HOME.
+# When the caller shell has none, run_process supplies stand-in Claude markers matching CI so local runs catch leaks too.
+_HOST_SESSION_MARKERS = (
+    "CLAUDECODE",
+    "CLAUDE_CODE_SESSION_ID",
+    "GROK_AGENT",
+    "GROK_SESSION_ID",
+    "ANTIGRAVITY_AGENT",
+    "ANTIGRAVITY_CONVERSATION_ID",
+)
 # Overrides that would change every Git call a suite makes.  A shell with `GIT_CONFIG_COUNT=1, GIT_CONFIG_KEY_0=
 # core.quotePath, GIT_CONFIG_VALUE_0=false` set is a common local setup, and ask-agent's workspace guard refuses it by
 # design ("prepare refuses Git context environment overrides").  Inherited, it failed three suites that shell out to Git --
@@ -614,13 +624,18 @@ def run_process(
     stop its group when the run is interrupted.  The process gets its own
     ``XDG_STATE_HOME`` and none of ``_INHERITED_OVERRIDES`` -- the state overrides, so a suite that forgets to isolate its
     state cannot write the developer's, and the Git context overrides, so a developer's ``GIT_CONFIG_*`` shell setup cannot
-    reach a suite's Git calls.  One that leaves anything in that home fails.
+    reach a suite's Git calls.  When no host session marker is present in the environment, stand-in Claude markers are
+    supplied so local ``test/run-all.sh`` enforces the same ``XDG_STATE_HOME`` leak check as GitHub Actions CI.
+    One that leaves anything in that home fails.
     """
 
     # Resolved: macOS temporary paths sit under the /var symlink, which Until Loop refuses as a state root.
     with _scratch_directory("skill-craft-suite-state-") as name:
         state_home = Path(name).resolve()
         environment = {key: value for key, value in os.environ.items() if key not in _INHERITED_OVERRIDES}
+        if not any(environment.get(marker) for marker in _HOST_SESSION_MARKERS):
+            environment["CLAUDECODE"] = "1"
+            environment["CLAUDE_CODE_SESSION_ID"] = "run-all-stand-in"
         # Ordinary hermetic fixtures must not leave per-run observers.
         # Progress integration tests explicitly enable and stop their own.
         # No bytecode: the runner's own `python3 -B` does not reach the processes it starts, and a suite that created

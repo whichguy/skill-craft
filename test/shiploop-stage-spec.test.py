@@ -7,6 +7,8 @@ change to a stage's behaviour has to change both the table and this suite.
 
 from __future__ import annotations
 
+import importlib.util
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -247,6 +249,24 @@ class StageTableTest(unittest.TestCase):
             spec.Stage("x", "middle", goal="g", done_when=("d",))
         with self.assertRaises(ValueError):
             spec.Stage("x", "inner", goal="g", done_when=())
+
+    def test_run_review_stage_catalog_matches_engine_stage_spec(self) -> None:
+        export_path = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.py"
+        stages_path = ROOT / "skills" / "shiploop-run-review" / "defaults" / "stages.json"
+        loader = importlib.util.spec_from_file_location("run_review_export_check", export_path)
+        self.assertIsNotNone(loader)
+        self.assertIsNotNone(loader.loader)
+        export = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(export)
+        actual = json.loads(stages_path.read_text(encoding="utf-8"))["stages"]
+        expected = export.stage_catalog(spec)
+        self.assertEqual(
+            actual,
+            expected,
+            "skills/shiploop-run-review/defaults/stages.json is out of sync with shiploop_stage_spec.py; "
+            "run `python3 skills/shiploop-run-review/scripts/export.py --stages` and add a "
+            "changes/shiploop-run-review/ patch note.",
+        )
 
 
 if __name__ == "__main__":
