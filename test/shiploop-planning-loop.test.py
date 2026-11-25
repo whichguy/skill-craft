@@ -664,6 +664,44 @@ class PlanningLoopStatusAndObservabilityTests(PlanningLoopCliBase):
             {"id": "W2", "title": "Enrich filters", "slice": "enrich", "concerns_mode": "deferred"},
         ])
 
+    def test_decision_md_without_meta_json_sets_question_probing_and_plan_changed(self) -> None:
+        import shiploop_planning_status as planning_status
+
+        repo = self.init_repo()
+        run_dir = self.init_run(repo, prompt="Export CSV via tools/legacy-batch.js.", planning_review="none")
+        state = self.saved(run_dir)
+        intake_res = fx.fixture_intake(state, {"outcome": "done", "summary": "S1 routed to Q1."})
+        intake_res["question_categories"] = [
+            {"id": "K1", "applies": "yes"},
+            *[{"id": f"K{n}", "applies": "no", "reason": "n/a"} for n in range(2, 13)],
+        ]
+        intake_res["questions"] = [{
+            "id": "Q1", "category": "K3", "question": "Check batch cap?",
+            "changes": "Batch strategy", "route": "experiment", "default": "20 rows", "blocks": "plan",
+        }]
+        self.complete_stage(run_dir, intake_res)
+        (repo / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
+        (repo / "docs" / "shiploop" / "environment.md").write_text("# Env\n\n## Commands\n- true\n", encoding="utf-8")
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Discovered."})
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Researched."})
+        spec_path = repo / "docs" / "shiploop" / "spec.md"
+        spec_path.write_text("# Spec\n\n## R-1\nExport.\n", encoding="utf-8")
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Spec.", "primary": ["R-1"],
+                                      "defaults": [], "evidence_refs": [str(spec_path)]})
+        (repo / "docs" / "shiploop" / "architecture.md").write_text("# Arch\n\n## Decisions\n", encoding="utf-8")
+        self.complete_stage(run_dir, {"outcome": "done", "summary": "Strategy.", **fx.fixture_test_layers(),
+                                      "evidence_refs": [str(repo / "docs" / "shiploop" / "environment.md")]})
+
+        state = self.saved(run_dir)
+        exp = run_dir / "experiments" / "batch-cap"
+        exp.mkdir(parents=True, exist_ok=True)
+        (exp / "decision.md").write_text("# Q1 batch limit probe\nPlan changed: yes\nMax 20 rows.\n", encoding="utf-8")
+
+        obs = planning_status.plan_observability(run_dir, state)
+        self.assertEqual(obs["experiments"][0]["question"], "Q1")
+        self.assertIs(obs["experiments"][0]["plan_changed"], True)
+        self.assertEqual(obs["experiment_questions"][0]["status"], "probing")
+
 
 if __name__ == "__main__":
     unittest.main()

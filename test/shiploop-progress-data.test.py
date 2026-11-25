@@ -331,6 +331,28 @@ class ProgressDataTests(unittest.TestCase):
         self.assertEqual(final_snap["work_items"][1]["slice"], "enrich")
         self.assertEqual(final_snap["work_items"][1]["concerns_mode"], "deferred")
 
+    def test_inflight_activity_includes_active_plan_sandboxes_and_questions(self) -> None:
+        state = self.accept(
+            self.state(),
+            questions=[{"id": "Q1", "route": "experiment", "question": "Check limit?"}],
+        )
+        while navigator.current_stage(state) != "plan":
+            state = self.accept(state)
+        self.save_state(state)
+        exp = self.run_root / "experiments" / "probe-limit"
+        exp.mkdir(parents=True)
+        (exp / "decision.md").write_text("# Q1 limit\nPlan changed: yes\n", encoding="utf-8")
+
+        inflight = progress_data.inflight_activity(self.run_root, state)
+        self.assertEqual(inflight["plan_sandboxes"], 1)
+        self.assertEqual(inflight["plan_questions"], 1)
+
+        post = self.accept(state, summary="Plan accepted.")
+        self.save_state(post)
+        post_inflight = progress_data.inflight_activity(self.run_root, post)
+        self.assertEqual(post_inflight["plan_sandboxes"], 0)
+        self.assertEqual(post_inflight["plan_questions"], 0)
+
 
 class StoryObservationTests(unittest.TestCase):
     """Coherent synthetic generations; never reads a real run or launches a process."""

@@ -564,6 +564,8 @@ main{max-width:1180px;margin:0 auto;padding:28px 22px 56px}
       r.host ? el("span", {class: "chip"}, r.host) : null,
       inf.step_id && inf.step_total ? el("span", {class: "chip"}, "Step " + inf.step_id + " (" + inf.step_number + "/" + inf.step_total + ")") : null,
       inf.loop_iteration ? el("span", {class: "chip"}, "Loop pass " + inf.loop_iteration) : null,
+      inf.plan_sandboxes ? el("span", {class: "chip"}, "Sandboxes " + inf.plan_sandboxes) : null,
+      inf.plan_questions ? el("span", {class: "chip"}, "Exp Qs " + inf.plan_questions) : null,
       inf.improve_active ? el("span", {class: "chip"}, "Improve " + (inf.improve_review_mode || "") + (inf.improve_passes ? " · pass " + inf.improve_passes : "")) : null,
       typeof inf.last_check_yes === "boolean" ? el("span", {class: "chip"}, "Check: " + (inf.last_check_yes ? "yes" : "no")) : null,
       (inf.open_notes || inf.carried_notes) ? el("span", {class: "chip warn"}, (inf.open_notes || 0) + " open note(s)") : null,

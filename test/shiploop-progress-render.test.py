@@ -1074,6 +1074,27 @@ q.schedule(); assert(!q.scheduled());
         self.assertIn('class="pill pill-slice">spine</span>', page)
         self.assertIn('class="pill pill-deferred">rolling-wave · concerns deferred</span>', page)
 
+    def test_planning_panel_draft_slices_and_inflight_plan_chips(self) -> None:
+        data = snapshot()
+        data["plan_accepted"] = False
+        data["run"]["inflight"] = {"loop_iteration": 2, "plan_sandboxes": 3, "plan_questions": 1}
+        data["planning"] = {
+            "active": True,
+            "plan_accepted": False,
+            "loop": {"status": "active", "action_number": 2},
+            "work_items": [
+                {"id": "W1", "title": "Core spine", "slice": "spine", "concerns_mode": "mapped"},
+                {"id": "W2", "title": "Enrich CSV", "slice": "enrich", "concerns_mode": "deferred"},
+            ],
+        }
+        page = progress_render.render(data)
+        self.assertIn("Proposed slices (pending Plan Improve)", page)
+        self.assertIn("The plan is pending; work items have not been accepted yet.", page)
+        self.assertIn('class="pill pill-slice">spine</span>', page)
+        self.assertIn('class="pill pill-deferred">rolling-wave · concerns deferred</span>', page)
+        self.assertIn("<span>Sandboxes <b>3</b></span>", page)
+        self.assertIn("<span>Exp Qs <b>1</b></span>", page)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -761,6 +761,17 @@ def inflight_activity(run_root: Path, state: Mapping[str, Any], *, timeline: Map
         if not last_event_at and isinstance(timeline.get("started"), str):
             last_event_at = timeline["started"]
 
+    plan_sandboxes = 0
+    plan_questions = 0
+    if stage == "plan" and state.get("status") == "active":
+        try:
+            import shiploop_assumptions as assumptions
+            plan_sandboxes = len(planning_status.scan_experiments(run_root, state)[0])
+            plan_questions = len(assumptions.experiment_questions(state))
+        except Exception:
+            plan_sandboxes = 0
+            plan_questions = 0
+
     return {
         "step_id": step_id,
         "step_number": step_number,
@@ -776,6 +787,8 @@ def inflight_activity(run_root: Path, state: Mapping[str, Any], *, timeline: Map
         "open_notes": open_notes,
         "carried_notes": carried_notes,
         "callback_attempts": callback_attempts,
+        "plan_sandboxes": plan_sandboxes,
+        "plan_questions": plan_questions,
         "last_event_at": last_event_at,
     }
 

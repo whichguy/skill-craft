@@ -179,7 +179,19 @@ def _scan_one_experiment(base: Path, rel_dir: str, name: str, *, origin: str) ->
     if has_decision:
         try:
             raw, mtime_ns = obs_io._read_beneath(base, f"{rel_dir}/decision.md", _MAX_META_BYTES)
-            summary = _excerpt_decision(raw.decode("utf-8", errors="replace"), 200)
+            decision_text = raw.decode("utf-8", errors="replace")
+            summary = _excerpt_decision(decision_text, 200)
+            if question is None:
+                q_match = re.search(r"\b(Q\d+)\b", decision_text)
+                if q_match:
+                    question = _clean_text(q_match.group(1), 32) or None
+            if plan_changed is None:
+                pc_match = re.search(
+                    r"(?im)^(?:#+\s*|[-*]\s*|\*\*)?plan[ _]changed(?:\*\*)?\s*:\s*(yes|no|true|false)\b",
+                    decision_text,
+                )
+                if pc_match:
+                    plan_changed = pc_match.group(1).lower() in ("yes", "true")
             latest_mtime_ns = max(latest_mtime_ns or 0, mtime_ns)
         except (FileNotFoundError, obs_io._UnsafeSource, OSError):
             pass
