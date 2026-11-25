@@ -580,11 +580,13 @@ def _assessment_paths(run_dir: Path, assessment_id: str | None) -> tuple[Path, P
 
 def review(run_dir: Path, *, host: str | None = None, model: str | None = None, effort: str | None = None,
            skill_root: Path | None = None, max_turns: int = 60, timeout: int = 1200,
-           prior_learnings: str = "", grok_bin: str = "grok", claude_bin: str = "claude",
-           codex_bin: str = "codex", assessment_id: str | None = None, records: str = "") -> dict:
+           prior_learnings: str = "", antigravity_bin: str = "agy", grok_bin: str = "grok",
+           claude_bin: str = "claude", codex_bin: str = "codex", assessment_id: str | None = None,
+           records: str = "") -> dict:
     run_dir = run_dir.resolve()
     role = hosts.resolve_role("reviewer", {"host": host, "model": model, "effort": effort})
-    agent = hosts.host(role["host"], {"grok": grok_bin, "claude": claude_bin, "codex": codex_bin}[role["host"]])
+    agent = hosts.host(role["host"], {"antigravity": antigravity_bin, "grok": grok_bin,
+                                      "claude": claude_bin, "codex": codex_bin}[role["host"]])
     stage, review_json, review_markdown = _assessment_paths(run_dir, assessment_id)
     stage.mkdir(exist_ok=False)
     env = agent.env(stage / "home")

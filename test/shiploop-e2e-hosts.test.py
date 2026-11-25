@@ -1229,7 +1229,7 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(metrics.collect(out)["turns"], 2 + 4)
 
     def test_every_host_is_selectable_by_name(self):
-        self.assertEqual(sorted(hosts.HOSTS), ["claude", "codex", "grok"])
+        self.assertEqual(sorted(hosts.HOSTS), ["antigravity", "claude", "codex", "grok"])
         for name in hosts.HOSTS:
             agent = hosts.host(name)
             self.assertEqual(agent.name, name)
@@ -2298,6 +2298,170 @@ class KeepAwakeTest(unittest.TestCase):
         argv, events = self.launched("linux")
         self.assertIsNone(argv, "caffeinate was not run")
         self.assertEqual(events.strip(), "hi")
+
+
+class AntigravityTranslatorTest(unittest.TestCase):
+    """agy --output-format stream-json events translate cleanly into the shared Grok shape."""
+
+    def test_translator_handles_init_tools_subagents_usage_and_result(self):
+        translator = hosts.AntigravityTranslator()
+        stream = [
+            {"event": "init", "conversation_id": "conv-123"},
+            {"event": "step_update", "step_update": {
+                "step_index": 2, "state": "ACTIVE", "step_type": "tool", "tool_name": "run_command",
+                "tool_info": {"name": "run_command", "parameters": {"CommandLine": "python3 /x/skills/shiploop/scripts/shiploop next"}}}},
+            {"event": "step_update", "step_update": {
+                "step_index": 2, "state": "DONE", "step_type": "tool", "tool_name": "run_command",
+                "tool_info": {"name": "run_command", "parameters": {"CommandLine": "python3 /x/skills/shiploop/scripts/shiploop next"},
+                              "output": "Command exited with code 0.\n\nCommand output:\nOK\n"}}},
+            {"event": "step_update", "step_update": {
+                "step_index": 3, "state": "ERROR", "step_type": "tool", "tool_name": "run_command",
+                "tool_info": {"name": "run_command", "parameters": {"CommandLine": "false"},
+                              "output": "Command exited with code 2.\n"}}},
+            {"event": "step_update", "step_update": {
+                "step_index": 4, "state": "DONE", "step_type": "subagent", "tool_name": "invoke_subagent",
+                "subagent_info": {"subagents": [{"type_name": "self", "conversation_id": "sub-1"}]}}},
+            {"event": "step_update", "step_update": {
+                "step_index": 5, "state": "ACTIVE", "step_type": "agent_response", "text_delta": "Done."}},
+            {"event": "step_update", "step_update": {
+                "step_index": 5, "state": "DONE", "step_type": "agent_response", "text_delta": "\n",
+                "usage": {"input_tokens": 100, "cache_read_tokens": 400, "output_tokens": 20, "thinking_tokens": 5}}},
+            {"event": "result", "result": {
+                "conversation_id": "conv-123", "status": "SUCCESS", "num_turns": 1,
+                "usage": {"input_tokens": 100, "cache_read_tokens": 400, "output_tokens": 20, "thinking_tokens": 5}}},
+        ]
+        translated = []
+        for row in stream:
+            for line in translator((json.dumps(row) + "\n").encode("utf-8")):
+                translated.append(json.loads(line))
+        types = [e["type"] for e in translated]
+        self.assertEqual(types, ["available_commands", "tool_call", "tool_call_update", "tool_call",
+                                 "tool_call_update", "tool_call", "tool_call_update", "text", "text", "usage", "end"])
+        self.assertEqual(translated[1]["toolName"], "run_terminal_command")
+        self.assertEqual(translated[2]["rawOutput"]["exit_code"], 0)
+        self.assertEqual((translated[4]["status"], translated[4]["rawOutput"]["exit_code"]), ("failed", 2))
+        self.assertEqual(translated[5]["toolName"], "invoke_subagent")
+        self.assertEqual((translated[-1]["stopReason"], translated[-1]["num_turns"], translated[-1]["total_cost_usd"]),
+                         ("end_turn", 1, None))
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "invocation.json").write_text(json.dumps({"host": "antigravity"}))
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in translated))
+            collected = metrics.collect(out)
+        self.assertEqual(collected["turns"], 1)
+        self.assertEqual(collected["tokens"]["processed"], 520)
+        self.assertEqual(collected["tokens"]["output"], 20)
+
+
+class AntigravityHostTest(HarnessCase):
+    """AntigravityHost isolates env, stages native plugin manifests, orders flags, and integrates with run.py."""
+
+    def test_env_staging_plugin_cli_and_argv_ordering(self):
+        agent = hosts.AntigravityHost("fake-agy")
+        home = self.tmp / "home"
+        with mock.patch.dict(os.environ, {
+            "ANTIGRAVITY_AGENT": "1",
+            "ANTIGRAVITY_CONVERSATION_ID": "outer-conv",
+            "ANTIGRAVITY_TRAJECTORY_ID": "outer-traj",
+            "CLAUDECODE": "1",
+            "CODEX_HOME": "/tmp/outer-codex",
+            "GROK_AGENT": "1",
+        }):
+            env = agent.env(home)
+        for dropped in ("ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID", "ANTIGRAVITY_TRAJECTORY_ID",
+                        "CLAUDECODE", "CODEX_HOME", "GROK_AGENT"):
+            self.assertNotIn(dropped, env)
+        self.assertEqual(env["SHIPLOOP_KEEPALIVE_HOME"], str(home / ".local" / "state" / "shiploop" / "keepalive"))
+        self.assertEqual(env["GIT_CONFIG_GLOBAL"], str(home / ".gitconfig"))
+        self.assertTrue((home / ".gitconfig").is_file())
+
+        (self.plugin / ".antigravity-plugin").mkdir(exist_ok=True)
+        (self.plugin / ".antigravity-plugin" / "plugin.json").write_text("{}")
+        (self.plugin / "skills" / "shiploop" / "SKILL.md").write_text("---\nname: shiploop\n---\n")
+        (self.plugin / "hooks.json").write_text("{}")
+        installed = agent.install_plugin(env, self.plugin)
+        self.assertTrue(installed["pass"], installed)
+        self.assertIsNotNone(agent.plugin_cli(home))
+        self.assertTrue(agent.keepalive_install(env, self.plugin)["installed"])
+
+        prompt_file = self.tmp / "prompt.txt"
+        argv = agent.argv(prompt="hello", prompt_file=prompt_file, cwd=self.tmp, model="claude-sonnet-5-5-medium",
+                          effort=None, permission_mode="auto", max_turns=None, resume="conv-9")
+        self.assertEqual(argv[0], "fake-agy")
+        self.assertEqual(argv[-1], "--print=hello")
+        self.assertLess(argv.index("--dangerously-skip-permissions"), argv.index("--print=hello"))
+        self.assertIn(str(home / ".antigravity-e2e"), argv)
+        self.assertEqual(argv[argv.index("--resume") + 1], "conv-9")
+        accept_argv = agent.argv(prompt="hello", prompt_file=prompt_file, cwd=self.tmp, model="claude-sonnet-5-5-medium",
+                                 effort=None, permission_mode="accept-edits", max_turns=None)
+        self.assertEqual(accept_argv[accept_argv.index("--mode") + 1], "accept-edits")
+        self.assertNotIn("--dangerously-skip-permissions", accept_argv)
+
+    def test_end_to_end_antigravity_run_grades_invoked_plugin_product_and_keepalive(self):
+        (self.plugin / ".antigravity-plugin").mkdir(exist_ok=True)
+        (self.plugin / ".antigravity-plugin" / "plugin.json").write_text("{}")
+        (self.plugin / "skills" / "shiploop" / "SKILL.md").write_text("---\nname: shiploop\n---\n")
+        (self.plugin / "hooks.json").write_text("{}")
+        fake_agy = self.tmp / "agy"
+        fake_agy.write_text(f"""#!{sys.executable}
+import json, os, sys
+from pathlib import Path
+sys.path.insert(0, {str(ROOT / 'skills/shiploop/scripts')!r})
+import shiploop_store as store
+argv = sys.argv[1:]
+if argv == ["--version"]:
+    print("1.5.16")
+    sys.exit(0)
+Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
+    "argv": argv,
+    "cwd": os.getcwd(),
+    "keepalive_home": os.environ.get("SHIPLOOP_KEEPALIVE_HOME"),
+}}))
+keepalive_log = Path(os.environ["SHIPLOOP_KEEPALIVE_HOME"]) / "decisions.log"
+keepalive_log.parent.mkdir(parents=True, exist_ok=True)
+keepalive_log.write_text(json.dumps({{"decision": "continue"}}) + "\\n")
+Path("hello.py").write_text('print("Hello, world!")\\n')
+Path("test_hello.py").write_text(
+    "import subprocess, sys, unittest\\n"
+    "class T(unittest.TestCase):\\n"
+    "    def test_it(self):\\n"
+    "        out = subprocess.run([sys.executable, 'hello.py'], capture_output=True, text=True).stdout\\n"
+    "        self.assertEqual(out.strip(), 'Hello, world!')\\n")
+Path(".shiploop").mkdir()
+store.write_record(Path(".shiploop/state.md"), {{"status": "done", "planning_review": "stage", "delegation": "agents"}})
+Path(".shiploop/report.html").write_text("<html></html>")
+Path(".gitignore").write_text(".shiploop/\\n")
+import subprocess
+ident = ["-c", "user.name=Fake", "-c", "user.email=fake@example.invalid"]
+subprocess.run(["git", "init", "-q"], check=True)
+subprocess.run(["git", "add", "-A"], check=True)
+subprocess.run(["git", *ident, "commit", "-q", "-m", "product"], check=True)
+print(json.dumps({{"event": "init", "conversation_id": "agy-conv-1"}}), flush=True)
+print(json.dumps({{"event": "step_update", "step_update": {{
+    "step_index": 1, "state": "DONE", "step_type": "tool", "tool_name": "run_command",
+    "tool_info": {{"name": "run_command", "parameters": {{"CommandLine": "CLI=/x/skills/shiploop/scripts/shiploop; python3 \\"$CLI\\" next"}},
+                  "output": "Command exited with code 0.\\n\\nCommand output:\\nOK\\n"}}}}}}), flush=True)
+print(json.dumps({{"event": "step_update", "step_update": {{
+    "step_index": 2, "state": "DONE", "step_type": "agent_response", "text_delta": "Done\\n",
+    "usage": {{"input_tokens": 50, "cache_read_tokens": 100, "output_tokens": 10, "thinking_tokens": 0}}}}}}), flush=True)
+print(json.dumps({{"event": "result", "result": {{
+    "conversation_id": "agy-conv-1", "status": "SUCCESS", "num_turns": 1,
+    "usage": {{"input_tokens": 50, "cache_read_tokens": 100, "output_tokens": 10, "thinking_tokens": 0}}}}}}), flush=True)
+""")
+        fake_agy.chmod(fake_agy.stat().st_mode | stat.S_IXUSR)
+        out = self.tmp / "out-agy"
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = run.main(["--host", "antigravity", "--antigravity-bin", str(fake_agy),
+                             "--plugin-dir", str(self.plugin), "--output", str(out),
+                             "--baseline", str(self.baselines)])
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(code, 0, result)
+        self.assertTrue(result["pass"], result)
+        self.assertTrue(result["invoked"]["pass"], result["invoked"])
+        self.assertTrue(result["plugin"]["pass"], result["plugin"])
+        self.assertTrue(result["committed"]["pass"], result["committed"])
+        self.assertEqual(result["host_build"], "1.5.16")
+        self.assertEqual(result["keepalive"]["decisions"], {"continue": 1})
 
 
 if __name__ == "__main__":

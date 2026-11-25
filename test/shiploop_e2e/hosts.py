@@ -22,6 +22,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -68,6 +69,8 @@ GROK_DEFAULT_EFFORT = "xhigh"
 CODEX_DEFAULT_MODEL = "gpt-6.2-sol"
 CODEX_DEFAULT_EFFORT = "xhigh"
 CODEX_AUTO_REVIEW = "auto-review"
+ANTIGRAVITY_DEFAULT_MODEL = "claude-sonnet-5-5-medium"
+ANTIGRAVITY_DEFAULT_EFFORT = None
 
 
 def permission_args(mode: str) -> list[str]:
@@ -728,7 +731,183 @@ class CodexTranslator:
         return [self._line(e) for e in out]
 
 
-HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
+class AntigravityHost(Host):
+    """``agy --output-format stream-json`` with a staged native plugin in ``--add-dir``."""
+
+    name, model, effort, skill = "antigravity", ANTIGRAVITY_DEFAULT_MODEL, ANTIGRAVITY_DEFAULT_EFFORT, "shiploop"
+    resumable = True
+
+    def __init__(self, binary: str = "agy"):
+        self.binary = binary
+        self._stage_root: Path | None = None
+
+    def env(self, home, git_config=None):
+        """Keep the user's HOME for agy OAuth while isolating Git config and keepalive state."""
+        home.mkdir(parents=True, exist_ok=True)
+        if git_config is None:
+            git_config = home / ".gitconfig"
+            git_config.write_text("[user]\n\tname = ShipLoop E2E\n\temail = shiploop-e2e@example.invalid\n")
+        self._stage_root = home / ".antigravity-e2e"
+        drop_Exact = {"ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID", "ANTIGRAVITY_TRAJECTORY_ID"}
+        env = {k: v for k, v in os.environ.items()
+               if not k.startswith(("CLAUDE", "CODEX", "GROK")) and k not in drop_Exact}
+        env.update(
+            GIT_CONFIG_GLOBAL=str(git_config),
+            GIT_TERMINAL_PROMPT="0",
+            NO_COLOR="1",
+            SHIPLOOP_KEEPALIVE_HOME=str(home / ".local" / "state" / "shiploop" / "keepalive"),
+        )
+        return env
+
+    def install_plugin(self, env, plugin_dir):
+        """Stage a native Antigravity plugin checkout build so ``--add-dir`` discovers it."""
+        stage_root = self._stage_root
+        if stage_root is None:
+            keepalive_home = env.get("SHIPLOOP_KEEPALIVE_HOME")
+            stage_root = (Path(keepalive_home).parents[3] if keepalive_home else Path(plugin_dir).parent) / ".antigravity-e2e"
+            self._stage_root = stage_root
+        dest = stage_root / ".agents" / "plugins" / "skill-craft"
+        shutil.rmtree(dest, ignore_errors=True)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(plugin_dir, dest)
+        ok = (dest / ".antigravity-plugin" / "plugin.json").is_file() and (dest / "skills" / "shiploop" / "SKILL.md").is_file()
+        return {"pass": ok, "loaded": [f"skill-craft {dest}"] if ok else [], "wanted": str(plugin_dir),
+                "path": str(dest) if ok else None,
+                "output": "" if ok else f"missing .antigravity-plugin/plugin.json or skills/shiploop/SKILL.md in {dest}"}
+
+    def keepalive_install(self, env, plugin_dir):
+        brought = (Path(plugin_dir) / "hooks.json").is_file()
+        return {"installed": brought,
+                "output": "the plugin's native hooks.json" if brought else f"no hooks.json in {plugin_dir}"}
+
+    def plugin_cli(self, home):
+        cli = home / ".antigravity-e2e" / ".agents" / "plugins" / "skill-craft" / "skills" / "shiploop" / "scripts" / "shiploop"
+        return cli if cli.is_file() else None
+
+    def argv(self, *, prompt, prompt_file, cwd, model, effort, permission_mode, max_turns,
+             max_budget_usd=None, plugin_dir=None, resume=None, allow=(), workspace_state=None):
+        prompt_file.write_bytes(prompt.encode("utf-8"))
+        argv = [self.binary, "--output-format", "stream-json"]
+        if model:
+            argv += ["--model", model]
+        if effort:
+            argv += ["--effort", effort]
+        if permission_mode in ("plan", "read-only"):
+            argv += ["--mode", "plan"]
+        elif permission_mode == "accept-edits":
+            argv += ["--mode", "accept-edits"]
+        else:
+            argv += ["--dangerously-skip-permissions"]
+        if self._stage_root is not None:
+            argv += ["--add-dir", str(self._stage_root)]
+        elif plugin_dir is not None:
+            argv += ["--add-dir", str(Path(plugin_dir).resolve())]
+        if workspace_state is not None:
+            argv += ["--add-dir", str(workspace_state.resolve())]
+        if resume:
+            argv += ["--resume", resume]
+        # Attach prompt with = last because bare --print consumes the next token as the prompt.
+        return argv + [f"--print={prompt}"]
+
+    def cli_version(self, env):
+        return probe_version(self.binary, env)
+
+    def translator(self):
+        return AntigravityTranslator()
+
+
+class AntigravityTranslator:
+    """Rewrite ``agy --output-format stream-json`` lines into Grok's streaming JSON event shape."""
+
+    _EXIT_RE = re.compile(r"Command exited with code (\d+)\.")
+
+    def __init__(self):
+        self.session = None
+        self.turns = 0
+        self.called: set = set()
+
+    @staticmethod
+    def _line(event: dict) -> bytes:
+        return (json.dumps(event) + "\n").encode()
+
+    @staticmethod
+    def _usage(raw_usage: dict) -> dict:
+        return {
+            "input_tokens": raw_usage.get("input_tokens"),
+            "cache_read_input_tokens": raw_usage.get("cache_read_tokens"),
+            "output_tokens": raw_usage.get("output_tokens"),
+            "reasoning_tokens": raw_usage.get("thinking_tokens"),
+        }
+
+    def __call__(self, raw: bytes) -> list[bytes]:
+        try:
+            event = json.loads(raw)
+        except ValueError:
+            return [raw]
+        if not isinstance(event, dict):
+            return [raw]
+        kind = event.get("event")
+        out: list[dict] = []
+        if kind == "init":
+            self.session = event.get("conversation_id")
+            out.append({"type": "available_commands", "commands": [], "sessionId": self.session})
+        elif kind == "step_update":
+            su = event.get("step_update") if isinstance(event.get("step_update"), dict) else {}
+            stype = su.get("step_type")
+            state = su.get("state")
+            idx = su.get("step_index")
+            if stype in ("tool", "subagent"):
+                call_id = f"step-{idx}"
+                tname = su.get("tool_name") or ("invoke_subagent" if stype == "subagent" else "tool")
+                info = (su.get("subagent_info") if stype == "subagent" else su.get("tool_info")) or {}
+                params = info.get("parameters") if isinstance(info.get("parameters"), dict) else (info if stype == "subagent" else {})
+                mapped_name = "run_terminal_command" if tname == "run_command" else tname
+                raw_input = {"command": params.get("CommandLine") or ""} if tname == "run_command" else params
+                if call_id not in self.called:
+                    self.called.add(call_id)
+                    out.append({"type": "tool_call", "toolCallId": call_id, "title": mapped_name,
+                                "toolName": mapped_name, "status": "pending", "rawInput": raw_input})
+                if state in ("DONE", "ERROR"):
+                    err = info.get("error") if isinstance(info.get("error"), dict) else {}
+                    output = info.get("output")
+                    if output is None:
+                        output = err.get("message") or (json.dumps(info) if info else "")
+                    output = str(output)
+                    exit_code = None
+                    if tname == "run_command":
+                        match = self._EXIT_RE.search(output)
+                        exit_code = int(match.group(1)) if match else (1 if state == "ERROR" or err else None)
+                    failed = (state == "ERROR") or bool(err) or (exit_code not in (None, 0))
+                    raw_out = {"type": tname, "output_for_prompt": output}
+                    if tname == "run_command":
+                        raw_out["exit_code"] = exit_code
+                        raw_out["command"] = params.get("CommandLine")
+                    out.append({"type": "tool_call_update", "toolCallId": call_id,
+                                "status": "failed" if failed else "completed",
+                                "content": [{"type": "content", "content": {"type": "text", "text": output}}],
+                                "rawOutput": raw_out})
+            elif stype == "agent_response":
+                delta = su.get("text_delta")
+                if isinstance(delta, str) and delta:
+                    out.append({"type": "text", "data": delta})
+                if state == "DONE" and isinstance(su.get("usage"), dict):
+                    self.turns += 1
+                    out.append({"type": "usage", "usage": self._usage(su["usage"])})
+        elif kind == "result":
+            res = event.get("result") if isinstance(event.get("result"), dict) else {}
+            usage = res.get("usage") if isinstance(res.get("usage"), dict) else {}
+            sid = res.get("conversation_id") or self.session
+            num_turns = self.turns or res.get("num_turns") or 1
+            out.append({"type": "end",
+                        "stopReason": "end_turn" if res.get("status") == "SUCCESS" else "error",
+                        "sessionId": sid, "num_turns": num_turns, "total_cost_usd": None,
+                        "usage": self._usage(usage) if usage else None,
+                        "error": res.get("error")})
+            self.turns = 0
+        return [self._line(e) for e in out]
+
+
+HOSTS: dict[str, type] = {"antigravity": AntigravityHost, "grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
 # Owner-selected profiles for new work (2026-11-19): the driver is Codex GPT-6.2 Sol at extra-high (replacing Grok 4.6
 # xhigh, 2026-11-10); reviewer and judge are Codex GPT-6.2 Astra at high (replacing GPT-6 Astra high, 2026-11-08); and

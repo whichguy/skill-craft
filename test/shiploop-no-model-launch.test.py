@@ -133,7 +133,7 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
         self.tripwire = self.base / "unexpected-model-launches.log"
         fake_bin = self.base / "model-tripwires"
         fake_bin.mkdir()
-        for executable in ("grok", "claude", "codex"):
+        for executable in ("agy", "grok", "claude", "codex"):
             path = fake_bin / executable
             path.write_text(
                 "#!/bin/sh\nprintf '%s\\n' \"$0\" >> \"$SHIPLOOP_MODEL_LAUNCH_TRIPWIRE\"\nexit 97\n",

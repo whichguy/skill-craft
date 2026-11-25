@@ -1126,7 +1126,7 @@ def shiploop_cli_ran(events_path: Path) -> bool:
             continue
         if event.get("type") == "tool_call":
             arg = event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {}
-            if "skills/shiploop/scripts/shiploop" in str(arg.get("command") or ""):
+            if _runs_shiploop_cli(str(arg.get("command") or "")):
                 return True
         elif event.get("type") == "assistant" and isinstance(event.get("message"), dict):
             for block in event["message"].get("content") or []:
@@ -2866,6 +2866,7 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--release-gate", action="store_true",
                    help="with --baseline-report: also print, per case style, the last pass a marketplace run recorded and how "
                         "many ShipLoop releases origin/main made since (the local ref; nothing is fetched)")
+    p.add_argument("--antigravity-bin", default="agy")
     p.add_argument("--grok-bin", default="grok")
     p.add_argument("--claude-bin", default="claude")
     p.add_argument("--codex-bin", default="codex")
