@@ -446,6 +446,8 @@ table.m3 td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:
     if (u.cache_write_tokens !== undefined) bits.push("cache_write: " + u.cache_write_tokens);
     if (u.reasoning_tokens !== undefined) bits.push("reasoning: " + u.reasoning_tokens);
     if (u.total_tokens !== undefined) bits.push("total: " + u.total_tokens);
+    if (u.peak_context !== undefined) bits.push("peak: " + u.peak_context);
+    if (u.turns !== undefined) bits.push("turns: " + u.turns);
     return bits.join(" · ");
   };
   const shQuote = (s) => /^[A-Za-z0-9_./:=+-]+$/.test(String(s || "")) ? String(s) : "'" + String(s || "").replace(/'/g, "'\"'\"'") + "'";
@@ -741,7 +743,10 @@ table.m3 td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:
           r.planning_review ? el("span", {class: "chip"}, "plan-review: " + r.planning_review) : null,
           r.lint ? el("span", {class: "chip"}, "lint: " + r.lint) : null,
           r.elapsed_seconds !== null && r.elapsed_seconds !== undefined
-            ? el("span", {class: "chip", title: "Recorded wall-clock span from start to last event; not model compute."}, "span: " + fmtSpan(r.elapsed_seconds)) : null,
+            ? el("span", {class: "chip", title: "Recorded wall-clock span from start to last event; not model compute."
+                + (r.paused_seconds && r.active_seconds !== null && r.active_seconds !== undefined
+                    ? ` (active ${fmtSpan(r.active_seconds)}, paused ${fmtSpan(r.paused_seconds)})` : "")},
+                "span: " + fmtSpan(r.elapsed_seconds)) : null,
           r.token_usage && r.token_usage.total_tokens
             ? el("span", {class: "chip", title: tokenTip(r.token_usage)}, fmtTokens(r.token_usage.total_tokens)) : null,
           r.owner_alive === false && r.status === "active"
@@ -967,7 +972,9 @@ table.m3 td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:
               el("strong", {}, (c.item ? c.item + " · " : "") + c.stage + (c.reviewing_stage ? " (" + c.reviewing_stage + ")" : "")),
               el("span", {class: "pill pill-" + (c.outcome === "done" ? "done" : (c.outcome === "blocked" ? "blocked" : (c.outcome === "send-back" ? "paused" : "active")))}, c.outcome),
               c.duration_seconds !== null && c.duration_seconds !== undefined
-                ? el("span", {class: "chip", title: (c.duration_basis || "dwell") + ": " + (c.started_at || "?") + " → " + (c.ended_at || "?")},
+                ? el("span", {class: "chip", title: (c.duration_basis || "dwell") + ": " + (c.started_at || "?") + " → " + (c.ended_at || "?")
+                    + (c.paused_seconds && c.active_seconds !== null && c.active_seconds !== undefined
+                        ? ` (active ${fmtSpan(c.active_seconds)}, paused ${fmtSpan(c.paused_seconds)})` : "")},
                     iconSvg("clock", 12), fmtSpan(c.duration_seconds)) : null,
               c.token_usage && c.token_usage.total_tokens
                 ? el("span", {class: "chip", title: tokenTip(c.token_usage)}, fmtTokens(c.token_usage.total_tokens)) : null,

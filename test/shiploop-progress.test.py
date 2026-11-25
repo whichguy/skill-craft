@@ -1398,6 +1398,49 @@ class HubModelAndServerTests(unittest.TestCase):
         self.assertEqual(s2, 200)
         self.assertNotIn(str(rdir), server.detail_cache)
 
+    def test_hub_consumes_canonical_trace_usage_and_active_paused_telemetry(self):
+        import shiploop_hub_model as hub_model
+        import shiploop_trace as trace
+
+        rdir, st = self._make_run("r-canon-tel", "Test canonical trace usage and paused time", run_id="run-canon-tel")
+        aid = navigator.current_action(st)["id"]
+        st = navigator.apply(st, aid, {"outcome": "done", "headline": "Intake done", "summary": "Scoped task."})
+        navigator.save(rdir, st)
+
+        (rdir / "timeline.json").write_text(json.dumps({
+            "started": "2026-11-25T10:00:00Z",
+            "entered": {aid: "2026-11-25T10:00:00Z"},
+            "accepted": {aid: "2026-11-25T10:02:00Z"},
+            "paused_seconds": {aid: 30.0},
+        }))
+        trace.record_usage(
+            str(rdir), "codex", "sess-canon",
+            usage={"input": 1000, "cached_input": 200, "output": 100, "total": 1100, "context_tokens": 900, "turns": 1},
+            action=aid, stage="intake", model="gpt-6.2-astra", effort="high",
+            basis="session_cumulative",
+        )
+        trace.record_usage(
+            str(rdir), "codex", "sess-canon",
+            usage={"input": 1800, "cached_input": 500, "output": 250, "total": 2050, "context_tokens": 1400, "turns": 2},
+            action=aid, stage="intake", model="gpt-6.2-astra", effort="high",
+            basis="session_cumulative",
+        )
+
+        detail = hub_model.build_run_detail(rdir)
+        self.assertEqual(detail["run"]["token_usage"]["total_tokens"], 2050)
+        self.assertEqual(detail["run"]["token_usage"]["peak_context"], 1400)
+        self.assertEqual(detail["run"]["paused_seconds"], 30.0)
+        self.assertIsNotNone(detail["run"]["active_seconds"])
+        self.assertGreater(detail["run"]["elapsed_seconds"], detail["run"]["active_seconds"])
+        card = detail["story_cards"][0]
+        self.assertEqual(card["token_usage"]["total_tokens"], 2050)
+        self.assertEqual(card["token_usage"]["input_tokens"], 1800)
+        self.assertEqual(card["duration_seconds"], 90)
+        self.assertEqual(card["paused_seconds"], 30.0)
+        self.assertEqual(card["active_seconds"], 90.0)
+        self.assertEqual(card["duration_basis"], "recorded_entry")
+        self.assertIn("gpt-6.2-astra/high", card["model_label"])
+
     def test_hub_sort_order_poll_delta_and_artifact_http_endpoints(self):
         import shiploop_registry as registry
         import shiploop_trace as trace

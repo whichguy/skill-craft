@@ -700,12 +700,12 @@ def _extract_token_usage(record: Any) -> dict[str, int] | None:
             sources.insert(0, nested)
     out: dict[str, int] = {}
     field_aliases = (
-        ("input_tokens", ("input_tokens", "prompt_tokens")),
-        ("output_tokens", ("output_tokens", "completion_tokens")),
-        ("cached_tokens", ("cached_tokens", "cache_read_tokens", "cache_read_input_tokens")),
-        ("cache_write_tokens", ("cache_write_tokens", "cache_creation_input_tokens")),
-        ("reasoning_tokens", ("reasoning_tokens",)),
-        ("total_tokens", ("total_tokens", "tokens")),
+        ("input_tokens", ("input_tokens", "prompt_tokens", "input")),
+        ("output_tokens", ("output_tokens", "completion_tokens", "output")),
+        ("cached_tokens", ("cached_tokens", "cache_read_tokens", "cache_read_input_tokens", "cached_input")),
+        ("cache_write_tokens", ("cache_write_tokens", "cache_creation_input_tokens", "cache_write")),
+        ("reasoning_tokens", ("reasoning_tokens", "reasoning_output")),
+        ("total_tokens", ("total_tokens", "tokens", "total")),
     )
     for src in sources:
         for dest_key, aliases in field_aliases:
@@ -716,6 +716,34 @@ def _extract_token_usage(record: Any) -> dict[str, int] | None:
                 if val is not None:
                     out[dest_key] = val
                     break
+    if not out:
+        return None
+    if "total_tokens" not in out and ("input_tokens" in out or "output_tokens" in out):
+        out["total_tokens"] = out.get("input_tokens", 0) + out.get("output_tokens", 0)
+    return out
+
+
+def _normalize_trace_tokens(raw: Any) -> dict[str, int] | None:
+    """Normalize ``shiploop_trace`` delta-aggregated token stats into Hub ``token_usage`` shape."""
+    if not isinstance(raw, Mapping):
+        return None
+    out: dict[str, int] = {}
+    key_map = (
+        ("input", "input_tokens"),
+        ("output", "output_tokens"),
+        ("cached_input", "cached_tokens"),
+        ("cache_write", "cache_write_tokens"),
+        ("reasoning_output", "reasoning_tokens"),
+        ("total", "total_tokens"),
+    )
+    for src_key, dest_key in key_map:
+        val = _nonneg_int(raw.get(src_key))
+        if val is not None:
+            out[dest_key] = val
+    for opt_key in ("peak_context", "turns"):
+        val = _nonneg_int(raw.get(opt_key))
+        if val is not None and val > 0:
+            out[opt_key] = val
     if not out:
         return None
     if "total_tokens" not in out and ("input_tokens" in out or "output_tokens" in out):
@@ -866,9 +894,10 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
         refusal_previews = [_clean_text(r.get("error") or "", 200) for r in refusals[:3]]
         ended_at = st_row.get("at") or (accepted_at.get(act_id) if isinstance(accepted_at.get(act_id), str) else None)
         first_pkt = next((e.get("at") for e in act_events if e.get("kind") == "packet" and e.get("at")), None)
-        started_at = first_pkt or prev_end
+        started_at = st_row.get("started_at") or first_pkt or prev_end
         dur_sec = st_row.get("seconds")
-        dur_basis = "first packet to accepted"
+        canonical_basis = st_row.get("duration_basis")
+        dur_basis = str(canonical_basis) if isinstance(canonical_basis, str) and canonical_basis != "unmeasured" else "first packet to accepted"
         if dur_sec is None and started_at and ended_at:
             t0, t1 = story_data._timestamp(started_at), story_data._timestamp(ended_at)
             if t0 is not None and t1 is not None and t1 >= t0:
@@ -937,7 +966,13 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
             }
             for e in act_events[-40:]
         ]
-        card_tokens = _merge_token_usage([_extract_token_usage(e) for e in act_events] + [_extract_token_usage(res)])
+        card_tokens = _normalize_trace_tokens(st_row.get("tokens"))
+        if card_tokens is None:
+            card_tokens = _merge_token_usage([_extract_token_usage(e) for e in act_events] + [_extract_token_usage(res)])
+
+        step_model = str(st_row.get("model") or "").strip()
+        step_effort = str(st_row.get("effort") or "").strip()
+        fallback_model = (f"{step_model}/{step_effort}" if (step_model and step_effort) else step_model) if step_model else ""
 
         headline = _clean_text(res.get("headline") or "", 180) or _first_sentence(res.get("summary") or h_entry.get("summary"), 180)
         story_cards.append({
@@ -954,6 +989,9 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
             "started_at": started_at,
             "ended_at": ended_at,
             "duration_seconds": dur_sec,
+            "wall_seconds": st_row.get("wall_seconds"),
+            "active_seconds": st_row.get("active_seconds"),
+            "paused_seconds": st_row.get("paused_seconds"),
             "duration_basis": dur_basis,
             "token_usage": card_tokens,
             "transition_note": trans_note,
@@ -963,11 +1001,11 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
             "gates": _read_action_gates(run_root, act_id, test_names, check_names, expectation_names),
             "loop": loop_info,
             "lint": _read_action_lint(run_root, act_id, lint_names),
-            "model_label": model_map.get(act_id, ""),
+            "model_label": model_map.get(act_id, "") or _clean_text(fallback_model, 80),
             "counts": {
                 "packets": sum(1 for e in act_events if e.get("kind") == "packet"),
                 "refusals": len(refusals),
-                "hooks": sum(1 for e in act_events if e.get("kind") == "hook" and e.get("hook") != "model"),
+                "hooks": sum(1 for e in act_events if e.get("kind") == "hook" and e.get("hook") not in ("model", "usage")),
             },
             "refusal_previews": refusal_previews,
             "evidence_refs": [
@@ -987,7 +1025,11 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
             if active_improve and cur_action_for_files != now_action_id else []
         )
         cur_refusals = [e for e in cur_events if trace_mod.refused(e)]
-        cur_since = (trace_model.get("now") or {}).get("since") or prev_end
+        trace_now = trace_model.get("now") if isinstance(trace_model.get("now"), Mapping) else {}
+        cur_since = trace_now.get("since") or prev_end
+        cur_tokens = _normalize_trace_tokens(trace_now.get("tokens"))
+        if cur_tokens is None:
+            cur_tokens = _merge_token_usage(_extract_token_usage(e) for e in cur_events)
         story_cards.append({
             "seq": len(story_cards) + 1,
             "action": now_action_id,
@@ -1003,8 +1045,9 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
             "started_at": cur_since,
             "ended_at": None,
             "duration_seconds": None,
+            "paused_seconds": trace_now.get("paused_seconds"),
             "duration_basis": "in-progress dwell",
-            "token_usage": _merge_token_usage(_extract_token_usage(e) for e in cur_events),
+            "token_usage": cur_tokens,
             "transition_note": {
                 "kind": display_status,
                 "target": "",
@@ -1030,7 +1073,7 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
             "counts": {
                 "packets": sum(1 for e in cur_events if e.get("kind") == "packet"),
                 "refusals": len(cur_refusals),
-                "hooks": sum(1 for e in cur_events if e.get("kind") == "hook" and e.get("hook") != "model"),
+                "hooks": sum(1 for e in cur_events if e.get("kind") == "hook" and e.get("hook") not in ("model", "usage")),
             },
             "refusal_previews": [_clean_text(r.get("error") or "", 200) for r in cur_refusals[:3]],
             "evidence_refs": [],
@@ -1169,7 +1212,9 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
     story_obj = snap.get("story") if isinstance(snap.get("story"), Mapping) else {}
     run_trace_info = trace_model.get("run") if isinstance(trace_model.get("run"), Mapping) else {}
     run_key = (entry or {}).get("run_key") or ""
-    run_token_usage = _merge_token_usage(_extract_token_usage(e) for e in events)
+    run_token_usage = _normalize_trace_tokens(run_trace_info.get("tokens"))
+    if run_token_usage is None:
+        run_token_usage = _merge_token_usage(_extract_token_usage(e) for e in events)
 
     payload = {
         "schema": SCHEMA,
@@ -1197,6 +1242,8 @@ def build_run_detail(run_dir: Path, *, entry: Mapping[str, Any] | None = None) -
             "started_at": timeline.get("started") if isinstance(timeline.get("started"), str) else None,
             "last_event_at": run_trace_info.get("last_event"),
             "elapsed_seconds": run_trace_info.get("elapsed"),
+            "active_seconds": run_trace_info.get("active_seconds"),
+            "paused_seconds": run_trace_info.get("paused_seconds"),
             "token_usage": run_token_usage,
             "has_report": state.get("status") in ("done", "halted") and (run_root / "report.html").is_file(),
         },
