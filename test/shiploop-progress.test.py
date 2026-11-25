@@ -614,6 +614,76 @@ class ViewerTests(RunCase):
         self.assertIn("=== ShipLoop status ===", watch_res.stdout)
         self.assertIn("halted at intake", watch_res.stdout)
 
+    def test_runs_prune_removes_stale_entries_and_hub_surfaces_planning_and_ux(self):
+        import shiploop_registry as registry
+        # Register one stale (deleted) dir, one malformed JSON, and one active run in planning with experiments.
+        stale_dir = self.base / "deleted-run"
+        stale_reg = registry.registry_dir() / "stale-deleted.json"
+        stale_reg.parent.mkdir(parents=True, exist_ok=True)
+        stale_reg.write_text(json.dumps({"run_dir": str(stale_dir), "run_id": "stale-1"}))
+        bad_reg = registry.registry_dir() / "broken.json"
+        bad_reg.write_text("{not-json")
+
+        plan_dir = self.base / "plan-run"
+        plan_dir.mkdir()
+        (plan_dir / ".lock").touch()
+        st = navigator.new_state(str(self.repo), "Plan hub observability", improve_skill="")
+        for _ in range(15):
+            if navigator.current_stage(st) == "plan":
+                break
+            aid = navigator.current_action(st)["id"]
+            stage = navigator.current_stage(st)
+            st = navigator.apply(st, aid, {"outcome": "done", "summary": f"Accepted {stage}."})
+            if st.get("active_improve") is not None:
+                st = navigator.finish_improve(
+                    st, aid,
+                    {"summary": f"Reviewed {stage}.", "review_refs": ["ok"], "check_refs": ["ok"], "lessons": "none"},
+                )
+        self.assertEqual(navigator.current_stage(st), "plan")
+        st["run_id"] = "run-plan-hub"
+        navigator.save(plan_dir, st)
+        exp_dir = plan_dir / "experiments" / "exp-hub"
+        exp_dir.mkdir(parents=True)
+        (exp_dir / "decision.md").write_text("# Decision\nVerified streaming export.\n")
+        (plan_dir / "experiments" / "plan-iter-1.md").write_text("# Draft 1\n")
+        registry.register_run(plan_dir, st)
+
+        # CLI --prune cleans stale & broken records while preserving valid runs.
+        pruned_res = self.cli_ok("runs", "--prune", "--json")
+        pruned_payload = json.loads(pruned_res.stdout)
+        self.assertEqual(sorted(pruned_payload["pruned"]), ["broken", "stale-deleted"])
+        self.assertFalse(stale_reg.exists())
+        self.assertFalse(bad_reg.exists())
+        by_id = {r["run_id"]: r for r in pruned_payload["runs"]}
+        self.assertIn("run-plan-hub", by_id)
+        self.assertIn("exp-hub", by_id["run-plan-hub"]["planning_summary"])
+        self.assertIn("1 draft snapshot", by_id["run-plan-hub"]["planning_summary"])
+
+        # Text `--prune` output announces pruned count and includes planning summary.
+        stale_reg.write_text(json.dumps({"run_dir": str(stale_dir), "run_id": "stale-2"}))
+        text_pruned = self.cli_ok("runs", "--prune")
+        self.assertIn("Pruned 1 stale registry entry(s).", text_pruned.stdout)
+        self.assertIn("exp-hub", text_pruned.stdout)
+
+        # Hub HTML contains dynamic title badge, planning summary chip support, and copy button.
+        self.assertIn('document.title = (c.attention > 0 ? "(" + c.attention + ") " : "")', viewer._HUB_HTML)
+        self.assertIn("r.planning_summary", viewer._HUB_HTML)
+        self.assertIn("btn-copy", viewer._HUB_HTML)
+        self.assertIn("Copy resume cmd", viewer._HUB_HTML)
+
+        # Hub cache invalidates when experiments/ decision changes.
+        cache = {}
+        first = viewer.hub_runs_payload(cache=cache)
+        row1 = next(r for r in first["runs"] if r["run_id"] == "run-plan-hub")
+        self.assertIn("exp-hub", row1["planning_summary"])
+        (plan_dir / "experiments" / "exp-2").mkdir()
+        (plan_dir / "experiments" / "exp-2" / "decision.md").write_text("# Decision 2\nBounded reader.\n")
+        os.utime(plan_dir / "experiments" / "exp-2" / "decision.md",
+                 ns=(time.time_ns() + 10_000_000, time.time_ns() + 10_000_000))
+        second = viewer.hub_runs_payload(cache=cache)
+        row2 = next(r for r in second["runs"] if r["run_id"] == "run-plan-hub")
+        self.assertIn("exp-2", row2["planning_summary"])
+
     def test_first_packet_suggests_a_command_that_serves_the_run(self):
         self.run = self.base / "suggested run"
         result = self.cli("init", "--repo", str(self.repo), "--run-dir", str(self.run), "--prompt", "Serve this run")
@@ -936,6 +1006,23 @@ class ObservationGenerationTests(unittest.TestCase):
         (self.root / "loops").mkdir(exist_ok=True)
         (self.root / "loops" / "step.md").write_text("# Loop contract\n")
         self.assertNotEqual(progress._watch_signature(self.root, snap2), sig_before_loop)
+        snap3 = progress.sample(self.root)
+        sig_before_exp = snap3.watch_sig
+        (self.root / "experiments" / "exp-1").mkdir(parents=True)
+        (self.root / "experiments" / "exp-1" / "decision.md").write_text("# Exp 1\n")
+        sig_after_exp = progress._watch_signature(self.root, snap3)
+        self.assertNotEqual(sig_after_exp, sig_before_exp)
+        (self.root / "experiments" / "plan-iter-1.md").write_text("# Draft 1\n")
+        self.assertNotEqual(progress._watch_signature(self.root, snap3), sig_after_exp)
+        imp_exp = self.repo / ".shiploop-improve" / ".experiments" / self.state["run_id"] / "act-1" / "probe-a"
+        imp_exp.mkdir(parents=True)
+        (imp_exp / "decision.md").write_text("# Improve probe\n")
+        snap4 = progress.sample(self.root)
+        self.assertNotEqual(progress._watch_signature(self.root, snap4), snap3.watch_sig)
+        imp_sig1 = snap4.watch_sig
+        (imp_exp / "decision.md").write_text("# Improve probe updated\n")
+        os.utime(imp_exp / "decision.md", ns=(time.time_ns() + 10_000_000, time.time_ns() + 10_000_000))
+        self.assertNotEqual(progress._watch_signature(self.root, snap4), imp_sig1)
 
     def test_idle_timeout_marks_page_revivable_while_snapshot_omits_it(self):
         clock = [100.0]
@@ -957,6 +1044,7 @@ class ObservationGenerationTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"SHIPLOOP_STATE_HOME": str(blocking_file)}):
             self.assertFalse(registry.register_run(self.root, self.state))
             self.assertIsNone(registry.active_viewer())
+            self.assertEqual(registry.prune_registry(), [])
 
 
 if __name__ == "__main__":

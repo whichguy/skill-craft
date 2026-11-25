@@ -259,6 +259,22 @@ def _read_json_safe(path: Path, limit: int = 256 * 1024) -> dict[str, Any]:
         return {}
 
 
+def _experiments_mtime(run_dir: Path) -> int:
+    exp_dir = run_dir / "experiments"
+    latest = _stat_mtime(exp_dir)
+    try:
+        if exp_dir.is_dir() and not exp_dir.is_symlink():
+            for child in sorted(exp_dir.iterdir())[:24]:
+                if child.is_symlink():
+                    continue
+                latest = max(latest, _stat_mtime(child))
+                if child.is_dir():
+                    latest = max(latest, _stat_mtime(child / "decision.md"), _stat_mtime(child / "meta.json"))
+    except OSError:
+        pass
+    return latest
+
+
 def _run_cache_key(run_dir: Path, state: Mapping[str, Any]) -> tuple[Any, ...]:
     action_id = ""
     try:
@@ -276,6 +292,7 @@ def _run_cache_key(run_dir: Path, state: Mapping[str, Any]) -> tuple[Any, ...]:
         _stat_mtime(run_dir / "progress-observer.json"),
         _stat_mtime(run_dir / "callback-attempts"),
         _stat_mtime(run_dir / "owner-notes"),
+        _experiments_mtime(run_dir),
         _stat_mtime(run_dir / f"loops/{action_id}-terminal.json") if action_id else 0,
         _stat_mtime(run_dir / f"checks/{action_id}.md") if action_id else 0,
         _stat_mtime(run_dir / "report.html"),
@@ -346,6 +363,15 @@ def hub_runs_payload(
                 obs_running = progress.running(run_path)
             except (OSError, ValueError):
                 obs_running = False
+            planning_summary = ""
+            try:
+                import shiploop_planning_status as planning_status
+                obs = planning_status.plan_observability(run_path, state)
+                planning_summary = " · ".join(
+                    " ".join(line.split()) for line in planning_status.status_lines(obs) if line.strip()
+                )
+            except Exception:  # noqa: BLE001
+                planning_summary = ""
             terminal = state.get("status") in ("done", "halted")
             has_report = terminal and (run_path / "report.html").is_file()
             key = entry["run_key"]
@@ -371,6 +397,7 @@ def hub_runs_payload(
                 "next_label": next_label,
                 "next_text": next_text,
                 "reason": reason,
+                "planning_summary": planning_summary,
                 "phases": facts["phases"],
                 "inflight": inflight,
                 "observer": {
@@ -496,8 +523,8 @@ main{max-width:1180px;margin:0 auto;padding:28px 22px 56px}
 .phase{background:#f8faf8;border:1px solid #e6ede8;border-radius:8px;padding:6px 9px;font-size:.74rem}
 .bar{height:4px;border-radius:99px;background:#e3ebe5;margin-top:4px;overflow:hidden}.bar span{display:block;height:100%;background:var(--green)}
 .links{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:4px}
-.links a{font-size:.8rem;font-weight:650;text-decoration:none;color:var(--green);border:1px solid #cddbd1;border-radius:7px;padding:4px 10px;background:#fff}
-.links a:hover{background:var(--soft)}
+.links a,.links button.btn-copy{font:inherit;font-size:.8rem;font-weight:650;text-decoration:none;color:var(--green);border:1px solid #cddbd1;border-radius:7px;padding:4px 10px;background:#fff;cursor:pointer}
+.links a:hover,.links button.btn-copy:hover{background:var(--soft)}
 .empty{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:20px;color:var(--muted);text-align:center}
 @media(max-width:680px){.phases{grid-template-columns:1fr}.meta-clock{margin-left:0}}
 </style>
@@ -556,12 +583,14 @@ main{max-width:1180px;margin:0 auto;padding:28px 22px 56px}
       el("div", {}, el("strong", {}, p.name), " · ", label),
       el("div", {class: "bar"}, el("span", {style: "width:" + pct + "%"})));
   };
+  const shQuote = (s) => /^[A-Za-z0-9_./:=+-]+$/.test(String(s || "")) ? String(s) : "'" + String(s || "").replace(/'/g, "'\"'\"'") + "'";
   const card = (r) => {
     const inf = r.inflight || {};
     const chips = [
       el("span", {class: "chip"}, "rev " + r.revision),
       el("span", {class: "chip"}, r.delegation || "inline"),
       r.host ? el("span", {class: "chip"}, r.host) : null,
+      r.planning_summary ? el("span", {class: "chip"}, r.planning_summary) : null,
       inf.step_id && inf.step_total ? el("span", {class: "chip"}, "Step " + inf.step_id + " (" + inf.step_number + "/" + inf.step_total + ")") : null,
       inf.loop_iteration ? el("span", {class: "chip"}, "Loop pass " + inf.loop_iteration) : null,
       inf.improve_active ? el("span", {class: "chip"}, "Improve " + (inf.improve_review_mode || "") + (inf.improve_passes ? " · pass " + inf.improve_passes : "")) : null,
@@ -570,10 +599,23 @@ main{max-width:1180px;margin:0 auto;padding:28px 22px 56px}
       ...(r.attention_reasons || []).map((why) => el("span", {class: r.display_status === "blocked" ? "chip danger" : "chip warn"}, why)),
     ];
     const cls = "card" + (r.display_status === "blocked" || r.display_status === "halted" ? " blocked" : (r.priority_bucket === 0 ? " attention" : ""));
+    let copyBtn = null;
+    if (r.run_dir && ["awaiting", "service", "paused", "blocked"].includes(r.display_status)) {
+      const verb = r.display_status === "paused" ? "resume" : "status";
+      const cmd = "python3 shiploop " + verb + " --run-dir=" + shQuote(r.run_dir);
+      const baseLabel = r.display_status === "paused" ? "Copy resume cmd" : "Copy status cmd";
+      copyBtn = el("button", {type: "button", class: "btn-copy", title: cmd}, baseLabel);
+      copyBtn.addEventListener("click", () => {
+        try { navigator.clipboard?.writeText(cmd); } catch (_) {}
+        copyBtn.textContent = "Copied";
+        setTimeout(() => { copyBtn.textContent = baseLabel; }, 1500);
+      });
+    }
     const links = el("div", {class: "links"},
       el("a", {href: r.urls.progress}, "Progress view →"),
       el("a", {href: r.urls.trace}, "Run trace →"),
-      r.urls.report ? el("a", {href: r.urls.report}, "Final report →") : null);
+      r.urls.report ? el("a", {href: r.urls.report}, "Final report →") : null,
+      copyBtn);
     return el("article", {class: cls},
       el("div", {class: "card-top"},
         el("div", {},
@@ -594,6 +636,7 @@ main{max-width:1180px;margin:0 auto;padding:28px 22px 56px}
   const render = (data) => {
     lastData = data;
     const c = data.counts || {};
+    document.title = (c.attention > 0 ? "(" + c.attention + ") " : "") + "ShipLoop Hub · Concurrent Runs";
     document.getElementById("stats").replaceChildren(
       el("span", {class: "stat"}, (c.total || 0) + " total"),
       el("span", {class: "stat"}, (c.attention || 0) + " needs attention"),
@@ -809,6 +852,11 @@ def serve_hub(
     actual_port = server.server_address[1]
     server.viewer_info["port"] = actual_port
     server.viewer_info["url"] = f"http://{HOST}:{actual_port}"
+    try:
+        import shiploop_registry as registry
+        registry.prune_registry()
+    except Exception:  # noqa: BLE001
+        pass
     lock_fd = _register_viewer("hub", actual_port)
     previous_sigterm = _install_sigterm_handler()
     say = out or (lambda text: print(text, flush=True))

@@ -156,7 +156,7 @@ python3 "$CLI" view --run-dir "$RUN_DIR" --watch                 # watch in this
 python3 "$CLI" view --run-dir "$RUN_DIR" --status                # observer + viewer status, read-only
 python3 "$CLI" view --run-dir "$RUN_DIR" --stop                  # stop; disable automatic restarts
 python3 "$CLI" view --run-dir "$RUN_DIR" --serve                 # serve this single run on 127.0.0.1 until Ctrl-C
-python3 "$CLI" runs [--active] [--watch] [--json]                # list or watch all discovered concurrent runs
+python3 "$CLI" runs [--active] [--watch] [--prune] [--json]      # list, prune stale, or watch concurrent runs
 python3 "$CLI" status --run-dir "$RUN_DIR" [--watch]             # print status block (or watch transitions)
 ```
 
@@ -164,7 +164,7 @@ python3 "$CLI" status --run-dir "$RUN_DIR" [--watch]             # print status 
 snapshot refuses to compete with an existing observer. `--interval` selects the
 sampling interval (default two seconds); `--idle-timeout` defaults to 1800 seconds
 without recorded activity. The observer stat-gates its inputs (`state.md`,
-`trace.jsonl`, watched repo docs, loops, checks, owner notes) so an idle sample
+`trace.jsonl`, watched repo docs, loops, experiments, checks, owner notes) so an idle sample
 that finds nothing changed rewrites only the 277-byte `progress-version.js`
 heartbeat without rebuilding or rescreening pages, and does not reset the idle
 clock. An observer that exits on idle timeout marks the page revivable so an

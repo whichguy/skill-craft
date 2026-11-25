@@ -3,6 +3,8 @@
 
 Qualification commands are operator-selected argv arrays, not shell programs.
 This is a publication guard, not a replacement for reviews or server-side rules.
+Concurrent pushes: qualify the frozen release commit with `--group quick --changed-from <base>` first,
+then pass fast invariant checks (such as `check-release-boundary.py` and `--group smoke`) here to minimize push-window races.
 """
 
 import argparse

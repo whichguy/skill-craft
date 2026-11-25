@@ -703,6 +703,8 @@ def _format_runs_text(payload: Mapping[str, Any], cli_path: Path, *, active_only
                 extras.append("improve" + (f" ({inf['improve_review_mode']})" if inf.get("improve_review_mode") else ""))
             if inf.get("open_notes"):
                 extras.append(f"{inf['open_notes']} open note(s)")
+            if row.get("planning_summary"):
+                extras.append(row["planning_summary"])
             if row.get("attention_reasons"):
                 extras.extend(row["attention_reasons"])
             suffix = f" [{' · '.join(extras)}]" if extras else ""
@@ -728,6 +730,7 @@ def _run_watch_key(row: Mapping[str, Any]) -> tuple[Any, ...]:
         row.get("display_status"),
         row.get("stage"),
         row.get("revision"),
+        row.get("planning_summary"),
         inf.get("step_id"),
         inf.get("loop_iteration"),
         inf.get("improve_passes"),
@@ -743,16 +746,23 @@ def runs_command(core: Any, argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(prog="shiploop runs", description="List or watch discovered ShipLoop runs")
     parser.add_argument("--json", action="store_true", dest="as_json", help="emit JSON payload")
     parser.add_argument("--active", action="store_true", help="only show non-terminal runs")
+    parser.add_argument("--prune", action="store_true", help="remove stale registry entries for missing runs")
     parser.add_argument("--runs-root", action="append", default=[], help="extra run or .shiploop-runs directory")
     parser.add_argument("--watch", action="store_true", help="watch discovered runs until Ctrl-C")
     parser.add_argument("--interval", type=float, default=2.0, help="polling interval in seconds for --watch")
     args = parser.parse_args(argv)
     if args.interval < 0.1:
         parser.error("--interval must be at least 0.1 seconds")
+    pruned: list[str] = []
+    if args.prune:
+        import shiploop_registry as registry
+        pruned = registry.prune_registry()
     extra_roots = tuple(Path(item).expanduser().resolve() for item in args.runs_root)
     cli_path = core.PACKAGE_ROOT / "scripts" / "shiploop"
     if args.as_json:
         payload = viewer_mod.hub_runs_payload(extra_roots=extra_roots)
+        if args.prune:
+            payload["pruned"] = pruned
         if args.active:
             payload["runs"] = [row for row in payload["runs"] if row.get("status") not in ("done", "halted")]
             payload["counts"]["total"] = len(payload["runs"])
@@ -760,6 +770,8 @@ def runs_command(core: Any, argv: Sequence[str]) -> int:
         return 0
     cache: dict[str, Any] = {}
     payload = viewer_mod.hub_runs_payload(extra_roots=extra_roots, cache=cache)
+    if args.prune:
+        print(f"Pruned {len(pruned)} stale registry entry(s).", flush=True)
     print(_format_runs_text(payload, cli_path, active_only=args.active), flush=True)
     if not args.watch:
         return 0

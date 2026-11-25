@@ -666,6 +666,43 @@ class OwnerNoteMidStep(unittest.TestCase):
             self.assertEqual(run_trace.summary(run_trace.read(run))["notes"],
                              {"written": 1, "settled": 1, "carried": 0, "open": 0})
 
+    def test_startup_viewer_compliance_verdicts(self) -> None:
+        # 1. Clean command recommendation without launching view --serve.
+        res = run_trace.startup_viewer_compliance(
+            ["python3 shiploop workspace start --repo /tmp/r --prompt 'Demo'"],
+            ["Started run. You can run python3 shiploop view --serve in your terminal to open the dashboard."],
+        )
+        self.assertEqual(res["verdict"], "pass")
+        self.assertTrue(res["relayed"])
+        self.assertEqual(res["foreground_serve_calls"], [])
+        # 2. Clean live Hub URL relay + stop-server command allowed.
+        res_hub = run_trace.startup_viewer_compliance(
+            ["python3 shiploop view --stop-server --serve"],
+            ["Live Hub running at http://127.0.0.1:41730/runs/run-1/ and http://127.0.0.1:41730/"],
+        )
+        self.assertEqual(res_hub["verdict"], "pass")
+        self.assertTrue(res_hub["relayed"])
+        # 3. Missing startup relay fails.
+        res_missing = run_trace.startup_viewer_compliance(
+            ["python3 shiploop next --run-dir /tmp/r"],
+            ["Starting intake now."],
+        )
+        self.assertEqual(res_missing["verdict"], "fail")
+        # 4. Foreground view --serve launch fails even if relayed.
+        res_fg = run_trace.startup_viewer_compliance(
+            ["python3 /repo/skills/shiploop/scripts/shiploop view --run-dir=/tmp/r --serve"],
+            ["Run python3 shiploop view --serve"],
+        )
+        self.assertEqual(res_fg["verdict"], "fail")
+        self.assertEqual(len(res_fg["foreground_serve_calls"]), 1)
+        # 5. Unsolicited --background still passes if relayed, recording the background call.
+        res_bg = run_trace.startup_viewer_compliance(
+            ["python3 shiploop view --serve --background"],
+            ["Dashboard at http://127.0.0.1:41730/"],
+        )
+        self.assertEqual(res_bg["verdict"], "pass")
+        self.assertEqual(len(res_bg["background_serve_calls"]), 1)
+
 
 def _log(out: Path) -> metrics.ToolLog:
     log = metrics.ToolLog()
