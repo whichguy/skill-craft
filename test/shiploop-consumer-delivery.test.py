@@ -94,10 +94,8 @@ class ConsumerDeliveryTests(unittest.TestCase):
             return False
         if stage == "test-spec":  # no Improve rule (2026-10-26)
             return False
-        if stage == "step-plan":  # rule first-item (2026-10-19): the first item, or one sent back
-            item = navigator._current_work_item(state)
-            return item == state["work_items"][0]["id"] or any(
-                row["workitem"] == item and row["outcome"] == "send-back" for row in state["history"])
+        if stage == "step-plan":  # rule first-item (+ deferred concerns & post-plan corrective items)
+            return navigator._first_item_review(state, navigator._current_work_item(state), state["history"])
         if stage in guidance.PLANNING_REVIEW_STAGES:
             return True
         if stage == "document":  # rule item (design T §8): each step's one review follows its document stage
@@ -105,7 +103,9 @@ class ConsumerDeliveryTests(unittest.TestCase):
         if stage != "reflect-and-revise":
             return False
         if "work_items" in submitted:
-            return not submitted["work_items"]
+            return (not submitted["work_items"]
+                    or not navigator._work_items_equal(
+                        state["work_items"][state["work_index"] + 1:], submitted["work_items"]))
         return state["work_index"] + 1 >= len(state["work_items"])
 
     def advance(self, state: dict, stage: str, **extra: object) -> dict:

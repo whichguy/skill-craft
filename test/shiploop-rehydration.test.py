@@ -25,12 +25,16 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 CLI = SCRIPTS / "shiploop"
 sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(ROOT / "test"))
+
+import state_home  # noqa: E402
+
+state_home.isolate()
 
 import shiploop_context_index as context_index  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_navigator_dry_run as dry_run  # noqa: E402
-sys.path.insert(0, str(ROOT / "test"))
 from shiploop_loop_support import LoopBlock  # noqa: E402
 from shiploop_packet_view import assert_top_block  # noqa: E402
 
@@ -319,10 +323,11 @@ class GoalFirstTests(unittest.TestCase):
                         for number, condition in enumerate(row.done_when, 1):
                             self.assertEqual(packet.count(condition), 1, condition)
                             self.assertIn(str(number) + ". " + condition, exits)
-                    elif stage in spec.INNER:
-                        # Decision 20 (owner 2026-10-18): a stage outside loops.ARGUMENT_STAGES prints no argument,
-                        # so its numbered conditions are not listed in the packet; the head points at the loop's own
-                        # packets instead, and the Contract file (which they state from) carries the conditions.
+                    elif stage in loops.STAGES:
+                        # Decision 20 (owner 2026-10-18), extended when `plan` joined `loops.STAGES`: a looped stage
+                        # outside `loops.ARGUMENT_STAGES` prints no `/until-loop` argument, so its numbered conditions
+                        # are not listed in the packet; the head points at the loop's own packets instead, and the
+                        # Contract file (which they state from) carries the conditions.
                         self.assertEqual(view["done_when"], nav.DONE_WHEN_LOOP_PACKETS)
                         action_id = nav.current_action(state)["id"]
                         contract = loops.contract(dry_run.RUN, state, action_id)
