@@ -55,7 +55,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [rubric-eval](skills/rubric-eval/SKILL.md) | 0.1.1 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default), grade blind with one evidence-first judge, and decide by… |
 | [shiploop](skills/shiploop/SKILL.md) | 2.18.0 | Markdown-authoritative delivery harness. Start or resume once, follow the script's current action packet, and submit its exact callback until the script reports completion with… |
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 2.1.0 | Run the continuous ShipLoop end-to-end improvement loop from a skill-craft source checkout: iterate ShipLoop on a real local case, evaluate behavior and workflow quality, decide… |
-| [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.6.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
+| [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.6.1 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 | [test-harness](skills/test-harness/SKILL.md) | 0.1.2 | Run a repository's test suite and audit what the run did beyond its exit code: unintended writes to tracked files, leftover artifacts, live service calls, secret-shaped or… |
 

@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-11-25
+
+### skill-craft 4.17.1
+
+- Skills: shiploop-run-review 0.6.1
+
+### shiploop-run-review 0.6.1
+
+- Refresh `defaults/stages.json` from `shiploop_stage_spec.py` so the `plan` stage reflects its updated goal and script-run Until Loop exit check.
+
 ## 2026-11-24
 
 ### skill-craft 4.17.0
