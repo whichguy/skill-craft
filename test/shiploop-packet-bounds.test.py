@@ -364,6 +364,7 @@ LIMIT_KINDS = {
     "shiploop_story.EVIDENCE_BYTES": "guard",
     "shiploop_story.STORY_ROWS": "display cut",
     "shiploop_store.OBSERVATION_JSON_DEPTH": "guard",
+    "shiploop_testing_status._MAX_PROOF_BYTES": "guard",
     "shiploop_standalone_improve._MAX_BYTES": "guard",
     "shiploop_trace.TRACE_LIMIT": "guard",
     "shiploop_trace.PAGE_TEXT_LIMIT": "guard",

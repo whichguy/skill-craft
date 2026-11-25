@@ -50,21 +50,35 @@ ShipLoop runs recorded commands outside host permission prompts (empty lists acc
 
 ## Confirmation is a passing command
 
-A passing test that ShipLoop runs is the only confirmation of a criterion. `step-plan`
-links every criterion to a command; text/doc criteria use suite `check` (exit code),
-while unconfirmable criteria become open items in summary. `system-test-author`
-(`system_commands`) and `release-plan` (`consumer_checks`) gate `system-test` and
-`release-verify` (running `release-verify` against clean exported `consumer-check` on
-isolated returns, else WORKTREE; [reruns](testing-and-documentation.md#reruns-after-the-test-stage)).
-Run records under `tests/` are the evidence, not summaries.
+A passing test that ShipLoop runs is the only confirmation of a completion
+criterion. `step-plan` lists the item's `criteria` and names, in each test
+command's `criteria`, the ones that command confirms; ShipLoop refuses a step plan
+with an uncovered criterion. Content with no test runner gets a `check` command
+(suite `check`, judged by exit code), for example a `grep` that a README documents a
+flag. A condition no command can confirm is not a criterion: the step plan records it
+as an open item in its summary. `system-test-author` records `system_commands`
+and `release-plan` records `consumer_checks`; ShipLoop runs them when `system-test`
+and `release-verify` report done and refuses unless each passes. At `release-verify`
+of an isolated run they run in a clean copy of the result the workspace return
+delivered (`consumer-check`, never your checkout), else in the work area
+([reruns](testing-and-documentation.md#reruns-after-the-test-stage)). An empty list
+needs its `_na` reason. The run records under `tests/` are the evidence; a
+result's summary is not.
 
-Unobserved outcomes: a done `product-acceptance` lists it in `unverified`
-(`outcome, requirement, reason, lower_layer_check, settle, owner, due_stage`; `[]` if
-none). Missing/placeholder lists, unknown IDs, or non-later due stages refuse;
-`primary` needs a passed `lower_layer_check` or `add-work`. Acceptance/due stages/handoff
-restate the list and settle removals via `settled` (`observed` or `user-correction` with
-nonempty `evidence_refs`; missing restatements/unmatched settlements/unsettled due rows
-refuse). Delivery-contract gates still apply.
+Unobserved: a done `product-acceptance` lists it in `unverified`
+(outcome, requirement, reason, lower-layer check, settle, owner, due stage);
+`[]` says no outcome remains listed. Missing/incomplete/placeholder lists, unknown spec IDs or non-later due stages
+refuse. Completeness is not judged. For `primary`, `lower_layer_check` names a test ShipLoop passed for that
+requirement; else add-work adds it.
+
+Revisited acceptance, due stages and `handoff` restate the latest list.
+Each removal needs exactly one `settled`: `requirement`, `outcome`, `basis`,
+`evidence_refs`. Basis: `observed` (current required-surface observation) or
+`user-correction` (explicit user correction), with nonempty references.
+Acceptance may settle early; otherwise remove only due rows. Carry others;
+defer due rows, or carry at handoff. Missing restatements, unmatched
+settlements or kept due rows before handoff refuse. References: host claims,
+not proof of truth, currency or authority; delivery-contract gates still apply.
 
 ## Tests pass or the step stops
 
