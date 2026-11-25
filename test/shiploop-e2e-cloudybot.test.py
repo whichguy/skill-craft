@@ -79,7 +79,13 @@ FAKE_SF_CODE = textwrap.dedent(r"""
             print(json.dumps({"status": 0, "result": {"records": recs}}))
             raise SystemExit(0)
         if "FROM PermissionSetAssignment" in soql:
-            recs = [{"Id": r["Id"], "PermissionSet": {"Name": r["PermissionSetName"]}} for r in state.get("assignments", [])]
+            recs = []
+            for r in state.get("assignments", []):
+                rec = {"Id": r["Id"], "PermissionSet": {"Name": r.get("PermissionSetName")}}
+                if r.get("PermissionSetGroupName"):
+                    rec["PermissionSet"] = {"Name": None}
+                    rec["PermissionSetGroup"] = {"DeveloperName": r["PermissionSetGroupName"]}
+                recs.append(rec)
             print(json.dumps({"status": 0, "result": {"records": recs}}))
             raise SystemExit(0)
         if "FROM PermissionSetTabSetting" in soql:
@@ -141,6 +147,30 @@ class CloudyBotCatalogTests(unittest.TestCase):
             "steer",
             "New update ready",
             "backpressure",
+            "systemPromptAppend",
+            "Public Group",
+            "USER_MODE",
+            "sf_soql_query",
+            "sessionId",
+            "Bedrock",
+            "Gemini",
+            "Claude",
+            "@InvocableMethod",
+            "WaitingOnBot",
+            "SKILL.md",
+            "marketplace.json",
+            "PullRequest",
+            "statusNote",
+            "Worked for",
+            "Grok",
+            "GovCloud",
+            "Test Connection",
+            "default URL",
+            "Admin-Only",
+            "Admin-Locked",
+            "Kill Switch",
+            "Response Format",
+            "Visual",
         ):
             self.assertIn(clause, prompt)
 
@@ -153,6 +183,7 @@ class CloudyBotCatalogTests(unittest.TestCase):
         self.assertIn("nimbusBot", renamed["prompt"])
         self.assertNotIn("CloudyBot", json.dumps(renamed))
         self.assertNotIn("cloudyBot", json.dumps(renamed))
+        self.assertNotIn("cloudybot", renamed["prompt"])
 
         terms = json.loads((E2E / "probe_terms.json").read_text(encoding="utf-8"))
         self.assertIn("cloudybot", terms["terms"])
@@ -185,14 +216,20 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
                     "CustomTab": [],
                     "CustomApplication": [],
                     "PermissionSet": [],
+                    "PermissionSetGroup": [],
+                    "CustomPermission": [],
                     "CustomObject": [],
                     "CustomMetadata": [],
+                    "Group": [],
                     "ApexTrigger": [],
                     "FlexiPage": [],
                     "Flow": [],
                     "PlatformEventSubscriberConfig": [],
                     "NamedCredential": [],
                     "ExternalCredential": [],
+                    "RemoteSiteSetting": [],
+                    "CspTrustedSite": [],
+                    "StaticResource": [],
                 },
                 "dates": {
                     "ApexClass": {"ExistingOtherClass": "2026-11-01T00:00:00.000+0000"},
@@ -291,11 +328,25 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
 
         self.assertEqual(self.run_guard("org", "list", deny_all=True, name="sfdx").returncode, 2)
 
-        # Unprefixed file in force-app is refused by deploy scope
-        self.write_dx_project({"classes/RogueHelper.cls": "public class RogueHelper {}"})
-        bad_dep = self.run_guard("project", "deploy", "start", "--target-org", "de", "--wait", "10")
-        self.assertEqual(bad_dep.returncode, 2)
-        self.assertIn("RogueHelper", bad_dep.stderr)
+        # Prefixed Public Groups, Permission Set Groups, Custom Permissions, and Sharing Rules deploy cleanly
+        self.write_dx_project({
+            "groups/CloudyBot_RevOps.group-meta.xml": "<Group/>",
+            "permissionsetgroups/CloudyBot_Operators.permissionsetgroup-meta.xml": "<PermissionSetGroup/>",
+            "customPermissions/CloudyBot_Admin.customPermission-meta.xml": "<CustomPermission/>",
+            "sharingRules/CloudyBot_Bot__c.sharingRules-meta.xml": "<SharingRules/>",
+        })
+        self.assertEqual(self.run_guard("project", "deploy", "start", "--target-org", "de", "--wait", "10").returncode, 0)
+
+        # Unprefixed files in force-app (including groups / permissionsetgroups) are refused by deploy scope
+        for extra in (
+            {"classes/RogueHelper.cls": "public class RogueHelper {}"},
+            {"groups/RogueGroup.group-meta.xml": "<Group/>"},
+            {"permissionsetgroups/RogueGroup.permissionsetgroup-meta.xml": "<PermissionSetGroup/>"},
+        ):
+            self.write_dx_project(extra)
+            bad_dep = self.run_guard("project", "deploy", "start", "--target-org", "de", "--wait", "10")
+            self.assertEqual(bad_dep.returncode, 2, extra)
+            self.assertIn("Rogue", bad_dep.stderr)
 
         # Guard log matches run.guard_coverage expectations
         events = self.root / "events.jsonl"
@@ -333,9 +384,16 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
         state["metadata"]["CustomTab"].append("CloudyBot_Console")
         state["metadata"]["CustomApplication"].append("CloudyBot")
         state["metadata"]["PermissionSet"].append("CloudyBot_User")
+        state["metadata"]["PermissionSetGroup"].append("CloudyBot_Operators")
+        state["metadata"]["CustomPermission"].append("CloudyBot_Admin")
         state["metadata"]["CustomObject"].append("CloudyBot_Task__c")
+        state["metadata"]["Group"].extend(["CloudyBot_RevOps", "ForeignPublicGroup"])
+        state["metadata"]["RemoteSiteSetting"].append("CloudyBot_GitHub")
+        state["metadata"]["CspTrustedSite"].append("CloudyBot_Api")
+        state["metadata"]["StaticResource"].append("CloudyBot_Assets")
         state["dates"]["ApexClass"]["CloudyBotDriver"] = "2026-11-25T00:00:00Z"
         state["assignments"].append({"Id": "0Pa000000000001AAA", "PermissionSetName": "CloudyBot_User"})
+        state["assignments"].append({"Id": "0Pa000000000002AAA", "PermissionSetGroupName": "CloudyBot_Operators"})
         state["tab_visibility"].append({"Name": "CloudyBot_Console", "Visibility": "DefaultOn", "Parent": {"Name": "CloudyBot_User"}})
         state["apex_bodies"] = {
             "CloudyBotDriver": "public class CloudyBotDriver {}",
@@ -369,8 +427,15 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
         self.assertEqual(after["assignments"], [])
         self.assertIn("ExistingOtherClass", after["metadata"]["ApexClass"])
         self.assertIn("ForeignAppHelper", after["metadata"]["ApexClass"])
+        self.assertIn("ForeignPublicGroup", after["metadata"]["Group"])
         self.assertNotIn("CloudyBotDriver", after["metadata"]["ApexClass"])
         self.assertNotIn("CloudyBot_Task__c", after["metadata"]["CustomObject"])
+        self.assertNotIn("CloudyBot_RevOps", after["metadata"]["Group"])
+        self.assertNotIn("CloudyBot_Operators", after["metadata"]["PermissionSetGroup"])
+        self.assertNotIn("CloudyBot_Admin", after["metadata"]["CustomPermission"])
+        self.assertNotIn("CloudyBot_GitHub", after["metadata"]["RemoteSiteSetting"])
+        self.assertNotIn("CloudyBot_Api", after["metadata"]["CspTrustedSite"])
+        self.assertNotIn("CloudyBot_Assets", after["metadata"]["StaticResource"])
 
 
 if __name__ == "__main__":

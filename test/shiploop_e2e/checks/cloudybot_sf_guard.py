@@ -194,8 +194,8 @@ def component_allowed(rel: Path, prefix: str, lwc_prefix: str) -> bool:
     # Locate the metadata type directory (e.g. main/default/<type>/... or direct <type>/...)
     type_dirs = {
         "lwc", "aura", "objects", "customMetadata", "classes", "triggers",
-        "tabs", "applications", "flexipages", "permissionsets",
-        "platformEventSubscriberConfigs", "namedCredentials",
+        "tabs", "applications", "flexipages", "permissionsets", "permissionsetgroups",
+        "groups", "sharingRules", "platformEventSubscriberConfigs", "namedCredentials",
         "externalCredentials", "flows", "staticresources", "labels",
         "customPermissions", "remoteSiteSettings", "cspTrustedSites",
         "corsWhitelistOrigins", "quickActions", "layouts",
@@ -265,7 +265,11 @@ def member_allowed(kind: str, member: str, prefix: str, lwc_prefix: str) -> bool
         return False
     if kind in ("LightningComponentBundle", "AuraDefinitionBundle"):
         return member.startswith(lwc_prefix)
-    if "." in member and kind in ("CustomField", "ListView", "ValidationRule", "WebLink", "CompactLayout", "FieldSet", "RecordType", "BusinessProcess", "CustomMetadata"):
+    if "." in member and kind in (
+        "CustomField", "ListView", "ValidationRule", "WebLink", "CompactLayout",
+        "FieldSet", "RecordType", "BusinessProcess", "CustomMetadata",
+        "SharingCriteriaRule", "SharingOwnerRule",
+    ):
         head = member.split(".", 1)[0]
         return head.startswith(prefix)
     return member.startswith(prefix)

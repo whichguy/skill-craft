@@ -42,11 +42,17 @@ DESTRUCTIVE_ORDER = (
     "PlatformEventSubscriberConfig",
     "ApexTrigger",
     "ApexClass",
+    "PermissionSetGroup",
     "PermissionSet",
+    "CustomPermission",
     "CustomMetadata",
     "CustomObject",
+    "Group",
     "NamedCredential",
     "ExternalCredential",
+    "RemoteSiteSetting",
+    "CspTrustedSite",
+    "StaticResource",
 )
 
 
@@ -181,8 +187,10 @@ def tooling_or_data_query(org: str, soql: str, tooling: bool = True) -> list[dic
 
 def name_prefixes(kind: str, prefix: str) -> tuple[str, ...]:
     lwc = camel_prefix(prefix)
-    if kind in ("ApexClass", "ApexTrigger", "CustomObject", "PermissionSet", "CustomMetadata",
-                "PlatformEventSubscriberConfig", "NamedCredential", "ExternalCredential", "Flow"):
+    if kind in ("ApexClass", "ApexTrigger", "CustomObject", "PermissionSet", "PermissionSetGroup",
+                "CustomPermission", "CustomMetadata", "Group", "PlatformEventSubscriberConfig",
+                "NamedCredential", "ExternalCredential", "RemoteSiteSetting", "CspTrustedSite",
+                "StaticResource", "Flow"):
         return (prefix,)
     if kind == "LightningComponentBundle":
         return (lwc,)
@@ -227,15 +235,18 @@ def current_permset_assignments(org: str, username: str, prefix: str) -> list[di
         return []
     safe_user = username.replace("'", "\\'")
     soql = (
-        "SELECT Id, PermissionSet.Name FROM PermissionSetAssignment "
-        f"WHERE Assignee.Username = '{safe_user}' AND PermissionSet.Name LIKE '{prefix}%'"
+        "SELECT Id, PermissionSet.Name, PermissionSetGroup.DeveloperName FROM PermissionSetAssignment "
+        f"WHERE Assignee.Username = '{safe_user}' "
+        f"AND (PermissionSet.Name LIKE '{prefix}%' OR PermissionSetGroup.DeveloperName LIKE '{prefix}%')"
     )
     rows = tooling_or_data_query(org, soql, tooling=False)
     out = []
     for row in rows:
         ps = row.get("PermissionSet") or {}
-        if row.get("Id") and ps.get("Name"):
-            out.append({"Id": str(row["Id"]), "PermissionSetName": str(ps["Name"])})
+        psg = row.get("PermissionSetGroup") or {}
+        name = ps.get("Name") or psg.get("DeveloperName")
+        if row.get("Id") and name:
+            out.append({"Id": str(row["Id"]), "PermissionSetName": str(name)})
     return sorted(out, key=lambda r: r["Id"])
 
 
