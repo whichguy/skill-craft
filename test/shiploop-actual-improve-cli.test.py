@@ -109,10 +109,11 @@ class ImproveCliFixture(unittest.TestCase):
         (python_bin / "python3").symlink_to(sys.executable)
         self.environment = {
             # No host session markers and a keepalive home of its own: the Improve stage's complete asks the hooks'
-            # record about the host session it runs in, and a suite run inside a Claude Code or Grok session must not
-            # meet that session's real bindings.
+            # record about the host session it runs in, and a suite run inside a Claude Code, Grok, or Antigravity
+            # session must not meet that session's real bindings.
             **{name: value for name, value in os.environ.items()
-               if name not in ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID")},
+               if name not in ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID",
+                               "ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID")},
             # No progress observer.  Each packet the CLI prints starts a detached observer that rewrites progress.html,
             # trace.html and progress-observer.json in the run directory every couple of seconds and outlives the test; one
             # that wakes while tearDown removes the directory leaves those files behind, and cleanup() fails with

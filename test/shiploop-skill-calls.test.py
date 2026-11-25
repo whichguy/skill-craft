@@ -330,6 +330,7 @@ class _Echo:
 # What each non-Claude host sets in the shells it runs (any one row entry is enough).  A host started from a Claude Code
 # shell inherits Claude's session variables as well and has no Skill tool; its own marker must win.
 NESTED_HOST_MARKERS = {
+    "antigravity": ({"ANTIGRAVITY_AGENT": "1"}, {"ANTIGRAVITY_CONVERSATION_ID": "agy-1"}),
     "grok": ({"GROK_AGENT": "1", "GROK_SESSION_ID": "grok-1"},),
     "codex": ({"CODEX_THREAD_ID": "codex-thread-1"}, {"CODEX_SANDBOX": "seatbelt"}),
     "cursor": ({"CURSOR_PLUGIN_ROOT": "/plugin"},),

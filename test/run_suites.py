@@ -582,7 +582,8 @@ def _state_home_error(state_home: Path) -> str | None:
             "developer's ~/.local/state. Give its processes their own XDG_STATE_HOME, as "
             "git_fixture.isolate_git_environment does, or the store's own override (UNTIL_LOOP_STATE_DIR, "
             "SHIPLOOP_KEEPALIVE_HOME, SHIPLOOP_STATE_HOME), and leave out the host session markers that key the records "
-            "(CLAUDECODE, CLAUDE_CODE_SESSION_ID, GROK_AGENT, GROK_SESSION_ID). A private HOME alone is not "
+            "(CLAUDECODE, CLAUDE_CODE_SESSION_ID, GROK_AGENT, GROK_SESSION_ID, ANTIGRAVITY_AGENT, "
+            "ANTIGRAVITY_CONVERSATION_ID). A private HOME alone is not "
             "enough: XDG_STATE_HOME takes precedence over it")
 
 

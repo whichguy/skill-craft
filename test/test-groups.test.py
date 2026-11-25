@@ -868,7 +868,8 @@ class StateHomeGuardTest(unittest.TestCase):
         notice = ("import sys; sys.path.insert(0, sys.argv[1]); import shiploop_keepalive as keepalive; "
                   "keepalive.health_notice('/run')")
         argv = (sys.executable, "-B", "-c", notice, str(ROOT / "skills/shiploop/scripts"))
-        hosts = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID")
+        hosts = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "GROK_AGENT", "GROK_SESSION_ID",
+                 "ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID")
         for given, leaks in (({}, False), (markers, True)):
             environment = {key: value for key, value in os.environ.items() if key not in hosts}
             with self.subTest(markers=sorted(given)), mock.patch.dict(os.environ, {**environment, **given}, clear=True):
