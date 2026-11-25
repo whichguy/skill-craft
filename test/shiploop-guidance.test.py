@@ -3527,5 +3527,154 @@ class MultiStageCDAndMigrationPromptTests(unittest.TestCase):
         self.assertIn("Authority is **per destination stage and operation**", auth_doc)
 
 
+class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
+    """Unattended Hybrid 4-order progressive state-arrival elaboration across intake, discovery, spec, and plan."""
+
+    def test_intake_and_discovery_ground_host_value_and_walk_unattended_decision_frontiers(self) -> None:
+        intake = normalized(prompts.prompt("intake"))
+        for clause in (
+            "walking the implied decision tree in dependency order (unattended self-interrogation: settle prerequisites "
+            "first, then surface the frontier of downstream questions each choice opens, with no external interview skill)",
+            "single-item `cardinality = 1` host-context reads, Day-0 readiness verification when introducing a new "
+            "external provider, and human-confirmed write previews before agent-proposed, irreversible or cross-entity mutations",
+            "what existing host subsystems (notifications, audit logs, drafts, timers, quotas) it meets",
+        ):
+            with self.subTest(stage="intake", clause=clause[:60]):
+                self.assertIn(clause, intake)
+
+        discovery = normalized(prompts.prompt("discovery"))
+        self.assertIn(
+            "inventory the host's native context, caller permission model, edition quotas and touched stateful subsystems "
+            "(notifications, audit logs, live drafts, timers, background workers) in RUN/notes/discovery.md so spec grounds "
+            "host value instead of collapsing to an isolated shell",
+            discovery,
+        )
+        interaction = normalized(prompts.INTERACTION_DESIGN)
+        self.assertIn("ground why it lives in that host at single-item cardinality (`1` target, `1` operation, read-only diff preview)",
+                      interaction)
+
+    def test_spec_and_plan_prompts_carry_four_order_state_arrival_and_hybrid_reconciliation(self) -> None:
+        spec = normalized(prompts.prompt("spec"))
+        for clause in (
+            "walk four progressive causal passes in dependency order before finalizing R-<n>",
+            "Passes 3-4 add zero new user-facing features",
+            "Pass 1 — Host-value & analogous archetype baseline (Order 0 -> 1)",
+            "single-item (`cardinality = 1`) table-stakes host integration",
+            "Pass 2 — State carriers, classified errors & execution hops (Order 1)",
+            "classified external/upstream failure outcomes on every live call (auth/permission, rate-limit, timeout, upstream/malformed response)",
+            "Pass 3 — State-arrival & coexistence matrix (Order 2, zero new features)",
+            "background or event hops never silently shift or widen caller permissions under system principals",
+            "reset destructive focus, form selection and tokens after commit, cancel or error",
+            "Pass 4 — Accumulation, drift & no-wedge exit (Order 3, zero new features)",
+            "window or compact strictly on atomic turn/tool-pair or operation groups without evicting open confirmations",
+            "every non-terminal `Pending`/`Running`/`Submitting` state defines deterministic recovery",
+        ):
+            with self.subTest(stage="spec", clause=clause[:60]):
+                self.assertIn(clause, spec)
+
+        plan = normalized(prompts.prompt("plan"))
+        for clause in (
+            "Whenever an AD-<n> or `RUN/experiments/` probe introduces an async hop, background/system principal, "
+            "callout-versus-write split, storage-tier/compaction split or subsystem hook",
+            "append the declarative observable clause in place under its R-<n> (or add a new R-<n>) in "
+            "KNOWLEDGE/spec.md (## Requirements, ## Non-functional requirements) while keeping every existing R-<n> ID",
+            "record any real-boundary check under KNOWLEDGE/architecture.md ## Real-boundary checks",
+        ):
+            with self.subTest(stage="plan", clause=clause[:60]):
+                self.assertIn(clause, plan)
+
+        beh_doc = normalized((REFERENCES / "behavioral-requirements.md").read_text(encoding="utf-8"))
+        self.assertIn("walk these implications progressively in dependency order (`Order 0 -> 1 -> 2 -> 3`)", beh_doc)
+        req_doc = normalized((REFERENCES / "requirements-definition.md").read_text(encoding="utf-8"))
+        self.assertIn("2nd-order state-arrival coexistence or 3rd-order quota/drift/no-wedge invariant is not yet explicit in `spec.md`",
+                      req_doc)
+
+    def test_plan_stage_spec_reconciliation_preserves_ids_and_defaults_without_refusal(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_defaults as defaults
+        import shiploop_knowledge_home as knowledge
+        import shiploop_navigator as navigator
+        import shiploop_store as store
+
+        with tempfile.TemporaryDirectory(prefix="shiploop-prog-elab-") as tmp:
+            repo = Path(tmp) / "repo"
+            run = Path(tmp) / "run"
+            repo.mkdir()
+            run.mkdir()
+            subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.email", "t@example.com"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
+            (repo / "README.md").write_text("# App\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", "README.md"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "init"], check=True)
+
+            state = navigator.new_state(str(repo), "Build an in-host assistant.", delegation="inline")
+            while navigator.current_stage(state) != "spec":
+                aid = navigator.current_action(state)["id"]
+                state = navigator.apply(state, aid, {"outcome": "done", "summary": "ok"})
+                if state.get("active_improve"):
+                    state = navigator.finish_improve(state, aid, {"summary": "ok", "lessons": "ok"})
+
+            home = repo / "docs/shiploop"
+            home.mkdir(parents=True)
+            spec_v1 = (
+                "# Host Assistant\n\n## Requirements\n\n"
+                "### R-1: Access & Grounded Context\n"
+                "- Authorized users read host records in caller permission mode; default of 2026-11-25.\n\n"
+                "## Non-functional requirements\n- NFR-1: Responsive UI.\n\n## Retired\nnone\n"
+            )
+            (home / "spec.md").write_text(spec_v1, encoding="utf-8")
+            spec_aid = navigator.current_action(state)["id"]
+            state = navigator.apply(state, spec_aid, {
+                "outcome": "done",
+                "summary": "Spec complete",
+                "primary": ["R-1"],
+                "defaults": [{
+                    "requirement": "R-1",
+                    "question": "Should the assistant read host context by default?",
+                    "default": "Reads caller-visible host context at cardinality 1.",
+                    "alternative": "Zero-host standalone chat box.",
+                    "why": "Request places the assistant inside the host.",
+                }],
+            })
+            state = navigator.finish_improve(state, spec_aid, {"summary": "ok", "lessons": "ok"})
+            committed_spec = knowledge.commit(state, "spec")
+            self.assertTrue(committed_spec.commit)
+            store.write_record(run / "state.md", state)
+
+            # Advance test-strategy -> plan, then reconcile Order-2/3 hop invariants into spec.md + architecture.md
+            ts_aid = navigator.current_action(state)["id"]
+            (home / "environment.md").write_text(
+                "# Env\n\n## Targets and runtimes\nx\n## Commands\n```\npytest -v\n```\n## Skills\nnone\n"
+                "## Harnesses and suites\nx\n## ID convention\nTC_1\n## Access and accounts\nx\n"
+                "## Platform facts\nx\n## Release and promotion\nx\n",
+                encoding="utf-8",
+            )
+            (home / "architecture.md").write_text(
+                "# Arch\n\n## Stack\nx\n## Structure\nx\n## Conventions\nx\n## Interfaces and boundaries\nx\n"
+                "## Real-boundary checks\n- Verify caller principal across async worker hop.\n"
+                "## Decisions\n### AD-1: Async callout hop\n- Separate write hop from callout hop.\n## Superseded\nnone\n",
+                encoding="utf-8",
+            )
+            state = navigator.apply(state, ts_aid, {"outcome": "done", "summary": "ts"})
+            state = navigator.finish_improve(state, ts_aid, {"summary": "ok", "lessons": "ok"})
+            self.assertEqual(navigator.current_stage(state), "plan")
+
+            # Plan reconciles AD-1's Order-2 principal check (appending to R-1) and Order-3 no-wedge recovery (new R-2)
+            spec_v2 = (
+                "# Host Assistant\n\n## Requirements\n\n"
+                "### R-1: Access & Grounded Context\n"
+                "- Authorized users read host records in caller permission mode; default of 2026-11-25.\n"
+                "- Background callout hops verify caller principal identity and reject system-principal widening.\n\n"
+                "### R-2: No-Wedge Worker Recovery\n"
+                "- Uncaught worker limit or post-call save failures transition Pending turns to Failed with Retry.\n\n"
+                "## Non-functional requirements\n- NFR-1: Responsive UI.\n\n## Retired\nnone\n"
+            )
+            (home / "spec.md").write_text(spec_v2, encoding="utf-8")
+            self.assertEqual(knowledge.check(state, "plan"), "")
+            self.assertEqual(defaults.changed(state), set())
+            self.assertEqual(sorted(knowledge.entries(repo, "spec.md")), ["R-1", "R-2"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

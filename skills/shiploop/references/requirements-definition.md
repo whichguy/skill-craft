@@ -141,6 +141,13 @@ agent acceptance does not authorize superseding a preserved condition.
 
 If research, implementation, integration, or release reveals a new effect, use
 the existing correction/recovery route and reconcile affected pending consumers.
+When an architecture decision (`AD-<n>`) or isolated planning experiment
+introduces an async hop, background/system principal, callout-versus-write
+boundary, or storage-tier/compaction split whose 2nd-order state-arrival
+coexistence or 3rd-order quota/drift/no-wedge invariant is not yet explicit in
+`spec.md`, append the declarative observable clause in place (or add a new
+`R-<n>`) without dropping existing IDs or adding unrequested features, and map
+its check and `follows` before locking `work_items`.
 Do not silently revise accepted intent or create another ledger, phase, or review
 campaign.
 
