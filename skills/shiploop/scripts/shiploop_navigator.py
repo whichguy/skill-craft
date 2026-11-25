@@ -2273,7 +2273,13 @@ def emit(core: Any, root: Path, state: Mapping[str, Any], *, host: str | None = 
     text = render(core, root, state, timeline=timeline, host=host)
     path = packet_path(root, state)
     store.atomic_write_text(path, text)
-    boundary = model_routing.active_boundary(current_stage(state), state.get("run_id")) if state["status"] == "active" else None
+    cur_stage = sequence_stage(state)
+    reviewed_stage = child.get("stage") if cur_stage == "improve" and isinstance(child, Mapping) else None
+    boundary = (
+        model_routing.active_boundary(cur_stage, state.get("run_id"), reviewed_stage=reviewed_stage)
+        if state["status"] == "active"
+        else None
+    )
     if boundary is not None:
         printed = "\n".join([
             f"ShipLoop navigator | profile boundary | revision {state['revision']}",

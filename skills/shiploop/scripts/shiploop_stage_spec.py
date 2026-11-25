@@ -651,10 +651,10 @@ OUTER: tuple[str, ...] = tuple(row.name for row in _ROWS if row.phase == "outer"
 
 
 ACTIVITY_PROFILES = ("planning", "execution")
-EXECUTION_STAGES = frozenset((
-    "validate-existing", "implement", "test", "document",
-    "system-test", "release-check", "release", "release-verify", "operations",
-))
+PLANNING_STAGES = frozenset(PRELUDE)
+# Only the prelude runs on the planning profile by default so the host switches models at most
+# once (at prepare -> step-plan) and preserves a warm prompt cache across inner and outer loops.
+EXECUTION_STAGES = frozenset(INNER) | frozenset(OUTER)
 
 
 def stage(name: str) -> Stage:
@@ -665,14 +665,20 @@ def stage(name: str) -> Stage:
         raise ValueError(f"unknown navigator stage: {name!r}") from None
 
 
-def stage_profile(name: str | None) -> str | None:
-    """Activity profile (``planning`` or ``execution``) for ``name``, or None when unset/done."""
+def stage_profile(name: str | None, *, reviewed_stage: str | None = None) -> str | None:
+    """Activity profile (``planning`` or ``execution``) for ``name``, or None when unset/done.
+
+    Prelude ``improve`` reviews inherit ``"planning"`` via ``reviewed_stage``; all inner and
+    outer stages (and their ``improve`` reviews) default to ``"execution"``.
+    """
     if not name or name == "done":
         return None
     if name == "improve":
-        return "planning"
+        if reviewed_stage:
+            return stage_profile(reviewed_stage)
+        return "execution"
     stage(name)
-    return "execution" if name in EXECUTION_STAGES else "planning"
+    return "planning" if name in PLANNING_STAGES else "execution"
 
 
 def with_block(block: str) -> frozenset[str]:

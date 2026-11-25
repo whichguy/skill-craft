@@ -487,6 +487,8 @@ def _record_observed_model(
     *,
     stage: str | None = None,
     profile: str | None = None,
+    reviewed_stage: str | None = None,
+    run_id: str | None = None,
 ) -> bool:
     """Update ``binding`` and append a trace row when the observed ``(model, effort)`` changes."""
     obs_model, obs_effort = observed_model(host, payload)
@@ -509,9 +511,17 @@ def _record_observed_model(
             if not st.get("error"):
                 stage = st.get("stage")
                 profile = st.get("profile")
+                reviewed_stage = st.get("reviewed_stage")
+                run_id = st.get("run_id")
+        if stage:
+            routed_profile = model_routing.active_profile(
+                stage, run_id or binding.get("run_id"), reviewed_stage=reviewed_stage
+            )
+            if routed_profile is not None:
+                profile = routed_profile
         if profile is None and stage:
             try:
-                profile = stage_spec.stage_profile(stage)
+                profile = stage_spec.stage_profile(stage, reviewed_stage=reviewed_stage)
             except ValueError:
                 profile = None
         session_hash = hashlib.sha256(session.encode()).hexdigest()[:12]
@@ -576,8 +586,11 @@ def observe(host: str, payload: Mapping[str, Any]) -> dict | None:
             # Binding the same run again keeps the stop memory: running `next` is not progress, and a turn's
             # continuation count is the host's, not this command's.
             binding.update({key: previous[key] for key in STOP_MEMORY if key in previous})
-        _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
-                               profile=status.get("profile"))
+        _record_observed_model(
+            host, session, binding, payload,
+            stage=status.get("stage"), profile=status.get("profile"),
+            reviewed_stage=status.get("reviewed_stage"), run_id=status.get("run_id"),
+        )
         _write_json(path, binding)
     _record_seen_session(status.get("run_id"), host, session)
     claim_owner(status["run_dir"], host, session)
@@ -750,8 +763,11 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False,
         return {"decision": "allow", "drop": True,
                 "why": f"run cannot be read: {status.get('error', 'run changed')}"}
     if payload is not None:
-        _record_observed_model(host, session, binding, payload, stage=status.get("stage"),
-                               profile=status.get("profile"))
+        _record_observed_model(
+            host, session, binding, payload,
+            stage=status.get("stage"), profile=status.get("profile"),
+            reviewed_stage=status.get("reviewed_stage"), run_id=status.get("run_id"),
+        )
     if status["status"] != "active":
         reason = status.get("status_reason")
         waiting = ((" (waiting on an outside service)" if status.get("awaiting") == "service" else " (waiting on the user)")
@@ -763,7 +779,9 @@ def _decide(host: str, session: str, binding: dict, *, waiting: bool = False,
                 "notice": ("ShipLoop keepalive: another session owns this run, so this one is not "
                            "kept going. Continue the run from that session, or close it and run: "
                            + status["next"])}
-    boundary = model_routing.active_boundary(status.get("stage"), status.get("run_id"))
+    boundary = model_routing.active_boundary(
+        status.get("stage"), status.get("run_id"), reviewed_stage=status.get("reviewed_stage")
+    )
     if boundary is not None:
         return {"decision": "allow",
                 "why": f"profile boundary reached ({boundary['from_label']} -> {boundary['to_label']} at {boundary['stage']})"}
@@ -1419,7 +1437,11 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
         if before["status"] != "active":
             out(f"shiploop-drive: run is {before['status']} after {number - 1} session(s).")
             return EXIT_DONE if before["status"] == "done" else EXIT_NEEDS_USER
-        target = model_routing.resolve(routing, before.get("stage"), host) if routing is not None else None
+        target = (
+            model_routing.resolve(routing, before.get("stage"), host, reviewed_stage=before.get("reviewed_stage"))
+            if routing is not None
+            else None
+        )
         active_host = target.host if target is not None else host
         session = None
         if target is not None:
@@ -1580,6 +1602,9 @@ def drive_main(argv: list[str] | None = None) -> int:
                         help="optional JSON file, inline JSON, or 'default' preset mapping planning/execution profiles to models")
     parser.add_argument("--no-routing", action="store_true",
                         help="disable built-in per-host default routing and inherit host/CLI flags after --")
+    parser.add_argument("--plan-reflect-and-improve", action="store_true",
+                        help="also route reflect-and-revise and all improve stages to the planning profile "
+                             "(off by default to maximize prompt cache hits)")
     parser.add_argument("--planning-model", help="optional model for planning stages")
     parser.add_argument("--planning-effort", help="optional reasoning effort for planning stages")
     parser.add_argument("--planning-host", choices=(*HOSTS, "agy"), help="optional host override for planning stages")
@@ -1611,8 +1636,8 @@ def drive_main(argv: list[str] | None = None) -> int:
     )
     if args.routing and cli_routing is not None:
         parser.error("pass either --routing or --planning-*/--execution-* flags, not both")
-    if args.no_routing and (args.routing or cli_routing is not None):
-        parser.error("pass --no-routing without --routing or --planning-*/--execution-*/--review-*/--resume-mode")
+    if args.no_routing and (args.routing or cli_routing is not None or args.plan_reflect_and_improve):
+        parser.error("pass --no-routing without --routing, --plan-reflect-and-improve, or --planning-*/--execution-* flags")
     try:
         explicit_routing = model_routing.load_config(args.routing) if args.routing else cli_routing
     except (OSError, ValueError) as exc:
@@ -1641,6 +1666,10 @@ def drive_main(argv: list[str] | None = None) -> int:
         routing = None
     else:
         routing = model_routing.default_routing(host)
+    if args.plan_reflect_and_improve:
+        if routing is None:
+            parser.error("--plan-reflect-and-improve requires routing to be enabled")
+        routing = {**routing, "plan_reflect_and_improve": True}
     return drive(host, str(Path(args.run_dir).expanduser().resolve()),
                  max_minutes=args.max_minutes, session_timeout=args.session_timeout,
                  extra=extra, cwd=args.cwd, routing=routing)

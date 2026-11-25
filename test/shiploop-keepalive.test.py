@@ -123,7 +123,7 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
         self.assertEqual(status["progress"], "0.0.0")  # no Until Loop yet at intake
         # One derived completion instruction; no raw receipt or second task packet.
         self.assertEqual(set(status), {"run_dir", "run_id", "repo", "status", "status_reason", "awaiting", "stage",
-                                       "profile", "action", "revision", "progress", "next", "completion"})
+                                       "profile", "reviewed_stage", "action", "revision", "progress", "next", "completion"})
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
 
     def test_ordinary_completion_is_the_existing_callback_and_status_is_lock_free(self) -> None:
@@ -1418,9 +1418,11 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
         self.assertIn("profile boundary reached", decision["why"])
 
     def test_routed_drive_warm_resumes_and_switches_models_and_hosts(self) -> None:
+        # 1. With plan_reflect_and_improve=True, reflect-and-revise switches back to planning.
         routing_cfg = {
             "planning": {"antigravity": {"model": "gemini-4-neon-high"}},
             "execution": {"antigravity": {"model": "gemini-4-carbon-medium"}},
+            "plan_reflect_and_improve": True,
         }
         calls = []
         statuses = [
@@ -1429,7 +1431,7 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
             {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
              "status": "active", "stage": "implement", "revision": 2, "completion": "c2", "next": "n2"},
             {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
-             "status": "active", "stage": "review" if False else "handoff", "revision": 3, "completion": "c3", "next": "n3"},
+             "status": "active", "stage": "reflect-and-revise", "revision": 3, "completion": "c3", "next": "n3"},
             {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
              "status": "done", "stage": None, "revision": 4, "completion": "", "next": "n4"},
         ]
@@ -1458,10 +1460,39 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
         self.assertIn("--resume", calls[2][0])
         self.assertIn("gemini-4-neon-high", calls[2][0])
 
+        # 2. Default (prelude-only) runs plan -> implement -> handoff without switching back at handoff.
+        prelude_cfg = {
+            "planning": {"antigravity": {"model": "gemini-4-neon-high"}},
+            "execution": {"antigravity": {"model": "gemini-4-carbon-medium"}},
+        }
+        prelude_statuses = [
+            {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
+             "status": "active", "stage": "plan", "revision": 1, "completion": "c1", "next": "n1"},
+            {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
+             "status": "active", "stage": "implement", "revision": 2, "completion": "c2", "next": "n2"},
+            {"run_dir": str(self.run_dir), "run_id": self.status()["run_id"], "repo": str(self.repo),
+             "status": "done", "stage": None, "revision": 3, "completion": "", "next": "n3"},
+        ]
+        idx[0] = 0
+        p_calls = []
+
+        def p_runner(argv, **kwargs):
+            p_calls.append(argv)
+            idx[0] += 1
+            return DriverTests.done(argv)
+
+        with mock.patch.object(keepalive, "run_status", side_effect=lambda _d: dict(prelude_statuses[idx[0]])):
+            code = keepalive.drive("antigravity", str(self.run_dir), session_timeout=60, extra=[], cwd=None,
+                                   routing=prelude_cfg, out=lambda _m: None, runner=p_runner, clock=lambda: 10.0)
+        self.assertEqual((code, len(p_calls)), (keepalive.EXIT_DONE, 2))
+        self.assertIn("gemini-4-neon-high", p_calls[0])
+        self.assertIn("gemini-4-carbon-medium", p_calls[1])
+
         # Cross-harness switch: antigravity planning -> codex execution.
         cross_cfg = {
             "planning": {"host": "antigravity", "model": "gemini-4-neon-high"},
             "execution": {"host": "codex", "model": "gpt-6.2-sol", "effort": "medium"},
+            "plan_reflect_and_improve": True,
         }
         idx[0] = 0
         cross_calls = []
@@ -1581,14 +1612,14 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
             ("claude", {"model": "sonnet", "effort": "high"}, {"model": "haiku", "effort": "low"}),
             ("codex", {"model": "gpt-6.2-astra", "effort": "high"}, {"model": "gpt-6.2-sol", "effort": "medium"}),
         ):
-            routing_cfg = {"planning": {host: planning}, "execution": {host: execution}}
+            routing_cfg = {"planning": {host: planning}, "execution": {host: execution}, "plan_reflect_and_improve": True}
             statuses = [
                 {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
                  "status": "active", "stage": "plan", "revision": 1, "completion": "c1", "next": "n1"},
                 {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
                  "status": "active", "stage": "implement", "revision": 2, "completion": "c2", "next": "n2"},
                 {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
-                 "status": "active", "stage": "product-acceptance", "revision": 3, "completion": "c3", "next": "n3"},
+                 "status": "active", "stage": "reflect-and-revise", "revision": 3, "completion": "c3", "next": "n3"},
                 {"run_dir": str(self.run_dir), "run_id": run_id, "repo": str(self.repo),
                  "status": "done", "stage": "done", "revision": 4, "completion": "", "next": "n4"},
             ]
@@ -1655,9 +1686,18 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
         for bad_args in (
             ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--routing", "default"],
             ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--planning-model", "sonnet"],
+            ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--plan-reflect-and-improve"],
+            ["--host", "cursor", "--run-dir", str(self.run_dir), "--plan-reflect-and-improve"],
         ):
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 keepalive.drive_main(bad_args)
+
+        with mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
+            keepalive.drive_main(["--host", "codex", "--run-dir", str(self.run_dir), "--plan-reflect-and-improve"])
+            self.assertEqual(
+                m_drive.call_args.kwargs["routing"],
+                {**model_routing.default_routing("codex"), "plan_reflect_and_improve": True},
+            )
 
 
 class ThreeHostSmokeMatrixTests(unittest.TestCase):
@@ -1747,12 +1787,13 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
             payload["transcript_path"] = str(transcript)
         return payload
 
-    def test_routed_matrix_toggles_across_claude_codex_and_antigravity(self) -> None:
+    def test_routed_matrix_prelude_only_and_optin_plan_reflect_and_improve(self) -> None:
         import shiploop_model_routing as routing
 
+        # 1. Default prelude-only (prepare -> step-plan): exactly 1 boundary switch on Claude/Codex/explicit-agy.
         for host, spec in self._SPECS.items():
-            with self.subTest(host=host):
-                run_dir, ka_home, base = self._init_run(f"{host}-routed")
+            with self.subTest(prelude_only=host):
+                run_dir, ka_home, base = self._init_run(f"{host}-prelude")
                 repo = base / "repo"
                 env_patch = {
                     "SHIPLOOP_KEEPALIVE_HOME": str(ka_home),
@@ -1766,26 +1807,25 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                     marker = f"SHIPLOOP-RUN run={run_id} rev=0 dir={run_dir}"
                     transcript = base / "transcript.jsonl"
                     statuses = [
-                        {**st0, "stage": "system-test-author", "profile": "planning", "revision": 1},
-                        {**st0, "stage": "system-test", "profile": "execution", "revision": 2},
-                        {**st0, "stage": "product-acceptance", "profile": "planning", "revision": 3},
-                        {**st0, "stage": "done", "profile": None, "status": "done", "revision": 4, "completion": ""},
+                        {**st0, "stage": "prepare", "profile": "planning", "revision": 1},
+                        {**st0, "stage": "step-plan", "profile": "execution", "revision": 2},
+                        {**st0, "stage": "done", "profile": None, "status": "done", "revision": 3, "completion": ""},
                     ]
                     idx = [0]
                     invocations: list[tuple[list[str], dict[str, str]]] = []
-                    sid = f"{host}-smoke-thread"
+                    sid = f"{host}-prelude-thread"
 
                     def runner(argv, **kwargs):
                         cur = idx[0]
                         invocations.append((argv, kwargs.get("env", {})))
-                        prof = "execution" if cur == 1 else "planning"
+                        prof = "planning" if cur == 0 else "execution"
                         _m_in, effort_in, obs_m = spec[prof]
                         obs_payload = self._make_payload(
                             host, "observe", sid, marker, run_dir,
                             effort=effort_in, obs_model=obs_m, transcript=transcript,
                         )
                         keepalive.run_hook("observe", host, json.dumps(obs_payload))
-                        if cur in (0, 1):
+                        if cur == 0:
                             idx[0] += 1
                             nxt = statuses[idx[0]]
                             stop_payload = self._make_payload(
@@ -1813,18 +1853,15 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                         code = keepalive.drive(host, str(run_dir), session_timeout=60, extra=[], cwd=str(repo),
                                                routing=routing_cfg, out=lambda _m: None, runner=runner, clock=lambda: 5.0)
                     self.assertEqual(code, keepalive.EXIT_DONE)
-                    self.assertEqual(len(invocations), 3)
+                    self.assertEqual(len(invocations), 2)
                     self.assertNotIn("--resume", invocations[0][0])
                     if host == "codex":
                         self.assertEqual(invocations[1][0][:3], ["codex", "exec", "resume"])
-                        self.assertEqual(invocations[2][0][:3], ["codex", "exec", "resume"])
                     else:
                         self.assertIn("--resume", invocations[1][0])
-                        self.assertIn("--resume", invocations[2][0])
                     self.assertIn(sid, invocations[1][0])
-                    self.assertIn(sid, invocations[2][0])
 
-                    self._write_history(run_dir / "state.md", ["system-test-author", "system-test", "product-acceptance"])
+                    self._write_history(run_dir / "state.md", ["prepare", "step-plan"])
                     verdict = self.probe.grade_run(
                         host,
                         run_dir,
@@ -1832,6 +1869,80 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                         mode="routed",
                         expected_planning=(spec["planning"][0], spec["planning"][1]),
                         expected_execution=(spec["execution"][0], spec["execution"][1]),
+                    )
+                    self.assertTrue(verdict["pass"], verdict)
+                    self.assertEqual(len(verdict["boundary_stops"]), 1, verdict)
+
+        # 2. Opt-in plan_reflect_and_improve=True (system-test-author -> improve -> system-test, 2 boundary stops).
+        for host in ("claude", "codex"):
+            with self.subTest(optin=host):
+                spec = self._SPECS[host]
+                run_dir, ka_home, base = self._init_run(f"{host}-optin")
+                repo = base / "repo"
+                env_patch = {
+                    "SHIPLOOP_KEEPALIVE_HOME": str(ka_home),
+                    "SHIPLOOP_PROGRESS": "off",
+                    "GIT_CONFIG_NOSYSTEM": "1",
+                    "GIT_CONFIG_GLOBAL": os.devnull,
+                }
+                with mock.patch.dict(os.environ, env_patch), mock.patch.object(keepalive, "host_process", return_value=None):
+                    st0 = keepalive.run_status(str(run_dir))
+                    run_id = st0["run_id"]
+                    marker = f"SHIPLOOP-RUN run={run_id} rev=0 dir={run_dir}"
+                    transcript = base / "transcript.jsonl"
+                    statuses = [
+                        {**st0, "stage": "system-test-author", "profile": "execution", "revision": 1},
+                        {**st0, "stage": "improve", "reviewed_stage": "system-test-author", "profile": "execution", "revision": 2},
+                        {**st0, "stage": "system-test", "profile": "execution", "revision": 3},
+                        {**st0, "stage": "done", "profile": None, "status": "done", "revision": 4, "completion": ""},
+                    ]
+                    idx = [0]
+                    invocations: list[tuple[list[str], dict[str, str]]] = []
+                    sid = f"{host}-optin-thread"
+
+                    def runner(argv, **kwargs):
+                        cur = idx[0]
+                        invocations.append((argv, kwargs.get("env", {})))
+                        prof = "planning" if cur == 1 else "execution"
+                        _m_in, effort_in, obs_m = spec[prof]
+                        obs_payload = self._make_payload(
+                            host, "observe", sid, marker, run_dir,
+                            effort=effort_in, obs_model=obs_m, transcript=transcript,
+                        )
+                        with mock.patch.dict(os.environ, kwargs.get("env", {})):
+                            keepalive.run_hook("observe", host, json.dumps(obs_payload))
+                        if cur in (0, 1):
+                            idx[0] += 1
+                            nxt = statuses[idx[0]]
+                            stop_payload = self._make_payload(
+                                host, "stop", sid, marker, run_dir,
+                                effort=effort_in, obs_model=obs_m, transcript=transcript,
+                            )
+                            with mock.patch.dict(os.environ, kwargs.get("env", {})), \
+                                    mock.patch.object(keepalive, "run_status", return_value=nxt):
+                                raw_out = keepalive.run_hook("stop", host, json.dumps(stop_payload))
+                            if raw_out:
+                                self.assertEqual(json.loads(raw_out)["decision"], "allow")
+                            keepalive.run_hook("session-end", host, json.dumps({"session_id": sid, "reason": "other"}))
+                        else:
+                            idx[0] += 1
+                        return subprocess.CompletedProcess(argv, 0, "ok", "")
+
+                    routing_cfg = {**routing.default_routing(host), "plan_reflect_and_improve": True}
+                    with mock.patch.object(keepalive, "run_status", side_effect=lambda _d: dict(statuses[idx[0]])):
+                        code = keepalive.drive(host, str(run_dir), session_timeout=60, extra=[], cwd=str(repo),
+                                               routing=routing_cfg, out=lambda _m: None, runner=runner, clock=lambda: 5.0)
+                    self.assertEqual(code, keepalive.EXIT_DONE)
+                    self.assertEqual(len(invocations), 3)
+                    self._write_history(run_dir / "state.md", ["system-test-author", "system-test"])
+                    verdict = self.probe.grade_run(
+                        host,
+                        run_dir,
+                        ka_home / "drive" / run_id / "drive.log",
+                        mode="routed",
+                        expected_planning=(spec["planning"][0], spec["planning"][1]),
+                        expected_execution=(spec["execution"][0], spec["execution"][1]),
+                        plan_reflect_and_improve=True,
                     )
                     self.assertTrue(verdict["pass"], verdict)
                     self.assertEqual(len(verdict["boundary_stops"]), 2, verdict)
@@ -1861,7 +1972,7 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
                                        cwd=str(base / "repo"), routing=None, out=lambda _m: None, runner=runner,
                                        clock=lambda: 5.0)
             self.assertEqual(code, keepalive.EXIT_DONE)
-            self._write_history(run_dir / "state.md", ["system-test-author", "system-test", "product-acceptance"])
+            self._write_history(run_dir / "state.md", ["prepare", "step-plan"])
             ok = self.probe.grade_run(
                 "codex", run_dir, ka_home / "drive" / run_id / "drive.log",
                 mode="unrouted", expected_planning=("gpt-6.2-sol", "medium"), expected_execution=("gpt-6.2-sol", "medium"),
@@ -1941,7 +2052,7 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
             self.assertEqual(code, keepalive.EXIT_DONE)
             self.assertEqual(len(invocations), 1)
             self.assertIn("gemini-pro-orchestrator-neon", invocations[0])
-            self._write_history(run_dir / "state.md", ["system-test-author", "system-test", "product-acceptance"])
+            self._write_history(run_dir / "state.md", ["prepare", "step-plan"])
             verdict = self.probe.grade_run(
                 "antigravity", run_dir, ka_home / "drive" / run_id / "drive.log",
                 mode="routed",
@@ -1951,6 +2062,113 @@ class ThreeHostSmokeMatrixTests(unittest.TestCase):
             self.assertTrue(verdict["pass"], verdict)
             self.assertTrue(verdict["checks"]["single_session_ok"])
             self.assertEqual(len(verdict["boundary_stops"]), 0)
+
+    def test_active_improve_sequence_stage_and_boundary_in_real_state(self) -> None:
+        import shiploop_model_routing as routing
+
+        routing_cfg = routing.default_routing("codex")
+        exec_target = routing.resolve(routing_cfg, "step-plan", "codex")
+        self.assertIsNotNone(exec_target)
+        materials_root = self.temp / "active-improve-materials"
+        product_dir, home_fix_dir = self.probe._write_smoke_materials(materials_root)
+
+        def _make_run(reviewed: str) -> Path:
+            if reviewed == "spec":
+                rdir, _ka, _base = self._init_run("active-improve-spec")
+                return rdir
+            work = self.temp / "active-improve-outer-work"
+            runs_out = self.temp / "active-improve-outer-out"
+            work.mkdir(parents=True, exist_ok=True)
+            runs_out.mkdir(parents=True, exist_ok=True)
+            ka_home = self.temp / "active-improve-outer-ka"
+            gitconfig = self.temp / "active-improve-gitconfig"
+            self.probe._write_gitconfig(gitconfig)
+            with mock.patch.dict(os.environ, {
+                "GIT_CONFIG_GLOBAL": str(gitconfig),
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "SHIPLOOP_KEEPALIVE_HOME": str(ka_home),
+                "SHIPLOOP_PROGRESS": "off",
+            }):
+                seeded = self.probe.e2e_run.seed_run(
+                    SCRIPTS / "shiploop", work, runs_out, self.probe.SMOKE_PROMPT, reviewed,
+                    work_item={"id": "W1", "title": "Add greet helper"},
+                    delegation="inline",
+                    checks=["python3 -m unittest -v"],
+                    product=product_dir,
+                    home_fixture=home_fix_dir,
+                    exclude=["README.md"],
+                    planning_review="stage",
+                    release_slice_mode=True,
+                )
+            return Path(seeded["run_dir"]).resolve()
+
+        for reviewed, expected_default_profile, expect_optin_boundary in (
+            ("spec", "planning", True),
+            ("system-test-author", "execution", True),
+        ):
+            with self.subTest(reviewed=reviewed):
+                run_dir = _make_run(reviewed)
+                state_path = run_dir / "state.md"
+                st = store.read_record(state_path)
+                run_id = st["run_id"]
+                st["planning_review"] = "stage"
+                st["stage"] = reviewed
+                st["action"] = nav._new_action(reviewed)
+                reviewed_aid = st["action"]["id"]
+                seed = nav._canonical_result(
+                    {"outcome": "done", "summary": "ready for improve", "headline": "ready"},
+                    stage=reviewed,
+                    delivery_contract="delivery_contract_version" in st,
+                )
+                st["active_improve"] = {
+                    "action_id": reviewed_aid,
+                    "stage": reviewed,
+                    "binding_id": f"{run_id}/{reviewed_aid}",
+                    "workspace": st["repo"],
+                    "seed_result": seed,
+                    "skill": None,
+                    "improve_action": nav._new_action("improve")["id"],
+                }
+                st["revision"] = int(st.get("revision", 0)) + 1
+                store.write_record(state_path, st, "active improve regression")
+
+                st_res = shiploop("hook-status", "--run-dir", str(run_dir))
+                self.assertEqual(st_res.returncode, 0, st_res.stdout + st_res.stderr)
+                status = json.loads(st_res.stdout)
+                self.assertEqual(status["stage"], "improve")
+                self.assertEqual(status["reviewed_stage"], reviewed)
+                self.assertEqual(status["profile"], expected_default_profile)
+
+                default_routing_path = self.temp / f"{reviewed}-default-routing.json"
+                default_routing_path.write_text(json.dumps(routing_cfg), encoding="utf-8")
+                env_default = {
+                    "SHIPLOOP_DRIVE_ROUTING": str(default_routing_path),
+                    "SHIPLOOP_DRIVE_HOST": "codex",
+                    "SHIPLOOP_DRIVE_TARGET": exec_target.target_key,
+                    "SHIPLOOP_DRIVE_LABEL": exec_target.label,
+                    "SHIPLOOP_DRIVE_RUN_ID": run_id,
+                }
+                with mock.patch.dict(os.environ, env_default):
+                    nxt_default = shiploop("next", "--run-dir", str(run_dir))
+                self.assertEqual(nxt_default.returncode, 0, nxt_default.stderr)
+                if reviewed == "spec":
+                    self.assertIn("Profile boundary reached:", nxt_default.stdout)
+                    self.assertIn("next stage `improve` (planning)", nxt_default.stdout)
+                else:
+                    self.assertNotIn("Profile boundary reached:", nxt_default.stdout)
+
+                optin_routing_path = self.temp / f"{reviewed}-optin-routing.json"
+                optin_routing_path.write_text(
+                    json.dumps({**routing_cfg, "plan_reflect_and_improve": True}),
+                    encoding="utf-8",
+                )
+                env_optin = {**env_default, "SHIPLOOP_DRIVE_ROUTING": str(optin_routing_path)}
+                with mock.patch.dict(os.environ, env_optin):
+                    nxt_optin = shiploop("next", "--run-dir", str(run_dir))
+                self.assertEqual(nxt_optin.returncode, 0, nxt_optin.stderr)
+                if expect_optin_boundary:
+                    self.assertIn("Profile boundary reached:", nxt_optin.stdout)
+                    self.assertIn("next stage `improve` (planning)", nxt_optin.stdout)
 
 
 if __name__ == "__main__":

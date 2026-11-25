@@ -10,7 +10,7 @@ optional; runs work without it.
 | Part | What it does |
 |------|--------------|
 | Packet marker | Every packet prints `Keepalive marker: SHIPLOOP-RUN run=<id> rev=<n> dir=<run dir>`. |
-| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `profile`, `action`, `revision`, `progress`, `repo`, `next`, `completion`. `profile` is `planning` or `execution` from the stage table. `completion` describes a valid current completion operation; it is empty outside an active run or when no valid operation can be derived. Exit 2 with an `error` field when the run cannot be read. |
+| `shiploop hook-status --run-dir DIR` | Read-only, lock-free JSON: `status`, `stage`, `profile`, `reviewed_stage`, `action`, `revision`, `progress`, `repo`, `next`, `completion`. `profile` is `planning` or `execution` from the stage table (`reviewed_stage` names the stage being reviewed during an active `improve` step). `completion` describes a valid current completion operation; it is empty outside an active run or when no valid operation can be derived. Exit 2 with an `error` field when the run cannot be read. |
 | `scripts/shiploop-hook observe` | After a shell command: if the output has a marker whose run id matches the live run, and the command was a ShipLoop command that drives the run (`workspace start`, `init`, `next`, `resume`, `complete`, the Improve bind/complete/reconcile verbs), bind this host session to that run. A marker printed by any other command (reading a packet file, a log or a transcript) never binds; hosts that do not report the command keep marker binding. |
 | `scripts/shiploop-hook stop` | When the host is about to end a turn: while the bound run is `active` with required completion pending, refuse the stop and repeat the current action's completion instructions. |
 | `scripts/shiploop-hook skill` | After a Skill-tool call (Claude Code only): append the call to the bound run's `skill-calls.jsonl`. It never blocks the call; see [Skill calls](#skill-calls-claude-code-only). |
@@ -241,31 +241,35 @@ the run directory.
 ### Harness-to-model routing (`shiploop-drive`)
 
 For `claude`, `codex`, and `antigravity`, `shiploop-drive` applies built-in per-host
-**planning** (`intake`..`prepare`, `step-plan`, `test-spec`, `reflect-and-revise`,
-`system-test-author`, `product-acceptance`, `release-plan`, `handoff`, `improve`) vs.
-**execution** (`validate-existing`, `implement`, `test`, `document`, `system-test`,
-`release-check`, `release`, `release-verify`, `operations`) defaults automatically unless
-you pass `--no-routing` or set `--model` / `-m` after `--`:
+defaults using a **prelude-only** planner boundary by default so multi-stage runs
+maximize prompt cache hits:
+
+- **Default (`planning` → `execution`, 1 switch):** **planning** covers only the
+  prelude stages (`intake`..`prepare` plus prelude `improve` reviews); **execution**
+  covers everything from `step-plan` through `handoff` (including inner-loop steps,
+  `reflect-and-revise`, inner/outer `improve`, and release stages).
+- **Opt-in `--plan-reflect-and-improve`** (or `"plan_reflect_and_improve": true` in
+  `routing.json`, off by default): also routes `reflect-and-revise` and every `improve`
+  stage to `planning` (traded off against extra KV/prompt-cache invalidations).
+
+Pass `--no-routing` or set `--model` / `-m` after `--` to opt out and inherit the host's
+unrouted CLI configuration instead:
 
 | Host | Planning profile | Execution profile | Boundary behavior |
 |------|------------------|-------------------|-------------------|
-| `claude` | `claude-opus-5-5` (`high`) | `claude-sonnet-5-5` (`high`) | Pauses at profile change, warm-resumes `--resume` |
-| `codex` | `gpt-6.2-astra` (`high`) | `gpt-6.2-sol` (`xhigh`) | Pauses at profile change, warm-resumes `exec resume` |
-| `antigravity` | `gemini-pro-orchestrator-neon` | `gemini-pro-orchestrator-neon` | Single unbroken Orchestrator session (Neon plan ↔ Carbon execute) |
+| `claude` | `claude-opus-5-5` (`high`) | `claude-sonnet-5-5` (`high`) | Pauses at `prepare -> step-plan` (default 1 switch), warm-resumes `--resume` |
+| `codex` | `gpt-6.2-astra` (`high`) | `gpt-6.2-sol` (`xhigh`) | Pauses at `prepare -> step-plan` (default 1 switch), warm-resumes `exec resume` |
+| `antigravity` | `gemini-pro-orchestrator-neon` | `gemini-pro-orchestrator-neon` | Single unbroken Orchestrator session (Neon plan ↔ internal worker execution) |
 
 To override the built-in defaults, pass `--routing routing.json` (or `--routing default`),
-or the shorthand `--planning-model` / `--planning-effort` / `--execution-model` /
-`--execution-effort` (plus optional `--review-*` for `improve` and `--*-host` for
-cross-harness runs). Pass `--no-routing` (or `-- --model ...` / `-m ...`) to inherit
-the host's unrouted CLI configuration instead:
+`--plan-reflect-and-improve`, or the shorthand `--planning-model` / `--planning-effort` /
+`--execution-model` / `--execution-effort` (plus optional `--review-*` for `improve` and
+`--*-host` for cross-harness runs):
 
 ```sh
 scripts/shiploop-drive --host claude --run-dir RUN -- --dangerously-skip-permissions
-scripts/shiploop-drive --host antigravity --run-dir RUN --routing default -- --dangerously-skip-permissions
+scripts/shiploop-drive --host codex --run-dir RUN --plan-reflect-and-improve -- --dangerously-bypass-approvals-and-sandbox
 scripts/shiploop-drive --host codex --run-dir RUN --no-routing -- -m gpt-6.2-sol
-scripts/shiploop-drive --host codex --run-dir RUN \
-  --planning-model gpt-6.2-astra --planning-effort high \
-  --execution-model gpt-6.2-sol --execution-effort xhigh -- --dangerously-bypass-approvals-and-sandbox
 ```
 
 `routing.json` supports both a flat model spec (applies to whichever `--host` is active)

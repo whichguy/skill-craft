@@ -43,7 +43,9 @@ import shiploop_model_routing as model_routing  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
 ALL_HOSTS = ("claude", "codex", "antigravity")
-SMOKE_STAGES = ("system-test-author", "system-test", "product-acceptance")
+PRELUDE_SMOKE_STAGES = ("prepare", "step-plan")
+OPTIN_SMOKE_STAGES = ("system-test-author", "system-test")
+SMOKE_STAGES = PRELUDE_SMOKE_STAGES
 DEFAULT_ROUTES: dict[str, dict[str, dict[str, str | None]]] = {
     host: {
         profile: {
@@ -148,6 +150,13 @@ def _write_smoke_materials(out_root: Path) -> tuple[Path, Path]:
     (home_fix / "spec.md").write_text(SMOKE_SPEC_MD, encoding="utf-8")
     (home_fix / "environment.md").write_text(SMOKE_ENV_MD, encoding="utf-8")
     (home_fix / "architecture.md").write_text(SMOKE_ARCH_MD, encoding="utf-8")
+    prelude_fix = materials / "prelude_fixture"
+    prelude_home = prelude_fix / "docs" / "shiploop"
+    prelude_home.mkdir(parents=True, exist_ok=True)
+    (prelude_fix / "README.md").write_text("# greet\nMinimal smoke fixture.\n", encoding="utf-8")
+    (prelude_home / "spec.md").write_text(SMOKE_SPEC_MD, encoding="utf-8")
+    (prelude_home / "environment.md").write_text(SMOKE_ENV_MD, encoding="utf-8")
+    (prelude_home / "architecture.md").write_text(SMOKE_ARCH_MD, encoding="utf-8")
     return product, home_fix
 
 
@@ -203,13 +212,15 @@ def grade_run(
     expected_planning: tuple[str, str | None],
     expected_execution: tuple[str, str | None],
     check_boundary_stops: bool = True,
+    plan_reflect_and_improve: bool = False,
 ) -> dict[str, Any]:
     """Grade one completed or paused smoke run purely from disk records (`state.md`, `drive.log`, `trace.jsonl`)."""
     norm_host = model_routing.normalize_host(host)
     state_path = run_dir / "state.md"
     state = store.read_record(state_path) if state_path.is_file() else {}
     accepted_stages = [entry.get("stage") for entry in state.get("history", []) if isinstance(entry, dict)]
-    stages_ok = all(stage in accepted_stages for stage in SMOKE_STAGES)
+    expected_stages = OPTIN_SMOKE_STAGES if plan_reflect_and_improve else PRELUDE_SMOKE_STAGES
+    stages_ok = all(stage in accepted_stages for stage in expected_stages)
 
     drive_rows = _read_jsonl(drive_log)
     trace_rows = _read_jsonl(run_dir / "trace.jsonl")
@@ -229,7 +240,12 @@ def grade_run(
             single_session_ok = len(sessions) >= 1 and len(boundary_stages) == 0
             target_recorded_ok = bool(sessions) and sessions[0].get("model") == expected_planning[0]
             if norm_host == "antigravity" and expected_planning[0] == "gemini-pro-orchestrator-neon":
-                orchestrator_prefixes = ("gemini-pro-orchestrator-neon", "gemini-4-neon", "gemini-4-carbon")
+                orchestrator_prefixes = (
+                    "gemini-pro-orchestrator-neon",
+                    "gemini-4-neon",
+                    "gemini-4-carbon",
+                    "gemini-4-hydrogen",
+                )
                 observed_models_ok = any(
                     any(prefix in str(ev.get("model") or "").lower() for prefix in orchestrator_prefixes)
                     for ev in model_rows
@@ -246,12 +262,34 @@ def grade_run(
                 "target_recorded_ok": target_recorded_ok,
                 "observed_models_ok": observed_models_ok,
             }
-        else:
+        elif plan_reflect_and_improve:
             resumed_ids = [row.get("resumed") for row in sessions[1:3] if isinstance(row.get("resumed"), str) and row.get("resumed")]
             warm_resume_ok = len(sessions) >= 3 and len(resumed_ids) == 2 and len(set(resumed_ids)) == 1
             boundary_stops_ok = (
-                (any("at system-test)" in why for why in boundary_stages)
-                 and any("at product-acceptance)" in why for why in boundary_stages))
+                (any("at improve)" in why for why in boundary_stages)
+                 and any("at system-test)" in why for why in boundary_stages))
+                if check_boundary_stops else True
+            )
+            observed_models_ok = _subsequence_match(
+                model_rows,
+                [
+                    (expected_execution[0], expected_execution[1], "execution"),
+                    (expected_planning[0], expected_planning[1], "planning"),
+                    (expected_execution[0], expected_execution[1], "execution"),
+                ],
+            )
+            passed = stages_ok and warm_resume_ok and boundary_stops_ok and observed_models_ok
+            checks = {
+                "stages_ok": stages_ok,
+                "warm_resume_ok": warm_resume_ok,
+                "boundary_stops_ok": boundary_stops_ok,
+                "observed_models_ok": observed_models_ok,
+            }
+        else:
+            resumed_id = sessions[1].get("resumed") if len(sessions) >= 2 else None
+            warm_resume_ok = len(sessions) >= 2 and isinstance(resumed_id, str) and bool(resumed_id)
+            boundary_stops_ok = (
+                len(boundary_stages) == 1 and "at step-plan)" in boundary_stages[0]
                 if check_boundary_stops else True
             )
             observed_models_ok = _subsequence_match(
@@ -259,7 +297,6 @@ def grade_run(
                 [
                     (expected_planning[0], expected_planning[1], "planning"),
                     (expected_execution[0], expected_execution[1], "execution"),
-                    (expected_planning[0], expected_planning[1], "planning"),
                 ],
             )
             passed = stages_ok and warm_resume_ok and boundary_stops_ok and observed_models_ok
@@ -286,12 +323,16 @@ def grade_run(
     return {
         "host": norm_host,
         "mode": mode,
+        "plan_reflect_and_improve": plan_reflect_and_improve,
         "pass": passed,
         "checks": checks,
         "state_status": state.get("status"),
         "state_stage": state.get("stage"),
         "revision": state.get("revision"),
-        "accepted_outer_stages": [s for s in accepted_stages if s in (*SMOKE_STAGES, "release-plan", "release-check", "release", "release-verify", "operations", "handoff")],
+        "accepted_outer_stages": [
+            s for s in accepted_stages
+            if s in (*PRELUDE_SMOKE_STAGES, "test-spec", *OPTIN_SMOKE_STAGES, "product-acceptance", "release-plan", "release-check", "release", "release-verify", "operations", "handoff")
+        ],
         "drive_sessions": len(drive_rows),
         "boundary_stops": boundary_stages,
         "observed_models": [
@@ -317,6 +358,7 @@ def stage_host(
     session_timeout: int,
     max_minutes: int,
     use_default_routing: bool = False,
+    plan_reflect_and_improve: bool = False,
 ) -> dict[str, Any]:
     """Stage an isolated workspace, seeded run, plugin, env, and `shiploop-drive` argv for `host`."""
     norm_host = model_routing.normalize_host(host)
@@ -400,18 +442,33 @@ def stage_host(
     else:
         raise ValueError(f"unsupported smoke host: {host!r}")
 
-    seeded = e2e_run.seed_run(
-        cli, work, runs_out, SMOKE_PROMPT, "system-test-author",
-        work_item={"id": "W1", "title": "Add greet helper"},
-        delegation="inline",
-        checks=["python3 -m unittest -v"],
-        product=product_dir,
-        home_fixture=home_fix_dir,
-        exclude=["README.md"],
-        planning_review="none",
-        improve_skill=str(improve),
-        release_slice_mode=True,
-    )
+    if plan_reflect_and_improve:
+        seeded = e2e_run.seed_run(
+            cli, work, runs_out, SMOKE_PROMPT, "system-test-author",
+            work_item={"id": "W1", "title": "Add greet helper"},
+            delegation="inline",
+            checks=["python3 -m unittest -v"],
+            product=product_dir,
+            home_fixture=home_fix_dir,
+            exclude=["README.md"],
+            planning_review="none",
+            improve_skill=str(improve),
+            release_slice_mode=True,
+        )
+    else:
+        prelude_fix = product_dir.parent / "prelude_fixture"
+        if not prelude_fix.is_dir():
+            prelude_fix = product_dir
+        seeded = e2e_run.seed_run(
+            cli, work, runs_out, SMOKE_PROMPT, "prepare",
+            fixture=prelude_fix,
+            work_item={"id": "W1", "title": "Add greet helper"},
+            delegation="inline",
+            checks=["python3 -m unittest -v"],
+            planning_review="none",
+            improve_skill=str(improve),
+            release_slice_mode=False,
+        )
     run_dir = Path(seeded["run_dir"]).resolve()
     run_id = store.read_record(run_dir / "state.md")["run_id"]
     drive_log = ka_home / "drive" / run_id / "drive.log"
@@ -425,12 +482,16 @@ def stage_host(
         "--session-timeout", str(session_timeout),
     ]
     if mode == "routed" and not use_default_routing:
-        routing_cfg = {
+        routing_cfg: dict[str, Any] = {
             "planning": {norm_host: _route_entry(planning[0], planning[1])},
             "execution": {norm_host: _route_entry(execution[0], execution[1])},
         }
+        if plan_reflect_and_improve:
+            routing_cfg["plan_reflect_and_improve"] = True
         routing_path.write_text(json.dumps(routing_cfg, indent=2) + "\n", encoding="utf-8")
         argv += ["--routing", str(routing_path)]
+    elif mode == "routed" and plan_reflect_and_improve:
+        argv += ["--plan-reflect-and-improve"]
     elif mode == "unrouted":
         argv += ["--no-routing"]
     argv += ["--", *extra]
@@ -438,6 +499,7 @@ def stage_host(
     return {
         "host": norm_host,
         "mode": mode,
+        "plan_reflect_and_improve": plan_reflect_and_improve,
         "out_dir": str(out_dir),
         "run_dir": str(run_dir),
         "run_id": run_id,
@@ -458,7 +520,8 @@ def _route_entry(model: str, effort: str | None) -> dict[str, str]:
     return entry
 
 
-def _pause_watcher(cli: Path, run_dir: Path, env: dict[str, str], stop_event: threading.Event) -> None:
+def _pause_watcher(cli: Path, run_dir: Path, env: dict[str, str], stop_event: threading.Event,
+                   *, pause_stage: str = "test-spec") -> None:
     while not stop_event.wait(0.5):
         res = subprocess.run([sys.executable, str(cli), "hook-status", "--run-dir", str(run_dir)],
                              env=env, capture_output=True, text=True, check=False)
@@ -468,9 +531,9 @@ def _pause_watcher(cli: Path, run_dir: Path, env: dict[str, str], stop_event: th
             st = json.loads(res.stdout)
         except ValueError:
             continue
-        if st.get("stage") == "release-plan" and st.get("status") == "active":
+        if st.get("stage") == pause_stage and st.get("status") == "active":
             subprocess.run([sys.executable, str(cli), "pause", "--run-dir", str(run_dir),
-                            "--reason", "model-routing smoke complete (crossed system-test-author -> system-test -> product-acceptance)"],
+                            "--reason", f"model-routing smoke complete (paused at {pause_stage})"],
                            env=env, capture_output=True, text=True, check=False)
             return
         if st.get("status") != "active":
@@ -481,10 +544,15 @@ def run_staged(spec: dict[str, Any], *, full_outer: bool = False) -> dict[str, A
     run_dir = Path(spec["run_dir"])
     cli = Path(spec["cli"])
     env = spec["env"]
+    opt_in = bool(spec.get("plan_reflect_and_improve"))
+    pause_stage = "product-acceptance" if opt_in else "test-spec"
     stop_event = threading.Event()
     watcher = None
     if not full_outer:
-        watcher = threading.Thread(target=_pause_watcher, args=(cli, run_dir, env, stop_event), daemon=True)
+        watcher = threading.Thread(
+            target=_pause_watcher, args=(cli, run_dir, env, stop_event),
+            kwargs={"pause_stage": pause_stage}, daemon=True,
+        )
         watcher.start()
     started = time.monotonic()
     try:
@@ -503,6 +571,7 @@ def run_staged(spec: dict[str, Any], *, full_outer: bool = False) -> dict[str, A
         expected_planning=tuple(spec["expected_planning"]),
         expected_execution=tuple(spec["expected_execution"]),
         check_boundary_stops=True,
+        plan_reflect_and_improve=opt_in,
     )
     verdict["driver_exit"] = proc.returncode
     verdict["wall_seconds"] = seconds
@@ -531,6 +600,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="let each host run all outer stages to `done` instead of pausing at release-plan")
     parser.add_argument("--dry-run", action="store_true",
                         help="stage workspaces and print driver commands without invoking live models")
+    parser.add_argument("--plan-reflect-and-improve", action="store_true",
+                        help="pass --plan-reflect-and-improve and exercise execution -> planning (improve) -> execution")
     parser.add_argument("--antigravity-planning", help="model[/effort], default gemini-pro-orchestrator-neon")
     parser.add_argument("--antigravity-execution", help="model[/effort], default gemini-pro-orchestrator-neon")
     parser.add_argument("--codex-planning", help="model[/effort], default gpt-6.2-astra/high")
@@ -588,6 +659,7 @@ def main(argv: list[str] | None = None) -> int:
                 session_timeout=args.session_timeout,
                 max_minutes=args.timeout_minutes,
                 use_default_routing=(mode == "routed" and not has_override),
+                plan_reflect_and_improve=bool(args.plan_reflect_and_improve),
             ))
 
     if args.dry_run:
