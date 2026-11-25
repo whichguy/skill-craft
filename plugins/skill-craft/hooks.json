@@ -1,0 +1,23 @@
+{
+  "shiploop": {
+    "PostToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./skills/shiploop/scripts/shiploop-keepalive-observe",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "./skills/shiploop/scripts/shiploop-keepalive-stop",
+        "timeout": 30
+      }
+    ]
+  }
+}

@@ -56,13 +56,13 @@ SCRIPTS = Path(__file__).resolve().parent
 SHIPLOOP = SCRIPTS / "shiploop"
 HOOK = SCRIPTS / "shiploop-hook"
 HOOKS_DIR = SCRIPTS.parent / "hooks"
-HOSTS = ("claude", "grok", "codex", "cursor", "opencode")
+HOSTS = ("claude", "grok", "codex", "cursor", "opencode", "antigravity")
 # Plugin hooks ship one registration for every host that loads the plugin.
 AUTO = "auto"
 
 # Must match shiploop_navigator.KEEPALIVE_MARKER and the packet line format.
 MARKER = re.compile(r"SHIPLOOP-RUN run=(?P<run_id>\S+) rev=(?P<rev>\d+) dir=(?P<dir>[^\r\n]+)")
-SESSION_KEYS = ("session_id", "sessionId", "sessionID", "conversation_id")
+SESSION_KEYS = ("session_id", "sessionId", "sessionID", "conversation_id", "conversationId")
 # Two registrations of one host (say a plugin and settings) can fire for the
 # same stop; within this window the second repeats the first decision.
 DUPLICATE_WINDOW_SECONDS = 3.0
@@ -271,9 +271,13 @@ def session_of(payload: Mapping[str, Any]) -> str | None:
 def detected_host(payload: Mapping[str, Any]) -> str | None:
     """Which host sent this payload, when its shape says so.
 
+    Antigravity and Grok both send ``hookEventName``, so Antigravity's
+    artifactDirectoryPath / conversationId+workspacePaths markers win first.
     Grok also runs Cursor's ~/.cursor/hooks.json and a project's
     .claude/settings.json, so one Grok event can reach another host's entry.
     """
+    if "artifactDirectoryPath" in payload or ("conversationId" in payload and "workspacePaths" in payload):
+        return "antigravity"
     if "promptId" in payload or "hookEventName" in payload:
         return "grok"
     if "turn_id" in payload:
@@ -314,7 +318,7 @@ def _strings(value: Any) -> Iterator[str]:
 # Only commands that drive the run bind; a read-only query (hook-status, status,
 # report, context) from another session must never claim someone else's run.
 COMMAND_RUN_DIR = re.compile(
-    r"\bshiploop\s+(?:init|next|resume|complete|check|improve-bind|improve-start|improve-pass|improve-reconcile)\b"
+    r"\bshiploop[\w.-]*['\"]?\s+(?:init|next|resume|complete|check|improve-bind|improve-start|improve-pass|improve-reconcile)\b"
     r"[^\n|;&]*?--run-dir[= ]['\"]?([^\s'\"|;&]+)")
 
 
@@ -341,6 +345,11 @@ DRIVING_COMMAND = re.compile(
 
 def invoking_command(payload: Mapping[str, Any]) -> str | None:
     """The shell command whose output the hook sees, when the host names it."""
+    tool_call = payload.get("toolCall")
+    if isinstance(tool_call, Mapping):
+        args = tool_call.get("args")
+        if isinstance(args, Mapping) and isinstance(args.get("CommandLine"), str):
+            return args["CommandLine"]
     for container in (payload.get("tool_input"), payload.get("toolInput"), payload):
         if isinstance(container, Mapping) and isinstance(container.get("command"), str):
             return container["command"]
@@ -463,10 +472,11 @@ def skill_call(host: str, payload: Mapping[str, Any]) -> bool:
         agent_id=payload.get("agent_id"))
 
 
-# A host started from a Claude shell inherits Claude's variables and has no Skill-call hook: Codex, Cursor and OpenCode
-# set their own, which win over the inherited Claude session (shiploop_grants.detect_host reads the same Codex ones;
-# Grok's pair is SESSION_ENV, read first).  OpenCode sets OPENCODE=1 at startup and its shells inherit it.
-NESTED_NON_CLAUDE = ("CODEX_SANDBOX", "CODEX_THREAD_ID", "CURSOR_PLUGIN_ROOT", "OPENCODE")
+# A host started from a Claude shell inherits Claude's variables and has no Skill-call hook: Antigravity, Codex,
+# Cursor and OpenCode set their own, which win over the inherited Claude session (shiploop_grants.detect_host reads
+# the same markers; Grok's pair is SESSION_ENV, read first).  OpenCode sets OPENCODE=1 at startup and its shells inherit it.
+NESTED_NON_CLAUDE = ("ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID", "CODEX_SANDBOX", "CODEX_THREAD_ID",
+                     "CURSOR_PLUGIN_ROOT", "OPENCODE")
 
 
 def skill_gate(run_dir: str, env: Mapping[str, str] | None = None) -> tuple[bool, str]:
@@ -522,7 +532,10 @@ def _continue_reason(status: Mapping[str, Any], host: str = "", turn_blocks: int
 
 def _turn_continued(payload: Mapping[str, Any]) -> bool:
     """True when this stop follows a stop-hook continuation within the same turn."""
-    return bool(payload.get("stopHookActive") or payload.get("stop_hook_active"))
+    if payload.get("stopHookActive") or payload.get("stop_hook_active") or payload.get("continuationActive"):
+        return True
+    execution_num = payload.get("executionNum")
+    return isinstance(execution_num, int) and not isinstance(execution_num, bool) and execution_num > 0
 
 
 def _background_tasks(payload: Mapping[str, Any]) -> bool:
@@ -535,6 +548,13 @@ def stop(host: str, payload: Mapping[str, Any]) -> dict:
     if payload.get("reason") not in (None, "end_turn") or payload.get("subagentType"):
         # Grok's session-end stop and subagent stops never keep anything alive.
         return {"decision": "allow", "why": "not a turn end"}
+    term_reason = payload.get("terminationReason")
+    if term_reason not in (None, "NO_TOOL_CALL"):
+        return {"decision": "allow", "why": f"not a turn end ({term_reason})"}
+    if host == "antigravity" and payload.get("fullyIdle") is False:
+        # Antigravity parent turns yield with fullyIdle=False while awaiting reactive
+        # subagent wakeup; allow without releasing ownership or touching duplicate window.
+        return {"decision": "allow", "why": "waiting on background task or subagent"}
     session = session_of(payload)
     if session is None:
         return {"decision": "allow", "why": "no session id"}
@@ -614,9 +634,13 @@ def _log_decision(host: str, payload: Mapping[str, Any], decision: Mapping[str, 
 def host_reply(host: str, decision: Mapping[str, Any]) -> dict | None:
     """Translate a decision into the host's own stop-hook output."""
     if decision["decision"] == "continue":
+        if host == "antigravity":
+            return {"decision": "continue", "reason": decision["reason"]}
         if host in ("cursor", "opencode"):
             return {"followup_message": decision["reason"]}
         return {"decision": "block", "reason": decision["reason"]}
+    if host == "antigravity":
+        return {"decision": "allow"}
     if decision.get("notice") and host in ("claude", "grok", "codex"):
         return {"systemMessage": decision["notice"]}
     return None
@@ -672,7 +696,7 @@ def run_hook(event: str, host: str, raw: str) -> str:
             return ""
         if event == "observe":
             observe(host, payload)
-            return ""
+            return "{}" if host == "antigravity" else ""
         if event == "skill":
             skill_call(host, payload)
             return ""
@@ -745,6 +769,68 @@ def _cursor_entries() -> dict:
     }
 
 
+ANTIGRAVITY_HOOK_KEY = "shiploop-keepalive"
+
+
+def _antigravity_entry() -> dict:
+    return {
+        "PostToolUse": [{"matcher": "run_command", "hooks": [{"type": "command",
+                         "command": hook_command("observe", "antigravity"), "timeout": 30}]}],
+        "Stop": [{"type": "command", "command": hook_command("stop", "antigravity"), "timeout": 30}],
+    }
+
+
+def _load_antigravity_config(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        data = _read_json(path)
+    except ValueError as exc:
+        raise InstallError(f"{path} is not valid JSON ({exc}); left untouched") from exc
+    if not isinstance(data, dict):
+        raise InstallError(f"{path} must contain a JSON object; left untouched")
+    return data
+
+
+def _antigravity_owned_commands(data: Mapping[str, Any]) -> list[str]:
+    owned = []
+    for hook_spec in data.values():
+        if not isinstance(hook_spec, Mapping):
+            continue
+        for event_entries in hook_spec.values():
+            if not isinstance(event_entries, list):
+                continue
+            for entry in event_entries:
+                for command in _entry_commands(entry):
+                    if _is_owned_command(command, "antigravity"):
+                        owned.append(command)
+    return owned
+
+
+def _merge_antigravity(data: Mapping[str, Any], remove: bool) -> dict:
+    updated: dict[str, Any] = {}
+    for key, spec in data.items():
+        if key == ANTIGRAVITY_HOOK_KEY:
+            continue
+        if isinstance(spec, Mapping):
+            cleaned_spec: dict[str, Any] = {}
+            for event_name, entries in spec.items():
+                if not isinstance(entries, list):
+                    cleaned_spec[event_name] = entries
+                    continue
+                kept = [entry for entry in entries
+                        if not any(_is_owned_command(c, "antigravity") for c in _entry_commands(entry))]
+                if kept or event_name not in ("PostToolUse", "Stop"):
+                    cleaned_spec[event_name] = kept
+            if cleaned_spec:
+                updated[key] = cleaned_spec
+        else:
+            updated[key] = spec
+    if not remove:
+        updated[ANTIGRAVITY_HOOK_KEY] = _antigravity_entry()
+    return updated
+
+
 class InstallError(RuntimeError):
     """A config file exists but is not something this installer may edit."""
 
@@ -792,6 +878,8 @@ def _merge(data: dict, host: str, wanted: Mapping[str, list] | None) -> dict:
 
 def config_path(host: str) -> Path:
     """Path of the hook configuration file for ``host``."""
+    if host == "antigravity":
+        return Path.home() / ".gemini" / "config" / "hooks.json"
     if host == "claude":
         return Path.home() / ".claude" / "settings.json"
     if host == "codex":
@@ -811,6 +899,8 @@ def _opencode_plugin() -> str:
 
 
 def _desired(host: str) -> Mapping[str, list]:
+    if host == "antigravity":
+        return _antigravity_entry()
     return _cursor_entries() if host == "cursor" else _claude_style_entries(host)
 
 
@@ -829,6 +919,15 @@ def status(host: str) -> str:
         if not text.startswith(OWNED_JS_HEADER):
             return "foreign"
         return "installed" if text == _opencode_plugin() else "stale"
+    if host == "antigravity":
+        try:
+            data = _load_antigravity_config(path)
+        except InstallError:
+            return "foreign"
+        owned = _antigravity_owned_commands(data)
+        if not owned:
+            return "absent"
+        return "installed" if set(owned) == set(_desired_commands(host)) else "stale"
     try:
         data = _load_config(path)
     except InstallError:
@@ -859,6 +958,19 @@ def install(host: str, *, remove: bool = False, dry_run: bool = False) -> str:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(_opencode_plugin(), encoding="utf-8")
         return f"opencode: {'would write' if dry_run else 'wrote'} {path}"
+    if host == "antigravity":
+        data = _load_antigravity_config(path)
+        updated = _merge_antigravity(data, remove=remove)
+        if updated == data:
+            return f"{host}: {path} already {'clean' if remove else 'up to date'}"
+        if not dry_run:
+            if not updated:
+                path.unlink(missing_ok=True)
+            else:
+                _write_json(path, updated)
+        done = {"install": ("would add ShipLoop hooks to", "added ShipLoop hooks to"),
+                "remove": ("would remove ShipLoop hooks from", "removed ShipLoop hooks from")}[verb]
+        return f"{host}: {done[0] if dry_run else done[1]} {path}"
     data = _load_config(path)
     if host == "cursor" and not remove:
         data.setdefault("version", 1)
@@ -877,11 +989,13 @@ def install(host: str, *, remove: bool = False, dry_run: bool = False) -> str:
     return f"{host}: {done[0] if dry_run else done[1]} {path}"
 
 
-# Each host's marker and session variables in the shell commands it runs.  Grok
-# comes first: a Grok started from a Claude shell inherits Claude's variables.
+# Each host's marker and session variables in the shell commands it runs.
+# Grok comes before Antigravity and Claude: nested hosts inherit their launcher's variables.
 SESSION_ENV = (("grok", "GROK_AGENT", "GROK_SESSION_ID"),
+               ("antigravity", "ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID"),
                ("claude", "CLAUDECODE", "CLAUDE_CODE_SESSION_ID"))
 HEALTH_REMEDY = {
+    "antigravity": "install ShipLoop's Antigravity plugin or run `scripts/shiploop-hook install --host antigravity`, then start a new Antigravity session",
     "grok": ("restart Grok so its leader loads the ShipLoop plugin hooks (or run "
              "`scripts/shiploop-hook install --host grok`)"),
     "claude": "check /hooks lists ShipLoop's Stop hook, and restart Claude Code after a plugin update",
@@ -1012,6 +1126,8 @@ def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> 
     """Command line that starts a non-interactive ``host`` session with ``prompt`` (resuming ``session`` where the
     host supports it).
     """
+    if host == "antigravity":
+        return ["agy", *(["--resume", session] if session else []), *extra, f"--print={prompt}"]
     if host == "claude":
         return ["claude", "-p", prompt, *extra]
     if host == "grok":

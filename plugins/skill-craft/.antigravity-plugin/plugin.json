@@ -1,0 +1,40 @@
+{
+  "name": "skill-craft",
+  "version": "4.17.0",
+  "description": "Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent and more) packaged as one plugin for Claude, Codex, Grok and Cursor.",
+  "author": {
+    "name": "whichguy",
+    "url": "https://github.com/whichguy"
+  },
+  "homepage": "https://github.com/whichguy/skill-craft",
+  "repository": "https://github.com/whichguy/skill-craft",
+  "license": "MIT",
+  "keywords": [
+    "skill-craft",
+    "portable-skills",
+    "adversarial-review",
+    "architect",
+    "ask-agent",
+    "c-plan",
+    "closed-loop",
+    "compare-prompts",
+    "improve",
+    "improve-agent",
+    "improve-system-prompt",
+    "in-parallel",
+    "plan-dispatcher",
+    "plan-test",
+    "prompt-align",
+    "prompt-audit",
+    "prompt-migrate",
+    "prompt-refine",
+    "review-coverage",
+    "review-fix-bench",
+    "rubric-eval",
+    "shiploop",
+    "shiploop-e2e-audit",
+    "shiploop-run-review",
+    "skill-interop",
+    "test-harness"
+  ]
+}

@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-11-24
 
+### skill-craft 4.17.0
+
+- Skills: ask-agent 0.12.2, shiploop 2.18.0
+
+### ask-agent 0.12.2
+
+- Qualify `agy` `1.5.16` in Antigravity host capability bindings (`--add-dir` permission recovery under `--mode accept-edits`, native `hooks.json`, `--output-format stream-json`).
+
+### shiploop 2.18.0
+
+- Add Antigravity keepalive hook support (`observe` `run_command`, `Stop` continuation with reactive `fullyIdle: false` subagent yield handling, `~/.gemini/config/hooks.json` installer, `shiploop-drive --host antigravity`), generate native `.antigravity-plugin/plugin.json` and plugin-root `hooks.json` from `host-hooks.json`, and qualify `agy` `1.5.16`.
+
 ### skill-craft 4.16.0
 
 - Skills: shiploop 2.17.0
