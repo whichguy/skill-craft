@@ -1480,6 +1480,56 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
         self.assertIn("model_reasoning_effort=medium", cross_calls[1])
         self.assertEqual(cross_calls[2][0], "agy")
 
+    def test_hook_status_and_drive_handle_done_stage(self) -> None:
+        import contextlib
+        import importlib.machinery
+        import importlib.util
+        import io
+        import shiploop_protocol as protocol
+
+        loader = importlib.machinery.SourceFileLoader("shiploop_cli_core", str(SCRIPTS / "shiploop"))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        core = importlib.util.module_from_spec(spec)
+        loader.exec_module(core)
+
+        done_state = store.read_record(self.run_dir / "state.md")
+        item_ids = [item["id"] for item in done_state["work_items"]]
+        done_state["status"] = "done"
+        done_state["stage"] = "done"
+        done_state["action"]["stage"] = "done"
+        done_state["work_index"] = len(item_ids)
+        done_state["completed_work_items"] = item_ids
+        done_state["inner_loops"] = {item_id: {"stage": "done", "action": None} for item_id in item_ids}
+        done_state["revision"] += 1
+        store.write_record(self.run_dir / "state.md", done_state)
+
+        buf = io.StringIO()
+        with mock.patch.object(nav, "validate", return_value=None), contextlib.redirect_stdout(buf):
+            rc = protocol.hook_status(core, ["--run-dir", str(self.run_dir)])
+        self.assertEqual(rc, 0)
+        st = json.loads(buf.getvalue())
+        self.assertEqual((st["status"], st["stage"], st["profile"]), ("done", "done", None))
+        with mock.patch.object(keepalive, "run_status", return_value=st):
+            code = keepalive.drive("codex", str(self.run_dir), session_timeout=60, extra=[], cwd=None,
+                                   out=lambda _m: None,
+                                   runner=lambda argv, **kwargs: self.fail("done run must not spawn session"),
+                                   clock=lambda: 1.0)
+        self.assertEqual(code, keepalive.EXIT_DONE)
+
+    def test_observed_model_preserves_effort_when_later_payload_omits_it(self) -> None:
+        rollout = self.temp / "codex-rollout.jsonl"
+        rollout.write_text(json.dumps({"type": "turn_context", "payload": {"model": "gpt-6.2-sol", "effort": "medium"}}) + "\n",
+                           encoding="utf-8")
+        self.hook("observe", "codex", {**self.payload("codex", "observe", "codex-eff-1"),
+                                        "model": "gpt-6.2-sol", "transcript_path": str(rollout)})
+        # Later turn grows rollout past turn_context or omits transcript_path; same model keeps prior effort.
+        rollout.write_text("", encoding="utf-8")
+        self.hook("stop", "codex", {**self.payload("codex", "stop", "codex-eff-1"),
+                                    "model": "gpt-6.2-sol", "transcript_path": str(rollout)})
+        rows = self.model_rows()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual((rows[0]["model"], rows[0]["effort"]), ("gpt-6.2-sol", "medium"))
+
 
 if __name__ == "__main__":
     unittest.main()

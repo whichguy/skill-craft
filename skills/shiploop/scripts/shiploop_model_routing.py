@@ -214,7 +214,8 @@ def resolve(
         return None
     norm_host = normalize_host(default_host)
     profile = stage_spec.stage_profile(stage)
-    assert profile is not None
+    if profile is None:
+        return None
     default_resume = str((config or {}).get("resume") or DEFAULT_RESUME)
     if not config:
         return RouteTarget(host=norm_host, profile=profile, resume=default_resume)

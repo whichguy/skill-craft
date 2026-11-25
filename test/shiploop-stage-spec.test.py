@@ -249,6 +249,8 @@ class StageTableTest(unittest.TestCase):
             spec.Stage("x", "middle", goal="g", done_when=("d",))
         with self.assertRaises(ValueError):
             spec.Stage("x", "inner", goal="g", done_when=())
+        self.assertIsNone(spec.stage_profile(None))
+        self.assertIsNone(spec.stage_profile("done"))
 
     def test_run_review_stage_catalog_matches_engine_stage_spec(self) -> None:
         export_path = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.py"

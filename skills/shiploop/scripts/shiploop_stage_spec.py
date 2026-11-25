@@ -666,8 +666,8 @@ def stage(name: str) -> Stage:
 
 
 def stage_profile(name: str | None) -> str | None:
-    """Activity profile (``planning`` or ``execution``) for ``name``, or None when unset."""
-    if not name:
+    """Activity profile (``planning`` or ``execution``) for ``name``, or None when unset/done."""
+    if not name or name == "done":
         return None
     if name == "improve":
         return "planning"

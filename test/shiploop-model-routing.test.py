@@ -21,6 +21,7 @@ class StageProfileTests(unittest.TestCase):
     def test_every_stage_and_improve_map_to_a_profile(self) -> None:
         self.assertIsNone(stage_spec.stage_profile(None))
         self.assertIsNone(stage_spec.stage_profile(""))
+        self.assertIsNone(stage_spec.stage_profile("done"))
         self.assertEqual(stage_spec.stage_profile("improve"), "planning")
         for name in stage_spec.STAGES:
             profile = stage_spec.stage_profile(name)
@@ -69,6 +70,7 @@ class ModelRoutingResolutionTests(unittest.TestCase):
         self.assertEqual(routing.resolve(cfg, "improve", "codex").model, "review-model")
         handoff = routing.resolve(cfg, "handoff", "antigravity")
         self.assertEqual((handoff.host, handoff.model, handoff.effort), ("codex", "gpt-6.2-sol", "medium"))
+        self.assertIsNone(routing.resolve(cfg, "done", "antigravity"))
 
     def test_flat_config_applies_to_any_harness(self) -> None:
         cfg = routing.load_config(json.dumps({

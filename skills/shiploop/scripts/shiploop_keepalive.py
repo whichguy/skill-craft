@@ -374,7 +374,7 @@ def _is_subagent(payload: Mapping[str, Any]) -> bool:
     return any(payload.get(key) for key in ("subagentType", "agent_id", "agent_type"))
 
 
-def _tail_jsonl(path_value: Any, max_bytes: int = 65536) -> list[dict[str, Any]]:
+def _tail_jsonl(path_value: Any, max_bytes: int = 262144) -> list[dict[str, Any]]:
     """Read complete JSON lines from the tail of a transcript/rollout file; fail open."""
     if not isinstance(path_value, str) or not path_value:
         return []
@@ -462,7 +462,11 @@ def _record_observed_model(
     obs_model, obs_effort = observed_model(host, payload)
     if not obs_model and not obs_effort:
         return False
-    prev = (binding.get("observed_model"), binding.get("observed_effort"))
+    prev_model = binding.get("observed_model")
+    prev_effort = binding.get("observed_effort")
+    if obs_effort is None and obs_model == prev_model and prev_effort:
+        obs_effort = prev_effort
+    prev = (prev_model, prev_effort)
     curr = (obs_model, obs_effort)
     if curr == prev:
         return False
