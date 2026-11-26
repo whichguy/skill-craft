@@ -2243,10 +2243,37 @@ class ConsumesTests(RepoCase):
         sp_lines = "\n".join(navigator.handoff_lines(self.root, sp_state, "step-plan"))
         self.assertIn(
             'Account for each due open item by ID in summary (settled evidence) '
-            'or criteria (from: "assumption:<id>").',
+            'or criteria/expectations (from: "<id>").',
             sp_lines,
         )
         self.assertNotIn("carry it forward in assumptions", sp_lines)
+        self.assertNotIn('from: "assumption:<id>"', sp_lines)
+        # expectations.check_step_plan requires bare "<id>" (e.g. "A9") matching the hint and refuses "assumption:<id>".
+        sp_check_state = dict(sp_state, repo=str(self.repo), action="sp1")
+        base_sp_result = {
+            "outcome": "done",
+            "steps": [{"id": "S1", "task": "t", "paths": ["new_file.py"], "skills": []}],
+            "expectations": [{
+                "id": "E1",
+                "steps": ["S1"],
+                "paths": ["new_file.py"],
+                "state": "absent",
+                "statement": "new_file.py does not exist on base.",
+                "check": "test ! -e new_file.py",
+            }],
+            "test_commands": [],
+            "test_commands_na": "No tests required for doc-only check.",
+        }
+        with self.assertRaises(expectations.ExpectationError) as sp_caught:
+            expectations.check_step_plan(self.root, sp_check_state, dict(
+                base_sp_result,
+                criteria=[{"id": "C1", "text": "x", "from": "assumption:A9"}],
+            ))
+        self.assertIn("assumption:A9", str(sp_caught.exception))
+        expectations.check_step_plan(self.root, sp_check_state, dict(
+            base_sp_result,
+            criteria=[{"id": "C1", "text": "x", "from": "A9"}],
+        ))
         ts_entry, ts_result = row("ts_prep", "test-strategy", None, {
             "assumptions": [open_row("A8", "prepare")],
         })

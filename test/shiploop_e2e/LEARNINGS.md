@@ -10192,3 +10192,21 @@ Ran the full-lifecycle `checkers` Node.js E2E case in an isolated empty Git repo
 
 Limits: Fixes future packets and `unverified`/`settled` accounting; `run-01` was a single-item (`W1`) run so multi-item `deferred` concerns stay unexercised on `checkers`, and re-running a live multi-item E2E post-fix remains optional.
 
+## 2026-11-26 — CloudyBot `run-04` on Antigravity Orchestrator (Neon), `step-plan` assumption hint fix, and E2E harness fixes
+
+Executed full opt-in CloudyBot delivery `run-04` on the default Antigravity Orchestrator (Neon) subject driver (`antigravity` / `gemini-pro-orchestrator-neon`, `--keep-platform --source marketplace`, `skill-craft 4.20.3 / shiploop 2.21.1` at `d93442061`) at `/Users/dadleet/e2e-runs/cloudybot-campaign-20261125-run04/live/run-04`:
+
+- **Product & ShipLoop delivery outcomes (`PASS` on all 3 product checks and all ShipLoop/git verdicts):**
+  - `shiploop`: `done` (`stage: done`, `revision: 109`, `report.html: true`, `open_items`: `59/59` settled, `W1`–`W4` `14/14` steps delivered).
+  - `committed`: `HEAD f0db50d9` (`271` tracked files, `32` commits, `0` uncommitted product paths).
+  - `platform`: kept (`--keep-platform`), `411` guarded `sf` calls, `0` direct `sf` commands (`bypassed: false`).
+  - **CloudyBot checks:** `project` `PASS` (`26` Apex classes, `7` test classes, `1` exposed LWC, `1` tab, `1` app, `4` permsets); `deployed` `PASS` in `org de`; **`tests` `PASS`: `44/44` Apex tests passing across `7` classes with `91.0%` aggregate Apex coverage (`5531/6075`)** (up from `run-03`'s `74.7%` failure).
+- **Live-caught ShipLoop bug (`step-plan` open-assumption hint mismatch):**
+  - `_open_item_settlement_hint("step-plan")` in `skills/shiploop/scripts/shiploop_navigator.py` instructed models to cite `criteria (from: "assumption:<id>")`, whereas `skills/shiploop/scripts/shiploop_expectations.py:419-430` compares `cited` against bare assumption IDs (`A3`), producing live refusal `criteria cite from assumption:A3, which is not an open plan assumption whose due_item is W1 (those are A3)`.
+  - Fixed `_open_item_settlement_hint("step-plan")` to state `criteria/expectations (from: "<id>")`, matching `shiploop_expectations.py`.
+- **Two live-caught `test/shiploop_e2e/run.py` bugs:**
+  1. **`LiveView.emit()` PTY write stall:** After an Antigravity server restart (`10:07:24Z`), the outer `run.py` stdout reader stopped draining cleanly while `ShipLoop` finished `handoff` (`10:26:16Z`), leaving `LiveView.emit` / `agy` (`PID 42205`) hung on pipe EOF until rescued via `SIGKILL` and `--grade-only --keep-platform`. Guarded `LiveView.emit()` with non-blocking `select.select` + `BrokenPipeError`/`BlockingIOError` handling so unwritable stdout disables live echo instead of blocking `pump()`.
+  2. **`AntigravityHost` `--source marketplace` plugin verdict & review gate:** Because `AntigravityHost.marketplace = False`, `marketplace_preflight` skipped `host.install_plugin()` and `skill_digests()`, leaving `invocation.json` with `plugin = None`. On `--grade-only`, `run.py` fell through to `grade_claude_plugin(plugins, plugin_dir)` (`[]` on Antigravity), marking `plugin: FAIL none loaded` and blocking `iterate.py --review-run` at `cycle.py:1018`. Updated `marketplace_preflight` to invoke `host.install_plugin` when present, record `skill_digests(plugin_dir)`, and keep `earlier.get("plugin")` on `regrade`.
+
+Limits: `iterate.py --review-run` could not grade `run-04` directly prior to these fixes because `result.json` carried `plugin.pass: false`; `run-05` re-runs the full CloudyBot case under `--source marketplace` to verify both fixes end-to-end.
+
