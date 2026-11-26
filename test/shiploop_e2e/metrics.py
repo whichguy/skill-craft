@@ -149,6 +149,7 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 REFUSAL_LINE = re.compile(r"^(?:ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
                           r"check: (?:the check says no\. |owner notes? N\d|\"notes\" (?:in /|is not a list|has )|"
                           r"the owner notes folder |an owner note ))|"
+                          r"SHIPLOOP-GRANT-NEEDED: |"
                           r"error: no authoritative state\.md in [^\r\n]+)", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
                           r"Nothing was accepted or counted\. |"
@@ -304,6 +305,8 @@ GATE_SIGNATURES: dict[str, re.Pattern] = {
     # An Improve commit that changes code without the Regression test line it owes (F5, shiploop_navigator.py
     # _regression_refusal). F4's entry_points and stand_in_rejected were dropped by the owner (2026-10-24).
     "improve_regression_test": re.compile(r"Add a line `Regression test: <"),
+    # Pre-trace sandbox write-grant preflight refusal (`shiploop_grants.report`, exit 3).
+    "grant_needed": re.compile(r"^SHIPLOOP-GRANT-NEEDED:"),
     # New gates land as one row each, read from the gate's own refusal text when it ships, never guessed.
 }
 
@@ -830,11 +833,12 @@ ANY_SHIPLOOP_VERB = re.compile(r"shiploop\S*\s+(?P<verb>[a-z][\w-]*)")
 
 def outside_trace(command: str, text: str) -> bool:
     """Whether a ShipLoop failure the host stream shows is one the run trace cannot hold: its command line did not parse
-    (argparse), or no logical line of the command runs a traced verb on a run, because every ShipLoop verb on it is a routed
-    one (run_trace.ROUTED_VERBS) or the line names no --run-dir (``workspace plan-return --workspace-root W``). A compound line that
-    also runs a traced verb on the run is the trace's: a routed verb failing inside it is not added. ``command`` is the call
-    as ToolLog keeps it (``invoked``: variables expanded, wrapper scripts appended), ``text`` its result from the refusal on."""
-    if run_trace.USAGE_ERROR.search(text or ""):
+    (argparse), it exited 3 on a pre-trace sandbox grant probe (``SHIPLOOP-GRANT-NEEDED:``), or no logical line of the command
+    runs a traced verb on a run, because every ShipLoop verb on it is a routed one (run_trace.ROUTED_VERBS) or the line names
+    no --run-dir (``workspace plan-return --workspace-root W``). A compound line that also runs a traced verb on the run is the
+    trace's: a routed verb failing inside it is not added. ``command`` is the call as ToolLog keeps it (``invoked``: variables
+    expanded, wrapper scripts appended), ``text`` its result from the refusal on."""
+    if run_trace.USAGE_ERROR.search(text or "") or run_trace.PRE_TRACE_GRANT_REFUSAL.search(text or ""):
         return True
     known = shell_variables(command)
     for raw in re.sub(r"\\\n", " ", shell_text(command)).split("\n"):
@@ -843,6 +847,41 @@ def outside_trace(command: str, text: str) -> bool:
                 found.group("verb") not in run_trace.ROUTED_VERBS for found in ANY_SHIPLOOP_VERB.finditer(line)):
             return False
     return True
+
+
+HARNESS_EXPOSURE_MARKERS = (
+    "shiploop_e2e/checks/",
+    "shiploop_e2e/cases.json",
+    "E2E_CHECKS",
+    "platform/before.json",
+    "platform/sf-calls.jsonl",
+    "platform/cleanup-receipt.json",
+)
+
+
+def harness_artifact_reads(out: Path, tools: ToolLog) -> list[dict]:
+    """Record-only diagnostic: model tool calls that name parent E2E platform artifacts or harness check/catalog files.
+
+    Covers cases without held-out server acceptance (where ``quality.held_out_seen`` is intentionally None) without
+    altering any verdict or frozen baseline floor.
+    """
+    try:
+        out_str = str(Path(out).resolve())
+    except OSError:
+        out_str = str(out)
+    found: list[dict] = []
+    for entry in tools.sequence:
+        haystacks = [str(entry.get("command") or ""), *(str(p) for p in (entry.get("paths") or ()))]
+        combined = "\n".join(h for h in haystacks if h)
+        if not combined:
+            continue
+        markers = [m for m in HARNESS_EXPOSURE_MARKERS if m in combined]
+        for parent_file in ("invocation.json", "result.json"):
+            if f"{out_str}/{parent_file}" in combined or re.search(rf"(?:^|[\s'\"=/])\.\./{re.escape(parent_file)}\b", combined):
+                markers.append(f"<out>/{parent_file}")
+        if markers:
+            found.append({"event": entry.get("event"), "tool": entry.get("tool"), "markers": sorted(set(markers))})
+    return found
 
 
 def traced_failures(traced: dict, tools: ToolLog, stamps: dict[int, float]) -> list[dict]:
@@ -2952,6 +2991,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "testing_evidence": testing_evidence_audit(state, run_dir),
         **({"fork_completeness": fc} if (fc := fork_completeness.collect(out, run_dir)) is not None else {}),
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in tools.reads if "docs/shiploop" in r}),
+        "harness_reads": harness_artifact_reads(out, tools),
         "narrative": narrative(out, run_dir),
         "stages": stages,
         "stage_tool_attribution": attribution,

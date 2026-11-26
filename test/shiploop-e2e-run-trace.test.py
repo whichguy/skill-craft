@@ -233,6 +233,12 @@ class TracedRun(unittest.TestCase):
         self.assertTrue(metrics.outside_trace(f"{cli} red-check --run-dir {run} --action=nav-1", "x"))
         self.assertTrue(metrics.outside_trace(f"{cli} complete --run-dir {run}",
                                               "shiploop complete: error: the following arguments are required: --action"))
+        self.assertTrue(metrics.outside_trace(
+            f"{cli} complete --run-dir {run} --action=nav-1",
+            "SHIPLOOP-GRANT-NEEDED: writable_directories=[\"/e2e/work/.git\"]",
+        ))
+        self.assertEqual(metrics.refusal_gate("SHIPLOOP-GRANT-NEEDED: writable_directories=[\"/e2e/work/.git\"]"),
+                         "grant_needed")
         # A line that also runs a traced verb on the run is the trace's, whichever of its verbs failed.
         self.assertFalse(metrics.outside_trace(f"{cli} lint --run-dir {run} --action=nav-1 && {cli} complete --run-dir {run} "
                                                "--action=nav-1", refusal))

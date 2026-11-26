@@ -4845,5 +4845,69 @@ class CodexContextSummaryCompactionTest(unittest.TestCase):
             self.assertEqual(metrics.context_summary(rows)["compactions"], 1)
 
 
+class HarnessArtifactReadsAndPreTraceGrantTest(unittest.TestCase):
+    """Record-only parent/guard exposure detection and pre-trace exit-3 grant-refusal reconciliation."""
+
+    def test_pre_trace_grant_refusal_on_traced_verb_reconciles_into_shiploop_failures_and_gate_counts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            run_dir = out / ".shiploop-runs" / "r1" / "run"
+            run_dir.mkdir(parents=True)
+            (run_dir / "state.md").write_text(
+                run.store.dumps({"status": "active", "stage": "intake", "history": [], "accepted": {}}, "state"),
+                encoding="utf-8",
+            )
+            # Trace covers the run and holds one accepted complete, while an earlier pre-trace exit-3 grant refusal
+            # on `complete --run-dir ... --action=a1` appeared only in events.jsonl.
+            traced_events = [
+                json.dumps({"v": 1, "i": 1, "ts": 120.0, "at": "2026-11-26T00:02:00Z", "kind": "command",
+                            "verb": "complete", "argv": ["complete", "--run-dir", str(run_dir), "--action=a1"],
+                            "action": "a1", "exit": 0, "ms": 10, "stage": ["intake", "discovery"], "rev": [1, 2],
+                            "cursor": ["a1", "a2"], "status": ["active", "active"],
+                            "accepted": [{"action": "a1", "stage": "intake", "item": None, "outcome": "done"}]}),
+            ]
+            (run_dir / "trace.jsonl").write_text("\n".join(traced_events) + "\n", encoding="utf-8")
+            events = [
+                {"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command",
+                 "rawInput": {"command": f"python3 /p/shiploop complete --run-dir {run_dir} --action=a1"}},
+                {"type": "tool_call_update", "toolCallId": "c1", "status": "failed",
+                 "rawOutput": {"exit_code": 3,
+                               "output_for_prompt": "SHIPLOOP-GRANT-NEEDED: writable_directories=[\"/w/.git\"]\nRetry."}},
+                {"type": "tool_call", "toolCallId": "c2", "toolName": "run_terminal_command",
+                 "rawInput": {"command": f"python3 /p/shiploop complete --run-dir {run_dir} --action=a1"}},
+                {"type": "tool_call_update", "toolCallId": "c2", "status": "completed",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": "ShipLoop navigator | discovery | revision 2\n"}},
+            ]
+            (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events), encoding="utf-8")
+            (out / "timeline.jsonl").write_text(
+                "".join(json.dumps({"line": i, "t": 100.0 + i}) + "\n" for i in range(len(events))),
+                encoding="utf-8",
+            )
+            m = metrics.collect(out, run_dir)
+            self.assertEqual(m["failures_source"]["file"], "<run>/trace.jsonl")
+            self.assertEqual(len(m["shiploop_failures"]), 1)
+            self.assertEqual(m["shiploop_failures"][0]["verb"], "complete")
+            self.assertEqual(m["shiploop_failures"][0]["exit"], 3)
+            self.assertEqual(m["shiploop_failures"][0]["source"], "events.jsonl")
+            self.assertIn("SHIPLOOP-GRANT-NEEDED:", m["shiploop_failures"][0]["line"])
+            self.assertEqual(m["gate_counts"].get("grant_needed"), {"fired": 1, "caught": 1})
+
+    def test_harness_artifact_reads_detects_parent_platform_and_guard_files_without_false_positives(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            out.mkdir()
+            tools = metrics.ToolLog()
+            tools.call(1.0, "1", "run_terminal_command", {"command": "sf org list --json"}, event=1)
+            tools.call(2.0, "2", "Read", {"file_path": str(out / "work" / "result.json")}, event=2)
+            tools.call(3.0, "3", "Read", {"file_path": str(out / "platform" / "before.json")}, event=3)
+            tools.call(4.0, "4", "run_terminal_command",
+                       {"command": "cat ../invocation.json /repo/test/shiploop_e2e/checks/cloudybot_sf_guard.py"}, event=4)
+            reads = metrics.harness_artifact_reads(out, tools)
+            self.assertEqual(reads, [
+                {"event": 3, "tool": "Read", "markers": ["platform/before.json"]},
+                {"event": 4, "tool": "run_terminal_command", "markers": ["<out>/invocation.json", "shiploop_e2e/checks/"]},
+            ])
+
+
 if __name__ == "__main__":
     unittest.main()

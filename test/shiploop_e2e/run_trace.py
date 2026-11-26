@@ -53,6 +53,9 @@ NO_TEXT = "no refusal text recorded"
 # What argparse prints when a ShipLoop command line does not parse (``usage: shiploop complete ...``, then
 # ``shiploop complete: error: the following arguments are required: --action``): the run is never loaded, so never traced.
 USAGE_ERROR = re.compile(r"^(?:usage: shiploop\b|shiploop(?: [\w-]+)?: error: )", re.M)
+# Pre-trace sandbox grant refusals (`_grant_refusal` in shiploop_protocol.py exits 3 before `_TRACE["before"]` is set, so
+# `trace.jsonl` never records them even on traced verbs such as `check`, `complete`, `improve-pass`, or `next`).
+PRE_TRACE_GRANT_REFUSAL = re.compile(r"^SHIPLOOP-GRANT-NEEDED:", re.M)
 RUN_DIR_FLAG = re.compile(r"--run-dir\b")
 # The verbs shiploop_protocol hands to their own modules before the navigator loads the run: not traced from 1.13.1, traced
 # with an exit and no text in 1.12.0. The harness reads their failures from the host stream on every release.
