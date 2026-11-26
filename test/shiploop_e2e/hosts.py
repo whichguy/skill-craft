@@ -774,20 +774,36 @@ class AntigravityHost(Host):
         self._stage_root: Path | None = None
 
     def env(self, home, git_config=None):
-        """Keep the user's HOME for agy OAuth while isolating Git config and keepalive state."""
+        """Isolate Antigravity in a throwaway HOME while linking ~/.gemini and macOS Keychains for agy OAuth."""
+        home = Path(home)
+        real_home = Path(os.environ.get("HOME") or Path.home())
         home.mkdir(parents=True, exist_ok=True)
+        if home.resolve() != real_home.resolve():
+            link_specs: list[tuple[str, ...]] = [(".gemini",)]
+            if sys.platform == "darwin":
+                link_specs.append(("Library", "Keychains"))
+            for parts in link_specs:
+                src = real_home.joinpath(*parts)
+                dst = home.joinpath(*parts)
+                if src.exists() and not os.path.lexists(dst):
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    dst.symlink_to(src)
         if git_config is None:
             git_config = home / ".gitconfig"
             git_config.write_text("[user]\n\tname = ShipLoop E2E\n\temail = shiploop-e2e@example.invalid\n")
+        python_folder = pin_python(home)
         self._stage_root = home / ".antigravity-e2e"
         drop_Exact = {"ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID", "ANTIGRAVITY_TRAJECTORY_ID"}
         env = {k: v for k, v in os.environ.items()
                if not k.startswith(("CLAUDE", "CODEX", "GROK")) and k not in drop_Exact}
+        env["PATH"] = f"{python_folder}{os.pathsep}{env.get('PATH', os.defpath)}"
         env.update(
+            HOME=str(home),
             GIT_CONFIG_GLOBAL=str(git_config),
             GIT_TERMINAL_PROMPT="0",
             NO_COLOR="1",
             SHIPLOOP_KEEPALIVE_HOME=str(home / ".local" / "state" / "shiploop" / "keepalive"),
+            **THROWAWAY_HOME_ENV,
         )
         return env
 

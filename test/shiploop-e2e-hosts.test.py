@@ -2049,6 +2049,9 @@ class AntigravityHostTest(HarnessCase):
         for dropped in ("ANTIGRAVITY_AGENT", "ANTIGRAVITY_CONVERSATION_ID", "ANTIGRAVITY_TRAJECTORY_ID",
                         "CLAUDECODE", "CODEX_HOME", "GROK_AGENT"):
             self.assertNotIn(dropped, env)
+        self.assertEqual(env["HOME"], str(home))
+        self.assertEqual(env["SF_USE_GENERIC_UNIX_KEYCHAIN"], "true")
+        self.assertTrue(env["PATH"].startswith(str(home / hosts.PYTHON_PIN_DIR) + os.pathsep))
         self.assertEqual(env["SHIPLOOP_KEEPALIVE_HOME"], str(home / ".local" / "state" / "shiploop" / "keepalive"))
         self.assertEqual(env["GIT_CONFIG_GLOBAL"], str(home / ".gitconfig"))
         self.assertTrue((home / ".gitconfig").is_file())
@@ -2150,6 +2153,28 @@ print(json.dumps({{"event": "result", "result": {{
         self.assertTrue(result["committed"]["pass"], result["committed"])
         self.assertEqual(result["host_build"], "1.5.16")
         self.assertEqual(result["keepalive"]["decisions"], {"continue": 1})
+
+    def test_antigravity_throwaway_home_pins_model_bin_across_shells_without_touching_real_home(self):
+        real_home = self.tmp / "real-home"
+        (real_home / ".gemini").mkdir(parents=True)
+        (real_home / "Library" / "Keychains").mkdir(parents=True)
+        home = self.tmp / "throwaway-home"
+        agent = hosts.AntigravityHost("fake-agy")
+        with mock.patch.dict(os.environ, {"HOME": str(real_home)}):
+            env = agent.env(home)
+        self.assertEqual(env["HOME"], str(home))
+        self.assertTrue((home / ".gemini").is_symlink())
+        if sys.platform == "darwin":
+            self.assertTrue((home / "Library" / "Keychains").is_symlink())
+        platform_dir = self.tmp / "platform"
+        bins = run.write_model_bin({"sf": "echo guarded --"}, platform_dir, real_home)
+        self.assertIn("sf", bins)
+        env["PATH"] = str(platform_dir / "bin") + os.pathsep + env["PATH"]
+        pinned = run.pin_shell_path(home, platform_dir / "bin", real_home)
+        self.assertTrue(pinned)
+        problems = run.shell_resolution_problems(["sf"], platform_dir / "bin", env)
+        self.assertEqual(problems, [], problems)
+        self.assertEqual(sorted(p.name for p in real_home.iterdir()), [".gemini", "Library"])
 
 
 if __name__ == "__main__":
