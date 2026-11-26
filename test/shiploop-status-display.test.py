@@ -530,32 +530,23 @@ class StatusHookTests(unittest.TestCase):
         self.assertEqual(hook.compact(BEGIN + "\nnoise\n" + END), BEGIN + "\nnoise\n" + END)
 
     def test_host_payload_shapes(self) -> None:
-        """Claude and Codex display; Cursor is recognized but cannot display."""
+        """Claude and Codex display status lines."""
         cat = f"cat {self.run_dir}/status.md"
-        shapes = {
-            "codex": lambda command, out: {"hook_event_name": "PostToolUse", "tool_name": "Bash",
-                                           "tool_input": {"command": command},
-                                           "tool_response": {"output": out}},
-            "cursor": lambda command, out: {"hook_event_name": "afterShellExecution",
-                                            "command": command, "output": out, "duration": 5},
+        shape = lambda command, out: {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": command},
+            "tool_response": {"output": out},
         }
-        expected_host = {"codex": "claude-or-codex", "cursor": "cursor"}
-        for name, shape in shapes.items():
-            with self.subTest(host=name):
-                self.assertEqual(hook.progress(shape(self.command, self.packet)),
-                                 (expected_host[name], self.narrative))
-                self.assertEqual(hook.progress(shape(self.line_command, self.line_packet)),
-                                 (expected_host[name], self.line))
-                self.assertIsNone(hook.progress(shape(cat, self.block)))
-                self.assertIsNone(hook.progress(shape(self.command + " | head", self.packet)))
-                for command, stdout, message in ((self.command, self.packet, hook.narrative_text(self.packet)),
-                                                 (self.line_command, self.line_packet, hook.compact(self.line))):
-                    completed = self.run_hook(json.dumps(shape(command, stdout)))
-                    self.assertEqual(completed.returncode, 0, completed.stderr)
-                    if name == "codex":
-                        self.assertEqual(json.loads(completed.stdout), {"systemMessage": message})
-                    else:
-                        self.assertEqual(completed.stdout, "")
+        self.assertEqual(hook.progress(shape(self.command, self.packet)), ("claude-or-codex", self.narrative))
+        self.assertEqual(hook.progress(shape(self.line_command, self.line_packet)), ("claude-or-codex", self.line))
+        self.assertIsNone(hook.progress(shape(cat, self.block)))
+        self.assertIsNone(hook.progress(shape(self.command + " | head", self.packet)))
+        for command, stdout, message in ((self.command, self.packet, hook.narrative_text(self.packet)),
+                                         (self.line_command, self.line_packet, hook.compact(self.line))):
+            completed = self.run_hook(json.dumps(shape(command, stdout)))
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertEqual(json.loads(completed.stdout), {"systemMessage": message})
 
     def test_lookalike_or_unsafe_calls_stay_silent(self) -> None:
         status_md = f"{self.run_dir}/status.md"

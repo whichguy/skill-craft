@@ -84,12 +84,6 @@ openai-bundled          /tmp/fixture/openai-bundled
 fixture-mp-codex        /tmp/fixture/fixture-mp-codex
 EOF
             ;;
-          grok)
-            cat <<'EOF'
-  xAI Official: https://github.com/xai-org/plugin-marketplace.git
-  fixture-mp-grok: https://github.com/example/fixture-mp-grok.git
-EOF
-            ;;
         esac
         exit 0
         ;;
@@ -170,17 +164,6 @@ EOF
   "available": []
 }
 EOF
-        ;;
-      grok)
-        if [[ "${1:-}" == "--json" ]] || [[ "$*" == *"--json"* ]]; then
-          cat <<'EOF'
-{"installed":[{"name":"fixture-plug","id":"fixture-plug","marketplace":"fixture-mp-grok","version":"9.9.9","enabled":true}]}
-EOF
-        else
-          cat <<'EOF'
-fixture-plug@fixture-mp-grok
-EOF
-        fi
         ;;
     esac
     exit 0

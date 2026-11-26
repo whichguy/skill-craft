@@ -912,12 +912,6 @@ if grep -q 'Wrap-up trivials' "$ROOT/skills/review-coverage/SKILL.md" \
 else
   bad skill_md_wrap_up_trivials
 fi
-if grep -qi 'user-typed' "$ROOT/skills/review-coverage/SKILL.md" \
-  && grep -qi 'does not execute' "$ROOT/skills/review-coverage/references/host-matrix.md"; then
-  ok skill_md_grok_goal_user_typed
-else
-  bad skill_md_grok_goal_user_typed
-fi
 # The retired Residual Loop heading is not read: a plan with only it has no section.
 TMPRL=$(mktemp)
 cat >"$TMPRL" <<'RLPLAN'
@@ -943,46 +937,6 @@ else
   bad retired_residual_loop_heading_not_read
 fi
 rm -f "$TMPRL"
-
-# Exercise Cursor skill-dir discovery in a disposable fixture. Actual host
-# imports belong to test/run-integration.sh cursor-imports.
-CURSOR_FIXTURE=$(mktemp -d)
-trap 'rm -rf "$CURSOR_FIXTURE"' EXIT
-CURSOR_RC="$CURSOR_FIXTURE/.cursor/skills/review-coverage"
-mkdir -p "$(dirname "$CURSOR_RC")"
-ln -s "$ROOT/skills/review-coverage" "$CURSOR_RC"
-if [[ -f "$CURSOR_RC/SKILL.md" && -f "$CURSOR_RC/scripts/review-coverage" ]]; then
-  python3 "$CURSOR_RC/scripts/review-coverage" check-install >/dev/null \
-    && ok cursor_check_install || bad cursor_check_install
-  CURSOR_PLAN="$CURSOR_FIXTURE/plan.md"
-  cat >"$CURSOR_PLAN" <<'EOF'
-## Review Coverage
-
-| Field | Value |
-|-------|--------|
-| Base ref | abcdef1234567890deadbeef |
-| Repo | /tmp/review-coverage-repo |
-| Target paths | src/foo.ts |
-| Test command | npm test |
-| Materiality bar | material (P0/P1) |
-| Driver | review-converge under /goal |
-
-1. Forward audit of specs to code.
-2. Reverse audit of code vs base.
-two consecutive clean residual rounds with green suite
-EOF
-  if python3 "$CURSOR_RC/scripts/review-coverage" validate "$CURSOR_PLAN" >/dev/null; then
-    ok cursor_validate_ok
-  else
-    bad cursor_validate_ok
-  fi
-  rm -f "$CURSOR_PLAN"
-  CURSOR_SRC="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$CURSOR_RC")"
-  REPO_SRC="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve())' "$ROOT/skills/review-coverage")"
-  [[ "$CURSOR_SRC" == "$REPO_SRC" ]] && ok cursor_symlink_source || bad cursor_symlink_source
-else
-  bad cursor_fixture_package_missing
-fi
 
 echo "======== review-coverage: PASS=$PASS FAIL=$FAIL ========"
 [[ "$FAIL" -eq 0 ]]

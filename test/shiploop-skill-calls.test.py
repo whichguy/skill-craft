@@ -230,10 +230,9 @@ class SkillHookRegistrationTests(keepalive_tests.KeepaliveTestCase):
         self.assertTrue(self.bound()["skill_hook"])
 
     def test_other_hosts_install_no_skill_hook(self) -> None:
-        for host in ("codex", "cursor"):
-            keepalive.install(host)
-            self.assertNotIn("Skill", (self.home() / {"codex": ".codex/hooks.json", "cursor": ".cursor/hooks.json"}[host]).read_text())
-            self.assertEqual(keepalive.status(host), "installed")
+        keepalive.install("codex")
+        self.assertNotIn("Skill", (self.home() / ".codex/hooks.json").read_text())
+        self.assertEqual(keepalive.status("codex"), "installed")
 
     def test_the_generated_package_registers_it_for_claude_and_no_other_host(self) -> None:
         import package_build
@@ -243,8 +242,7 @@ class SkillHookRegistrationTests(keepalive_tests.KeepaliveTestCase):
         [skill_group] = [group for group in claude["hooks"]["PostToolUse"] if group["matcher"] == "Skill"]
         self.assertEqual([hook["command"] for hook in skill_group["hooks"]],
                          ["${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-skill-call"])
-        for other in ("codex.json", "cursor.json"):
-            self.assertNotIn("shiploop-skill-call", (plugin / "hooks" / other).read_text(), other)
+        self.assertNotIn("shiploop-skill-call", (plugin / "hooks" / "codex.json").read_text(), "codex.json")
         script = plugin / "skills" / "shiploop" / "scripts" / "shiploop-skill-call"
         self.assertTrue(os.access(script, os.X_OK))
 
@@ -330,7 +328,6 @@ class _Echo:
 NESTED_HOST_MARKERS = {
     "antigravity": ({"ANTIGRAVITY_AGENT": "1"}, {"ANTIGRAVITY_CONVERSATION_ID": "agy-1"}),
     "codex": ({"CODEX_THREAD_ID": "codex-thread-1"}, {"CODEX_SANDBOX": "seatbelt"}),
-    "cursor": ({"CURSOR_PLUGIN_ROOT": "/plugin"},),
 }
 
 
@@ -524,14 +521,14 @@ class SkillCallGateTests(GateFixture):
         done = self.complete()
         self.assertIn("SHIPLOOP_KEEPALIVE turns ShipLoop's hooks off", done.stderr)
 
-    def test_codex_or_cursor_started_from_a_bound_claude_shell_is_not_gated(self) -> None:
+    def test_codex_started_from_a_bound_claude_shell_is_not_gated(self) -> None:
         # Such a host inherits Claude's session variables, has no Skill tool or Skill-call hook, and so could never
         # satisfy the gate: its own marker wins over the inherited Claude session.
         self.bind()
         inherited = {**self.environment}
         with self.hook_environment():
             self.assertEqual(keepalive.skill_gate(str(self.run), inherited), (True, ""))
-            for marker in ("CODEX_THREAD_ID", "CODEX_SANDBOX", "CURSOR_PLUGIN_ROOT"):
+            for marker in ("CODEX_THREAD_ID", "CODEX_SANDBOX"):
                 with self.subTest(marker=marker):
                     enforce, why = keepalive.skill_gate(str(self.run), {**inherited, marker: "1"})
                     self.assertFalse(enforce)
@@ -542,9 +539,9 @@ class SkillCallGateTests(GateFixture):
         self.assertNotIn("Run the improve skill on this", done.stderr)
 
     def test_every_non_claude_host_has_a_nested_marker_that_beats_an_inherited_claude_session(self) -> None:
-        # The host list comes from the hook installer's own table (excluding retired Grok/OpenCode local test lanes),
+        # The host list comes from the hook installer's own table (excluding retired Grok/OpenCode/Cursor lanes),
         # so an active host added there fails here until its marker is known (a table row above) and skill_gate reads it.
-        others = [host for host in keepalive.HOSTS if host not in ("claude", "grok", "opencode")]
+        others = [host for host in keepalive.HOSTS if host not in ("claude", "grok", "opencode", "cursor")]
         self.assertEqual(sorted(others), sorted(NESTED_HOST_MARKERS),
                          "a host in keepalive.HOSTS has no known marker for a nested start from a Claude shell")
         self.bind()

@@ -2,7 +2,7 @@
 # Run the imported advisors skill's own hermetic verify suite.
 set -euo pipefail
 
-SKILL="${ADVISORS_SKILL:-$HOME/.cursor/skills/advisors}"
+SKILL="${ADVISORS_SKILL:-$HOME/.claude/skills/advisors}"
 VERIFY="$SKILL/scripts/advisors-verify.sh"
 
 if [[ ! -x "$VERIFY" && ! -f "$VERIFY" ]]; then

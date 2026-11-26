@@ -29,7 +29,6 @@ SPEC.loader.exec_module(managed_workspaces)
 HOST_TOOLS = {
     "claude": ("Agent", "task-notification"),
     "codex": ("collaboration.spawn_agent", "collaboration.wait_agent"),
-    "cursor": ("Task", "task-notification"),
 }
 
 
@@ -280,7 +279,7 @@ class ManagedWorkspaceEvidenceV2Tests(unittest.TestCase):
         self.assertTrue(all(layer["pass"] for layer in trace["layers"].values()), trace)
 
     def test_all_hosts_share_the_normalized_lifecycle_contract(self) -> None:
-        self.assertEqual(set(HOST_TOOLS), set(managed_workspaces.HOSTS) - {"grok", "opencode"})
+        self.assertEqual(set(HOST_TOOLS), set(managed_workspaces.HOSTS) - {"grok", "opencode", "cursor"})
         code, report = self._valid_records()
         # Immutable Git evidence can be shared; only disposable event records vary.
         # Both routes are valid at the shared contract layer, not a claim that

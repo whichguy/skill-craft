@@ -228,7 +228,7 @@ class Statistics(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "judge").mkdir(); (Path(d) / "prompts").mkdir()
             (Path(d) / "manifest.json").write_text(json.dumps({"condition": {"model": "sonnet", "tools": ""}, "arms": {}}))
-            for i, (arm, j) in enumerate([("base", "sonnet"), ("cand", "grok")] * 3):
+            for i, (arm, j) in enumerate([("base", "sonnet"), ("cand", "luna")] * 3):
                 v = verdict({"P1": "met"}); v["judge_model"] = j
                 (Path(d) / "judge" / f"S01_GAS_{arm}_{i}.json").write_text(json.dumps(v))
             r = R.analyze(d, s, "base")
@@ -333,7 +333,7 @@ class Statistics(unittest.TestCase):
 
 class Findings(unittest.TestCase):
     def good(self):
-        return {"change": "c", "reviewer": "grok", "findings": [
+        return {"change": "c", "reviewer": "codex", "findings": [
             {"id": "F1", "claim": "x", "severity": "high", "category": "regression", "testable": True,
              "experiment": {"type": "scenario", "description": "d", "success": "s"}},
             {"id": "F2", "claim": "y", "severity": "low", "category": "wording", "testable": False}]}
