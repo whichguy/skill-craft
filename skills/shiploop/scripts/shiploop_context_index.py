@@ -26,18 +26,28 @@ import shlex
 from pathlib import Path
 from typing import Any, Mapping
 
+import shiploop_defaults as defaults
 import shiploop_knowledge_home as knowledge
 import shiploop_prompts as prompts
 import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 
 # Script-written records a fresh context may need, relative to the run directory.
-RECORD_GLOBS = ("tests/*-verify*.md", "loops/*-terminal.json", "lint/*.md", "improve/*/receipt.md")
+RECORD_GLOBS = (
+    "tests/*-verify*.md",
+    "loops/*-terminal.json",
+    "lint/*.md",
+    "improve/*/receipt.md",
+    "experiments/*/decision.md",
+    "experiments/plan-iter-*.md",
+)
 
 INDEX_FILE = "context-index.md"
 # Display: the characters of a summary, lesson, assumption or context one index line quotes.  The index's opening names
-# state.md, which holds every field whole; a summary or lesson line also names the result file that holds it.
+# state.md, which holds every field whole; a summary or lesson line also names the result file that holds it.  ``plan``
+# gets a wider excerpt so its cross-item rationale and Improve lessons survive a ``prepare -> step-plan`` model switch.
 SUMMARY_LIMIT = 400
+PLAN_SUMMARY_LIMIT = 1_200
 
 # Entries each stage reads first.  A bare name is the run's root result for
 # that stage; "item:<stage>" is the current work item's result.
@@ -62,6 +72,7 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/inbox/", "the result you write for the current action", "before its callback"),
     ("RUN/notes/", "your notes; notes/<action>.md is the optional pass log", "after a reset, if the log exists"),
     ("RUN/scratch/", "your temporary files, in place of /tmp", "you need one"),
+    ("RUN/experiments/", "planning probes (<exp-id>/decision.md) and plan-iter-<n>.md snapshots", "planning or step-plan"),
     ("RUN/loops/", "each inner stage's Until Loop contract and receipt", "a loop is interrupted"),
     ("RUN/commits/", "each inline step's commit", "a step is redone"),
     ("RUN/tests/", "ShipLoop's test runs: base, candidate, reruns and each implement step's Proof",
@@ -139,10 +150,11 @@ def _entry_lines(state: Mapping[str, Any], root: Path, label: str, action: str |
     if action is None:
         return [f"### {label}", "- Not accepted yet."]
     record = state["accepted"].get(action, {})
+    limit = PLAN_SUMMARY_LIMIT if label == "plan" else SUMMARY_LIMIT
     lines = [
         f"### {label}",
         f"- Result: {_result_path(root, action)} (state.md accepted.{action})",
-        f"- Summary: {_excerpt(record.get('summary'))}",
+        f"- Summary: {_excerpt(record.get('summary'), limit)}",
     ]
     refs = record.get("evidence_refs") or []
     if refs:
@@ -153,8 +165,27 @@ def _entry_lines(state: Mapping[str, Any], root: Path, label: str, action: str |
         lines.append(f"- Improve receipt: {root / 'improve' / action / 'receipt.md'}")
         lessons = improve.get("lessons")
         if isinstance(lessons, str) and lessons.strip():
-            lines.append(f"- Improve lessons: {_excerpt(lessons)}")
+            lines.append(f"- Improve lessons: {_excerpt(lessons, limit)}")
     return lines
+
+
+def _experiment_lines(root: Path) -> list[str]:
+    exp_dir = Path(root) / "experiments"
+    if not exp_dir.is_dir() or exp_dir.is_symlink():
+        return []
+    rows: list[str] = []
+    for decision in sorted(exp_dir.glob("*/decision.md")):
+        raw = _safe_text(decision)
+        if not raw:
+            continue
+        body_lines = [
+            " ".join(line.split())
+            for line in raw.splitlines()
+            if line.strip() and not line.lstrip().startswith(("#", "```"))
+        ]
+        summary = " ".join(body_lines) if body_lines else " ".join(raw.split())
+        rows.append(f"- {decision}: {_excerpt(summary)}")
+    return ["### planning experiments", *rows] if rows else []
 
 
 def _item_status(state: Mapping[str, Any], index: int, item_id: str) -> str:
@@ -195,6 +226,11 @@ def render(
     ]
     for root_stage in _ROOT_STAGES:
         lines.extend(_entry_lines(state, root, root_stage, current.get((None, root_stage))))
+    spec_defaults = defaults.recorded(state)
+    if spec_defaults:
+        lines.append("### spec defaults")
+        for row_line in defaults.row_lines(spec_defaults):
+            lines.append(f"- {_excerpt(row_line, PLAN_SUMMARY_LIMIT)}")
     plan_action = current.get((None, "plan"))
     assumptions = (state["accepted"].get(plan_action, {}) or {}).get("assumptions") if plan_action else None
     if assumptions:
@@ -205,6 +241,7 @@ def render(
                              f"{_excerpt(item.get('assumption'))}")
             else:
                 lines.append(f"- {_excerpt(item)}")
+    lines.extend(_experiment_lines(root))
     lines.extend(["", "## Work items", ""])
     for index, item in enumerate(state.get("work_items") or []):
         item_id = item.get("id")

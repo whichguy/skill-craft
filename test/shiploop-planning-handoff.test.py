@@ -28,7 +28,7 @@ from shiploop_packet_view import assert_top_block  # noqa: E402
 # Consumer stage -> the root planning results its packet must name.
 REQUIRED_SOURCES = {
     "plan": {"intake", "discovery", "research", "spec", "test-strategy"},
-    "step-plan": {"spec", "test-strategy", "plan"},
+    "step-plan": {"discovery", "research", "spec", "test-strategy", "plan"},
     "test-spec": {"spec", "test-strategy", "plan", "step-plan"},
     "implement": {"step-plan"},
     "system-test-author": {"spec", "test-strategy", "plan"},

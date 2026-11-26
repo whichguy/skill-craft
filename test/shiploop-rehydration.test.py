@@ -110,8 +110,9 @@ class MasterIndexTests(unittest.TestCase):
     # +20 over four uses; 3,650 until the step commits added the RUN/commits/ row, +26; 3,700 until the run trace added the
     # RUN/trace.jsonl row, packets/sent/ and trace.html, +96); paths take the rest
     # 4,100 (3,850 + the RUN/checks/ row, phase B: the latest `shiploop check` answer per action) until the progress
-    # view's three update scripts joined the display row, +59: the map must name every file a run directory gets.
-    MAP_LIMIT = 4_160
+    # view's three update scripts joined the display row, +59; +120 for the RUN/experiments/ row matching state-files.md:
+    # the map must name every file or folder a run directory gets.
+    MAP_LIMIT = 4_280
 
     @staticmethod
     def map_text(text: str) -> str:
@@ -218,6 +219,36 @@ class MasterIndexTests(unittest.TestCase):
         for anchor in ("rules", "blocked", "outcomes", "recovery", "policies"):  # the sections reference.md really has
             self.assertIn("#" + anchor, text)
             self.assertIn(anchor, __import__("shiploop_reference").ANCHORS)
+
+    def test_the_index_surfaces_spec_defaults_expanded_plan_basis_and_planning_experiments(self) -> None:
+        state = drive_to("step-plan")
+        current = __import__("shiploop_planning_revision").current_actions(state)
+        spec_action = current[(None, "spec")]
+        plan_action = current[(None, "plan")]
+        state["accepted"][spec_action]["defaults"] = [{
+            "requirement": "R-1",
+            "question": "Which theme loads first?",
+            "default": "Light theme loads by default with a Dark toggle.",
+            "alternative": "System OS polarity loads first.",
+            "why": "Matches the standalone starting appearance.",
+        }]
+        long_plan = ("Design basis: " + ("state-agreement-and-ui-premises " * 25)).strip() + " PLAN_BASIS_TAIL"
+        state["accepted"][plan_action]["summary"] = long_plan
+        state["improve_results"][plan_action] = {"lessons": "Keep UI entrypoint wiring paired with backend controllers."}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "run"
+            exp_decision = root / "experiments" / "exp-1" / "decision.md"
+            exp_decision.parent.mkdir(parents=True, exist_ok=True)
+            exp_decision.write_text("# Decision\nChose container queries over viewport media queries for narrow panels.\n",
+                                    encoding="utf-8")
+            text = context_index.render(state, root, "step-plan")
+        self.assertIn("| RUN/experiments/ |", text)
+        self.assertIn("### spec defaults", text)
+        self.assertIn("R-1 Which theme loads first? Decided: Light theme loads by default", text)
+        self.assertIn("PLAN_BASIS_TAIL", text)
+        self.assertIn("Keep UI entrypoint wiring paired with backend controllers.", text)
+        self.assertIn("### planning experiments", text)
+        self.assertIn(f"{exp_decision}: Chose container queries over viewport media queries", text)
 
 
 def store_read(run: Path) -> dict:

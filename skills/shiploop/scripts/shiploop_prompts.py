@@ -1417,7 +1417,8 @@ DUTIES = {
      email or platform notification for changes hours apart; server-sent events, WebSockets or push only when
      seconds matter). After a push, poll gap or reconnect, read authoritative state back. Cache only derived data,
      in the runtime's cache, expiring with the allowed staleness. State each channel's and cache's quota cost.
-   Then write a Design basis in `summary`, rechecking the guide rather than copying a prior plan: baseline and delta;
+   Then write a `### Design basis` subsection under KNOWLEDGE/architecture.md ## Interfaces and boundaries (and summarize it
+   in `summary`), rechecking the guide rather than copying a prior plan: baseline and delta;
    state, event and connection agreements with planned recovery checks (including a crash after acknowledgment but
    before processing); deployment fit; source and check locators. UI: component, interaction and skin premises, the
    design guidance locator with identity, version or digest (or the named fallback), each async cue with purpose and
@@ -1521,7 +1522,9 @@ DUTIES = {
     "step-plan": """\
 Change no product file in this stage.
 
-1. **Recheck the item.** Reopen its `context` and recheck each condition. Check shared prerequisites against the
+1. **Recheck the item.** Reopen its `context` and recheck each condition. Also reopen the Run records index
+   (`## Planning basis`, including recorded `spec` defaults, `plan` assumptions and `RUN/experiments/` decisions) and
+   KNOWLEDGE/architecture.md (`### Design basis` and `AD-<n>`). Check shared prerequisites against the
    supplier's recorded result and current architecture/environment evidence. Reuse established state; implement only
    the item's remaining change, and route missing prerequisites outside the item through the blocked route below.
    If the plan no longer requires it, report

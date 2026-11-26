@@ -3778,6 +3778,11 @@ class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
 
         step_plan = normalized(prompts.prompt("step-plan"))
         self.assertIn("runs at the end of `implement` before `test` writes new test files", step_plan)
+        self.assertIn("the Run records index (`## Planning basis`", step_plan)
+        self.assertIn("KNOWLEDGE/architecture.md (`### Design basis` and `AD-<n>`)", step_plan)
+
+        plan_prompt = normalized(prompts.prompt("plan"))
+        self.assertIn("`### Design basis` subsection under KNOWLEDGE/architecture.md ## Interfaces and boundaries", plan_prompt)
 
         acceptance = normalized(prompts.prompt("product-acceptance"))
         self.assertIn("UI/API Entrypoint Reachability", acceptance)

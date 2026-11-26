@@ -28,6 +28,7 @@ inside its Markdown file, and there is no writable JSON mirror.
 | `status.md` | Derived copy of the user-facing [status block](status-display.md), rewritten by every saved transition in the same transaction as `state.md`; not workflow state. |
 | `context-index.md`, `reference.md` | Derived at every save: the run's master index and the run-wide rules a packet names by section. Not workflow state; see [Run context index](#run-context-index) and [Run reference](#run-reference). |
 | `scratch/` | The host's temporary files, in place of `/tmp`; ShipLoop creates the empty directory when it prints a packet. Never evidence. |
+| `experiments/` | Isolated planning probes (`experiments/<exp-id>/decision.md` plus saved command and raw output) and script-written `experiments/plan-iter-<n>.md` snapshots from `plan`'s and `reflect-and-revise`'s Until Loops. Listed dynamically in `context-index.md` under `## Planning basis` so execution stages inherit settled probe decisions without mutating `WORKTREE`. |
 | `backchain/<action>/` | `shiploop backchain-check`'s records for a planning action: `candidate-<sha12>.json` (the graph checked, byte for byte) and `check-<sha12>.json` (the receipt), each written once per distinct candidate. |
 | `run-baseline.txt`, `run-starting-knowledge.json` | The run's starting point, written once by `init` in a checkout: the starting HEAD, and the starting bytes of the spec and architecture files (`{"version": 1, "head": ..., "files": {<name>: <base64 or null>}}`). The spec diff reads the bytes, so an edit the owner made before `init` is not attributed to the run; a run with the HEAD alone has no spec diff (the packet says it is not computed). |
 | `.lock`, `transaction.md` | The run lock every command that changes the run holds (`flock`; the file is empty), and the write-ahead journal of one save. `transaction.md` exists only while a save's writes are being applied: a Markdown record (`shiploop-transaction`, version 1) of every file the save writes and deletes. The next command to take the lock rolls it forward and removes it, and the progress observer waits while it exists. Neither carries workflow state, and neither is ever edited: a journal that cannot be read blocks every command, and it is written atomically, so that follows only an edit or a disk fault. |
@@ -117,8 +118,9 @@ the next and recovery commands, and one row per file or folder of the run, per k
 (`KNOWLEDGE/spec.md`, `architecture.md`, `environment.md`) and for the skill's guides, saying what
 it holds and when to read it. A test lists a populated run directory and fails on an entry
 the map lacks. After the map comes the run's record: the request, each current accepted
-planning result (result file, summary, registered notes, Improve receipt and lessons, and the
-plan's assumptions), the work-item queue with each item's accepted results, the outer loop, and
+planning result (result file, summary, registered notes, Improve receipt and lessons, the
+recorded `spec` defaults, the `plan` assumptions, and any `experiments/<exp-id>/decision.md`
+probe decisions), the work-item queue with each item's accepted results, the outer loop, and
 superseded results. It is a derived view with pointers and short summaries, not
 another record; `state.md` stays the authority, and nothing writes the index
 but the script.

@@ -1409,6 +1409,13 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
         self.assertEqual((code, len(p_calls)), (keepalive.EXIT_DONE, 2))
         self.assertIn("gemini-4-neon-high", p_calls[0])
         self.assertIn("gemini-4-carbon-medium", p_calls[1])
+        self.assertNotIn("Profile handoff (", " ".join(p_calls[0]))
+        switched_arg = next(arg for arg in p_calls[1] if arg.startswith("--print="))
+        self.assertIn("Profile handoff (antigravity:gemini-4-neon-high -> antigravity:gemini-4-carbon-medium):", switched_arg)
+        self.assertIn(f"{self.run_dir}/context-index.md", switched_arg)
+        self.assertIn(f"{self.repo}/docs/shiploop/", switched_arg)
+        self.assertIn("### Design basis", switched_arg)
+        self.assertIn(f"{self.run_dir}/request.md", switched_arg)
 
         # Cross-harness switch: antigravity planning -> codex execution.
         cross_cfg = {

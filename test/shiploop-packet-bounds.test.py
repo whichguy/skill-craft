@@ -330,6 +330,7 @@ LIMIT_KINDS = {
     "shiploop_navigator.STEP_CRITERIA_PRINT": "print budget",
     "shiploop_test_layers.LINES_PRINT": "print budget",
     "shiploop_context_index.SUMMARY_LIMIT": "display cut",
+    "shiploop_context_index.PLAN_SUMMARY_LIMIT": "display cut",
     "shiploop_expectations.OUTPUT_LIMIT": "display cut",
     "shiploop_lint.PAGE_BYTES": "display cut",
     "shiploop_narrative.NARRATIVE_LIMIT": "display cut",
