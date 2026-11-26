@@ -335,7 +335,7 @@ def cut(releases, bundle, date, no_e2e_round=None):
     shipped = [(PLUGIN, bundle["new"])] + sorted((leaf, entry["new"]) for leaf, entry in releases.items())
     summary = ", ".join(f"{name} {version}" for name, version in shipped)
     paths = ("skills", "changes", "catalog/skill-craft-plugin.json", "CHANGELOG.md", "README.md", "plugins",
-             ".grok-plugin", ".cursor-plugin", ".claude-plugin", ".agents")
+             ".antigravity-plugin", ".grok-plugin", ".cursor-plugin", ".claude-plugin", ".agents")
     git("add", "-A", "--", *[p for p in paths if (ROOT / p).exists() or git("ls-files", "--", p)])
     trailers = [f"{TRAILER}: " + ", ".join(f"{name}@{version}" for name, version in shipped)]
     if no_e2e_round:

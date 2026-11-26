@@ -239,7 +239,7 @@ class TestGroupTests(unittest.TestCase):
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls", "shiploop-domain-words", "shiploop-retired-terms"},
             # Every ShipLoop skill path also selects the domain-word lint and the retired-term scan (the skills/shiploop/ row).
             "scripts/release.py": {"release-push", "release-refresh", "release-flow", "release-boundary", "release-preflight"},
-            "scripts/release-refresh.py": {"release-refresh"},
+            "scripts/release-refresh.py": {"release-refresh", "release-push"},
             "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime", "improve-route"},
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},

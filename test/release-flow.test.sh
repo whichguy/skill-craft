@@ -13,7 +13,7 @@ repo="$tmp/repo"
 mkdir -p "$repo"
 
 (cd "$root" && git ls-files -z --cached --others --exclude-standard -- \
-  skills agents catalog changes scripts plugins .grok-plugin .cursor-plugin .claude-plugin .agents \
+  skills agents catalog changes scripts plugins .antigravity-plugin .grok-plugin .cursor-plugin .claude-plugin .agents \
   README.md LICENSE .gitattributes | xargs -0 tar -cf -) | (cd "$repo" && tar -xf -)
 cd "$repo"
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.invalid
@@ -90,6 +90,8 @@ bundle_new="$(python3 -c "import json; print(json.load(open('catalog/skill-craft
 grep -q "^version: $shiploop_new\$" plugins/skill-craft/skills/shiploop/SKILL.md || fail "bundled skill card not regenerated"
 grep -q "\"version\": \"$bundle_new\"" plugins/skill-craft/.claude-plugin/plugin.json || fail "bundle plugin manifest not regenerated"
 grep -q "\"version\": \"$bundle_new\"" .claude-plugin/marketplace.json || fail "Claude catalog not regenerated"
+grep -q "\"version\": \"$bundle_new\"" .antigravity-plugin/marketplace.json || fail "Antigravity catalog not regenerated"
+grep -q "v$bundle_new/skill-craft-$bundle_new.zip" .antigravity-plugin/marketplace.json || fail "Antigravity catalog zip URL not updated"
 grep -q "### skill-craft $bundle_new" CHANGELOG.md || fail "changelog missing the bundle release heading"
 grep -q "^- Skills: .*shiploop $shiploop_new" CHANGELOG.md || fail "changelog skills summary missing shiploop"
 grep -q "### shiploop $shiploop_new" CHANGELOG.md || fail "changelog missing the release"

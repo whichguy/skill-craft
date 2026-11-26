@@ -40,7 +40,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GUARD = "scripts/check-release-boundary.py"
 RELEASE_TRAILER = "Skill-Craft-Release"
 NO_NOTE_TRAILER = "No-Change-Note"
-GENERATED_PREFIXES = ("plugins/", ".grok-plugin/", ".cursor-plugin/", ".claude-plugin/", ".agents/plugins/")
+GENERATED_PREFIXES = ("plugins/", ".antigravity-plugin/", ".grok-plugin/", ".cursor-plugin/", ".claude-plugin/", ".agents/plugins/")
 GENERATED_FILES = ("CHANGELOG.md",)
 INVENTORY = re.compile(r"<!-- skill-craft:inventory:start -->.*?<!-- skill-craft:inventory:end -->", re.S)
 # The top-level `version:` of the front matter only; never a line past its closing ---.

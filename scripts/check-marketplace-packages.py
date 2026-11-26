@@ -11,6 +11,7 @@ import ast
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -394,12 +395,74 @@ def validate_package(package: Path) -> list[str]:
     return errors
 
 
+def validate_antigravity_marketplace(root: Path, package: Path) -> list[str]:
+    """Validate .antigravity-plugin/marketplace.json against the package zip."""
+    errors: list[str] = []
+    mp_path = root / ".antigravity-plugin" / "marketplace.json"
+    try:
+        catalog = json.loads(mp_path.read_text(encoding="utf-8"))
+        if not isinstance(catalog, dict):
+            raise ValueError("marketplace must be an object")
+    except (OSError, UnicodeError, ValueError) as exc:
+        return [f".antigravity-plugin/marketplace.json: unreadable/invalid JSON: {exc}"]
+    if catalog.get("name") != "whichguy":
+        errors.append(f".antigravity-plugin/marketplace.json: name must be 'whichguy', found {catalog.get('name')!r}")
+    plugins = catalog.get("plugins")
+    if not isinstance(plugins, list) or len(plugins) != 1 or not isinstance(plugins[0], dict):
+        return errors + [".antigravity-plugin/marketplace.json: plugins must list exactly 1 entry ('skill-craft')"]
+    entry = plugins[0]
+    if entry.get("name") != "skill-craft":
+        errors.append(f".antigravity-plugin/marketplace.json: expected plugin 'skill-craft', found {entry.get('name')!r}")
+    try:
+        pkg_manifest = json.loads((package / ".antigravity-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        expected_version = pkg_manifest.get("version")
+    except (OSError, UnicodeError, ValueError):
+        expected_version = None
+    version = entry.get("version")
+    if not isinstance(version, str) or not SEMVER.fullmatch(version):
+        errors.append(".antigravity-plugin/marketplace.json: plugin version must be semantic version")
+    elif expected_version and version != expected_version:
+        errors.append(
+            f".antigravity-plugin/marketplace.json: version {version!r} differs from plugin.json {expected_version!r}"
+        )
+    source = entry.get("source")
+    if not isinstance(source, dict):
+        errors.append(".antigravity-plugin/marketplace.json: source must be an object")
+        return errors
+    if source.get("type") != "archive":
+        errors.append(f".antigravity-plugin/marketplace.json: source.type must be 'archive', found {source.get('type')!r}")
+    expected_url = f"https://github.com/whichguy/skill-craft/releases/download/v{version}/skill-craft-{version}.zip"
+    if source.get("url") != expected_url:
+        errors.append(
+            f".antigravity-plugin/marketplace.json: source.url must be {expected_url!r}, found {source.get('url')!r}"
+        )
+    zip_helper = root / "scripts" / "antigravity-zip.py"
+    if not zip_helper.is_file():
+        zip_helper = Path(__file__).resolve().parent / "antigravity-zip.py"
+    done = subprocess.run(
+        [sys.executable, "-B", str(zip_helper), "--source", str(package), "--sha256"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if done.returncode != 0:
+        errors.append(f"antigravity-zip.py failed: {(done.stderr or done.stdout).strip()}")
+        return errors
+    expected_sha = done.stdout.strip()
+    if source.get("sha256") != expected_sha:
+        errors.append(
+            f".antigravity-plugin/marketplace.json: source.sha256 {source.get('sha256')!r} != zip sha256 {expected_sha!r}"
+        )
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("packages", nargs="*", type=Path, help="individual plugin directories")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1],
                         help="checkout or build whose plugins/skill-craft is checked")
     args = parser.parse_args()
+    check_antigravity_mp = False
     if args.packages:
         packages = args.packages
     else:
@@ -413,9 +476,12 @@ def main() -> int:
             print(f"FAIL skill-craft: bundles {bundled}, source has {leaves}", file=sys.stderr)
             return 1
         packages = [package]
+        check_antigravity_mp = (args.root / ".antigravity-plugin" / "marketplace.json").is_file()
     failed = 0
     for package in packages:
         errors = validate_package(package)
+        if check_antigravity_mp:
+            errors.extend(validate_antigravity_marketplace(args.root, package))
         if errors:
             failed += 1
             for error in errors:

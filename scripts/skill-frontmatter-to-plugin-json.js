@@ -2,9 +2,10 @@
 "use strict";
 
 /**
- * Derive the one skill-craft plugin package (Claude, Codex, Cursor manifests,
- * hooks, README) and the marketplace indexes (Claude, Codex, Cursor, Grok) from
- * every skills/<leaf>/SKILL.md plus catalog/skill-craft-plugin.json.
+ * Derive the one skill-craft plugin package (Claude, Codex, Cursor, Antigravity
+ * manifests, hooks, README) and the marketplace indexes (Antigravity, Claude,
+ * Codex, Cursor, Grok) from every skills/<leaf>/SKILL.md plus
+ * catalog/skill-craft-plugin.json.
  *
  * Every skill ships in a single plugin named skill-craft, so hosts namespace
  * them as skill-craft:<leaf> (Claude /skill-craft:shiploop, Codex
@@ -16,6 +17,7 @@
  *
  * Exit 0 on success / check match; exit 1 on error or --check mismatch.
  */
+const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
@@ -548,6 +550,50 @@ function buildClaudeMarketplace(leaves) {
   };
 }
 
+function computeAntigravityZipSha256() {
+  const pluginDir = path.join(root, "plugins", PLUGIN_NAME);
+  if (!fs.existsSync(pluginDir)) {
+    fail(`missing plugins/${PLUGIN_NAME}; sync package before building marketplaces`);
+  }
+  const helper = path.join(root, "scripts", "antigravity-zip.py");
+  let sha256;
+  try {
+    sha256 = execFileSync(
+      process.env.PYTHON || "python3",
+      ["-B", helper, "--source", pluginDir, "--sha256"],
+      { cwd: root, encoding: "utf8" }
+    ).trim();
+  } catch (e) {
+    fail(`antigravity-zip failed: ${e.message}`);
+  }
+  if (!/^[0-9a-f]{64}$/.test(sha256)) {
+    fail(`antigravity-zip returned invalid sha256: ${JSON.stringify(sha256)}`);
+  }
+  return sha256;
+}
+
+function buildAntigravityMarketplace(leaves) {
+  const plugin = buildBundlePlugin(leaves);
+  const sha256 = computeAntigravityZipSha256();
+  return {
+    name: MARKETPLACE,
+    description: MARKETPLACE_DESCRIPTION,
+    owner: { name: "whichguy", url: "https://github.com/whichguy" },
+    plugins: [{
+      name: PLUGIN_NAME,
+      description: plugin.description,
+      version: plugin.version,
+      author: plugin.author,
+      category: "Productivity",
+      source: {
+        type: "archive",
+        url: `${REPOSITORY}/releases/download/v${plugin.version}/${PLUGIN_NAME}-${plugin.version}.zip`,
+        sha256,
+      },
+    }],
+  };
+}
+
 function buildCodexMarketplace(leaves) {
   const local = catalogEntry(leaves, { source: "local", path: `./plugins/${PLUGIN_NAME}` });
   return {
@@ -698,6 +744,11 @@ function runMarketplaces(doWrite, doCheck) {
   const inventory = doWrite || doCheck ? readmeInventory(leaves) : null;
   const targets = [
     {
+      outPath: path.join(root, ".antigravity-plugin", "marketplace.json"),
+      value: buildAntigravityMarketplace(leaves),
+      label: "Antigravity marketplace index",
+    },
+    {
       outPath: path.join(root, ".cursor-plugin", "marketplace.json"),
       value: buildCursorMarketplace(leaves),
       label: "Cursor marketplace index",
@@ -746,10 +797,11 @@ function runMarketplaces(doWrite, doCheck) {
 
   process.stdout.write(
     jsonText({
-      cursor: targets[0].value,
-      grok: targets[1].value,
-      claude: targets[2].value,
-      codex: targets[3].value,
+      antigravity: targets[0].value,
+      cursor: targets[1].value,
+      grok: targets[2].value,
+      claude: targets[3].value,
+      codex: targets[4].value,
     })
   );
 }

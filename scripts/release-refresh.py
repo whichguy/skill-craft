@@ -28,6 +28,7 @@ Every refreshed (or `--check-only`) host is verified for:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -42,6 +43,8 @@ DEFAULT_ANTIGRAVITY_SOURCE = "https://github.com/whichguy/skill-craft/tree/main/
 ALL_HOSTS = ("claude", "codex", "antigravity", "grok", "cursor")
 REQUIRED_ALL_HOSTS = frozenset({"claude", "codex", "antigravity"})
 FRONT_VERSION = re.compile(r"\A---\n(?:(?!---\n).*\n)*?version:[ \t]*(\S+)[ \t]*\n")
+IGNORED_TREE_DIRS = frozenset({"__pycache__", ".ruff_cache", ".git"})
+IGNORED_TREE_FILES = frozenset({".DS_Store"})
 
 
 class RefreshError(Exception):
@@ -115,6 +118,7 @@ def expected_release(repo: Path, *, allow_unreleased: bool) -> dict:
         "shiploop_version": skill_versions["shiploop"],
         "skill_count": len(skill_versions),
         "skill_versions": skill_versions,
+        "released_skills_root": str(skills_root),
     }
 
 
@@ -222,8 +226,31 @@ def run_cmd(argv: list[str], *, env: dict[str, str], timeout: float) -> subproce
     return done
 
 
+def _collect_skill_digests(skill_dir: Path) -> tuple[dict[str, str], list[str]]:
+    """Return ({rel_posix: sha256}, symlink_paths) for one bundled skill folder."""
+    digests: dict[str, str] = {}
+    symlinks: list[str] = []
+
+    def walk(directory: Path) -> None:
+        for entry in sorted(directory.iterdir(), key=lambda p: p.name):
+            rel = entry.relative_to(skill_dir).as_posix()
+            if entry.is_symlink():
+                symlinks.append(rel)
+            elif entry.is_dir():
+                if entry.name not in IGNORED_TREE_DIRS:
+                    walk(entry)
+            elif entry.is_file():
+                if entry.name in IGNORED_TREE_FILES or entry.name.endswith(".pyc"):
+                    continue
+                digests[rel] = hashlib.sha256(entry.read_bytes()).hexdigest()
+
+    if skill_dir.is_dir():
+        walk(skill_dir)
+    return digests, symlinks
+
+
 def verify_installed_tree(package_dir: Path, expected: dict) -> dict:
-    """Verify bundled skill leaves and versions inside an installed plugin directory."""
+    """Verify bundled skill leaves, versions, and file bytes inside an installed plugin directory."""
     skills_dir = package_dir / "skills"
     if not skills_dir.is_dir():
         return {
@@ -244,8 +271,43 @@ def verify_installed_tree(package_dir: Path, expected: dict) -> dict:
         for leaf in sorted(set(expected_versions) & set(found_versions))
         if found_versions[leaf] != expected_versions[leaf]
     }
+
+    missing_files: list[str] = []
+    extra_files: list[str] = []
+    differing_files: list[str] = []
+    released_root_raw = expected.get("released_skills_root")
+    if isinstance(released_root_raw, str) and released_root_raw:
+        released_root = Path(released_root_raw)
+        if released_root.is_dir():
+            for leaf in sorted(set(expected_versions) & set(found_versions)):
+                want_files, _ = _collect_skill_digests(released_root / leaf)
+                got_files, got_links = _collect_skill_digests(skills_dir / leaf)
+                for rel in got_links:
+                    differing_files.append(f"{leaf}/{rel} (symlink)")
+                for rel in sorted(set(want_files) - set(got_files)):
+                    missing_files.append(f"{leaf}/{rel}")
+                for rel in sorted(set(got_files) - set(want_files)):
+                    extra_files.append(f"{leaf}/{rel}")
+                for rel in sorted(set(want_files) & set(got_files)):
+                    if want_files[rel] != got_files[rel]:
+                        differing_files.append(f"{leaf}/{rel}")
+
+    byte_mismatches: dict[str, list[str]] = {}
+    if missing_files:
+        byte_mismatches["missing"] = missing_files
+    if extra_files:
+        byte_mismatches["extra"] = extra_files
+    if differing_files:
+        byte_mismatches["differing"] = differing_files
+
     shiploop_installed = found_versions.get("shiploop")
-    ok = not missing and not extra and not mismatched and shiploop_installed == expected["shiploop_version"]
+    ok = (
+        not missing
+        and not extra
+        and not mismatched
+        and not byte_mismatches
+        and shiploop_installed == expected["shiploop_version"]
+    )
     result: dict = {
         "ok": ok,
         "path": str(package_dir),
@@ -258,6 +320,8 @@ def verify_installed_tree(package_dir: Path, expected: dict) -> dict:
         result["extra_skills"] = extra
     if mismatched:
         result["version_mismatches"] = mismatched
+    if byte_mismatches:
+        result["byte_mismatches"] = byte_mismatches
     return result
 
 

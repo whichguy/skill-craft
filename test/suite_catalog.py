@@ -472,6 +472,7 @@ _PATH_SUITE_IDS = {
     "test/ci_node_stable.cjs": ("ci-policy",),
     "test/suite_durations.json": ("test-groups", "ci-policy"),
     "install.sh": ("install-targets", "install-arbitrary-skill", "install-status-uninstall"),
+    "scripts/antigravity-zip.py": ("sync-plugin-views", "native-marketplace-adapters", "marketplace-package", "release-push"),
     "scripts/build-packages.py": ("marketplace-package",),
     "scripts/check-release-boundary.py": ("release-boundary",),
     "scripts/release-push.py": ("release-push",),

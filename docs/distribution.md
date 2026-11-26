@@ -64,14 +64,14 @@ is unknown, inspect `claude plugin list --json` for the host's current state.
 |------|-------|----------|
 | Claude Code | `.claude-plugin/marketplace.json` | Skill packages and external pins |
 | Codex | `.agents/plugins/marketplace.json` (falls back to the Claude index) | Same selection |
-| Antigravity | `plugins/skill-craft/.antigravity-plugin/plugin.json` + root `hooks.json` | Published GitHub subfolder (`tree/main/plugins/skill-craft`) |
+| Antigravity | `.antigravity-plugin/marketplace.json` (`plugins/skill-craft/.antigravity-plugin/plugin.json` + root `hooks.json`) | Deterministic GitHub Release `skill-craft-<version>.zip` + `sha256` (or `tree/main/plugins/skill-craft`) |
 | Grok | `.grok-plugin/marketplace.json` | Skill packages |
 | Cursor | `.cursor-plugin/marketplace.json` | Skill packages |
 | OpenCode | none (no skill marketplace) | `./install.sh` skill directories |
 
-All four indexes are generated at release (`scripts/release.py` runs
+All five indexes are generated at release (`scripts/release.py` runs
 `scripts/sync-plugin-views.sh`), are named `whichguy` after the publisher, and point at
-`./plugins/skill-craft`. The install ID on every host is
+`./plugins/skill-craft` (or the deterministic `v<version>` GitHub Release archive with matching `sha256` in `.antigravity-plugin/marketplace.json`). The install ID on every host is
 `skill-craft@whichguy`. Lennox S40, Until Loop and Workflow are published
 from their own repositories and pinned by full commit in
 `catalog/external-plugins.json`; they are listed in the Claude and Codex indexes
@@ -127,11 +127,13 @@ new Codex task after installing. See the [Codex marketplace reference](https://d
 
 Antigravity (`agy` CLI and the Antigravity App) loads native plugins from
 `plugins/skill-craft/.antigravity-plugin/plugin.json` and plugin-root
-`hooks.json` (generated from `skills/*/host-hooks.json`). Because the monorepo
-root has no `plugin.json`, pass the published `plugins/skill-craft` subfolder URL
-rather than the repository root:
+`hooks.json` (generated from `skills/*/host-hooks.json`), and also consumes the
+generated root catalog `.antigravity-plugin/marketplace.json` backed by a
+deterministic `ZIP_STORED` release archive (`scripts/antigravity-zip.py`) uploaded
+to GitHub Releases on every release push (`scripts/release-push.py`):
 
 ```sh
+agy plugin validate https://raw.githubusercontent.com/whichguy/skill-craft/main/.antigravity-plugin/marketplace.json
 agy plugin validate https://github.com/whichguy/skill-craft/tree/main/plugins/skill-craft
 agy plugin install https://github.com/whichguy/skill-craft/tree/main/plugins/skill-craft
 agy plugin list --json
@@ -395,7 +397,7 @@ python3 scripts/check-marketplace-packages.py --root "$OUT"
 python3 test/installed-skill-invocation.test.py
 ```
 
-`build-packages.py` writes every package, the four host catalogs and the README
+`build-packages.py` writes every package, the five host catalogs and the README
 inventory into `OUT` without touching the checkout; package tests build the same
 way through `test/package_build.py` (or reuse `SKILL_CRAFT_PACKAGES`). The sync
 it runs refuses an empty source tree or missing inventory markers. Never run

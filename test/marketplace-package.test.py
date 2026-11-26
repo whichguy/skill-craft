@@ -304,6 +304,43 @@ class PackageTests(unittest.TestCase):
         )
         self.assertEqual([], self.check())
 
+    def test_validate_antigravity_marketplace_checks_zip_sha(self):
+        build_root = Path(self.temp.name) / "build_root"
+        pkg = build_root / "plugins" / "skill-craft"
+        shutil.copytree(self.package, pkg)
+        self.write_manifest_at(pkg / ".claude-plugin" / "plugin.json", dict(self.manifest, name="skill-craft"))
+        codex_sc = dict(self.codex, name="skill-craft", interface=dict(self.codex["interface"], defaultPrompt=["Use $skill-craft for this task."]))
+        self.write_manifest_at(pkg / ".codex-plugin" / "plugin.json", codex_sc)
+        self.write_manifest_at(pkg / ".antigravity-plugin" / "plugin.json", dict(self.manifest, name="skill-craft"))
+        zip_sha = subprocess.run(
+            [sys.executable, "-B", str(ROOT / "scripts" / "antigravity-zip.py"), "--source", str(pkg), "--sha256"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        mp = build_root / ".antigravity-plugin" / "marketplace.json"
+        mp.parent.mkdir(parents=True, exist_ok=True)
+        mp_data = {
+            "name": "whichguy",
+            "plugins": [{
+                "name": "skill-craft",
+                "version": "1.2.3",
+                "source": {
+                    "type": "archive",
+                    "url": "https://github.com/whichguy/skill-craft/releases/download/v1.2.3/skill-craft-1.2.3.zip",
+                    "sha256": zip_sha,
+                },
+            }],
+        }
+        mp.write_text(json.dumps(mp_data), encoding="utf-8")
+        self.assertEqual([], CHECK.validate_antigravity_marketplace(build_root, pkg))
+        mp_data["plugins"][0]["source"]["sha256"] = "0" * 64
+        mp.write_text(json.dumps(mp_data), encoding="utf-8")
+        errs = CHECK.validate_antigravity_marketplace(build_root, pkg)
+        self.assertTrue(any("sha256" in e for e in errs), errs)
+
+    def write_manifest_at(self, target: Path, value: dict):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(value), encoding="utf-8")
+
     # A second top-level skills/<x>/SKILL.md is no longer a failure: bundling
     # more than one skill in the package is exactly the current design (see
     # test_nested_public_skill for the guard that does still apply — a

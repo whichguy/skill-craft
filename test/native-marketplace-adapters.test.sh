@@ -69,7 +69,7 @@ bash scripts/sync-plugin-views.sh --check || fail "baseline adapter check"
 # nothing; an unknown option is refused rather than silently dropped.
 gen="scripts/skill-frontmatter-to-plugin-json.js"
 generated_digest() {
-  (find plugins .claude-plugin .agents README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
+  (find plugins .antigravity-plugin .claude-plugin .agents .grok-plugin .cursor-plugin README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
 }
 generated_digest > "$tmp/generated-before-cli"
 expect_failure "unknown option" "unknown argument --bogus" node "$gen" --package --check --bogus
@@ -173,10 +173,31 @@ const external = JSON.parse(fs.readFileSync("catalog/external-plugins.json", "ut
 const externalNames = new Set(external.map((p) => p.name));
 const claude = JSON.parse(fs.readFileSync(".claude-plugin/marketplace.json", "utf8"));
 const codex = JSON.parse(fs.readFileSync(".agents/plugins/marketplace.json", "utf8"));
+const antigravity = JSON.parse(fs.readFileSync(".antigravity-plugin/marketplace.json", "utf8"));
 const localSource = {
   Claude: () => \`./plugins/\${plugin}\`,
   Codex: () => ({ source: "local", path: \`./plugins/\${plugin}\` }),
 };
+if (antigravity.name !== marketplace || !Array.isArray(antigravity.plugins) || antigravity.plugins.length !== 1) {
+  throw new Error(\`Antigravity catalog must use \${marketplace} with exactly one plugin entry\`);
+}
+const agEntry = antigravity.plugins[0];
+const claudeLocal = claude.plugins.find((p) => p.name === plugin);
+const zipSha = require("child_process").execFileSync(
+  process.env.PYTHON || "python3",
+  ["-B", "scripts/antigravity-zip.py", "--source", \`plugins/\${plugin}\`, "--sha256"],
+  { encoding: "utf8" }
+).trim();
+const expectedAgUrl = \`https://github.com/whichguy/skill-craft/releases/download/v\${claudeLocal.version}/\${plugin}-\${claudeLocal.version}.zip\`;
+if (
+  agEntry.name !== plugin ||
+  agEntry.version !== claudeLocal.version ||
+  agEntry.source?.type !== "archive" ||
+  agEntry.source?.url !== expectedAgUrl ||
+  agEntry.source?.sha256 !== zipSha
+) {
+  throw new Error("Antigravity catalog entry invalid or zip sha256 mismatch");
+}
 for (const [host, catalog] of [["Claude", claude], ["Codex", codex]]) {
   if (catalog.name !== marketplace) {
     throw new Error(\`\${host} catalog must use the \${marketplace} marketplace name\`);
@@ -258,6 +279,23 @@ node "$gen" --package --check >/dev/null \
 expect_failure "stale Claude index" "Claude marketplace index" \
   node "$gen" --marketplaces --check
 bash scripts/sync-plugin-views.sh || fail "restore stale Claude index"
+
+# Deterministic Antigravity archive digest must be immune to mtime changes, and
+# hand-editing .antigravity-plugin/marketplace.json fails --marketplaces --check.
+sha_before="$(python3 -B scripts/antigravity-zip.py --source "plugins/$PLUGIN" --sha256)"
+touch "plugins/$PLUGIN/README.md"
+sha_after="$(python3 -B scripts/antigravity-zip.py --source "plugins/$PLUGIN" --sha256)"
+[[ "$sha_before" == "$sha_after" ]] || fail "antigravity-zip.py digest changed after mtime touch"
+node - <<'NODE'
+const fs = require("fs");
+const p = ".antigravity-plugin/marketplace.json";
+const catalog = JSON.parse(fs.readFileSync(p, "utf8"));
+catalog.plugins[0].source.sha256 = "0".repeat(64);
+fs.writeFileSync(p, JSON.stringify(catalog, null, 2) + "\n");
+NODE
+expect_failure "hand-edited Antigravity index" "Antigravity marketplace index" \
+  node "$gen" --marketplaces --check
+bash scripts/sync-plugin-views.sh || fail "restore Antigravity index"
 
 # Codex is a generated peer adapter, not a hand-maintained special case.
 rm -f "plugins/$PLUGIN/.codex-plugin/plugin.json"

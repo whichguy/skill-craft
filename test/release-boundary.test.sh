@@ -69,6 +69,10 @@ out="$(boundary --base "$base")" || fail "a pre-guard commit merged after the gu
 [[ "$out" == *"predates the release guard"* ]] || fail "pre-guard skip not reported: $out"
 echo "New habit." >> plugins/a/SKILL.md && commit -m "new: hand-edit plugins"
 fails "a post-guard hand edit" "new: hand-edit plugins: changes release output"
+git reset -q --hard HEAD~1
+mkdir -p .antigravity-plugin && echo '{"name":"whichguy"}' > .antigravity-plugin/marketplace.json
+commit -m "new: hand-edit antigravity catalog"
+fails "a post-guard antigravity catalog edit" ".antigravity-plugin/marketplace.json"
 
 # A3: No-Change-Note excuses only its own commit.
 fixture a3

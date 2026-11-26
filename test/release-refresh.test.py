@@ -353,6 +353,24 @@ class ReleaseRefreshTests(unittest.TestCase):
             {"shiploop": {"expected": "2.21.0", "installed": "2.20.0"}},
         )
 
+    def test_check_only_catches_byte_drift_in_helper_files_when_versions_match(self) -> None:
+        self.assertEqual(self.invoke().returncode, 0)
+        # Matching SKILL.md version, but differing helper file content in Claude's installed cache.
+        claude_helper = (
+            self.home / ".claude" / "plugins" / "cache" / "whichguy" / "skill-craft" / "4.20.0"
+            / "skills" / "shiploop" / "scripts" / "extra.py"
+        )
+        claude_helper.parent.mkdir(parents=True, exist_ok=True)
+        claude_helper.write_text("# stale extra helper\n", encoding="utf-8")
+        checked = self.invoke("--check-only", "--host", "claude")
+        self.assertEqual(checked.returncode, 1)
+        report = json.loads(checked.stderr)
+        self.assertEqual(report["hosts"]["claude"]["status"], "failed")
+        self.assertEqual(
+            report["hosts"]["claude"]["tree"]["byte_mismatches"],
+            {"extra": ["shiploop/scripts/extra.py"]},
+        )
+
     def test_live_run_guard_protects_real_profiles_and_ignores_throwaway_e2e_homes(self) -> None:
         # Throwaway E2E home does NOT block refreshing the user's real Codex profile.
         self.ps_file.write_text(

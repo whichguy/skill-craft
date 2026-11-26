@@ -2,7 +2,7 @@
 
 Source and release output are separate. Feature work edits source under
 `skills/`, `agents/` and `catalog/` and adds a change note. Only a
-release commit changes versions, `plugins/`, the four host catalogs, the README
+release commit changes versions, `plugins/`, the five host catalogs, the README
 inventory and `CHANGELOG.md`.
 
 ## Every change
@@ -106,14 +106,22 @@ against those bytes; an identical tree may reuse recorded evidence. Then run:
 python3 scripts/release-push.py --repo /absolute/release/worktree \
   --expected-head <full-candidate-commit> --expected-tree <full-candidate-tree> \
   --expected-base <full-remote-main-commit> \
+  --check '["python3", "-B", "scripts/check-release-boundary.py", "--base", "<full-remote-main-commit>"]' \
   --check '["bash", "scripts/sync-plugin-views.sh", "--check"]' \
-  --check '["python3", "scripts/check-marketplace-packages.py"]'
+  --check '["python3", "-B", "scripts/check-marketplace-packages.py"]' \
+  --github-release require \
+  --refresh-hosts
 ```
 
 The checks are operator-selected argument arrays, executed sequentially without
 a shell. They supplement the recorded qualification evidence; the helper does
 not select tests or independently certify that evidence. A failing check stops
-the operation. The helper rechecks the candidate, clean state and remote base
+the operation. When pushing a `Skill-Craft-Release:` commit to GitHub,
+`release-push.py` also builds the deterministic `skill-craft-<version>.zip`
+archive via `scripts/antigravity-zip.py`, verifies its `sha256` matches
+`.antigravity-plugin/marketplace.json` before pushing, creates/updates the
+`v<version>` GitHub Release with that `.zip` asset after pushing, and with
+`--refresh-hosts` runs `scripts/release-refresh.py` afterwards. The helper rechecks the candidate, clean state and remote base
 before one non-forced push of the frozen commit. A divergent remote update racing
 the push is rejected by Git. It does not bypass hooks, server policy, or required
 reviews; use the host's approved merge path where direct pushes are prohibited.

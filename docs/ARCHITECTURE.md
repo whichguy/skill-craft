@@ -38,7 +38,7 @@ Do **not** renumber legacy Layer 0–2. Skill-interop reviews and checklists alr
 | Scripts / CLI | **Layer 2** | **implemented** |
 | Skill card (`SKILL.md` router) | review step (not a Layer 1 rename) | **implemented** |
 | Runtime binding | append (**SC-L3**) | **implemented** for Hermes materialize |
-| Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, shared plugin views, Grok/Cursor indexes, Claude/Codex pins) |
+| Host adapters + distribution | append (**SC-L4 / SC-L5**) | **implemented** (skill-dir install, shared plugin views, Antigravity/Grok/Cursor indexes, Claude/Codex pins) |
 | Provenance (managed installs) | append | **implemented** — schema-2 marker + append-only `receipts.jsonl` + `--status` / `--uninstall` |
 | Operator / CI | control plane (not a runtime layer) | **implemented** — hermetic suite + GitHub Actions |
 
@@ -234,7 +234,8 @@ skill-craft/skills/<leaf>/     # SoT (all hosts skill-dir)
         └── plugins/skill-craft/skills/<leaf>/   # one marketplace package (materialised copies)
                  ▲
                  ├── skill-craft Grok/Cursor indexes: ./plugins/skill-craft
-                 └── skill-craft Claude/Codex indexes: ./plugins/skill-craft
+                 ├── skill-craft Claude/Codex indexes: ./plugins/skill-craft
+                 └── skill-craft Antigravity index: GitHub Release .zip + sha256
 ```
 
 The one plugin package holds every skill and each skill's agent card, when it
