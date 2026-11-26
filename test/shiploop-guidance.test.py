@@ -3548,7 +3548,7 @@ class Phase3ChecklistAndInvariantPromptTests(unittest.TestCase):
         self.assertIn("including any newly created standalone `proof` script", normalized(prompts.prompt("step-plan")))
         self.assertIn("Preserve intermediate observable conditions", normalized(prompts.prompt("test-spec")))
         self.assertIn("ShipLoop's mutation check samples changed product files", normalized(prompts.prompt("test")))
-        self.assertIn("plan-return` command (producing `return-plan.md`)", normalized(prompts.prompt("release-check")))
+        self.assertIn("recorded in `return-plan.md`", normalized(prompts.prompt("release-check")))
         self.assertIn("open `assumptions` (`A<n>`)", normalized(prompts.prompt("handoff")))
         guide = normalized((REFERENCES / "testing-and-documentation.md").read_text(encoding="utf-8"))
         self.assertIn("Preserve intermediate observable conditions", guide)

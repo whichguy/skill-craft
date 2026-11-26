@@ -2086,10 +2086,10 @@ preparatory commit); a mismatch there is a send-back.
    controls for each check's claim per GUIDES/testing-and-documentation.md#release-entry-and-release-check;
    unqualified required checks remain open. Fix a faulty check in KNOWLEDGE/environment.md ## Commands and rerun.
    Never mutate or delete the target to manufacture absence; infer no grant or setup workaround.
-5. Isolated run only: run the packet's `plan-return` command (producing `return-plan.md`), then decide every undecided path with review-return (a
-   dry run; decisions are kept for the return at release). Compare review-return's expected return and the
-   rollback it prints (the keep rows filled in) with the procedure in KNOWLEDGE/environment.md; if they differ,
-   correct the procedure and rerun plan-return.
+5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
+   dry run; decisions are kept for the return at release, recorded in `return-plan.md`). Compare review-return's
+   expected return and the rollback it prints (the keep rows filled in) with the procedure in
+   KNOWLEDGE/environment.md; if they differ, correct the procedure and rerun plan-return.
 6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A
    material change to code, tests, fixtures, configuration, migrations or target invalidates the observations it
    affects: rerun those through the planned route, reuse the rest only with identity and relevance stated.
