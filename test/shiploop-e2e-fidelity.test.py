@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """No-model checks for test/shiploop_e2e/fidelity.py: the record-only `fidelity` block of metrics.json (SPEC 2026-10-09).
 
-The replay tests read the compact extracts of twelve saved runs under test/fixtures/fidelity (cut by its extract.py from the
+The replay tests read the compact extracts of saved runs under test/fixtures/fidelity (cut by its extract.py from the
 run folders of 2026-10-05, 2026-10-07 and 2026-10-08) and two extracts of the 2026-10-06 verify records, never the machine's
 run folders. Each events.jsonl keeps its selected events at their original line numbers, so `event 493` below is the 0-based line
 index 493 of the saved stream (line 494 in an editor). The host-stream shapes are the harness's own (Claude tool_use and
-tool_result blocks, Grok tool_call and tool_call_update events, Codex through its translator). No test starts a host, a model or a
+tool_result blocks, and Codex through its translator). No test starts a host, a model or a
 listener, signals a process, or reads the machine's process table.
 
 What the extracts can and cannot show (their limits are the tests' limits). extract.py keeps every call whose command or paths
@@ -43,9 +43,8 @@ EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.py"
 
 CLAUDE = ("r1-battleship-sonnet", "r2-battleship-sonnet", "r3-battleship-sonnet", "r1-checkers-sonnet", "r2-checkers-sonnet",
           "r3-checkers-sonnet", "v1230-battleship-sonnet")
-GROK = ("r1-battleship-grok-none", "r2-battleship-grok-none", "r3-battleship-grok-none", "v1230-battleship-grok-none")
-ELEVEN = CLAUDE + GROK
-V1220 = ("v1220-battleship-sonnet", "v1220-battleship-grok-medium-none")
+SAVED = CLAUDE
+V1220 = ("v1220-battleship-sonnet",)
 CODEX = "v1210-battleship-luna-xhigh"
 
 
@@ -335,11 +334,9 @@ class EvidenceTest(unittest.TestCase):
         self.assertEqual((counts["script"], counts["loop"], counts["file"] + counts["note"], counts["sentence"]), (14, 7, 12, 3))
         self.assertEqual((counts["file"], counts["note"]), (8, 4))
 
-    def test_every_run_of_eleven_classes_every_accepted_action_once(self):
+    def test_every_saved_claude_run_classes_every_accepted_action_once(self):
         expected = {"r1-battleship-sonnet": 37, "r2-battleship-sonnet": 36, "r3-battleship-sonnet": 36, "r1-checkers-sonnet": 36,
-                    "r2-checkers-sonnet": 37, "r3-checkers-sonnet": 38, "r1-battleship-grok-none": 27,
-                    "r2-battleship-grok-none": 52, "r3-battleship-grok-none": 15, "v1230-battleship-sonnet": 38,
-                    "v1230-battleship-grok-none": 47}
+                    "r2-checkers-sonnet": 37, "r3-checkers-sonnet": 38, "v1230-battleship-sonnet": 38}
         for alias, rows in expected.items():
             with self.subTest(run=alias):
                 evidence = replay(alias)["block"]["evidence"]
@@ -349,7 +346,7 @@ class EvidenceTest(unittest.TestCase):
     def test_the_engines_not_applicable_entries_are_skipped_and_the_prefix_is_the_engines_own(self):
         source = (ENGINE / "shiploop_item_scope.py").read_text()
         self.assertIn(f'NOT_APPLICABLE = "{metrics.NOT_APPLICABLE}"', source)
-        for alias, skipped in (("r1-battleship-sonnet", 2), ("r2-battleship-grok-none", 4), ("r3-battleship-sonnet", 0)):
+        for alias, skipped in (("r1-battleship-sonnet", 2), ("r3-battleship-sonnet", 0)):
             with self.subTest(run=alias):
                 self.assertEqual(replay(alias)["block"]["evidence"]["counts"]["skipped"], skipped)
 
@@ -417,11 +414,20 @@ class EvidenceTest(unittest.TestCase):
         self.assertEqual(declared["test-green"], "script-run")
         self.assertEqual(declared["spec"], "review loop")
         self.assertEqual(declared["intake"], "model judgement")
-        none = replay("r1-battleship-grok-none")["block"]["evidence"]
-        self.assertEqual({r["declared"] for r in none["stages"] if r["stage"] == "spec"}, {"model judgement"})
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / ".shiploop-runs" / "work-1" / "run"
+            run_dir.mkdir(parents=True)
+            (out / "invocation.json").write_text(json.dumps({"planning_review": "none"}))
+            store.write_record(run_dir / "state.md", {
+                "status": "done", "planning_review": "none",
+                "history": [{"action": "nav-1", "stage": "spec", "outcome": "done"}],
+                "accepted": {"nav-1": {"outcome": "done", "summary": "s", "evidence_refs": []}}})
+            evidence = self.fidelity.build(out, run_dir, None, engine_scripts=CURRENT_TABLE, exporter=EXPORTER)["evidence"]
+        self.assertEqual({r["declared"] for r in evidence["stages"] if r["stage"] == "spec"}, {"model judgement"})
 
     def test_no_saved_run_declared_script_run_without_a_record_and_the_list_names_one_that_does(self):
-        for alias in ELEVEN:
+        for alias in SAVED:
             with self.subTest(run=alias):
                 self.assertEqual(replay(alias)["block"]["evidence"]["declared_script_run_without_record"], [])
         with tempfile.TemporaryDirectory() as tmp:
@@ -726,10 +732,17 @@ class EvidenceTest(unittest.TestCase):
         self.assertEqual({r["class"] for r in rows}, {"file"})
 
     def test_a_blocked_stage_without_a_record_is_not_listed(self):
-        # v1230 Grok ended blocked at system-test: a blocked system-test has no record by design.
-        block = replay("v1230-battleship-grok-none")["block"]
-        self.assertEqual(block["evidence"]["declared_script_run_without_record"], [])
-        last = block["evidence"]["stages"][-1]
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            run_dir = out / ".shiploop-runs" / "work-1" / "run"
+            run_dir.mkdir(parents=True)
+            store.write_record(run_dir / "state.md", {
+                "status": "blocked",
+                "history": [{"action": "nav-1", "stage": "system-test", "outcome": "blocked"}],
+                "accepted": {"nav-1": {"outcome": "blocked", "summary": "access: waiting on login", "evidence_refs": []}}})
+            evidence = self.fidelity.build(out, run_dir, None, engine_scripts=CURRENT_TABLE, exporter=EXPORTER)["evidence"]
+        self.assertEqual(evidence["declared_script_run_without_record"], [])
+        last = evidence["stages"][-1]
         self.assertEqual((last["stage"], last["outcome"]), ("system-test", "blocked"))
 
     def test_an_incompatible_stage_table_leaves_declared_unmeasured_with_the_reason_and_the_rest_stays_measured(self):
@@ -823,16 +836,11 @@ class ValidationTest(unittest.TestCase):
         self.assertEqual(validation["schemas"], ["shiploop-test-loop/v1"])
 
     def test_the_2026_10_06_audit_is_reproduced_every_focused_and_regression_row_of_v1220_has_null_counts(self):
-        for alias, rows in (("v1220-battleship-sonnet", 34), ("v1220-battleship-grok-medium-none", 30)):
-            with self.subTest(run=alias):
-                validation = self.fidelity.validation(run_dir_of(alias))
-                self.assertEqual(validation["tests_ran_unmeasured"], rows)
-                self.assertEqual(validation["by_suite"]["focused"]["counted"], 0)
-                self.assertEqual(validation["by_suite"]["regression"]["counted"], 0)
-        sonnet = self.fidelity.validation(run_dir_of("v1220-battleship-sonnet"))
-        self.assertEqual((sonnet["by_suite"]["focused"]["counts_null"], sonnet["by_suite"]["regression"]["counts_null"]), (27, 7))
-        grok = self.fidelity.validation(run_dir_of("v1220-battleship-grok-medium-none"))
-        self.assertEqual((grok["by_suite"]["focused"]["counts_null"], grok["by_suite"]["regression"]["counts_null"]), (18, 12))
+        validation = self.fidelity.validation(run_dir_of("v1220-battleship-sonnet"))
+        self.assertEqual(validation["tests_ran_unmeasured"], 34)
+        self.assertEqual(validation["by_suite"]["focused"]["counted"], 0)
+        self.assertEqual(validation["by_suite"]["regression"]["counted"], 0)
+        self.assertEqual((validation["by_suite"]["focused"]["counts_null"], validation["by_suite"]["regression"]["counts_null"]), (27, 7))
 
     def test_a_run_with_null_test_counts_says_so_in_unmeasured_and_never_reads_as_a_pass(self):
         tmp = tempfile.TemporaryDirectory()
@@ -907,7 +915,7 @@ class ValidationTest(unittest.TestCase):
 
     def test_the_release_verify_record_names_where_what_it_observed_and_its_own_passed(self):
         # Review A2/B1: the engine sets `observed` before it decides `passed`, so `where` alone is not a pass.
-        for alias in ("r1-battleship-sonnet", "r3-checkers-sonnet", "r2-battleship-grok-none"):
+        for alias in ("r1-battleship-sonnet", "r3-checkers-sonnet"):
             with self.subTest(run=alias):
                 self.assertEqual(replay(alias)["block"]["validation"]["release_verify"],
                                  {"where": "returned-result", "kind": "fast-forward-merge", "passed": True})
@@ -940,8 +948,8 @@ class ValidationTest(unittest.TestCase):
             self.assertIsNone(self.fidelity.validation(run_dir)["release_verify"])
 
     def test_accepted_ran_is_null_with_a_reason_when_no_row_carries_the_key(self):
-        # 8 of the 11 saved runs and both v1220 runs come from engines that do not write accepted_ran: not "0 stages".
-        for alias in ("r1-battleship-sonnet", "v1230-battleship-grok-none", "r2-checkers-sonnet"):
+        # The older saved runs and v1220 come from engines that do not write accepted_ran: not "0 stages".
+        for alias in ("r1-battleship-sonnet", "r2-checkers-sonnet"):
             with self.subTest(run=alias):
                 block = replay(alias)["block"]
                 self.assertIsNone(block["validation"]["accepted_ran"])
@@ -949,11 +957,9 @@ class ValidationTest(unittest.TestCase):
         block = replay("r3-battleship-sonnet")["block"]
         self.assertEqual(len(block["validation"]["accepted_ran"]["stages"]), 6)
         self.assertNotIn("validation.accepted_ran", block["unmeasured"])
-        grok = self.fidelity.build(FIXTURES / "v1220-battleship-grok-medium-none", run_dir_of("v1220-battleship-grok-medium-none"), None)
-        self.assertIsNone(grok["validation"]["accepted_ran"])
 
     def test_zero_ran_is_null_for_a_suite_with_no_counted_row_and_a_count_otherwise(self):
-        # v1220 Sonnet counts 0 of 42 rows and v1220 Grok 0 of 41: "zero-ran 0" would read as a measurement.
+        # v1220 Sonnet counts 0 of 42 rows: "zero-ran 0" would read as a measurement.
         for alias in V1220:
             with self.subTest(run=alias):
                 suites = self.fidelity.validation(run_dir_of(alias))["by_suite"]
@@ -991,7 +997,7 @@ class ValidationTest(unittest.TestCase):
         self.assertNotIn("red", note, "only the figures that differ are named")
 
     def test_the_two_readers_agree_on_every_replay_so_no_run_carries_the_note(self):
-        for alias in ELEVEN:
+        for alias in SAVED:
             with self.subTest(run=alias):
                 self.assertNotIn("validation.readers", replay(alias)["block"]["unmeasured"])
 
@@ -1076,7 +1082,7 @@ class ValidationTest(unittest.TestCase):
             self.gate_record(run_dir, "nav-t-base1.md", "shiploop-test-base/v1", disposition="passed", runs=[{"command": "c"}])
             self.assertEqual(self.fidelity.gates_not_exercised(run_dir), {"records": 1, "skipped": []})
             self.assertNotIn("gates not exercised", self.fidelity.lines(self.fidelity.build(Path(tmp), run_dir, None))[1])
-        for alias in ELEVEN:
+        for alias in SAVED:
             with self.subTest(run=alias):
                 self.assertEqual(replay(alias)["block"]["validation"]["gates_not_exercised"], [])
                 self.assertNotIn("gates not exercised", "\n".join(self.fidelity.lines(replay(alias)["block"])))
@@ -1091,8 +1097,8 @@ class ValidationTest(unittest.TestCase):
             (run_dir / "tests" / "nav-t-verify1.md").write_text("no fence at all\n")
             self.assertEqual(self.fidelity.gates_not_exercised(run_dir), {"records": 0, "skipped": []})
 
-    def test_the_regex_reader_and_the_json_reader_agree_on_all_eleven_saved_runs_and_the_two_v1220_runs(self):
-        for alias in ELEVEN + V1220:
+    def test_the_regex_reader_and_the_json_reader_agree_on_every_saved_claude_and_v1220_run(self):
+        for alias in SAVED + V1220:
             with self.subTest(run=alias):
                 run_dir = run_dir_of(alias)
                 regex = metrics.verifications(run_dir)
@@ -1109,9 +1115,9 @@ class EditsTest(unittest.TestCase):
     def setUp(self):
         self.fidelity = fidelity_module()
 
-    def test_the_two_round_1_sed_edits_of_return_plan_are_the_only_script_owned_edits_of_eleven_runs(self):
+    def test_the_two_round_1_sed_edits_of_return_plan_are_the_only_script_owned_edits_of_saved_runs(self):
         found = {}
-        for alias in ELEVEN:
+        for alias in SAVED:
             block = replay(alias)["block"]["edits"]
             if block["script_owned"]:
                 found[alias] = [(e["event"], e["form"]) for e in block["script_owned"]]
@@ -1228,7 +1234,7 @@ class EditsTest(unittest.TestCase):
         corpus = [f"echo x > {run}/state.md", f"echo x >> {run}/packets/nav-1.md", f"cp /tmp/a {run}/packets/nav-1.md",
                   f"mv {run}/lint/a.md /tmp/b", f"rm {run}/until-loop/x.json", f"printf x | tee {run}/tests/nav-1-verify1.md",
                   f"cat <<'EOF' > {run}/results/nav-1.md\nbody\nEOF", f"cd /w && echo x > {run}/state.md"]
-        corpus += [c["command"] for alias in ELEVEN for c in replay(alias)["tools"].sequence if c["command"]]
+        corpus += [c["command"] for alias in SAVED for c in replay(alias)["tools"].sequence if c["command"]]
         checked = 0
         for command in corpus:
             if "shell write into a ShipLoop-owned path" not in metrics.glue_reasons(command):
@@ -1262,12 +1268,12 @@ class EditsTest(unittest.TestCase):
         self.assertEqual(self.fidelity.name_kills(command), [])
         self.assertEqual(self.fidelity.commit_forms(command), [])
 
-    def test_an_edit_tool_on_a_script_owned_path_is_an_edit_on_claude_grok_and_codex_shapes(self):
+    def test_an_edit_tool_on_a_script_owned_path_is_an_edit_on_claude_and_codex_shapes(self):
         run = "/runs/x/.shiploop-runs/work-1/run"
         shapes = {
             "claude": ("Edit", {"file_path": f"{run}/state.md", "old_string": "a", "new_string": "b"}),
-            "grok": ("write", {"path": f"{run}/results/nav-1.md", "content": "x"}),
-            "grok-replace": ("search_replace", {"target_file": f"{run}/packets/nav-1.md"}),
+            "write": ("write", {"path": f"{run}/results/nav-1.md", "content": "x"}),
+            "search-replace": ("search_replace", {"target_file": f"{run}/packets/nav-1.md"}),
             "codex": ("search_replace", {"target_file": f"{run}/backchain/nav-1/until-loop-start-contract.json",
                                          "paths": [f"{run}/backchain/nav-1/until-loop-start-contract.json"]}),
         }
@@ -1289,17 +1295,15 @@ class EditsTest(unittest.TestCase):
         self.assertEqual([(e["event"], e["tool"]) for e in block["script_owned"]], [(1012, "search_replace")])
         self.assertTrue(block["script_owned"][0]["target"].endswith("/until-loop-start-contract.json"))
 
-    def test_name_pattern_kills_are_the_five_of_the_saved_runs_and_a_numeric_pid_kill_is_out_of_scope(self):
+    def test_name_pattern_kills_are_found_across_saved_runs_and_a_numeric_pid_kill_is_out_of_scope(self):
         found = {}
-        for alias in ELEVEN:
+        for alias in SAVED:
             kills = replay(alias)["block"]["edits"]["name_kills"]
             if kills:
                 found[alias] = [(k["event"], k["form"]) for k in kills]
         self.assertEqual(found, {
             "r2-checkers-sonnet": [(571, 'pkill -f "node server.js"')],
-            "r3-checkers-sonnet": [(548, 'pkill -f "node server.js"')],
-            "r2-battleship-grok-none": [(2838, 'pkill -f "node server.js"')],
-            "r3-battleship-grok-none": [(858, 'pkill -f "http-probe.mjs"'), (7711, 'pkill -f "socketserver.TCPServer"')]})
+            "r3-checkers-sonnet": [(548, 'pkill -f "node server.js"')]})
         for command in ("kill 67975 67993", "kill $SERVER_PID", "kill $!", "kill -9 $(cat server.pid)", "echo pkill", "# pkill -f x",
                         "man pkill", "ls | grep killall",
                         # quoted text is not a command (review A6's false positives)
@@ -1323,7 +1327,7 @@ class EditsTest(unittest.TestCase):
             "! pkill -f server.js": ["pkill -f server.js"],
             "echo node | xargs pkill -f": ["pkill -f"],
             "ps aux | grep node | awk '{print $2}' | xargs kill": ["ps aux | grep node | awk '{print $2}' | xargs kill"],
-            # Review A6: the form of the saved run v1220-battleship-grok-medium-none, event 8493, verbatim.
+            # Review A6: a `ps | rg | awk | while read ... kill` pipeline verbatim.
             "ps aux | rg 'battleship-chrome' | rg -v rg | awk '{print $2}' | while read p; do kill \"$p\"":
                 ["ps aux | rg 'battleship-chrome' | rg -v rg | awk '{print $2}' | while read p; do kill \"$p\""],
             'pkill -f "http-probe.mjs" 2>/dev/null || true': ['pkill -f "http-probe.mjs"'],
@@ -1342,8 +1346,8 @@ class EditsTest(unittest.TestCase):
             block = self.fidelity.edits(replay("r2-checkers-sonnet")["tools"])
             self.assertEqual(len(block["name_kills"]), 1)
 
-    def test_model_commit_commands_are_listed_per_call_and_agree_with_the_frozen_glue_reader_on_claude_and_grok(self):
-        for alias in ELEVEN:
+    def test_model_commit_commands_are_listed_per_call_and_agree_with_the_frozen_glue_reader(self):
+        for alias in SAVED:
             with self.subTest(run=alias):
                 run = replay(alias)
                 listed = [c["event"] for c in run["block"]["edits"]["model_commits"]]
@@ -1404,7 +1408,7 @@ class RefusalsTest(unittest.TestCase):
         self.fidelity = fidelity_module()
 
     def test_the_count_equals_the_number_of_shiploop_failures_on_every_run(self):
-        for alias in ELEVEN:
+        for alias in SAVED:
             with self.subTest(run=alias):
                 run = replay(alias)
                 self.assertEqual(run["block"]["refusals"]["count"], len(run["metrics"]["shiploop_failures"]))
@@ -1412,15 +1416,14 @@ class RefusalsTest(unittest.TestCase):
 
     def test_the_four_repeats_of_the_saved_runs_are_found_and_nothing_else_repeats(self):
         found = {}
-        for alias in ELEVEN:
+        for alias in SAVED:
             refusals = replay(alias)["block"]["refusals"]
             repeats = [item["event"] for item in refusals["items"] if item["repeat_of"] is not None]
             if repeats:
                 found[alias] = [(refusals["items"][item["repeat_of"]]["event"], item["event"]) for item in refusals["items"]
                                 if item["repeat_of"] is not None]
             self.assertEqual(refusals["repeated"], len(repeats))
-        self.assertEqual(found, {"r1-battleship-sonnet": [(447, 449)], "r2-checkers-sonnet": [(237, 239), (384, 410)],
-                                 "r3-battleship-grok-none": [(1291, 1325)]})
+        self.assertEqual(found, {"r1-battleship-sonnet": [(447, 449)], "r2-checkers-sonnet": [(237, 239), (384, 410)]})
 
     def test_each_refusal_names_its_verb_stage_and_line(self):
         items = replay("r2-checkers-sonnet")["block"]["refusals"]["items"]
@@ -1520,16 +1523,14 @@ class EndStateTest(unittest.TestCase):
         self.fidelity = fidelity_module()
 
     def test_a_blocked_run_records_blocked_by_awaiting_and_whether_it_stated_why_no_default_would_do(self):
-        state = replay("v1230-battleship-grok-none")["block"]["end_state"]
-        self.assertEqual((state["status"], state["stage"], state["blocked_by"]), ("blocked", "system-test", "access"))
+        state = self.end_state_of([("blocked", {"blocked_by": "access", "awaiting": {"kind": "present", "no_default": "sign in first"}})],
+                                  status="blocked")
+        self.assertEqual((state["status"], state["blocked_by"]), ("blocked", "access"))
         self.assertEqual(state["awaiting"], {"kind": "present", "no_default": True})
-        self.assertTrue(state["status_reason"].startswith("access:"))
         self.assertIsNone(state["unaccepted_stage"], "the model reported the block and ShipLoop recorded it")
-        r1 = replay("r1-battleship-grok-none")["block"]["end_state"]
-        self.assertEqual((r1["status"], r1["blocked_by"], r1["awaiting"]), ("blocked", "access", {"kind": "answer", "no_default": True}))
 
     def test_a_stopped_run_with_an_active_engine_names_the_stage_it_never_accepted_and_claims_nothing(self):
-        state = replay("r3-battleship-grok-none")["block"]["end_state"]
+        state = self.fidelity.end_state({"status": "active", "stage": "implement", "history": [], "accepted": {}})
         self.assertEqual((state["status"], state["unaccepted_stage"]), ("active", "implement"))
         self.assertEqual((state["blocked_by"], state["awaiting"], state["status_reason"]), (None, None, None))
 
@@ -1568,7 +1569,7 @@ class EndStateTest(unittest.TestCase):
         return self.fidelity.end_state({"status": "done", "history": history, "accepted": accepted})["unverified"]
 
     def test_a_deferred_item_whose_due_stage_never_restated_the_list_is_not_restated_never_open_or_settled(self):
-        # SPEC (2026-10-26): hello on the 2.13.2 Grok gate. Release-verify settled R-1 in prose only, and restated no list.
+        # SPEC (2026-10-26): hello gate run where release-verify settled R-1 in prose only, and restated no list.
         r1 = {"requirement": "R-1", "outcome": "the consumer copy prints the greeting", "owner": "release-verify",
               "due_stage": "release-verify"}
         found = self.staged([("product-acceptance", {"unverified": [r1]}), ("release-verify", {}), ("handoff", {})])
@@ -1643,7 +1644,7 @@ class BuildTest(unittest.TestCase):
         self.fidelity = fidelity_module()
 
     def test_the_block_names_its_schema_and_every_part_and_not_the_host(self):
-        block = replay("r2-battleship-grok-none")["block"]
+        block = replay("r2-checkers-sonnet")["block"]
         self.assertEqual(block["schema"], "shiploop-e2e-fidelity/v1")
         # runrecord.hosts_used is the one reader of which hosts worked on a run (group G4's environment block records it).
         self.assertNotIn("hosts", block)
@@ -1673,12 +1674,12 @@ class BuildTest(unittest.TestCase):
     def test_the_block_is_json_and_a_regression_tripwire_on_its_size(self):
         # 60,000 characters is a tripwire at about 4 times the largest block of the saved runs (15 KB), not a budget: a block
         # that grows past it holds something it should not (packet text, a command).
-        text = json.dumps(replay("r2-battleship-grok-none")["block"])
+        text = json.dumps(replay("r2-checkers-sonnet")["block"])
         json.loads(text)
         self.assertLess(len(text), 60_000)
 
     def test_lines_print_at_most_five_and_each_says_what_it_did_not_check(self):
-        for alias in ELEVEN:
+        for alias in SAVED:
             with self.subTest(run=alias):
                 lines = self.fidelity.lines(replay(alias)["block"])
                 self.assertLessEqual(len(lines), 5)
@@ -1737,8 +1738,8 @@ class FidelityThroughMainTest(HARNESS.PrintedCase):
     def test_the_wiring_hands_the_builder_the_tool_log_and_the_stage_table_of_the_run(self):
         # Review A4: a run_main that passed no ToolLog, or no scripts directory, still passed every test.
         self.give_the_plugin_a_stage_table()
-        for host in ("claude", "grok", "codex"):
-            # Grok and Codex install the plugin into the run's own profile, which the fake host never does: the CLI is the build's.
+        for host in ("claude", "codex"):
+            # Codex installs the plugin into the run's own profile, which the fake host never does: the CLI is the build's.
             with self.subTest(host=host), mock.patch.object(HARNESS.run, "run_cli", return_value=self.cli):
                 code, result, printed, written, out = self.written(host)
                 block = written["fidelity"]
@@ -1748,7 +1749,7 @@ class FidelityThroughMainTest(HARNESS.PrintedCase):
                 self.assertNotIn("declared", block["unmeasured"], "the stage table beside the CLI was read")
 
     def test_without_a_stage_table_beside_the_cli_declared_is_unmeasured_and_the_rest_still_runs(self):
-        code, result, printed, written, out = self.written("grok")
+        code, result, printed, written, out = self.written("codex")
         self.assertIn("declared", written["fidelity"]["unmeasured"])
         self.assertIsNotNone(written["fidelity"]["edits"])
 
@@ -1757,17 +1758,17 @@ class FidelityThroughMainTest(HARNESS.PrintedCase):
         real = self.fidelity.load_exporter
         with mock.patch.object(self.fidelity, "load_exporter", side_effect=lambda path: calls.append(Path(path).name) or real(path)):
             self.give_the_plugin_a_stage_table()
-            self.written("grok")
+            self.written("codex")
         self.assertIn("export.py", calls)
         self.assertGreaterEqual(calls.count("export.py"), 2, "fidelity.declared_checks and run.review_export both call it")
 
-    def written(self, host="grok", mode="done", *extra):
+    def written(self, host="codex", mode="done", *extra):
         code, result, printed = self.invoke_printed(host, mode, *extra)
         out = Path(result["output"])
         return code, result, printed, json.loads((out / "metrics.json").read_text()), out
 
     def test_metrics_json_carries_the_block_and_result_json_does_not(self):
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 code, result, printed, written, out = self.written(host)
                 self.assertEqual(code, 0, result)
@@ -1776,18 +1777,18 @@ class FidelityThroughMainTest(HARNESS.PrintedCase):
                 self.assertNotIn("fidelity", json.loads((out / "result.json").read_text()))
 
     def test_the_report_prints_at_most_five_fidelity_lines_after_the_metrics_lines(self):
-        code, result, printed, written, out = self.written("grok")
+        code, result, printed, written, out = self.written("codex")
         lines = [ln for ln in printed.splitlines() if ln.startswith("  fidelity")]
         self.assertTrue(1 <= len(lines) <= 5, printed)
         order = [ln.split()[0] for ln in printed.splitlines() if ln.startswith("  ")]
         self.assertGreater(order.index("fidelity"), max(i for i, name in enumerate(order) if name == "metrics"))
 
     def test_a_builder_failure_is_recorded_and_changes_neither_the_verdict_nor_the_exit_code_nor_the_baseline_row(self):
-        _, clean_result, _, _, _ = self.written("grok")
+        _, clean_result, _, _, _ = self.written("codex")
         clean_row = self.last_row()
         self.baselines.unlink()
         with mock.patch.object(self.fidelity, "build", side_effect=RuntimeError("builder broke")):
-            code, result, printed, written, out = self.written("grok")
+            code, result, printed, written, out = self.written("codex")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["pass"], clean_result["pass"])
         self.assertEqual(written["fidelity"], {"schema": "shiploop-e2e-fidelity/v1", "error": "RuntimeError: builder broke"})
@@ -1797,11 +1798,11 @@ class FidelityThroughMainTest(HARNESS.PrintedCase):
             self.assertEqual(row[key], clean_row[key], key)
 
     def test_the_baseline_row_has_no_fidelity_key(self):
-        self.written("grok")
+        self.written("codex")
         self.assertNotIn("fidelity", self.last_row())
 
     def test_grade_only_adds_the_block_to_a_run_that_had_none(self):
-        code, result, printed, written, out = self.written("grok")
+        code, result, printed, written, out = self.written("codex")
         metrics_file = out / "metrics.json"
         old = json.loads(metrics_file.read_text())
         del old["fidelity"]
@@ -1815,7 +1816,7 @@ class FidelityThroughMainTest(HARNESS.PrintedCase):
         self.assertNotIn("fidelity", json.loads((out / "result.json").read_text())["metrics"])
 
     def test_collect_without_a_tool_log_is_what_progress_calls_and_it_is_unchanged(self):
-        code, result, printed, written, out = self.written("grok")
+        code, result, printed, written, out = self.written("codex")
         again = metrics.collect(out, Path(result["shiploop"]["run_dir"]) if result["shiploop"].get("run_dir") else None)
         self.assertNotIn("fidelity", again)
 

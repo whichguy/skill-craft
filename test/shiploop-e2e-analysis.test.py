@@ -375,7 +375,7 @@ class ReviewParsingTest(unittest.TestCase):
         self.assertEqual(hosts.last_json_object('prefix {"a": {"b": 2}} tail'), {"a": {"b": 2}})
         self.assertIsNone(hosts.last_json_object("no json here"))
 
-    def test_final_text_is_grok_text_after_its_last_tool_call(self):
+    def test_final_text_is_translated_text_after_its_last_tool_call(self):
         with tempfile.TemporaryDirectory() as tmp:
             events = Path(tmp) / "events.jsonl"
             events.write_text("\n".join(json.dumps(e) for e in (
@@ -448,7 +448,7 @@ class ReviewValidityTest(unittest.TestCase):
             stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
             run_dir = Path(tmp) / "run"
             run_dir.mkdir()
-            code = review.main([str(run_dir), "--host", "grok", "--no-prior-learnings"])
+            code = review.main([str(run_dir), "--host", "codex", "--no-prior-learnings"])
             return json.loads((run_dir / "review.json").read_text()), code
 
     def test_an_unusable_review_is_never_clean_and_keeps_its_own_outcome(self):
@@ -486,19 +486,19 @@ class ReviewSourceTest(unittest.TestCase):
         return root
 
     def launch(self, file: str, plugin_dir: Path) -> None:
-        (self.run_dir / file).write_text(json.dumps({"case": "hello", "host": "grok", "plugin_dir": str(plugin_dir)}))
+        (self.run_dir / file).write_text(json.dumps({"case": "hello", "host": "codex", "plugin_dir": str(plugin_dir)}))
 
     def prompt(self, *extra: str) -> tuple[str, str, dict]:
         shutil.rmtree(self.run_dir / "review", ignore_errors=True)  # one review per run directory
         fake = FakeReviewer([("exited", VALID_EMPTY_REVIEW)])
         seen = {}
-        fake.argv = lambda **kwargs: seen.update(kwargs) or ["offline-probe"]
+        fake.argv = lambda **kwargs: seen.update(kwargs) or ["offline-probe", "-s", "read-only"]
         printed = io.StringIO()
         with contextlib.ExitStack() as stack:
             for patch in fake.patches():
                 stack.enter_context(patch)
             stack.enter_context(contextlib.redirect_stdout(printed))
-            review.main([str(self.run_dir), "--host", "grok", "--no-prior-learnings", *extra])
+            review.main([str(self.run_dir), "--host", "codex", "--no-prior-learnings", *extra])
         return seen["prompt"], printed.getvalue(), json.loads((self.run_dir / "review.json").read_text())
 
     def test_the_reviewer_is_given_the_source_the_runs_own_launch_record_names(self):
@@ -542,7 +542,7 @@ class ReviewSourceTest(unittest.TestCase):
 class IterateConvergenceTest(unittest.TestCase):
     """iterate.main end to end with the host, the build and the run faked: only the review's validity varies."""
 
-    def iterate(self, replies: list, iterations: int, host: tuple = ("--host", "grok"), launched: list | None = None,
+    def iterate(self, replies: list, iterations: int, host: tuple = ("--host", "codex"), launched: list | None = None,
                 late_change=False, receipt: dict | None = None) -> str:
         """``host`` is the --host argument (empty: the default); ``launched`` collects each run's argv."""
         tmp = Path(tempfile.mkdtemp())
@@ -569,7 +569,7 @@ class IterateConvergenceTest(unittest.TestCase):
             out = Path(argv[argv.index("--output") + 1])
             out.mkdir(parents=True)
             (out / "result.json").write_text(json.dumps({
-                "pass": True, "host": "grok", "model": "m", "effort": "medium",
+                "pass": True, "host": "codex", "model": "m", "effort": "medium",
                 "process": {"status": "exited", "returncode": 0, "elapsed_seconds": 1},
                 "cli": {"num_turns": 1, "cost_usd": None}, "shiploop": {"status": "done", "stage": "done", "report_html": True},
                 "checks": [], "invoked": {"pass": True}, "plugin": {"pass": True}}))
@@ -717,7 +717,7 @@ class IterateBoundaryTest(unittest.TestCase):
 
     def improve(self, act) -> tuple[dict, dict]:
         fake = FakeImprover([], self.repo, act)
-        args = iterate.argparse.Namespace(case="checkers", host="grok", model=None, effort=None, permission_mode="auto",
+        args = iterate.argparse.Namespace(case="checkers", host="codex", model=None, effort=None, permission_mode="auto",
                                           improve_max_turns=None, max_budget_usd=None, improve_timeout=10)
         with contextlib.ExitStack() as stack:
             for patch in (*fake.patches(), *self.grading()):
@@ -796,7 +796,7 @@ class IterateBoundaryTest(unittest.TestCase):
             out = Path(argv[argv.index("--output") + 1])
             out.mkdir(parents=True)
             (out / "result.json").write_text(json.dumps({
-                "pass": True, "host": "grok", "model": "m", "effort": "medium",
+                "pass": True, "host": "codex", "model": "m", "effort": "medium",
                 "process": {"status": "exited", "returncode": 0, "elapsed_seconds": 1},
                 "cli": {"num_turns": 1, "cost_usd": None}, "shiploop": {"status": "done", "stage": "done", "report_html": True},
                 "checks": [], "invoked": {"pass": True}, "plugin": {"pass": True},
@@ -832,7 +832,7 @@ class IterateBoundaryTest(unittest.TestCase):
             stack.enter_context(mock.patch.object(iterate.runner, "main", side_effect=passing_run))
             stack.enter_context(mock.patch.object(iterate.judge, "judge", side_effect=independent_judge))
             stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
-            iterate.main(["--case", "checkers", "--host", "grok", "--iterations", "3", "--output", str(self.tmp / "out")])
+            iterate.main(["--case", "checkers", "--host", "codex", "--iterations", "3", "--output", str(self.tmp / "out")])
         journal = (self.tmp / "out" / "LEARNINGS.md").read_text()
         self.assertIn(f"- boundary: evaluator {'e' * 12}, oracle {'o' * 12}, case {'c' * 12}, candidate {'p' * 12}", journal)
         self.assertIn("- stopped: the improver changed what grades the runs (oracle digest", journal)
@@ -986,7 +986,7 @@ class LearningsTest(unittest.TestCase):
             self.assertIn("unadopted", history.lower())
             self.assertIn("explicit disposition", history.lower())
 
-    RESULT = {"host": "grok", "model": "grok-4.7", "effort": "medium", "pass": False,
+    RESULT = {"host": "codex", "model": "gpt-6.2-sol", "effort": "medium", "pass": False,
               "process": {"status": "failed", "returncode": 1, "elapsed_seconds": 12.5},
               "shiploop": {"status": "active", "stage": "regression", "report_html": False},
               "product_at_stop": {"information_only": True, "ran": True, "worktree": "/w", "total": 1, "passed": 1,
@@ -1012,7 +1012,7 @@ class LearningsTest(unittest.TestCase):
     def test_message_details_outcome_findings_and_prior_learnings(self):
         message = self.message()
         self.assertTrue(message.startswith(
-            "test(shiploop): record E2E iteration 2 learnings (battleship, grok medium)\n\n"))
+            "test(shiploop): record E2E iteration 2 learnings (battleship, codex medium)\n\n"))
         for text in ("150 turns", "stage regression", "product at stop (information only, engine active at regression): 1/1",
                      "host truncated 1 tool outputs", "Evidence: work/ empty", "requires separate disposition",
                      "- apply: Return earlier", "Built on the learnings of aaa1111, bbb2222.",
@@ -1045,7 +1045,7 @@ class LearningsTest(unittest.TestCase):
             stage.mkdir()
             iterate.record_learnings(repo, self.message(), stage)
             journal = (repo / "test" / "shiploop_e2e" / "LEARNINGS.md").read_text()
-            self.assertIn("## E2E iteration 2 learnings (battleship, grok medium)", journal)
+            self.assertIn("## E2E iteration 2 learnings (battleship, codex medium)", journal)
             self.assertNotIn("Co-Authored-By", journal)
             files = subprocess.run(["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
                                    capture_output=True, text=True, check=True).stdout.split()
@@ -1066,12 +1066,12 @@ class LearningsTest(unittest.TestCase):
             stage = Path(tmp) / "stage"
             bundle = stage / "run" / "review-export" / "review-export.json"
             bundle.parent.mkdir(parents=True)
-            text = json.dumps({"schema": "run-review-export/v2", "docs": {"runs": {"grok-1.0.0-hello-20261004": {}}}})
+            text = json.dumps({"schema": "run-review-export/v2", "docs": {"runs": {"codex-1.0.0-hello-20261004": {}}}})
             bundle.write_text(text)
             iterate.record_learnings(repo, self.message(), stage)
             files = subprocess.run(["git", "-C", str(repo), "show", "--name-only", "--format=", "HEAD"],
                                    capture_output=True, text=True, check=True).stdout.split()
-            evidence = "test/shiploop_e2e/evidence/grok-1.0.0-hello-20261004.json"
+            evidence = "test/shiploop_e2e/evidence/codex-1.0.0-hello-20261004.json"
             self.assertEqual(files, ["test/shiploop_e2e/LEARNINGS.md", evidence])
             self.assertEqual((repo / evidence).read_text(), text)
             bundle.write_text("not json")  # an unreadable export never blocks the learnings commit
@@ -1147,11 +1147,10 @@ class FastPlanningRecordTest(unittest.TestCase):
         evidence = ROOT / "docs" / "experiments" / "shiploop-planning-time-20261005"
         journal = (ROOT / "test" / "shiploop_e2e" / "LEARNINGS.md").read_text()
         self.assertIn("docs/experiments/shiploop-planning-time-20261005/", journal)
-        for name in ("README.md", "ledger-account-final.json", "stage-clock.md", "grok-medium-improve-children.json",
-                     "run-doc-luna-xhigh-v1210.json", "run-doc-grok-medium-v1210.json"):
+        for name in ("README.md", "ledger-account-final.json", "stage-clock.md",
+                     "run-doc-luna-xhigh-v1210.json"):
             self.assertTrue((evidence / name).is_file(), name)
-        for name in ("ledger-account-final.json", "grok-medium-improve-children.json",
-                     "run-doc-luna-xhigh-v1210.json", "run-doc-grok-medium-v1210.json"):
+        for name in ("ledger-account-final.json", "run-doc-luna-xhigh-v1210.json"):
             json.loads((evidence / name).read_text())
 
     def test_the_doccheck_evidence_and_the_batch_1008_design_audit_are_in_the_repository(self):
@@ -1584,7 +1583,7 @@ class FollowOnTest(HarnessCase):
 
     def test_follow_on_starts_in_a_copy_of_the_earlier_checkout(self):
         prior = self.prior_run()
-        code, result = self.invoke("grok", "done", "--continue-from", str(prior), "--prompt", "Add a feature.",
+        code, result = self.invoke("codex", "done", "--continue-from", str(prior), "--prompt", "Add a feature.",
                                    "--check", 'test -f "$PRIOR_WORK/prior.txt" && test -f prior.txt')
         self.assertEqual(code, 0, result)
         self.assertIn("prior.txt", self.seen()["cwd_listing"])
@@ -1599,7 +1598,7 @@ class FollowOnTest(HarnessCase):
         prior = self.prior_run()
         run.store.write_record(prior / "work" / ".shiploop-old" / "state.md", {"status": "done", "stage": "done"})
         (prior / "work" / ".shiploop-old" / "report.html").write_text("<html></html>")
-        code, result = self.invoke("grok", "done", "--continue-from", str(prior), "--prompt", "Add a feature.")
+        code, result = self.invoke("codex", "done", "--continue-from", str(prior), "--prompt", "Add a feature.")
         self.assertEqual(code, 0, result)
         identity = json.loads((Path(result["output"]) / run.RUN_IDENTITY).read_text())
         self.assertEqual(list(identity["preexisting"]), [str(Path(result["output"]) / "work" / ".shiploop-old")])
@@ -1608,7 +1607,7 @@ class FollowOnTest(HarnessCase):
 
     def test_follow_on_case_needs_the_run_it_follows(self):
         with self.assertRaises(SystemExit) as raised:
-            self.invoke("grok", "done", "--case", "battleship-scoring")
+            self.invoke("codex", "done", "--case", "battleship-scoring")
         self.assertIn("--continue-from", str(raised.exception))
 
     def test_follow_on_case_checks_regression_feature_and_retention(self):
@@ -2035,13 +2034,13 @@ class MetricsTest(unittest.TestCase):
     def test_unknown_cost_stays_unknown_and_the_hosts_own_usage_is_kept_unsummed(self):
         luna = {"type": "end", "stopReason": "end_turn", "num_turns": 2189, "total_cost_usd": None,
                 "usage": self.CODEX_USAGE}
-        grok = {"type": "end", "stopReason": "cancelled", "num_turns": 4, "total_cost_usd": 1.0}
+        costed = {"type": "end", "stopReason": "end_turn", "num_turns": 4, "total_cost_usd": 1.0}
         claude = {"type": "result", "subtype": "success", "num_turns": 56, "total_cost_usd": 1.8495976,
                   "usage": self.CLAUDE_USAGE}
         for label, events, want in (
                 ("a host that reports no cost", [luna], None),
-                ("one session reported a cost and one did not", [grok, luna], None),
-                ("every ended session reported", [grok, grok, claude], round(1.0 + 1.0 + 1.8495976, 4)),
+                ("one session reported a cost and one did not", [costed, luna], None),
+                ("every ended session reported", [costed, costed, claude], round(1.0 + 1.0 + 1.8495976, 4)),
                 ("no session ended", [{"type": "available_commands", "commands": []}], None)):
             m, cli = self.read(events)
             self.assertEqual((m["cost_usd"], cli.get("cost_usd")), (want, want), label)
@@ -2050,7 +2049,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(m["sessions"][0]["usage"], self.CODEX_USAGE)
         m, _ = self.read([claude, claude])  # nested usage is kept whole, not added key by key
         self.assertEqual([s["usage"] for s in m["sessions"]], [self.CLAUDE_USAGE, self.CLAUDE_USAGE])
-        self.assertIsNone(self.read([grok])[0]["sessions"][0]["usage"])  # none reported: None, not {} or 0
+        self.assertIsNone(self.read([costed])[0]["sessions"][0]["usage"])  # none reported: None, not {} or 0
         # One implementation (SPEC S-12): the metrics and the CLI summary both ask metrics.total_cost.
         with mock.patch.object(metrics, "total_cost", return_value=123.0):
             m, cli = self.read([luna])
@@ -2081,8 +2080,8 @@ class MetricsTest(unittest.TestCase):
         for label, events, want in (
                 ("Claude: four sessions began and one reported", [init, init, init, init, result], 3),
                 ("Claude: the first was killed, the second finished", [init, init, result], 1),
-                ("Codex or Grok: two began and one reported", [opened, opened, end], 1),
-                ("Grok: killed before any end", [opened], 1),
+                ("Codex: two began and one reported", [opened, opened, end], 1),
+                ("Codex: killed before any end", [opened], 1),
                 ("every session reported", [init, result, opened, end], 0),
                 ("an end with no recorded start is never negative", [result, end], 0),
                 ("a Claude system event that is not an init is not a start",
@@ -2111,7 +2110,7 @@ class MetricsTest(unittest.TestCase):
         body = json.dumps({"action": name, "result": result, "stage": "intake", "workitem": None}, indent=2)
         (run_dir / "results" / f"{name}.md").write_text(f"# ShipLoop navigator result\n\n```shiploop-state\n{body}\n```\n")
 
-    def test_narrative_shown_verbatim_skipped_and_headlines_grok(self):
+    def test_narrative_shown_verbatim_skipped_and_headlines_translated_stream(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             run_dir = out / "run"
@@ -2120,7 +2119,7 @@ class MetricsTest(unittest.TestCase):
             stream = [
                 {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "shiploop init"}},
                 {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
-                # Grok repeats an update; one tool call is one emission.
+                # Repeated update for one tool call counts as one emission.
                 {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
                 {"type": "text", "data": "Starting.\n"},
                 {"type": "text", "data": self.NARRATIVE_BODY[:half]},
@@ -2360,7 +2359,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual((found["records"], found["commands"]), (2, 0))
 
     def test_brackets_and_quotes_inside_captured_output_neither_end_nor_extend_the_runs_array(self):
-        """P9a (2026-11-14 Grok chat trial): the scan counted every bracket, so a `]` in a deploy's captured output ended
+        """P9a (2026-11-14 chat trial): the scan counted every bracket, so a `]` in a deploy's captured output ended
         the array early (9 rows read of 10, 5 of 6: 33 against the JSON reader's 35), and a `[` in a string can carry it
         past its end into the `commands` request.  The scan now reads JSON strings as strings."""
         records = {
@@ -2889,7 +2888,7 @@ class HostCoverageTest(unittest.TestCase):
         self.assertGreater(incomplete[0]["tool_calls"], 0)
         self.assertIsNone(incomplete[0]["turns"])
 
-    def test_a_claude_stream_measures_its_tool_calls_and_leaves_the_grok_only_counters_unmeasured(self):
+    def test_a_claude_stream_measures_its_tool_calls_and_leaves_unmeasured_host_signals_unmeasured(self):
         stream = claude_stream(["git add -A && git commit -m x", "shiploop complete --run-dir r"] * 3)
         m = collect_stream(stream, self.ACCEPTED)
         for name in ("cancelled_tool_calls", "knowledge_reads", "compactions", "truncated_outputs"):
@@ -2907,14 +2906,6 @@ class HostCoverageTest(unittest.TestCase):
         self.assertIn("model glue 3", first)
         self.assertIn("ShipLoop command failures 0", first)
         self.assertIn("cancelled tool calls not measured", first)
-
-    def test_a_grok_shaped_stream_measures_every_counter(self):
-        stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}},
-                  {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "git add -A"}}] * 4
-        # Every counter: the detectors read Grok's events. (A context window is a figure Grok never reports, and nothing in
-        # its events marks a session start, so the count of sessions that never reported is unmeasured too.)
-        self.assertEqual(set(collect_stream(stream, self.ACCEPTED)["unmeasured"]),
-                         {"window_tokens", "unreported_sessions", "tokens_processed", "tokens_output"})  # its end has no usage
 
     def test_the_baseline_row_carries_unmeasured_counters_as_null_with_their_names(self):
         result = {"case": "hello", "metrics": {"turns": 5, "cost_usd": None, "model_glue": None,
@@ -3115,20 +3106,19 @@ class RegradeRecordTest(PrintedCase):
     """--resume-run on a finished run starts no host, so it restates the run's own record and invents none.
 
     The plugin verdict, the process block and the host, model and effort come from what the run recorded; a
-    regrade that relabels a run, invents a clean exit or grades a Grok or Codex plugin from Claude's events
+    regrade that relabels a run, invents a clean exit or grades a Codex plugin from Claude's events
     replaces a finished result with a different one although nothing about the run changed."""
 
-    HOSTS = ("claude", "grok", "codex")
+    HOSTS = ("claude", "codex")
     CLI = "python3 /x/skills/shiploop/scripts/shiploop next"
 
     def setUp(self):
         super().setUp()
         # A real host's events name the installed ShipLoop CLI by path, which is how a regrade sees that the skill
-        # was invoked. The shared fakes print the bare command, so these tests use copies that print the path.
-        for host in ("claude", "grok"):
-            script = self.fakes[host]
-            script.write_text(script.read_text().replace('"command": "shiploop next"', f'"command": "{self.CLI}"'))
-            self.assertIn(self.CLI, script.read_text())
+        # was invoked. The shared Claude fake prints the bare command, so copy it with the full CLI path.
+        script = self.fakes["claude"]
+        script.write_text(script.read_text().replace('"command": "shiploop next"', f'"command": "{self.CLI}"'))
+        self.assertIn(self.CLI, script.read_text())
 
     def regrade(self, out: Path, *extra: str) -> tuple[dict, str]:
         printed = io.StringIO()
@@ -3179,7 +3169,7 @@ class RegradeRecordTest(PrintedCase):
         self.assertIn("failed rc=3", (out / "mismatch.md").read_text())
 
     def test_a_regrade_with_no_record_of_a_host_exit_says_so_and_leaves_that_verdict_out(self):
-        code, first, _ = self.invoke_printed("grok", "done")
+        code, first, _ = self.invoke_printed("codex", "done")
         out = Path(first["output"])
         (out / "result.json").unlink()  # the harness died with its host: nothing recorded the exit
         result, printed = self.regrade(out)
@@ -3190,26 +3180,27 @@ class RegradeRecordTest(PrintedCase):
         self.assertFalse((out / "mismatch.md").exists(), "an unobserved exit is not a failure")
 
     def test_a_regrade_keeps_the_host_model_and_effort_the_run_recorded_whatever_the_command_line_says(self):
-        code, first, _ = self.invoke_printed("grok", "done")
-        result, printed = self.regrade(Path(first["output"]), "--host", "codex", "--codex-bin", str(self.fakes["codex"]),
-                                       "--model", "gpt-6-sol", "--effort", "minimal")
+        code, first, _ = self.invoke_printed("codex", "done")
+        result, printed = self.regrade(Path(first["output"]), "--host", "claude", "--backend", "anthropic",
+                                       "--claude-bin", str(self.fakes["claude"]), "--model", "sonnet-override")
         self.assertEqual((result["host"], result["model"], result["effort"]),
                          (first["host"], first["model"], first["effort"]))
-        self.assertEqual((first["host"], first["effort"]), ("grok", hosts.HOST_DEFAULTS["grok"]["effort"]))
+        self.assertEqual((first["host"], first["effort"]), ("codex", hosts.HOST_DEFAULTS["codex"]["effort"]))
         self.assertTrue(result["pass"], {k: result[k] for k in ("invoked", "plugin", "process")})
-        self.assertIn("ignoring --host codex, --model gpt-6-sol, --effort minimal", printed)
+        self.assertIn("ignoring --host claude, --model sonnet-override", printed)
 
     def test_a_run_resumed_on_another_host_is_regraded_as_that_host_with_its_plugin_and_versions(self):
-        code, stopped, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, stopped, _ = self.invoke_printed("claude", "active", "--max-resumes", "0")
         out = Path(stopped["output"])
         os.environ["FAKE_MODE"] = "nothing"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--allow-host-change",
+                      "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         resumed = json.loads((out / "result.json").read_text())
-        self.assertEqual((resumed["host"], resumed["resumed_run"]["from_host"]), ("codex", "grok"))
+        self.assertEqual((resumed["host"], resumed["resumed_run"]["from_host"]), ("codex", "claude"))
         self.finish_out_of_band(out)
-        result, _ = self.regrade(out)  # no --host: the invocation.json host is grok, the run's own record says codex
+        result, _ = self.regrade(out)  # no --host: the invocation.json host is claude, the run's own record says codex
         self.assertEqual((result["host"], result["model"], result["effort"]),
                          (resumed["host"], resumed["model"], resumed["effort"]))
         self.assertEqual(result["plugin"], resumed["plugin"])
@@ -3220,17 +3211,18 @@ class RegradeRecordTest(PrintedCase):
 class BaselineAbsentTest(PrintedCase):
     def test_rows_that_name_no_host_say_nothing_was_compared_instead_of_printing_nothing(self):
         self.baselines.write_text(json.dumps({"case": "hello", "source": "checkout", "turns": 3}) + "\n")
-        code, result, printed = self.invoke_printed("grok", "done")
+        code, result, printed = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
-        self.assertIn("baseline  nothing compared: 1 earlier row(s) for hello, none recorded with grok/", printed)
-        self.assertEqual(run.scan_baseline(self.baselines, "hello", "checkout", "grok", "m", "e")[1], 2)
+        self.assertIn("baseline  nothing compared: 1 earlier row(s) for hello, none recorded with codex/", printed)
+        self.assertEqual(run.scan_baseline(self.baselines, "hello", "checkout", "codex", "m", "e")[1], 2)
 
     def test_a_resumed_run_says_it_is_not_a_baseline(self):
-        code, stopped, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, stopped, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0")
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", stopped["output"],
+            run.main(["--host", "claude", "--backend", "anthropic", "--allow-host-change",
+                      "--claude-bin", str(self.fakes["claude"]), "--resume-run", stopped["output"],
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertIn("baseline  nothing compared: a resumed or seeded run is not a baseline", printed.getvalue())
 
@@ -3247,7 +3239,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
     def run_with(self, mode: str) -> tuple[dict, str]:
         os.environ["FAKE_PLANNING_REVIEW"] = mode
         self.addCleanup(os.environ.pop, "FAKE_PLANNING_REVIEW", None)
-        code, result, printed = self.invoke_printed("grok", "done")
+        code, result, printed = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         return self.last_row(), printed
 
@@ -3265,7 +3257,7 @@ class PlanningReviewBaselineThroughMainTest(PrintedCase):
     def test_a_second_run_of_the_same_mode_is_compared_and_the_report_names_the_mode(self):
         self.run_with("none")
         _, printed = self.run_with("none")
-        self.assertRegex(printed, r"  baseline  vs \d{4}-\d\d-\d\d \(ShipLoop .*, same grok/.*, planning_review none\): turns ")
+        self.assertRegex(printed, r"  baseline  vs \d{4}-\d\d-\d\d \(ShipLoop .*, same codex/.*, planning_review none\): turns ")
         self.assertIn("            ", printed.split("planning_review none): turns ")[1])  # the stage lines follow
         self.assertNotIn("not compared across", printed)
         self.assertNotIn("records no mode", printed)  # it recorded one: no rule was used
@@ -3613,8 +3605,8 @@ class RolloutContextTest(unittest.TestCase):
 
 
 class MixedHostTurnsTest(unittest.TestCase):
-    """Live finding (round 2, Grok resume): a run's events.jsonl can hold turn rows of two shapes, those with a `call`
-    key (Claude's assistant messages) and those without (Grok's usage events); per_stage crashed on the mix, after the
+    """Live finding (mixed-host resume): a run's events.jsonl can hold turn rows of two shapes, those with a `call`
+    key (Claude's assistant messages) and those without (usage events); per_stage crashed on the mix, after the
     host had finished, so the run got no metrics and no review export."""
 
     def test_per_stage_counts_the_rows_that_carry_a_call_and_ignores_the_rest(self):
@@ -3692,11 +3684,11 @@ class CodexRolloutMetricsTest(unittest.TestCase):
         self.assertEqual(len(m["unmeasured"]), 8)  # the five Codex had, the two new figures, and the processed tokens
 
     def test_rollouts_are_not_read_when_the_host_reported_per_call_usage(self):
-        # A Grok or Claude stream measures its own calls; a stray rollout beside it does not change them.
+        # A stream reporting per-call usage measures its own calls; a stray rollout beside it does not change them.
         stream = [{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 2
         m = collect_stream(stream, self.ACCEPTED, rollout_files=self.rollouts())
-        self.assertEqual((m["model_calls"], m["compactions"]), (2, 0), "Grok's own events: no compaction event")
-        # The stage rows carry the stream's own calls (batch 1011: a Grok usage event is a model call, and a stage with no
+        self.assertEqual((m["model_calls"], m["compactions"]), (2, 0), "stream's own events: no compaction event")
+        # The stage rows carry the stream's own calls (a usage event is a model call, and a stage with no
         # event has no context); none of the rollouts' figures (calls 2 peak 3000 / calls 1 peak 2000) reach them.
         self.assertEqual(m["stages"][0]["context"], {"calls": 2, "peak": 1, "peakPct": None})
         self.assertNotIn("context", m["stages"][1])
@@ -3755,13 +3747,6 @@ class ModelCallsAndWindowTest(unittest.TestCase):
                 self.assertIn("context window", m["unmeasured"]["window_tokens"])
                 self.assertEqual(m["model_calls"], 1, "the window being unknown does not hide the calls")
 
-    def test_a_grok_stream_counts_its_usage_events_and_has_no_window(self):
-        m = collect_stream([{"type": "usage", "usage": {"input_tokens": 1, "output_tokens": 1}}] * 4, [])
-        self.assertEqual((m["model_calls"], m["turns"]), (4, 4))
-        self.assertIsNone(m["window_tokens"])
-        # Grok marks no session start, and this stream's end event carries no usage
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions", "tokens_processed", "tokens_output"})
-
     def test_a_host_with_no_per_call_usage_has_no_call_count_not_zero_calls(self):
         m = collect_stream(codex_stream(3), [])
         self.assertIsNone(m["model_calls"])
@@ -3771,10 +3756,10 @@ class ModelCallsAndWindowTest(unittest.TestCase):
 
 
 class HostSignalCountersTest(unittest.TestCase):
-    """Counters read only from Grok's event shapes are unmeasured on every other host (review 2: compactions,
-    truncated_outputs, cancelled_tool_calls, knowledge_reads), never a 0 or a look-alike that reads as a measurement."""
+    """Counters unmeasured on Claude and Codex (review 2: compactions, truncated_outputs, cancelled_tool_calls,
+    knowledge_reads) remain unmeasured, never a 0 or a look-alike that reads as a measurement."""
 
-    GROK_ONLY = ("compactions", "truncated_outputs", "cancelled_tool_calls", "knowledge_reads")
+    UNMEASURED_SIGNALS = ("compactions", "truncated_outputs", "cancelled_tool_calls", "knowledge_reads")
     ACCEPTED = [("A1", "intake", "done", 105.0), ("A2", "spec", "done", 113.0)]
 
     def codex(self) -> dict:
@@ -3785,7 +3770,7 @@ class HostSignalCountersTest(unittest.TestCase):
 
     def test_a_codex_failing_test_run_is_not_a_host_refusal_and_a_write_is_not_a_read(self):
         m = self.codex()
-        for name in self.GROK_ONLY:
+        for name in self.UNMEASURED_SIGNALS:
             self.assertIn(name, m["unmeasured"], name)
         self.assertEqual(m["cancelled_tool_calls"], [], "'cancelled 0' in a node --test summary is not a refusal")
         self.assertEqual(m["knowledge_reads"], [], "Codex's file_change is a write, listed as a read")
@@ -3807,44 +3792,23 @@ class HostSignalCountersTest(unittest.TestCase):
                               ("text only", [text_only, {"type": "result", "subtype": "success", "num_turns": 1}])):
             with self.subTest(label):
                 m = collect_stream(stream, self.ACCEPTED)
-                for name in self.GROK_ONLY:
+                for name in self.UNMEASURED_SIGNALS:
                     self.assertIn(name, m["unmeasured"], name)
                 self.assertIsNone(m["compactions"])
                 self.assertIsNone(m["truncated_outputs"])
                 self.assertIn("compactions not measured", metrics.summary_lines(m)[0])
 
-    def test_a_grok_stream_still_counts_each_one(self):
-        stream = [
-            {"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": 10}},
-            {"type": "tool_call", "toolCallId": "a", "toolName": "read_file",
-             "rawInput": {"target_file": "/w/docs/shiploop/spec.md"}},
-            {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "truncated": True}},
-            {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "git init -b main"}},
-            {"type": "tool_call_update", "toolCallId": "c", "status": "failed", "rawOutput": None, "content": [
-                {"type": "content", "content": {"type": "text",
-                                                "text": "User cancelled the execution for tool `run_terminal_command`"}}]},
-            {"type": "auto_compact_completed"},
-            {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
-        m = collect_stream(stream, self.ACCEPTED)
-        self.assertEqual(set(m["unmeasured"]), {"window_tokens", "unreported_sessions", "tokens_processed", "tokens_output"},
-                         "every detector reads a Grok stream; its events mark no session start; its end has no usage")
-        self.assertEqual((m["compactions"], m["truncated_outputs"]), (1, 1))
-        self.assertEqual(m["cancelled_tool_calls"], ["git init -b main"])
-        self.assertEqual(m["knowledge_reads"], ["docs/shiploop/spec.md"])
-        first = metrics.summary_lines(m)[0]
-        self.assertIn("compactions 1, truncated outputs 1, cancelled tool calls 1", first)
-
 
 class HostSignalCountersThroughMainTest(PrintedCase):
     """result.json, the baseline row and the printed line carry null, not 0, for what the host cannot show."""
 
-    def test_claude_and_codex_runs_commit_null_for_the_grok_only_counters(self):
+    def test_claude_and_codex_runs_commit_null_for_unmeasured_signals(self):
         for host in ("claude", "codex"):
             with self.subTest(host):
                 code, result, printed = self.invoke_printed(host, "done")
                 self.assertEqual(code, 0, result)
                 row = self.last_row()
-                for name in HostSignalCountersTest.GROK_ONLY:
+                for name in HostSignalCountersTest.UNMEASURED_SIGNALS:
                     self.assertIn(name, result["metrics"]["unmeasured"], name)
                 for name in ("compactions", "truncated_outputs", "cancelled_tool_calls"):
                     self.assertIsNone(result["metrics"][name], name)
@@ -3997,7 +3961,7 @@ class GradeOnlyTest(PrintedCase):
     """--resume-run <dir> --grade-only: records from what is on disk, no host, for a run whose harness was killed."""
 
     def killed_harness_run(self) -> Path:
-        code, result, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, result, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0")
         out = Path(result["output"])
         for name in ("result.json", "metrics.json"):  # a task kill gives the harness no chance to write them
             (out / name).unlink()
@@ -4070,9 +4034,9 @@ class GradeOnlyTest(PrintedCase):
 
     def test_the_flag_needs_a_run_to_grade_and_a_run_with_no_state_is_still_refused(self):
         with self.assertRaisesRegex(SystemExit, "--grade-only needs --resume-run"):
-            run.main(["--grade-only", "--host", "grok", "--output", str(self.tmp / "never")])
+            run.main(["--grade-only", "--host", "codex", "--output", str(self.tmp / "never")])
         self.assertFalse((self.tmp / "never").exists())
-        code, result, _ = self.invoke_printed("grok", "nothing", "--max-resumes", "0")
+        code, result, _ = self.invoke_printed("codex", "nothing", "--max-resumes", "0")
         out = Path(result["output"])
         with self.assertRaisesRegex(SystemExit, "needs an active, blocked or finished"):
             run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(self.plugin)])
@@ -4088,7 +4052,7 @@ class UnfinishedRunBaselineTest(PrintedCase):
         self.addCleanup(patched.stop)
 
     def test_a_run_left_active_by_a_spent_resume_budget_writes_no_row(self):
-        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        code, result, printed = self.invoke_printed("codex", "stuck", "--max-resumes", "1")
         self.assertEqual(result["termination"]["engine_status"], "active")
         self.assertFalse(self.baselines.exists())
         self.assertIn("baseline  nothing compared: the run is not finished (its engine is still active)", printed)
@@ -4096,7 +4060,7 @@ class UnfinishedRunBaselineTest(PrintedCase):
 
     def test_a_deadline_ends_with_the_records_leaves_the_run_resumable_and_writes_no_row(self):
         # The README's recipe for a task with a limit: --timeout below it, so the harness finalizes.
-        code, result, printed = self.invoke_printed("grok", "hang-active", "--timeout", "2")
+        code, result, printed = self.invoke_printed("codex", "hang-active", "--timeout", "2")
         out = Path(result["output"])
         self.assertEqual(code, 1)
         self.assertTrue((out / "metrics.json").is_file())
@@ -4107,14 +4071,14 @@ class UnfinishedRunBaselineTest(PrintedCase):
         self.assertFalse(self.baselines.exists(), "the first segment of a long run is not a baseline")
 
     def test_a_finished_run_still_writes_its_row(self):
-        code, result, _ = self.invoke_printed("grok", "done")
+        code, result, _ = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0)
         self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
 
     def test_a_host_killed_at_the_deadline_before_any_engine_state_writes_no_row(self):
         # The audit's reproduction: the existing `hang` fake, --timeout 3, engine status unknown. It appended a row with
         # process status timeout, which scan_baseline then offered as the last comparable row.
-        code, result, printed = self.invoke_printed("grok", "hang", "--timeout", "3")
+        code, result, printed = self.invoke_printed("codex", "hang", "--timeout", "3")
         t = result["termination"]
         self.assertEqual((t["process_status"], t["engine_status"]), ("timeout", "unknown"))
         self.assertFalse(self.baselines.exists(), "a host the deadline killed is not a finished run")
@@ -4124,14 +4088,14 @@ class UnfinishedRunBaselineTest(PrintedCase):
                          "a run with no engine state is refused by --resume-run, so only the start line carries a command")
 
     def test_a_later_run_is_not_compared_with_the_killed_one(self):
-        self.invoke_printed("grok", "hang", "--timeout", "3")
-        code, result, printed = self.invoke_printed("grok", "done")
+        self.invoke_printed("codex", "hang", "--timeout", "3")
+        code, result, printed = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertIn("baseline  nothing compared: no earlier row for hello", printed)
 
     def test_a_host_that_ends_by_itself_with_no_engine_state_still_writes_its_row(self):
         # Its own exit is the ending the row records, unlike a deadline or a stop the harness imposed.
-        code, result, _ = self.invoke_printed("grok", "nothing")
+        code, result, _ = self.invoke_printed("codex", "nothing")
         self.assertEqual((result["termination"]["engine_status"], result["termination"]["process_status"]),
                          ("unknown", "exited"))
         self.assertEqual(len(self.baselines.read_text().splitlines()), 1)
@@ -4142,7 +4106,7 @@ class PlanningBlockCase(unittest.TestCase):
 
     def planning(self, rows=PLANNING_ROWS, *, stream=None, started=1030.0, improve=None, binds=None, **kw) -> dict:
         inner = {} if improve is None else {"improve_results": improve}
-        m = collect_stream(grok_usage(3) if stream is None else stream, rows, status="active", first_event=1000.0,
+        m = collect_stream(usage_stream(3) if stream is None else stream, rows, status="active", first_event=1000.0,
                            started=started, inner=inner, binds=binds, **kw)
         return m["planning"]
 
@@ -4264,22 +4228,8 @@ class PlanningImproveSplitTest(PlanningBlockCase):
 class PlanningTokensTest(PlanningBlockCase):
     ROWS = [("a-intake", "intake", "done", 1002), ("a-ts", "test-spec", "done", 1005), ("a-impl", "implement", "done", 1008)]
 
-    def test_a_grok_window_sums_the_usage_events_inside_the_host_window_and_names_the_clock(self):
-        # Events are stamped 1000 to 1009; the window ends at 1005, so events 0 to 5 are inside it.
-        plan = self.planning(self.ROWS, stream=grok_usage(10), started=1001.0, improve={})
-        self.assertEqual(plan["tokens"], {"output": 600, "reasoning": 240, "clock": "host", "source": "usage events"})
-
-    def test_a_grok_window_that_covers_the_run_equals_the_sum_of_every_usage_event(self):
-        plan = self.planning([("a-ts", "test-spec", "done", 1500)], stream=grok_usage(10), started=1001.0, improve={})
-        self.assertEqual((plan["tokens"]["output"], plan["tokens"]["reasoning"]), (1000, 400))
-
-    def test_a_grok_run_with_no_runner_timeline_has_unmeasured_tokens(self):
-        plan = self.planning(self.ROWS, stream=grok_usage(10), started=1001.0, improve={}, timed=False)
-        self.assertIn("runner", plan["tokens"]["unmeasured"])
-        self.assertNotIn("output", plan["tokens"])
-
     def test_an_open_window_has_no_token_figure(self):
-        plan = self.planning(self.ROWS[:1], stream=grok_usage(10), started=1001.0, improve={})
+        plan = self.planning(self.ROWS[:1], stream=usage_stream(10), started=1001.0, improve={})
         self.assertIn("open", plan["tokens"]["unmeasured"])
 
     def test_a_claude_run_has_no_window_tokens_and_says_why(self):
@@ -4312,12 +4262,12 @@ class PlanningTokensTest(PlanningBlockCase):
 
 class PlanningPlumbingTest(HarnessCase):
     def test_collect_leaves_the_top_level_unmeasured_map_alone(self):
-        m = collect_stream(grok_usage(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
+        m = collect_stream(usage_stream(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
         self.assertIn("window", m["planning"]["unmeasured"])
         self.assertFalse([name for name in m["unmeasured"] if "planning" in name], m["unmeasured"])
 
     def test_a_run_written_by_the_harness_carries_the_planning_block_in_metrics_json(self):
-        code, result = self.invoke("grok", "done")
+        code, result = self.invoke("codex", "done")
         out = Path(result["output"])
         written = json.loads((out / "metrics.json").read_text())
         self.assertIn("planning", written)
@@ -4325,8 +4275,8 @@ class PlanningPlumbingTest(HarnessCase):
         self.assertNotIn("planning", result["metrics"], "result.json keeps its explicit subset; metrics.json is the evidence")
 
     def test_summary_lines_name_the_window_the_improve_share_and_the_tokens_right_after_the_counters(self):
-        m = collect_stream(grok_usage(10), [("a-intake", "intake", "done", 1002), ("a-spec", "spec", "done", 1003),
-                                            ("a-ts", "test-spec", "done", 1005)],
+        m = collect_stream(usage_stream(10), [("a-intake", "intake", "done", 1002), ("a-spec", "spec", "done", 1003),
+                                              ("a-ts", "test-spec", "done", 1005)],
                            status="active", first_event=1000.0, started=1001.0,
                            inner={"improve_results": {"a-spec": {}}}, binds={"a-spec": 1002.0})
         lines = metrics.summary_lines(m)
@@ -4335,17 +4285,17 @@ class PlanningPlumbingTest(HarnessCase):
                                    "other 0.1 min; output tokens 600 (40% reasoning, host clock)")
 
     def test_summary_lines_say_when_the_window_could_not_be_measured(self):
-        m = collect_stream(grok_usage(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
+        m = collect_stream(usage_stream(3), PLANNING_ROWS, status="active", first_event=1000.0, started=False)
         self.assertEqual(metrics.summary_lines(m)[1],
                          "planning window not measured: " + m["planning"]["unmeasured"]["window"])
 
     def test_progress_prints_the_planning_line_once_when_the_window_closes(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
-            write_stream_run(out, grok_usage(10), PLANNING_ROWS[:1], status="active", first_event=1000.0, started=1030.0,
+            write_stream_run(out, usage_stream(10), PLANNING_ROWS[:1], status="active", first_event=1000.0, started=1030.0,
                              inner={"improve_results": {}})
             self.assertNotIn("planning window", progress.report(out))  # still open: nothing to print
-            write_stream_run(out, grok_usage(10), PLANNING_ROWS, status="active", first_event=1000.0, started=1030.0,
+            write_stream_run(out, usage_stream(10), PLANNING_ROWS, status="active", first_event=1000.0, started=1030.0,
                              inner={"improve_results": {}})
             first, second = progress.report(out), progress.report(out)
             self.assertIn("planning window closed at test-spec: 6.2 min engine / 6.7 min host", first)
@@ -4356,9 +4306,7 @@ class RecordedRunReproductionTest(unittest.TestCase):
     """The planning block reproduces the figures of recorded runs (validated another way: real-run extracts).
 
     The extracts under docs/experiments/planning-measures-20261008/ hold the accepted rows, stamps, Improve bind times and
-    per-call token rows of three recorded planning windows (no run text); `extract.py` rebuilds them from the run folders.
-    The expected figures are the ones the 2026-10-05 planning-time account reported (Luna xhigh: window 374.95 min, 203.35
-    in Improve children; Grok `none`: 20.5 min on the engine clock, 22.05 on the host's), recomputed on 2026-10-08."""
+    per-call token rows of recorded planning windows (no run text); `extract.py` rebuilds them from the run folders."""
 
     EXTRACTS = ROOT / "docs" / "experiments" / "planning-measures-20261008"
 
@@ -4377,10 +4325,6 @@ class RecordedRunReproductionTest(unittest.TestCase):
                 os.utime(bind, (mtime, mtime))
             first = {"type": "available_commands", "commands": []}
             events, stamps = [first], [data["first_event"]]
-            if data["host"] == "grok":
-                for t, output, reasoning in data["usage"]:
-                    events.append({"type": "usage", "usage": {"output_tokens": output, "reasoning_tokens": reasoning}})
-                    stamps.append(t)
             if data["host"] == "claude":
                 events.append({"type": "assistant", "message": {"id": "m0", "content": [{"type": "text", "text": "x"}]}})
                 stamps.append(data["first_event"] + 1)
@@ -4411,15 +4355,6 @@ class RecordedRunReproductionTest(unittest.TestCase):
         # Leaving the 10 requests of the window out gives 1,116,758: their 37,141 output tokens carry no reasoning.
         self.assertEqual((tokens["output"], tokens["reasoning"], tokens["subagent_output"]), (1153899, 682569, 0))
         self.assertEqual(round(100 * tokens["reasoning"] / tokens["output"], 1), 59.2)
-
-    def test_the_grok_none_extract_reproduces_20_5_engine_22_05_host_and_86986_tokens_at_43_percent_reasoning(self):
-        plan = self.planning("grok-none-1.22.0")
-        window = plan["window"]
-        self.assertEqual((round(window["seconds"] / 60, 2), round(window["host_seconds"] / 60, 2), window["before_engine_seconds"]),
-                         (20.5, 22.05, 92.8))
-        self.assertEqual(plan["improve"], {"children": 0, "seconds": 0.0})
-        self.assertEqual(plan["tokens"], {"output": 86986, "reasoning": 37770, "clock": "host", "source": "usage events"})
-        self.assertEqual(round(100 * 37770 / 86986, 1), 43.4)
 
     def test_the_sonnet_extract_reproduces_6_47_minutes_and_2_57_in_five_improve_children_with_no_token_figure(self):
         plan = self.planning("sonnet-1.23.0")

@@ -1027,7 +1027,7 @@ class ThroughMainTest(HARNESS.PrintedCase):
         HARNESS.isolate_git(self)
 
     def test_a_run_of_each_host_carries_a_measured_delta_block_in_metrics_json_only(self) -> None:
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 code, result, _printed = self.invoke_printed(host, "done")
                 out = Path(result["output"])

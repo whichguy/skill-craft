@@ -6,8 +6,8 @@ printed for it as the host recorded the reply. `commits`: the commits a run made
 with how many carry a lessons section and how many cite an earlier commit. Both are records: absent means unknown (null and a
 reason), nothing is scored.
 
-The packet tests read compact extracts of real saved runs (test/fixtures/commit-counters, cut by cut_fixtures.py from a Claude,
-a Grok and a Codex run) and never the saved runs themselves. The commit tests build their histories with real git in temporary
+The packet tests read compact extracts of real saved runs (test/fixtures/commit-counters, cut by cut_fixtures.py from a Claude
+and a Codex run) and never the saved runs themselves. The commit tests build their histories with real git in temporary
 repositories (their own HOME, no system or global git config) from real messages of the same runs, and make the ShipLoop-owned
 commits with ShipLoop's own functions where one can be called, so a changed subject breaks a test.
 """
@@ -287,36 +287,6 @@ class WhyAHeadIsNotWholeTest(unittest.TestCase):
         self.assertEqual(len(reasons), 3)
 
 
-class GrokHeadsTest(unittest.TestCase):
-    """r3-battleship-grok-none: Grok records the reply as `output_for_prompt` after an `exit: N` line, and its own `total_bytes`."""
-
-    def setUp(self):
-        self.block, self.unmeasured = packets_of("grok")
-
-    def total_bytes(self, call_tail: str) -> int:
-        for _number, event in metrics.events(FIXTURES / "grok" / "events.jsonl"):
-            if str(event.get("toolCallId", "")).endswith(call_tail) and isinstance(event.get("rawOutput"), dict):
-                return event["rawOutput"]["total_bytes"]
-        raise AssertionError(call_tail)
-
-    def test_a_head_that_is_the_whole_output_is_the_size_the_host_counted(self):
-        # The host's own byte count of the command's output is an independent check of the head's size.
-        for tail, action in (("aa-11", "nav-bdf2efb2038b434c85f324f1d1a1cd05"), ("b3d18-36", "nav-8bd7834ee0234c4190d39b736ca7ddf8")):
-            self.assertEqual(entry(self.block, action)["head_bytes"], self.total_bytes(tail), action)
-
-    def test_the_hosts_exit_line_and_a_commands_own_first_lines_are_not_the_head(self):
-        row = entry(self.block, "nav-5195c9a34320448ca9037824af1e7c38")
-        text = reply("grok", "10b2365439b8-1")
-        self.assertTrue(text.startswith("exit: 0\nWorkspace root:"))
-        # total_bytes counts the command's whole output: its own lines first, then the head. The host's `exit: 0` line is its own.
-        own = text[len("exit: 0\n"):text.index("ShipLoop navigator | ")].encode("utf-8")
-        self.assertEqual(row["head_bytes"], self.total_bytes("10b2365439b8-1") - len(own))
-
-    def test_every_grok_head_in_the_extract_is_measured_so_nothing_is_unmeasured(self):
-        self.assertTrue(all(row["head_bytes"] is not None for row in self.block))
-        self.assertEqual(self.unmeasured, {})
-
-
 class CodexHeadsTest(unittest.TestCase):
     """v1210-battleship-luna-xhigh: the translated tool_call_update carries `output_for_prompt` with no exit line."""
 
@@ -364,11 +334,13 @@ class UnreadableRunsTest(unittest.TestCase):
 class ToolLogRepliesTest(unittest.TestCase):
     def test_a_result_the_host_repeats_for_one_call_is_kept_once(self):
         tools = metrics.ToolLog()
-        events = list(metrics.events(FIXTURES / "grok" / "events.jsonl"))
-        (call_number, call), (update_number, update) = events[2], events[3]
-        tools.feed(call, None, call_number)
-        tools.feed(update, None, update_number)
-        tools.feed(update, None, update_number)  # Grok repeats an update for one call
+        call = {"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command",
+                "rawInput": {"command": "python3 x/shiploop next --run-dir r"}}
+        update = {"type": "tool_call_update", "toolCallId": "c1", "status": "completed",
+                  "rawOutput": {"exit_code": 0, "output_for_prompt": "ShipLoop navigator | spec | revision 1\n"}}
+        tools.feed(call, None, 2)
+        tools.feed(update, None, 3)
+        tools.feed(update, None, 3)  # repeated update for one call
         self.assertEqual(len(tools.replies), 1)
 
     def test_only_replies_that_hold_a_head_or_a_commit_line_are_kept(self):
@@ -1038,13 +1010,13 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
         super().setUp()
         HARNESS.isolate_git(self)
 
-    def written(self, host="grok", mode="done", *extra):
+    def written(self, host="codex", mode="done", *extra):
         code, result, printed = self.invoke_printed(host, mode, *extra)
         out = Path(result["output"])
         return code, result, printed, json.loads((out / "metrics.json").read_text()), out
 
     def test_metrics_json_carries_the_four_keys_and_neither_result_json_nor_the_baseline_row_does(self):
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 code, result, printed, written, out = self.written(host)
                 self.assertEqual(code, 0, result)
@@ -1067,7 +1039,7 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
             seen.append((out, run_dir, tools))
             return real(out, run_dir, tools)
 
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             seen.clear()
             with self.subTest(host=host), mock.patch.object(counters, "safe_build", side_effect=spy):
                 _code, result, _printed, _written, out = self.written(host)
@@ -1077,7 +1049,7 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
                 self.assertGreater(len(got_tools.sequence), 0, "the log the run's events filled")
 
     def test_each_block_is_a_value_or_null_with_the_reason_in_its_sibling_key(self):
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 _code, _result, _printed, written, _out = self.written(host)
                 for block, why in (("packets", "packets_unmeasured"), ("commits", "commits_unmeasured")):
@@ -1088,7 +1060,7 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
 
     def test_the_commits_of_the_fake_hosts_run_are_read_from_the_work_repository_it_made(self):
         # The fake host runs real git in work/; whatever it committed is counted, and the classes sum to the commits counted.
-        _code, _result, _printed, written, out = self.written("grok")
+        _code, _result, _printed, written, out = self.written("codex")
         block = written["commits"]
         self.assertIsNotNone(block, written["commits_unmeasured"])
         listed = subprocess.run(["git", "-C", str(out / "work"), "rev-list", "--all"], capture_output=True, text=True)
@@ -1096,7 +1068,7 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
         self.assertEqual(block["counted"], block["improve"]["n"] + block["script"]["n"] + block["other"]["n"])
 
     def test_no_existing_metrics_key_changes_when_the_blocks_are_added(self):
-        _code, result, _printed, written, out = self.written("grok")
+        _code, result, _printed, written, out = self.written("codex")
         ledger = Path(result["shiploop"]["run_dir"]) if result["shiploop"].get("run_dir") else None
         collected = metrics.collect(out, ledger)
         for key, value in collected.items():
@@ -1108,11 +1080,11 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
         self.assertFalse((FOUR_KEYS | DELTA_KEYS) & set(collected), "collect itself is unchanged: the blocks are built beside it")
 
     def test_a_builder_failure_is_recorded_and_changes_neither_the_verdict_nor_the_exit_code_nor_the_baseline_row(self):
-        _code, clean_result, _printed, _written, _out = self.written("grok")
+        _code, clean_result, _printed, _written, _out = self.written("codex")
         clean_row = self.last_row()
         self.baselines.unlink()
         with mock.patch.object(counters, "build", side_effect=RuntimeError("builder broke")):
-            code, result, _printed, written, _out = self.written("grok")
+            code, result, _printed, written, _out = self.written("codex")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["pass"], clean_result["pass"])
         reason = "failed: RuntimeError: builder broke"
@@ -1123,7 +1095,7 @@ class CountersThroughMainTest(HARNESS.PrintedCase):
             self.assertEqual(row[key], clean_row[key], key)
 
     def test_grade_only_adds_the_blocks_to_a_run_that_had_none(self):
-        _code, _result, _printed, _written, out = self.written("grok")
+        _code, _result, _printed, _written, out = self.written("codex")
         metrics_file = out / "metrics.json"
         old = json.loads(metrics_file.read_text())
         for key in FOUR_KEYS:
@@ -1158,7 +1130,7 @@ class RegradeTest(unittest.TestCase):
 
     def row(self, host="claude", model="m", mixed=False, entries=None, commits=None, **more):
         entries = [] if entries is None else entries
-        return {"run": "x", "hosts": [host] if not mixed else ["grok", "claude"], "mixed_host": mixed, "host": host, "model": model,
+        return {"run": "x", "hosts": [host] if not mixed else ["codex", "claude"], "mixed_host": mixed, "host": host, "model": model,
                 "effort": None, "entries": entries, "commits": commits,
                 "packets": {"n": len(entries), "head_measured": sum(e["head_bytes"] is not None for e in entries)},
                 "knowledge_commits": None, **more}
@@ -1184,16 +1156,16 @@ class RegradeTest(unittest.TestCase):
         self.assertIsNone(self.regrade.knowledge_commits(None), "a history that could not be read is unknown, not zero")
 
     def test_a_host_is_labelled_the_one_way_for_the_summary_and_the_tallies(self):
-        self.assertEqual(self.regrade.host_label(self.row("grok")), "grok")
-        self.assertEqual(self.regrade.host_label(self.row(mixed=True)), "mixed host (grok then claude)")
+        self.assertEqual(self.regrade.host_label(self.row("codex")), "codex")
+        self.assertEqual(self.regrade.host_label(self.row(mixed=True)), "mixed host (codex then claude)")
 
     def test_a_mixed_host_run_is_summarised_alone_and_an_improve_packet_is_a_row_of_its_own(self):
         entries = [{"action": "nav-a", "stage": "spec", "file_bytes": 100, "head_bytes": 40},
                    {"action": "nav-a-improve", "stage": "spec", "file_bytes": 200, "head_bytes": None}]
-        rows = [self.row(entries=entries), self.row("grok", entries=entries), self.row(mixed=True, entries=entries),
+        rows = [self.row(entries=entries), self.row("codex", entries=entries), self.row(mixed=True, entries=entries),
                 self.row(not_regraded="live", entries=None)]
         summary = self.regrade.summary(rows)
-        self.assertEqual(sorted(summary["by_host"]), ["claude", "grok", "mixed host (grok then claude)"])
+        self.assertEqual(sorted(summary["by_host"]), ["claude", "codex", "mixed host (codex then claude)"])
         self.assertEqual(summary["by_host"]["claude"]["runs"], 1, "the mixed-host run is not Claude's, the unregraded one is no run")
         stages = summary["by_cell"]["claude / m / no effort"]["by_stage"]
         self.assertEqual(sorted(stages), ["spec", "spec [Improve packet]"])
@@ -1325,13 +1297,12 @@ class TalliesTest(unittest.TestCase):
 
     def test_in_claude_runs_no_commit_of_the_other_class_carries_an_identity_a_shiploop_commit_carries(self):
         # The claim that the 32 `other` commits of Claude runs are the model's: ShipLoop commits as its workspace identity there, and
-        # the model's own `git commit` falls back to the Git identity of the machine. Grok and Codex runs configure one identity for both.
+        # the model's own `git commit` falls back to the Git identity of the machine.
         by_host = self.evidence["commits_by_author"]["by_host"]
-        for host in ("claude", "mixed host (grok then claude)"):
-            kinds = by_host[host]
-            shiploop = set(kinds["improve"]) | set(kinds["script"])
-            self.assertTrue(kinds["other"], host)
-            self.assertEqual(set(kinds["other"]) & shiploop, set(), host)
+        kinds = by_host["claude"]
+        shiploop = set(kinds["improve"]) | set(kinds["script"])
+        self.assertTrue(kinds["other"], "claude")
+        self.assertEqual(set(kinds["other"]) & shiploop, set(), "claude")
 
     def test_the_tallies_copy_no_commit_message_no_commit_id_and_no_packet_text(self):
         text = (EVIDENCE / "tallies.json").read_text()
@@ -1387,7 +1358,7 @@ class ReaderChangeTest(unittest.TestCase):
                     "text_differs": False, "labels": ["Key learning"]},
                    {"kind": "improve", "host": "claude", "old": True, "new": True, "cited_old": 1, "cited_new": 0, "none": True,
                     "text_differs": True, "labels": ["Key learnings", "Key learnings"]},   # two sections, one commit
-                   {"kind": "other", "host": "grok", "old": True, "new": False, "cited_old": 0, "cited_new": 0, "none": False,
+                   {"kind": "other", "host": "codex", "old": True, "new": False, "cited_old": 0, "cited_new": 0, "none": False,
                     "text_differs": False, "labels": []}]
         got = self.module.tally(records)
         self.assertEqual(got["improve"], {"n": 2, "old": {"with_lessons": 1, "cited": 1}, "shared": {"with_lessons": 2, "cited": 0},

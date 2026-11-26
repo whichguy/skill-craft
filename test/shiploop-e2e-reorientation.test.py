@@ -8,7 +8,7 @@ What the harness records about a fresh context, and nothing it scores:
 * ``sessions.jsonl``, the harness-written, append-only record of every host launch and every session end;
 * ``metrics.reorientation``, the pure measure of what a fresh context did from its start to the next accepted action;
 * ``fresh_starts`` in metrics.json, one such block per fresh start and per compaction;
-* the two per-stage corrections (a stage with no events has no ``context``; a Grok model call is counted).
+* the two per-stage corrections (a stage with no events has no ``context``; an ACP usage event is counted).
 
 The fixtures under test/fixtures/reorientation/ are compact extracts of the saved 2026-10-05 to 2026-10-08 runs (see
 extract.py there): real line numbers and runner stamps, events reduced to the keys the readers look at.  No test reads
@@ -69,7 +69,7 @@ class ToolCallEventsTest(unittest.TestCase):
                                                          ("u2", "Read", {"file_path": "/w/a.py"})])
         self.assertEqual(metrics.tool_call_events(text), [])
 
-    def test_a_grok_or_translated_codex_tool_call_is_one_call_and_its_updates_are_none(self):
+    def test_a_translated_codex_or_acp_tool_call_is_one_call_and_its_updates_are_none(self):
         call = {"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command",
                 "rawInput": {"command": "node --test"}}
         titled = {"type": "tool_call", "toolCallId": "c2", "title": "read_file", "rawInput": {"target_file": "/w/x"}}
@@ -97,7 +97,7 @@ CLAUDE_STREAM = [
         {"type": "tool_result", "tool_use_id": "u3", "content": "3000"}]}},
     {"type": "result", "subtype": "success", "num_turns": 2, "total_cost_usd": 1.0}]
 
-GROK_STREAM = [
+ACP_STREAM = [
     {"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": 10}},
     {"type": "tool_call", "toolCallId": "a", "toolName": "run_terminal_command",
      "rawInput": {"command": "python3 x/shiploop complete --run-dir r"}},
@@ -134,7 +134,7 @@ class ToolLogFeedTest(unittest.TestCase):
     """collect reads tool calls and results through ToolLog.feed: one reader, so a window cannot read them another way."""
 
     def test_feed_gives_the_tool_log_collect_reports_for_each_host_shape(self):
-        for label, stream in (("claude", CLAUDE_STREAM), ("grok", GROK_STREAM)):
+        for label, stream in (("claude", CLAUDE_STREAM), ("acp", ACP_STREAM)):
             with self.subTest(label):
                 log, total = fed(stream), collected(stream)
                 self.assertEqual(log.failures, total["shiploop_failures"])
@@ -145,8 +145,8 @@ class ToolLogFeedTest(unittest.TestCase):
         self.assertEqual(len(fed(CLAUDE_STREAM).glue), 1)
         self.assertEqual(fed(CLAUDE_STREAM).asked, ["Which port?"])
 
-    def test_a_grok_update_that_is_still_running_or_was_cancelled_is_not_a_result(self):
-        log = fed(GROK_STREAM)
+    def test_a_tool_call_update_that_is_still_running_or_was_cancelled_is_not_a_result(self):
+        log = fed(ACP_STREAM)
         self.assertEqual(len(log.failures), 1, "only the completed update of call a failed: the running placeholder and the "
                                                "cancelled update of call c are not results")
         self.assertIn("a", log.answered)
@@ -176,14 +176,14 @@ RUN = "/r/.shiploop-runs/w/run"
 
 
 def usage(tokens: int) -> dict:
-    """One Grok usage event: one model call."""
+    """One ACP usage event: one model call."""
     return {"type": "usage", "usage": {"input_tokens": tokens, "output_tokens": 10}}
 
 
 class Stream:
     """A hand-built host stream with its runner stamps, one event per line, for the windowed reading.
 
-    ``rows`` is what metrics.event_range yields ((line, event) pairs) and ``stamps`` the runner's timeline. Grok-shaped
+    ``rows`` is what metrics.event_range yields ((line, event) pairs) and ``stamps`` the runner's timeline. Translated-Codex / ACP
     events (a `tool_call` and its final `tool_call_update`) unless ``claude`` is used.
     """
 
@@ -204,7 +204,7 @@ class Stream:
         return self
 
     def call(self, after: float, tool: str, arg: dict, output: str = "", code: int = 0) -> str:
-        """One Grok-shaped call that starts ``after`` seconds after the previous event and answers 0.1 s later."""
+        """One ACP-shaped call that starts ``after`` seconds after the previous event and answers 0.1 s later."""
         self.calls += 1
         call_id = f"c{self.calls}"
         self.add({"type": "tool_call", "toolCallId": call_id, "toolName": tool, "rawInput": arg}, after)
@@ -491,8 +491,8 @@ class WindowPlacementTest(unittest.TestCase):
         self.assertEqual((got["measured"], got["accepted"]["action"]), (True, "nav-b"))
 
     def test_a_running_placeholder_update_is_not_the_result_of_a_refused_complete(self):
-        # Grok repeats an in_progress update with a placeholder exit 0 before the final one; counted as the result it would
-        # make a refused complete look answered and not failed, and end the window early.
+        # An in_progress update with a placeholder exit 0 before the final one must not make a refused complete look
+        # answered and not failed, or end the window early.
         s = Stream(first=1000.0).start()
         s.next(after=0.5)
         s.calls += 1
@@ -790,49 +790,8 @@ def window_of(f: types.SimpleNamespace, session: int, earlier: bool = True) -> d
 
 
 class RecordedFreshStartReproductionTest(unittest.TestCase):
-    """The three accidental probes of 2026-10-05..08, replayed from compact extracts. These are NOT clean samples (SPEC): they
-    pin that the measure reproduces what was seen in the saved runs, not what a fresh context should do."""
-
-    def test_the_r3_grok_resume_is_23_calls_and_163_seconds_to_the_complete_that_was_accepted(self):
-        f = fixture("r3-battleship-grok-none")
-        self.assertEqual([(x["kind"], x["reason"], x["events_line"]) for x in f.sessions],
-                         [("first", "start", 0), ("fresh", "resume-run", 4121)])
-        got = window_of(f, 2)
-        self.assertTrue(got["measured"], got)
-        self.assertEqual(got["accepted"]["stage"], "test-author")
-        self.assertEqual(got["tool_calls"], 23)
-        self.assertEqual(got["seconds"], 163.2, "to the `complete` call; the design text's 164 is the stamp")
-        self.assertEqual(got["seconds_to_accept_stamp"], 164.0)
-        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 1), "SKILL.md was read first")
-        self.assertEqual(got["recovery"]["first_next"], {"call": 2, "failed": False, "exit": None, "cli": "exact",
-                                                         "run_dir": "exact"})
-        self.assertEqual(got["failures"]["items"], [])
-        before = metrics.written_paths(metrics.event_range(f.events, 3554, 4121))
-        self.assertTrue({p for p in before if p.endswith("/worktree/rules.js") or p.endswith("/worktree/server.js")},
-                        "the old session edited the product in this stage: the comparison is not vacuous")
-        self.assertEqual(got["rewrote"]["paths"], [], "the old session edited rules.js and server.js; the fresh one wrote notes only")
-        self.assertEqual(got["rewrote"]["scope"], "none seen by file-edit tools")
-        self.assertEqual(got["asked_user"], 0)
-
-    def test_the_r2_claude_fresh_start_is_6_calls_not_7_and_22_point_7_seconds_to_the_accept(self):
-        f = fixture("r2-battleship-grok-none")
-        got = window_of(f, 2)
-        self.assertTrue(got["measured"], got)
-        self.assertEqual(got["accepted"]["stage"], "implement")
-        self.assertEqual(got["tool_calls"], 6, "next, a packet Read, ls, cat, lint, complete: the 7th call is 3 s after the accept")
-        self.assertEqual(got["seconds"], 21.8)
-        self.assertEqual(got["seconds_to_accept_stamp"], 22.7)
-        self.assertEqual((got["first_grounding"], got["calls_before_grounding"]), ("next", 0))
-        self.assertEqual(got["recovery"]["first_next"]["cli"], "exact")
-        self.assertEqual(got["recovery"]["first_next"]["run_dir"], "exact")
-        self.assertEqual(got["failures"]["items"], [])
-
-    def test_the_r2_session_wrote_the_result_by_shell_which_a_file_edit_log_cannot_see(self):
-        # The sixth call is `cat > .../inbox/<action>.md <<'EOF' ... complete`: a shell write. rewrote can only be a lower bound.
-        f = fixture("r2-battleship-grok-none")
-        last = [e for _n, e in metrics.event_range(f.events, 2704) if e["type"] == "assistant"][5]
-        self.assertIn("cat >", last["message"]["content"][0]["input"]["command"])
-        self.assertEqual(window_of(f, 2)["rewrote"]["bound"], "lower")
+    """The accidental probe of 2026-10-08 on Codex, replayed from its compact extract. This is NOT a clean sample (SPEC): it
+    pins that the measure reproduces what was seen in the saved run, not what a fresh context should do."""
 
     def test_of_the_four_luna_xhigh_first_next_calls_two_failed_one_is_equivalent_and_one_exact(self):
         f = fixture("v1210-battleship-luna-xhigh")
@@ -859,43 +818,6 @@ class FreshStartsCollectTest(unittest.TestCase):
             shutil.copytree(FIXTURES / name, out, ignore=shutil.ignore_patterns(*without) if without else None)
             return metrics.collect(out, out / ".shiploop-runs" / "work-fixture" / "run")
 
-    def test_r3_lists_two_compactions_and_the_resume_in_the_order_of_their_first_event(self):
-        got = self.collect("r3-battleship-grok-none")
-        self.assertIsNone(got["fresh_starts_unmeasured"])
-        starts = got["fresh_starts"]
-        self.assertEqual([(b["kind"], b["events_line"]) for b in starts],
-                         [("compaction", 1536), ("fresh", 4121), ("compaction", 8341)])
-        resume = starts[1]
-        self.assertEqual((resume["n"], resume["reason"], resume["host"], resume["stage_in_flight"]),
-                         (2, "resume-run", "grok", "test-author"))
-        self.assertEqual((resume["reorientation"]["tool_calls"], resume["reorientation"]["seconds"]), (23, 163.2))
-        self.assertEqual(got["compactions"], 2, "the count the old reading gives is the number of compaction entries")
-
-    def test_a_compaction_has_a_window_but_no_told_command_and_its_first_call_is_recorded(self):
-        first = self.collect("r3-battleship-grok-none")["fresh_starts"][0]
-        self.assertEqual((first["n"], first["reason"], first["host"]), (None, None, "grok"))
-        window = first["reorientation"]
-        self.assertTrue(window["measured"], window)
-        self.assertEqual(window["accepted"]["stage"], "test-strategy")
-        self.assertEqual(first["stage_in_flight"], "test-strategy")
-        self.assertIsNone(window["recovery"]["told"], "a compaction is not given a recovery command")
-        self.assertEqual((window["first_grounding"], window["calls_before_grounding"]), ("packet", 0),
-                         "the first call after the first r3 compaction was a read of the current packet")
-        self.assertEqual((window["recovery"]["next_calls"], window["recovery"]["first_next"]), (0, None),
-                         "after that compaction the model never ran `next`: it read the packet by its path")
-
-    def test_a_compaction_after_the_last_accepted_action_is_unmeasured_not_zero(self):
-        last = self.collect("r3-battleship-grok-none")["fresh_starts"][2]
-        self.assertFalse(last["reorientation"]["measured"])
-        self.assertIsNone(last["stage_in_flight"])
-        self.assertNotIn("tool_calls", last["reorientation"])
-
-    def test_without_sessions_jsonl_only_the_compactions_are_listed_and_the_gap_is_named(self):
-        got = self.collect("r3-battleship-grok-none", without=("sessions.jsonl",))
-        self.assertEqual([b["kind"] for b in got["fresh_starts"]], ["compaction", "compaction"])
-        self.assertTrue(got["fresh_starts_unmeasured"].startswith("not recorded"), got["fresh_starts_unmeasured"])
-        self.assertIn("sessions.jsonl", got["fresh_starts_unmeasured"])
-
     def test_an_empty_sessions_file_beside_events_is_a_partial_record_and_beside_none_is_recorded_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
@@ -910,18 +832,6 @@ class FreshStartsCollectTest(unittest.TestCase):
             got = metrics.collect(out, None)
         self.assertEqual(got["fresh_starts"], [])
         self.assertNotIn("partial", got["fresh_starts_unmeasured"] or "", "no event, so nothing came before the first row")
-
-    def test_r2_is_a_mixed_host_run_whose_grok_compaction_and_claude_fresh_start_are_both_listed(self):
-        got = self.collect("r2-battleship-grok-none")
-        self.assertEqual([(b["kind"], b["host"], b["events_line"]) for b in got["fresh_starts"]],
-                         [("compaction", "grok", 1900), ("fresh", "claude", 2704)])
-        compaction, start = got["fresh_starts"]
-        self.assertEqual(got["compactions"], 1)
-        self.assertFalse(compaction["reorientation"]["measured"],
-                         "the stages after it were accepted by an orphan Grok host that wrote no event")
-        self.assertEqual((start["stage_in_flight"], start["reorientation"]["tool_calls"]), ("implement", 6))
-        events = (FIXTURES / "r2-battleship-grok-none" / "events.jsonl").read_text()
-        self.assertIn('"status": "in_progress"', events, "the fixture keeps the running updates ToolLog.feed must not read as results")
 
     def test_the_four_luna_resumes_are_four_unmeasured_blocks_that_keep_their_recovery_facts(self):
         got = self.collect("v1210-battleship-luna-xhigh")
@@ -966,14 +876,6 @@ class FreshStartsCollectTest(unittest.TestCase):
         self.assertEqual((two["measured"], two["reason"][:30]), (False, "the next accepted action (spec"))
         self.assertEqual((three["measured"], three["tool_calls"]), (True, 2))
         self.assertEqual(three["recovery"]["first_next"]["call"], 1)
-
-    def test_a_stream_that_is_not_groks_lists_no_compaction_even_if_a_look_alike_event_appears(self):
-        # Compactions are Grok's signal (GROK_SIGNALS): on another host the count is unmeasured, so the list stays empty too.
-        stream = [{"type": "available_commands", "commands": []}, {"type": "auto_compact_completed"},
-                  {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 1.0}]
-        got = MAIN.collect_stream(stream, [("A1", "intake", "done", 105.0)])
-        self.assertIsNone(got["compactions"])
-        self.assertEqual(got["fresh_starts"], [])
 
     def after_kill(self, end_revision, start_revision, next_output):
         """The `after_kill` of a two-session folder: the first session ended at ``end_revision``, the fresh one was launched
@@ -1026,8 +928,8 @@ class FreshStartsCollectTest(unittest.TestCase):
             out = Path(tmp)
             (out / "events.jsonl").write_text(json.dumps({"type": "available_commands", "commands": []}) + "\n")
             (out / "sessions.jsonl").write_text("".join(json.dumps(r) + "\n" for r in (
-                {"row": "start", "n": 1, "kind": "fresh", "reason": "resume-run", "host": "grok", "events_line": None, "told": TOLD},
-                {"row": "start", "n": 2, "kind": "fresh", "reason": "resume-run", "host": "grok", "events_line": 0,
+                {"row": "start", "n": 1, "kind": "fresh", "reason": "resume-run", "host": "codex", "events_line": None, "told": TOLD},
+                {"row": "start", "n": 2, "kind": "fresh", "reason": "resume-run", "host": "codex", "events_line": 0,
                  "told": "not a mapping", "engine": "nor this"})))
             got = metrics.collect(out, None)
         self.assertEqual([b["n"] for b in got["fresh_starts"]], [2], "the row with no line is skipped, the other is read")
@@ -1060,7 +962,7 @@ class FreshStartsCollectTest(unittest.TestCase):
 
 
 class PerStageContextTest(unittest.TestCase):
-    """The two corrections the Run Review fork asked of per_stage: a stage with no events has no `context`, and a Grok model
+    """The two corrections the Run Review fork asked of per_stage: a stage with no events has no `context`, and a usage-event
     call is counted (a mixed-host run showed `calls: 0` beside a real peak)."""
 
     ACCEPTED = [("A1", "intake", "done", 104.5), ("A2", "spec", "done", 111.5), ("A3", "plan", "done", 118.5)]
@@ -1075,7 +977,7 @@ class PerStageContextTest(unittest.TestCase):
         self.assertNotIn("context", rows[2], "no event fell in stage c: nothing was measured there, which is not 0 calls")
         self.assertEqual(rows[2]["turns"], 0, "the existing count of events in the window is unchanged")
 
-    def test_a_grok_usage_event_is_a_model_call_and_counts_in_its_stage(self):
+    def test_a_usage_event_is_a_model_call_and_counts_in_its_stage(self):
         stream = [usage(1000), usage(3000), usage(2000), {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "ls"}},
                   usage(500), usage(700), usage(9000), usage(400),
                   {"type": "end", "stopReason": "end_turn", "num_turns": 7, "total_cost_usd": 1.0}]
@@ -1083,13 +985,13 @@ class PerStageContextTest(unittest.TestCase):
         got = MAIN.collect_stream(stream, self.ACCEPTED[:2])
         self.assertEqual([r["context"] for r in got["stages"]], [
             {"calls": 4, "peak": 3000, "peakPct": None},      # usage events at t 100, 101, 102 and 104
-            {"calls": 3, "peak": 9000, "peakPct": None}], "Grok reports no window: peakPct is None, not 0")
+            {"calls": 3, "peak": 9000, "peakPct": None}], "when the stream reports no window, peakPct is None, not 0")
         self.assertEqual(got["model_calls"], 7)
         self.assertEqual(sum(r["context"]["calls"] for r in got["stages"]), got["model_calls"],
                          "the stages add up to the whole-run count the same events give")
 
     def test_a_run_two_hosts_worked_on_counts_the_calls_of_both(self):
-        # r2's shape: Grok usage events, then a Claude resume whose assistant messages carry `id` and usage.
+        # Mixed usage events followed by Claude assistant messages carrying `id` and usage.
         claude = [{"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": 50 * (n + 1)}, "content": [
             {"type": "text", "text": "x"}]}} for n in range(3)]
         stream = [usage(1000), usage(2000), *claude, usage(10), usage(20), usage(30), usage(40), usage(50), usage(60)]
@@ -1212,13 +1114,13 @@ class PlacedRunCase(unittest.TestCase):
         return run_dir
 
     @staticmethod
-    def row(n: int, kind: str, line: int, host: str = "grok", **extra) -> dict:
+    def row(n: int, kind: str, line: int, host: str = "codex", **extra) -> dict:
         return {"row": "start", "n": n, "kind": kind, "reason": {"first": "start", "fresh": "resume-run",
                                                                   "continued": "resume-loop"}[kind], "host": host,
                 "t": 1.0, "events_line": line, "told": None if kind == "first" else TOLD, **extra}
 
     def compaction_run(self):
-        """A Grok-shaped run: usage, a compaction, two calls; a second session begins; then next and the accepting complete."""
+        """An ACP-shaped stream: usage, a compaction, two calls; a second session begins; then next and the accepting complete."""
         s = Stream(first=100.0)
         s.add(usage(100))
         s.add({"type": "auto_compact_completed"}, 1.0)
@@ -1306,8 +1208,8 @@ class UnrecordedSessionsTest(PlacedRunCase):
     def test_a_launch_inside_the_window_makes_it_unmeasured_with_the_reason(self):
         s, _second = self.compaction_run()
         ledger = [("nav-a", "intake", "done", 90.0), ("nav-b", "spec", "done", stamp(s))]
-        run_dir = self.write(*joined(s)[:2], ledger, launches=[("invocation.json", "grok"),
-                                                              ("invocation-resume-grok-103.json", "grok")])
+        run_dir = self.write(*joined(s)[:2], ledger, launches=[("invocation.json", "codex"),
+                                                              ("invocation-resume-codex-103.json", "codex")])
         got = metrics.collect(self.out, run_dir)
         window = got["fresh_starts"][0]["reorientation"]
         self.assertFalse(window["measured"], window)
@@ -1317,18 +1219,18 @@ class UnrecordedSessionsTest(PlacedRunCase):
     def test_the_same_run_with_no_launch_inside_the_window_is_measured(self):
         s, _second = self.compaction_run()
         ledger = [("nav-a", "intake", "done", 90.0), ("nav-b", "spec", "done", stamp(s))]
-        run_dir = self.write(*joined(s)[:2], ledger, launches=[("invocation.json", "grok"),
-                                                              ("invocation-resume-grok-99.json", "grok")])
+        run_dir = self.write(*joined(s)[:2], ledger, launches=[("invocation.json", "codex"),
+                                                              ("invocation-resume-codex-99.json", "codex")])
         window = metrics.collect(self.out, run_dir)["fresh_starts"][0]["reorientation"]
         self.assertTrue(window["measured"], window)
 
     def test_launch_epochs_are_the_resume_records_names_without_a_regrade(self):
         import runrecord
         self.write([], {}, [])
-        for name, regraded in (("invocation-resume-grok-300.json", False), ("invocation-resume-claude-200.json", False),
-                               ("invocation-resume-grok-400.json", True)):
-            (self.out / name).write_text(json.dumps({"host": "grok", "versions": {"regraded": regraded}}))
-        (self.out / "invocation.json").write_text(json.dumps({"host": "grok"}))
+        for name, regraded in (("invocation-resume-codex-300.json", False), ("invocation-resume-claude-200.json", False),
+                               ("invocation-resume-codex-400.json", True)):
+            (self.out / name).write_text(json.dumps({"host": "codex", "versions": {"regraded": regraded}}))
+        (self.out / "invocation.json").write_text(json.dumps({"host": "codex"}))
         self.assertEqual(runrecord.launch_epochs(self.out), [200, 300])
 
 
@@ -1372,7 +1274,7 @@ class FreshStartsNoteTest(PlacedRunCase):
         path = self.out / sessionlog.SESSIONS
         path.chmod(0)
         self.addCleanup(path.chmod, 0o644)
-        row = sessionlog.start(self.out, kind="fresh", reason="resume-run", host="grok", model="m", events_line=1, told=None)
+        row = sessionlog.start(self.out, kind="fresh", reason="resume-run", host="codex", model="m", events_line=1, told=None)
         self.assertEqual(row["n"], 1, "start() raised no error and numbers from what it could read")
         got = metrics.collect(self.out, run_dir)
         self.assertEqual(got["fresh_starts"], [])
@@ -1481,7 +1383,7 @@ class SessionLogTest(unittest.TestCase):
 
     def start(self, **kw):
         import sessionlog
-        return sessionlog.start(self.out, **{"kind": "first", "reason": "start", "host": "grok", "model": "m",
+        return sessionlog.start(self.out, **{"kind": "first", "reason": "start", "host": "codex", "model": "m",
                                              "events_line": 0, "told": None, **kw})
 
     def test_a_start_row_and_its_end_row_are_paired_by_the_session_number(self):
@@ -1633,7 +1535,7 @@ class ResumeToldTest(unittest.TestCase):
 
 class SessionsRecordThroughMainTest(MAIN.PrintedCase):
     """run.main writes sessions.jsonl at the three places it launches a host: the first launch (or --resume-run), the
-    fresh session after --interrupt-at, and a Grok or Codex resume inside the run."""
+    fresh session after --interrupt-at, and a Codex resume inside the run."""
 
     def setUp(self):
         super().setUp()
@@ -1655,7 +1557,7 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
 
     def test_a_first_launch_writes_a_start_row_and_an_end_row_on_every_host(self):
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host):
                 code, result, _ = self.invoke_printed(host, "done")
                 got = self.sessions(result)
@@ -1687,18 +1589,20 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         final = sessionlog.read(self.tmp / "o")
         self.assertEqual(final[0]["end"]["status"], "crashed", "an exception still leaves its end row")
 
-    def test_a_grok_resume_inside_the_run_is_a_continued_session_that_names_the_session_it_continues(self):
-        code, result, _ = self.invoke_printed("grok", "resume")
+    def test_a_codex_resume_inside_the_run_is_a_continued_session_that_names_the_session_it_continues(self):
+        code, result, _ = self.invoke_printed("codex", "resume")
         got = self.sessions(result)
         self.assertEqual([(g["n"], g["kind"], g["reason"]) for g in got], [(1, "first", "start"),
                                                                            (2, "continued", "resume-loop")])
-        self.assertEqual(got[1]["resumed_session"], "sess-1")
+        self.assertEqual(got[1]["resumed_session"], "codex-thread-1")
         self.assertEqual(got[1]["events_line"], got[0]["end"]["events_line"])
         self.assertEqual(got[0]["end"]["engine"]["status"], "active")
         self.assertEqual(got[0]["end"]["engine"]["revision"], 25)
         prompt = json.loads(Path(str(self.log) + ".sessions").read_text().splitlines()[1])["prompt"]
         self.assertIn(f'python3 "{got[1]["told"]["cli"]}" next --run-dir "{got[1]["told"]["run_dir"]}"', prompt)
-        self.assertEqual(got[1]["told"]["cli"], str(self.cli))
+        expected_cli = (Path(result["output"]).resolve() / "home" / ".codex" / "plugins" / "cache" /
+                        "whichguy" / "skill-craft" / "9.9.9" / "skills" / "shiploop" / "scripts" / "shiploop")
+        self.assertEqual(got[1]["told"]["cli"], str(expected_cli))
 
     def test_a_resume_run_is_a_fresh_session_that_was_told_the_runs_own_cli_and_directory(self):
         code, first, _ = self.invoke_printed("claude", "active")
@@ -1738,9 +1642,9 @@ class SessionsRecordThroughMainTest(MAIN.PrintedCase):
         self.assertEqual((got[0]["engine"], got[0]["end"]["engine"], got[0]["end"]["status"]), (None, None, "exited"))
 
     def test_a_regrade_launches_no_host_and_adds_no_row(self):
-        code, first, _ = self.invoke_printed("grok", "done")
+        code, first, _ = self.invoke_printed("codex", "done")
         before = (Path(first["output"]) / "sessions.jsonl").read_text()
-        self.resume(Path(first["output"]), "grok")
+        self.resume(Path(first["output"]), "codex")
         self.assertEqual((Path(first["output"]) / "sessions.jsonl").read_text(), before)
 
 
@@ -1757,7 +1661,7 @@ class ContextWindowRowsTest(PlacedRunCase):
     bytes and the five largest results are each pinned to one exact run."""
 
     def build(self) -> tuple:
-        """A Grok-shaped stream: a reference read, a `next`, a shell test run and a web search before the
+        """An ACP-shaped stream: a reference read, a `next`, a shell test run and a web search before the
         compaction; a knowledge read, a run-record read, a product read, a `complete` and some model text after it.
         Returns (stream, compaction line, nav-a's stamp, nav-b's stamp, the exact strings each call answered)."""
         s = Stream(first=1000.0)
@@ -1843,7 +1747,7 @@ class ContextWindowRowsTest(PlacedRunCase):
 
 
 class ServerToolRoundTest(unittest.TestCase):
-    """A Grok native web search/page-open round is billed input but shows the client no content (SPEC correction
+    """An ACP native web search/page-open round is billed input but shows the client no content (SPEC correction
     2026-10-24): it is counted by number (``server_tool_rounds``), never by bytes, and the one ``usage`` event that
     sums a batch of these rounds is excluded from ``peak_tokens`` -- the next ordinary usage event is read instead."""
 

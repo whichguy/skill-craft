@@ -12,9 +12,9 @@ What the harness measures and nothing it decides, except arms.py, which decides 
 * ``seeded_defects``: the planted-defect cases, each proven to survive a run with no review and to be scored on the final tree;
 * ``home_fixtures`` and ``audit_probes``: the long and small knowledge homes, and the audit's size probes on any checkout.
 
-The fixtures under test/fixtures/efficiency/ are compact extracts of two saved runs (see extract.py there): a Claude step slice
-on ShipLoop 1.3.0 and a Grok run of 33,833 events. The counts pinned here were taken from the saved runs; the extracts reproduce
-them. No test starts a host, reads /Users/dadleet/e2e-runs or a scratchpad, or runs `sf`.
+The fixtures under test/fixtures/efficiency/ hold a compact extract of a saved Claude step slice on ShipLoop 1.3.0
+(see extract.py there). The counts pinned here were taken from the saved run; the extract reproduces it. No test starts
+a host, reads /Users/dadleet/e2e-runs or a scratchpad, or runs `sf`.
 """
 
 from __future__ import annotations
@@ -59,13 +59,12 @@ def materialise(name: str, into: Path) -> Path:
 
 
 class SavedRuns(unittest.TestCase):
-    """The two extracts, unpacked once per class."""
+    """The saved Claude extract, unpacked once per class."""
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.temp = tempfile.TemporaryDirectory(prefix="shiploop-efficiency-")
         cls.claude = materialise("claude-step-slice", Path(cls.temp.name))
-        cls.grok = materialise("grok-long-run", Path(cls.temp.name))
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -145,60 +144,6 @@ class ClaudeReadingPathTests(SavedRuns):
         self.assertEqual((start["kind"], start["first_call_kind"], start["next_within_12"]), ("start", "next", True))
         self.assertIsNone(self.path["compactions"], "Claude's compactions are not detected")
 
-
-class GrokReadingPathTests(SavedRuns):
-    """The recorded Grok run: the S5 snapshot (the first 29,668 events) and the whole file (S6), reproduced."""
-
-    def test_the_first_29668_events_reproduce_the_snapshot_read_counts(self) -> None:
-        reads = metrics.reading_path(self.grok, limit_events=29_668)["reads_by_class"]
-        self.assertEqual({k: reads[k] for k in ("packet_file", "handoff", "improve_card", "adapter", "entry_card")},
-                         {"packet_file": 40, "handoff": 19, "improve_card": 14, "adapter": 12, "entry_card": 8})
-
-    def test_the_whole_run_has_46_packet_file_reads_and_14_compactions(self) -> None:
-        path = metrics.reading_path(self.grok)
-        reads = path["reads_by_class"]
-        self.assertEqual((reads["packet_file"], reads["handoff"], reads["improve_card"], reads["adapter"], reads["entry_card"]),
-                         (46, 21, 16, 14, 10))
-        self.assertEqual((path["events"], path["calls"], path["compactions"]), (33_833, 1_503, 14))
-        self.assertEqual(path["host"], "grok")
-
-    def test_after_the_last_nine_compactions_the_first_call_was_the_entry_card_and_next_followed_after_nine(self) -> None:
-        compactions = [b for b in metrics.reading_path(self.grok)["breaks"] if b["kind"] == "compaction"]
-        self.assertEqual(len(compactions), 14)
-        self.assertEqual([b["first_call_class"] for b in compactions[:5]].count("entry_card"), 0)
-        self.assertEqual([b["first_call_class"] for b in compactions[5:]], ["entry_card"] * 9)
-        self.assertEqual(sum(b["next_within_12"] for b in compactions), 9)
-
-    def test_the_run_has_four_warm_next_calls_and_one_pipe(self) -> None:
-        path = metrics.reading_path(self.grok)
-        self.assertEqual(path["warm_next_calls"]["count"], 4)
-        self.assertEqual(path["piped_shiploop_calls"]["count"], 1)
-        self.assertEqual(path["shiploop_print_cut"]["count"], 0)
-
-    def test_compactions_are_counted_per_100_minutes_of_the_run(self) -> None:
-        path = metrics.reading_path(self.grok)
-        self.assertAlmostEqual(path["compactions_per_100_min"], 14 * 100.0 / path["run_minutes"], places=1)
-        self.assertGreater(path["run_minutes"], 200)
-
-    def test_the_improve_skill_count_is_unknown_without_a_skill_tool_and_the_card_reads_are_counted(self) -> None:
-        improve = metrics.reading_path(self.grok)["improve_skill_invoked"]
-        self.assertIsNone(improve["count"])
-        self.assertIn("Claude only", improve["reason"])
-        self.assertGreater(improve["card_reads"], 0)
-
-    def test_a_prefix_reads_only_its_lines(self) -> None:
-        path = metrics.reading_path(self.grok, limit_events=1_000)
-        self.assertEqual(path["events"], 1_000)
-        self.assertLess(path["calls"], 100)
-
-    def test_the_stage_share_of_the_planning_window_is_measured_offline(self) -> None:
-        share = metrics.stage_share(self.grok)
-        self.assertTrue(share["measured"])
-        self.assertEqual((share["window_seconds"], share["through"], share["stage_seconds"]), (4661.0, "test-spec", 612.0))
-        self.assertEqual((share["improve_seconds"], share["authoring_seconds"]), (410.6, 201.4))
-        self.assertAlmostEqual(share["authoring_share"], 0.0432, places=4)
-        self.assertGreater(share["named"]["calls"], 0)
-        self.assertLess(share["named"]["span_share"], share["authoring_share"] + 0.01)
 
     def test_a_run_with_no_run_directory_is_not_measured_and_says_why(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -337,7 +282,7 @@ class ClassifyTests(unittest.TestCase):
         self.assertEqual(set(found), {"spec.md", "architecture.md", "handoffs"})
         self.assertTrue(70 < found["spec.md"] < 160 and 40 < found["architecture.md"] < 70 and 100 < found["handoffs"] < 200)
 
-    def test_grok_result_shapes_are_read_for_every_tool(self) -> None:
+    def test_acp_result_shapes_are_read_for_every_tool(self) -> None:
         def update(**raw) -> dict:
             return {"type": "tool_call_update", "toolCallId": "c", "status": "completed", "rawOutput": raw}
         self.assertEqual(metrics.result_text(update(type="Bash", output_for_prompt="abc")), [("c", "abc")])
@@ -476,8 +421,11 @@ class OrientationTests(unittest.TestCase):
 
     def test_another_hosts_stream_is_not_measured_and_is_not_zero(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
-            grok = materialise("grok-long-run", Path(temp))
-            found = clear.orientation(grok / "events.jsonl", 100)
+            out = write_run(Path(temp) / "codex", [
+                {"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command", "rawInput": {"command": "ls"}},
+                {"type": "tool_call_update", "toolCallId": "c1", "status": "completed", "rawOutput": {"exit_code": 0, "output_for_prompt": "ok"}},
+                {"type": "end", "stopReason": "end_turn"}])
+            found = clear.orientation(out / "events.jsonl", 0)
         self.assertFalse(found["measured"])
         self.assertIsNone(found["orientation_bytes"])
         self.assertIn("Claude", found["reason"])
@@ -573,15 +521,15 @@ class ArmsTests(unittest.TestCase):
         self.assertEqual(report["decision"], "candidate")
 
     def test_a_slice_with_no_spread_is_judged_by_the_hard_gates_and_its_counts_are_descriptive(self) -> None:
-        report = arms.decide({"g": summary(host="grok")}, {"g": summary(host="grok", refusals=30, ingest_chars=1)}, {})
+        report = arms.decide({"c": summary(host="codex")}, {"c": summary(host="codex", refusals=30, ingest_chars=1)}, {})
         self.assertEqual(report["gates_failed"], [])
         self.assertTrue(any("descriptive" in n and "refusals" in n for n in report["notes"]))
         self.assertEqual(report["exit"], 3)
-        failed = arms.decide({"g": summary(host="grok")}, {"g": summary(host="grok", redone=2)}, {})
+        failed = arms.decide({"c": summary(host="codex")}, {"c": summary(host="codex", redone=2)}, {})
         self.assertEqual((failed["decision"], failed["exit"]), ("control", 0))
 
     def test_the_improve_skill_gate_binds_claude_only(self) -> None:
-        report = arms.decide({"g": summary(host="grok")}, {"g": summary(host="grok", improve_skill=None, ingest_chars=1)}, {})
+        report = arms.decide({"c": summary(host="codex")}, {"c": summary(host="codex", improve_skill=None, ingest_chars=1)}, {})
         self.assertEqual(report["gates_failed"], [])
 
     def test_missing_evidence_never_decides_a_slice_one_arm_lacks_or_an_unmeasured_gate(self) -> None:

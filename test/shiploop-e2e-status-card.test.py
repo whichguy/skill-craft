@@ -128,18 +128,18 @@ class Builders(unittest.TestCase):
         run = self.base / "20261025T211947Z-fadb"
         run.mkdir()
         (run / "prompt.txt").write_text("question", encoding="utf-8")
-        for seat in ("opus", "codex", "grok", "qwen"):   # each seat's prompt is written as the pass starts
+        for seat in ("opus", "codex", "gemini", "qwen"):   # each seat's prompt is written as the pass starts
             (run / ("pass1-" + seat + "-prompt.md")).write_text("prompt", encoding="utf-8")
         (run / "pass1-opus.md").write_text("x" * 300, encoding="utf-8")
         (run / "pass1-codex.md").write_text("x" * 300, encoding="utf-8")
-        (run / "pass1-host.log").write_text("✅ pass1 opus: 300s exit=0\n❌ pass1 grok: 2s exit=6\n", encoding="utf-8")
+        (run / "pass1-host.log").write_text("✅ pass1 opus: 300s exit=0\n❌ pass1 gemini: 2s exit=6\n", encoding="utf-8")
         model, meta = status_card.build_advisors(run, NOW)
-        # A non-default Ollama family (qwen here) is a seat too, named by its prompt file.
+        # Non-default seats (gemini and qwen here) use their prompt file's title-cased initial.
         self.assertEqual(slots(model, 0), [("pass", "O"), ("pass", "A"), ("error", "G"), ("running", "Q")])
         self.assertEqual(slots(model, 1), [("pending", "O"), ("pending", "A"), ("pending", "G"), ("pending", "Q")])
         self.assertEqual([step["state"] for step in model["plan"]], ["running", "pending", "pending"])
         self.assertEqual(model["progress"]["done"], 2)
-        self.assertEqual(meta["events"][0]["text"], "❌ pass1 grok: 2s exit=6")   # newest first
+        self.assertEqual(meta["events"][0]["text"], "❌ pass1 gemini: 2s exit=6")   # newest first
         (run / "pass1-meta.json").write_text("{}", encoding="utf-8")       # pass 1 ended: a seat with no answer failed
         model, _meta = status_card.build_advisors(run, NOW)
         self.assertEqual(slots(model, 0)[3], ("error", "Q"))

@@ -2,12 +2,12 @@
 """No-model, no-platform checks for the E2E harness's `platform` hooks (test/shiploop_e2e/run.py).
 
 A case may carry a `platform` object (preflight, before, cleanup, home_links); the harness runs the commands it names and knows
-nothing about any platform. Here the commands are one tiny Python script written below, the hosts are fake `grok` and `claude`
+nothing about any platform. Here the commands are one tiny Python script written below, the hosts are fake `codex` and `claude`
 executables, and no real platform, org or model is ever reached. They say nothing about a live platform.
 
   preflight  before any model call, with the host's environment: non-zero aborts
   before     once, on a fresh run only
-  home_links symlinks of existing names in the real HOME into a throwaway HOME (Grok, Codex), recorded
+  home_links symlinks of existing names in the real HOME into a throwaway HOME (Codex), recorded
   cleanup    after grading, always: success, failure, crash, KeyboardInterrupt; a failure is printed loudly
   model_bin  a guarded stand-in command written to <output>/platform/bin and put first on the host's PATH (real HOME inside),
              pinned first again in the throwaway HOME's shell startup files (path_helper) and checked per shell
@@ -117,32 +117,47 @@ def product():
 # no work), hang (never ends: the harness's --timeout does), stop (asks the harness to end the run, then never ends). Every start
 # leaves PLAT_MODEL_MARK, so a platform command can say whether the model had started when it ran. A model that "shows" a
 # credential puts it in its event stream, as a tool result would. FAKE_COMMANDS (a JSON list) is what its shell tool "ran".
-FAKE_GROK = f"""#!{sys.executable}
+FAKE_CODEX = f"""#!{sys.executable}
 import json, os, subprocess, sys, time
 from pathlib import Path
 {PRODUCT}
 argv = sys.argv[1:]
-home = Path(os.environ["HOME"])
-registry = home / ".grok" / "fake-plugins.txt"
-if argv[:2] == ["plugin", "install"]:
-    registry.write_text(f"  skill-craft-1: skill-craft [local: {{Path(argv[2]).resolve()}}]\\n")
-    print("Installed 1 plugin(s)")
+home = Path(os.environ["CODEX_HOME"])
+state = home / "fake-plugin.json"
+if argv[:3] == ["plugin", "marketplace", "add"]:
+    state.write_text(json.dumps({{"marketplace": argv[3]}}))
+    sys.exit(0)
+if argv[:2] == ["plugin", "add"]:
+    root = home / "plugins" / "cache" / "whichguy" / "skill-craft" / "9.9.9"
+    (root / "skills" / "shiploop" / "scripts").mkdir(parents=True, exist_ok=True)
+    (root / "skills" / "shiploop" / "scripts" / "shiploop").write_text("")
     sys.exit(0)
 if argv[:2] == ["plugin", "list"]:
-    print(registry.read_text() if registry.exists() else "")
+    rows = [{{"pluginId": "skill-craft@whichguy", "name": "skill-craft", "version": "9.9.9",
+             "installed": True}}] if state.exists() else []
+    print(json.dumps({{"installed": rows}}))
     sys.exit(0)
-os.chdir(argv[argv.index("--cwd") + 1])
+assert argv[:2] == ["exec", "--json"], argv
+os.chdir(argv[argv.index("-C") + 1])
+resumed = argv[argv.index("resume") + 1] if "resume" in argv else None
 Path(os.environ["PLAT_MODEL_MARK"]).write_text("started")
-Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": str(home), "links": sorted(
-    n for n in os.listdir(home) if os.path.islink(os.path.join(home, n))), "path_head": os.environ["PATH"].split(os.pathsep)[0],
+user_home = Path(os.environ["HOME"])
+Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": str(user_home), "links": sorted(
+    n for n in os.listdir(user_home) if os.path.islink(os.path.join(user_home, n))), "path_head": os.environ["PATH"].split(os.pathsep)[0],
     "sf_keychain": os.environ.get("SF_USE_GENERIC_UNIX_KEYCHAIN")}}))
-print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["shiploop", "improve"]}}))
-print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "python3 /x/skills/shiploop/scripts/shiploop next"}}}}))
-for command in json.loads(os.environ.get("FAKE_COMMANDS", '["sf org display --json"]')):
-    print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": command}}}}))
+def emit(event):
+    print(json.dumps(event), flush=True)
+emit({{"type": "thread.started", "thread_id": resumed or "codex-thread-1"}})
+emit({{"type": "item.completed", "item": {{"id": "item_0", "type": "command_execution",
+      "command": "python3 /x/skills/shiploop/scripts/shiploop next",
+      "aggregated_output": "ShipLoop navigator\\n", "exit_code": 0, "status": "completed"}}}})
+for n, command in enumerate(json.loads(os.environ.get("FAKE_COMMANDS", '["sf org display --json"]')), 1):
+    emit({{"type": "item.completed", "item": {{"id": f"item_{{n}}", "type": "command_execution",
+          "command": command, "aggregated_output": "", "exit_code": 0, "status": "completed"}}}})
 for _ in range(int(os.environ.get("FAKE_SF_CALLS", "0"))):  # the model reaching the guard: the first PATH folder holds the wrapper
     subprocess.run([os.environ["PATH"].split(os.pathsep)[0] + "/sf", "org", "list"], check=True, capture_output=True)
-print(json.dumps({{"type": "text", "data": '{{"accessToken": "{TOKEN}"}}'}}))
+emit({{"type": "item.completed", "item": {{"id": "item_msg", "type": "agent_message",
+      "text": '{{"accessToken": "{TOKEN}"}}'}}}})
 mode = os.environ.get("FAKE_MODE")
 if mode == "fail":
     sys.exit(1)
@@ -157,7 +172,7 @@ elif mode in ("hang", "stop"):
     if mode == "stop":
         Path("../stop").write_text("stop")  # the stop file sits beside the work folder, in the run's output folder
     time.sleep(60)
-print(json.dumps({{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}))
+emit({{"type": "turn.completed", "usage": {{"input_tokens": 10, "cached_input_tokens": 5, "output_tokens": 2}}}})
 """
 
 FAKE_CLAUDE = f"""#!{sys.executable}
@@ -183,7 +198,7 @@ class PlatformCase(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         self.tmp = Path(tmp.name).resolve()
         self.fakes = {}
-        for name, body in (("grok", FAKE_GROK), ("claude", FAKE_CLAUDE)):
+        for name, body in (("codex", FAKE_CODEX), ("claude", FAKE_CLAUDE)):
             path = self.tmp / name
             path.write_text(body)
             path.chmod(path.stat().st_mode | stat.S_IXUSR)
@@ -203,12 +218,12 @@ class PlatformCase(unittest.TestCase):
         self.real_home = self.tmp / "real-home"
         (self.real_home / ".sfdx").mkdir(parents=True)
         (self.real_home / ".sfdx" / "alias.json").write_text("{}")
-        auth = self.tmp / "auth.json"
-        auth.write_text("{}")
-        saved, hosts.GROK_AUTH = hosts.GROK_AUTH, auth
-        self.addCleanup(setattr, hosts, "GROK_AUTH", saved)
+        codex_home = self.tmp / "real-codex"
+        codex_home.mkdir()
+        (codex_home / "auth.json").write_text("{}")
         # Lease bookkeeping belongs to this test, outside the credential HOME whose shell files we inspect.
         patched = mock.patch.dict(os.environ, {"HOME": str(self.real_home),
+                                               "CODEX_HOME": str(codex_home),
                                                "XDG_STATE_HOME": str(self.tmp / "state"),
                                                "PLAT_LOG": str(self.plat_log),
                                                "PLAT_MODEL_MARK": str(self.tmp / "model-started")})
@@ -461,7 +476,7 @@ class HomeLinkTest(PlatformCase):
 class RunTest(PlatformCase):
     def test_a_good_run_orders_preflight_before_model_and_cleanup_and_records_all_of_it(self):
         self.use_case(self.platform())
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
         preflight, before, cleanup = self.calls()
@@ -497,13 +512,13 @@ class RunTest(PlatformCase):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "preflight"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.invoke("grok", "done")
+            self.invoke("codex", "done")
         self.assertEqual(self.verbs(), ["preflight"])
         self.assertFalse(self.model_started())
         message = str(refused.exception)
         self.assertIn("preflight refused", message)
         self.assertIn("boom", message)
-        out = self.tmp / "out-grok-a"
+        out = self.tmp / "out-codex-a"
         stub = json.loads((out / "result.json").read_text())
         self.assertFalse(stub["pass"])
         self.assertTrue(stub["platform"]["refused"])
@@ -515,15 +530,15 @@ class RunTest(PlatformCase):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "before"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.invoke("grok", "done")
+            self.invoke("codex", "done")
         self.assertEqual(self.verbs(), ["preflight", "before"])
         self.assertFalse(self.model_started())
         self.assertIn("before command failed", str(refused.exception))
-        self.assertEqual(self.credential_files(self.tmp / "out-grok-a"), [])
+        self.assertEqual(self.credential_files(self.tmp / "out-codex-a"), [])
 
     def test_cleanup_runs_after_a_run_whose_model_failed(self):
         self.use_case(self.platform())
-        code, result, _ = self.invoke("grok", "fail")
+        code, result, _ = self.invoke("codex", "fail")
         self.assertEqual(code, 1)
         self.assertFalse(result["process"]["pass"])
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
@@ -531,7 +546,7 @@ class RunTest(PlatformCase):
 
     def test_cleanup_runs_after_a_run_whose_checks_fail(self):
         self.use_case(self.platform())
-        code, result, _ = self.invoke("grok", "stuck")
+        code, result, _ = self.invoke("codex", "stuck")
         self.assertEqual(code, 1)
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
 
@@ -542,22 +557,22 @@ class RunTest(PlatformCase):
                 self.plat_log.unlink(missing_ok=True)
                 with mock.patch.object(run, "summarize_events", side_effect=exception), \
                         contextlib.redirect_stdout(io.StringIO()), self.assertRaises(type(exception)):
-                    self.invoke("grok", "done", tag=tag)
+                    self.invoke("codex", "done", tag=tag)
                 self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
-                recorded = json.loads((self.tmp / f"out-grok-{tag}" / "platform" / "cleanup-record.json").read_text())
+                recorded = json.loads((self.tmp / f"out-codex-{tag}" / "platform" / "cleanup-record.json").read_text())
                 self.assertTrue(recorded["ran"] and recorded["ok"])
 
     def test_cleanup_runs_when_the_harness_exits_after_the_model_started(self):
         self.use_case(self.platform())
         with mock.patch.object(run, "summarize_events", side_effect=SystemExit("stop")), \
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
-            self.invoke("grok", "done")
+            self.invoke("codex", "done")
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
 
     def test_a_failed_cleanup_is_loud_recorded_scrubbed_and_fails_the_run(self):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "cleanup"
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 1)
         self.assertFalse(result["pass"], "the product is right, but the platform was left dirty")
         cleanup = result["platform"]["cleanup"]
@@ -581,7 +596,7 @@ class RunTest(PlatformCase):
         cases = json.loads(run.CASES.read_text())
         cases["plat"]["checks"] = [printing]
         run.CASES.write_text(json.dumps(cases))
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         out = Path(result["output"])
         self.assertEqual(self.credential_files(out), [])
         self.assertNotIn(TOKEN, printed)
@@ -600,7 +615,7 @@ class RunTest(PlatformCase):
 
     def test_a_case_without_a_platform_is_unchanged(self):
         self.use_case(None)
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertEqual(self.verbs(), [])
         self.assertNotIn("platform", result)
@@ -614,7 +629,7 @@ class RunTest(PlatformCase):
         os.environ["FAKE_MODE"] = "done"
         out = self.tmp / "out-custom"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--prompt", "x",
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(out), "--prompt", "x",
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertEqual(self.verbs(), [])
 
@@ -634,7 +649,7 @@ class ModelBinTest(PlatformCase):
 
     def test_the_wrapper_is_written_first_on_the_hosts_path_and_the_preflight_runs_through_it(self):
         self.use_case(self.with_bin())
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         out = Path(result["output"])
         wrapper = out / "platform" / "bin" / "mytool"
@@ -672,7 +687,7 @@ class ModelBinTest(PlatformCase):
 
     def test_the_wrapper_needs_nothing_from_the_model_s_environment(self):
         self.use_case(self.with_bin())
-        _, result, _ = self.invoke("grok", "done")
+        _, result, _ = self.invoke("codex", "done")
         out = Path(result["output"])
         before = len(self.tool_calls())
         env = {"PATH": "/usr/bin:/bin", "PLAT_LOG": str(self.plat_log), "HOME": str(out / "home"),  # no E2E_* and a throwaway HOME
@@ -702,7 +717,7 @@ class ModelBinTest(PlatformCase):
         spec["model_bin"] = {"mytool": "false"}
         self.use_case(spec)
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.invoke("grok", "done")
+            self.invoke("codex", "done")
         self.assertIn("preflight refused", str(refused.exception))
         self.assertFalse(self.model_started())
         self.assertEqual(self.verbs(), [])
@@ -713,32 +728,32 @@ class ModelBinTest(PlatformCase):
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed), mock.patch.object(
                 run, "marketplace_preflight", return_value=(self.plugin, None, {"gate": []})):
-            code = run.main(["--preflight-only", "--case", "plat", "--output", str(out), "--host", "grok",
-                             "--grok-bin", str(self.fakes["grok"])])
+            code = run.main(["--preflight-only", "--case", "plat", "--output", str(out), "--host", "codex",
+                             "--codex-bin", str(self.fakes["codex"])])
         self.assertEqual(code, 0, printed.getvalue())
         self.assertEqual(self.verbs(), ["tool", "preflight"])
-        self.assertTrue((out / "grok" / "platform" / "bin" / "mytool").is_file())
-        self.assertEqual(Path(self.calls()[1]["path_head"]), out / "grok" / "platform" / "bin")
-        self.assertIn("mytool", json.loads((out / "grok" / "preflight.json").read_text())["platform"]["model_bin"])
-        self.assertEqual(json.loads((out / "grok" / "preflight.json").read_text())["platform"]["model_bin_resolution"],
+        self.assertTrue((out / "codex" / "platform" / "bin" / "mytool").is_file())
+        self.assertEqual(Path(self.calls()[1]["path_head"]), out / "codex" / "platform" / "bin")
+        self.assertIn("mytool", json.loads((out / "codex" / "preflight.json").read_text())["platform"]["model_bin"])
+        self.assertEqual(json.loads((out / "codex" / "preflight.json").read_text())["platform"]["model_bin_resolution"],
                          {"ok": True, "problems": []})
 
     def test_a_resume_writes_the_wrapper_again_and_a_regrade_restates_it(self):
         self.use_case(self.with_bin())
-        code, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        code, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         (out / "platform" / "bin" / "mytool").unlink()
-        result, _ = self.resume("grok", out, "done")
+        result, _ = self.resume("codex", out, "done")
         self.assertTrue((out / "platform" / "bin" / "mytool").is_file(), "the resumed model runs behind the wrapper too")
         self.assertEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
         calls = self.calls()
-        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        regraded, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(regraded["platform"]["model_bin"], result["platform"]["model_bin"])
         self.assertEqual(self.calls(), calls)
 
     def test_a_platform_without_model_bin_is_unchanged(self):
         self.use_case(self.platform())
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         out = Path(result["output"])
         self.assertNotIn("model_bin", result["platform"])
@@ -754,12 +769,12 @@ class ModelBinTest(PlatformCase):
 class ResumeTest(PlatformCase):
     def test_a_resume_does_not_snapshot_again_and_cleans_again_at_its_end(self):
         self.use_case(self.platform())
-        code, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        code, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         self.assertEqual(code, 1)
         out = Path(first["output"])
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
         (out / "platform" / "before.json").write_text('{"snapshot": "the first run\'s"}')
-        result, _ = self.resume("grok", out, "done")
+        result, _ = self.resume("codex", out, "done")
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "preflight", "cleanup"],
                          "preflight and cleanup again; no second before")
         self.assertEqual(json.loads((out / "platform" / "before.json").read_text()), {"snapshot": "the first run's"})
@@ -771,12 +786,12 @@ class ResumeTest(PlatformCase):
 
     def test_a_resume_on_an_unclean_platform_is_refused_without_replacing_the_result(self):
         self.use_case(self.platform())
-        self.invoke("grok", "stuck", "--max-resumes", "0")
-        out = self.tmp / "out-grok-a"
+        self.invoke("codex", "stuck", "--max-resumes", "0")
+        out = self.tmp / "out-codex-a"
         kept = (out / "result.json").read_text()
         os.environ["PLAT_FAIL"] = "preflight"
         with self.assertRaises(SystemExit), contextlib.redirect_stdout(io.StringIO()):
-            self.resume("grok", out, "done")
+            self.resume("codex", out, "done")
         self.assertEqual((out / "result.json").read_text(), kept)
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "preflight"], "no cleanup: no model ran")
 
@@ -784,14 +799,14 @@ class ResumeTest(PlatformCase):
 class RegradeTest(PlatformCase):
     def test_a_regrade_of_a_cleaned_run_starts_nothing_and_restates_the_checks_made_while_deployed(self):
         self.use_case(self.platform())
-        self.invoke("grok", "done")
-        out = self.tmp / "out-grok-a"
+        self.invoke("codex", "done")
+        out = self.tmp / "out-codex-a"
         before = json.loads((out / "result.json").read_text())
         calls = self.calls()
         cases = json.loads(run.CASES.read_text())
         cases["plat"]["checks"] = ["false"]  # asking the platform now would find nothing there
         run.CASES.write_text(json.dumps(cases))
-        result, _ = self.resume("grok", out, "done", "--grade-only")
+        result, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.calls(), calls, "no preflight, before or cleanup for a run already cleaned")
         self.assertEqual(result["checks"], before["checks"])
         self.assertTrue(result["pass"], result)
@@ -800,10 +815,10 @@ class RegradeTest(PlatformCase):
     def test_a_regrade_of_a_run_whose_cleanup_failed_cleans_it(self):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "cleanup"
-        self.invoke("grok", "done")
-        out = self.tmp / "out-grok-a"
+        self.invoke("codex", "done")
+        out = self.tmp / "out-codex-a"
         del os.environ["PLAT_FAIL"]
-        result, _ = self.resume("grok", out, "done", "--grade-only")
+        result, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "cleanup"])
         self.assertTrue(result["platform"]["cleanup"]["ok"])
         self.assertTrue(result["pass"], result)
@@ -820,13 +835,13 @@ class PreflightOnlyTest(PlatformCase):
 
     def test_preflight_only_runs_the_case_s_platform_preflight_and_nothing_else(self):
         self.use_case(self.platform())
-        code, out, printed = self.preflight_only("--host", "grok", "--grok-bin", str(self.fakes["grok"]))
+        code, out, printed = self.preflight_only("--host", "codex", "--codex-bin", str(self.fakes["codex"]))
         self.assertEqual(code, 0, printed)
         self.assertEqual(self.verbs(), ["preflight"])
         self.assertEqual(self.calls()[0]["links"], [".sfdx"])
-        record = json.loads((out / "grok" / "preflight.json").read_text())
+        record = json.loads((out / "codex" / "preflight.json").read_text())
         self.assertTrue(record["platform"]["preflight"]["ok"])
-        self.assertIn("platform preflight (grok): OK", printed)
+        self.assertIn("platform preflight (codex): OK", printed)
         self.assertFalse(self.model_started())
 
     def test_a_failing_platform_preflight_refuses_preflight_only(self):
@@ -997,7 +1012,7 @@ class OwnShellTest(ShellTest):
 
 
 class ShellPreflightTest(ShellTest):
-    def host(self, name: str = "grok") -> tuple[dict, Path]:
+    def host(self, name: str = "codex") -> tuple[dict, Path]:
         out = self.tmp / f"pf-{name}"
         out.mkdir()
         return dict(os.environ, HOME=str(out / "home")), out
@@ -1045,7 +1060,7 @@ class ShellPreflightTest(ShellTest):
 
     def test_a_run_records_the_pin_and_the_resolution_and_pins_only_the_throwaway_home(self):
         self.use_case(self.with_bin())
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         out = Path(result["output"])
         pinned = [".zprofile", ".zshrc", ".bash_profile", ".bashrc", ".profile"]
@@ -1058,26 +1073,26 @@ class ShellPreflightTest(ShellTest):
 
     def test_a_resume_pins_again_and_the_resumed_host_launches_behind_the_wrapper(self):
         self.use_case(self.with_bin())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         for name in first["platform"]["shell_path_pinned"]:
             (out / "home" / name).unlink()
-        result, _ = self.resume("grok", out, "done")
+        result, _ = self.resume("codex", out, "done")
         self.assertEqual(result["platform"]["shell_path_pinned"], first["platform"]["shell_path_pinned"])
         self.assertTrue((out / "home" / ".zprofile").is_file(), "the pin was written again for the resumed launch")
         self.assertEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
 
     def test_a_regrade_restates_the_pin_and_the_resolution_without_checking_again(self):
         self.use_case(self.with_bin())
-        _, first, _ = self.invoke("grok", "done")
+        _, first, _ = self.invoke("codex", "done")
         with mock.patch.object(run, "shell_resolution_problems", side_effect=AssertionError("checked")):
-            regraded, _ = self.resume("grok", Path(first["output"]), "done", "--grade-only")
+            regraded, _ = self.resume("codex", Path(first["output"]), "done", "--grade-only")
         for key in ("shell_path_pinned", "model_bin_resolution"):
             self.assertEqual(regraded["platform"][key], first["platform"][key])
 
     def test_a_resume_whose_shells_no_longer_find_the_wrapper_is_refused_and_leaves_the_result_alone(self):
         self.use_case(self.with_bin())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         kept = (out / "result.json").read_text()
         calls = self.calls()
@@ -1085,7 +1100,7 @@ class ShellPreflightTest(ShellTest):
         problem = "`mytool` resolves to /x/mytool under `/bin/zsh -lc`, not to the wrapper"
         with mock.patch.object(run, "shell_resolution_problems", return_value=[problem]), \
                 self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.resume("grok", out, "done")
+            self.resume("codex", out, "done")
         self.assertIn("preflight refused", str(refused.exception))
         self.assertIn(problem, str(refused.exception))
         self.assertEqual((out / "result.json").read_text(), kept)
@@ -1140,7 +1155,7 @@ class ShellPreflightTest(ShellTest):
 # The command ShipLoop's `workspace start` is run with on every ShipLoop run of the Salesforce case (run 1, shortened): the case prompt
 # is an argument, and it names `sf` commands in prose, with the quote idiom of a prompt that holds an apostrophe.
 WORKSPACE_START = (
-    'SKILL_ROOT="/x/live1/home/.grok/installed-plugins/skill-craft-e56c8527/skills/shiploop"\n'
+    'SKILL_ROOT="/x/live1/home/.codex/plugins/cache/whichguy/skill-craft/9.9.9/skills/shiploop"\n'
     'CLI="$SKILL_ROOT/scripts/shiploop"\n'
     'REPO="/x/live1/work"\n'
     'python3 "$CLI" workspace start --repo "$REPO" --delivery-contract --prompt=\'Deploy with `sf project deploy start --target-org de` '
@@ -1165,7 +1180,7 @@ class ModelCommandTest(PlatformCase):
 
     def test_sf_is_found_in_a_command_whatever_the_host_calls_the_event(self):
         for label, event in (
-                ("grok", {"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {"command": "sf org list --json"}}),
+                ("translated", {"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {"command": "sf org list --json"}}),
                 ("claude", {"type": "assistant", "message": {"content": [
                     {"type": "tool_use", "name": "Bash", "input": {"command": "HOME=/Users/x sf apex run --file a.apex"}}]}}),
                 ("codex", {"type": "tool_call", "toolName": "run_terminal_command",
@@ -1321,7 +1336,7 @@ class CoverageRunTest(PlatformCase):
     def test_a_model_that_reached_the_guard_passes_and_the_run_says_what_the_guard_saw(self):
         self.use_case(self.sf_case())
         os.environ["FAKE_SF_CALLS"] = "2"
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         block = result["platform"]
         self.assertEqual(block["guard_log_preflight_ranges"], [[0, 2]], "the preflight's own probe: a decision and an end line")
@@ -1337,7 +1352,7 @@ class CoverageRunTest(PlatformCase):
 
     def test_a_model_the_guard_never_saw_is_an_invalid_trial_that_fails_the_run_and_is_no_baseline_row(self):
         self.use_case(self.sf_case())
-        code, result, printed = self.invoke("grok", "done")  # the fake model's transcript shows `sf org display` and never calls the wrapper
+        code, result, printed = self.invoke("codex", "done")  # the fake model's transcript shows `sf org display` and never calls the wrapper
         self.assertEqual(code, 1)
         self.assertFalse(result["pass"], "everything else about the run is right")
         self.assertEqual(result["platform"]["guard_coverage"],
@@ -1358,7 +1373,7 @@ class CoverageRunTest(PlatformCase):
         """H-1: the run ends before the model's first guarded call; the commands it did run are the case prompt and a note."""
         self.use_case(self.sf_case())
         os.environ["FAKE_COMMANDS"] = json.dumps([WORKSPACE_START, NOTES_HEREDOC, 'command -v sf || echo "sf missing"'])
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["platform"]["guard_coverage"],
                          {"model_sf_commands": 0, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": False})
@@ -1372,7 +1387,7 @@ class CoverageRunTest(PlatformCase):
         self.use_case(self.sf_case())
         os.environ["FAKE_SF_CALLS"] = "1"
         os.environ["FAKE_COMMANDS"] = json.dumps(["sf org list", "/opt/homebrew/bin/sf data query -q x"])
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 1)
         self.assertEqual(result["platform"]["guard_coverage"],
                          {"model_sf_commands": 2, "guard_calls": 1, "direct_sf_commands": 1, "bypassed": True})
@@ -1385,7 +1400,7 @@ class CoverageRunTest(PlatformCase):
 
     def test_a_platform_whose_wrappers_are_not_sf_has_no_coverage(self):
         self.use_case(self.platform(model_bin=self.model_bin(), home_links=None, preflight=None))
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertNotIn("guard_coverage", result["platform"])
         self.assertEqual(result["platform"]["guard_log_preflight_ranges"], [[0, 0]])
@@ -1395,10 +1410,10 @@ class CoverageRunTest(PlatformCase):
         """H-2: each invocation's preflight calls the wrapper; only the model's calls count, on a resumed run too."""
         self.use_case(self.sf_case())
         os.environ["FAKE_SF_CALLS"] = "1"
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         self.assertEqual(first["platform"]["guard_coverage"]["guard_calls"], 1)
-        result, _ = self.resume("grok", out, "done")
+        result, _ = self.resume("codex", out, "done")
         self.assertEqual(result["platform"]["guard_log_preflight_ranges"], [[0, 2], [4, 6]], "one range per invocation")
         self.assertEqual((out / "platform" / run.PREFLIGHT_RANGES).read_text(), "[0, 2]\n[4, 6]\n")
         # the first model call and the resumed model's call: the resume preflight's probe is not one
@@ -1410,18 +1425,18 @@ class CoverageRunTest(PlatformCase):
         """R2-H-1: the version gate refuses a resume after its preflight called the wrapper and before any invocation record is
         written; the next resume must not count that probe as a model call and hide a model that never reached the guard."""
         self.use_case(self.sf_case())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")  # the fake model's transcript shows sf; it never calls the wrapper
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")  # the fake model's transcript shows sf; it never calls the wrapper
         out = Path(first["output"])
         # The marketplace gate applies to a run that started on the marketplace install (a checkout run is exempt: ResumeGateTest).
         recorded = json.loads((out / "invocation.json").read_text())
         recorded["versions"]["source"] = "marketplace"
         (out / "invocation.json").write_text(json.dumps(recorded))
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.resume("grok", out, "done", ci="failure")
+            self.resume("codex", out, "done", ci="failure")
         self.assertIn("origin/main's CI failed", str(refused.exception))
         self.assertEqual(list(out.glob("invocation-resume-*.json")), [], "refused before the invocation record")
         self.assertEqual(run.preflight_ranges(out), [(0, 2), (2, 4)], "the refused resume's probe has its range all the same")
-        result, _ = self.resume("grok", out, "done")
+        result, _ = self.resume("codex", out, "done")
         self.assertEqual(result["platform"]["guard_log_preflight_ranges"], [[0, 2], [2, 4], [4, 6]])
         self.assertEqual(result["platform"]["guard_coverage"],
                          {"model_sf_commands": 1, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": True})
@@ -1432,16 +1447,16 @@ class CoverageRunTest(PlatformCase):
         self.use_case(self.sf_case())
         os.environ["PLAT_FAIL"] = "preflight"
         with self.assertRaises(SystemExit), contextlib.redirect_stdout(io.StringIO()):
-            self.invoke("grok", "done")
-        self.assertEqual(run.preflight_ranges(self.tmp / "out-grok-a"), [(0, 2)])
+            self.invoke("codex", "done")
+        self.assertEqual(run.preflight_ranges(self.tmp / "out-codex-a"), [(0, 2)])
         del os.environ["PLAT_FAIL"]
 
     def test_a_resumed_model_that_bypasses_the_guard_completely_is_found_out(self):
         self.use_case(self.sf_case())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         self.assertTrue(first["platform"]["guard_coverage"]["bypassed"])
-        result, _ = self.resume("grok", out, "done")
+        result, _ = self.resume("codex", out, "done")
         self.assertEqual(result["platform"]["guard_coverage"],
                          {"model_sf_commands": 1, "guard_calls": 0, "direct_sf_commands": 0, "bypassed": True},
                          "the resume's own preflight probe must not read as a model call")
@@ -1449,15 +1464,15 @@ class CoverageRunTest(PlatformCase):
 
     def test_a_regrade_grades_the_bypass_again_from_what_is_on_disk(self):
         self.use_case(self.sf_case())
-        _, first, _ = self.invoke("grok", "done")
+        _, first, _ = self.invoke("codex", "done")
         out = Path(first["output"])
         self.assertFalse(first["pass"])
-        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        regraded, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertTrue(regraded["platform"]["guard_coverage"]["bypassed"])
         self.assertFalse(regraded["pass"])
         # a run that recorded no preflight range is not judged
         (out / "platform" / run.PREFLIGHT_RANGES).unlink()
-        old, _ = self.resume("grok", out, "done", "--grade-only")
+        old, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertNotIn("guard_coverage", old["platform"])
         self.assertTrue(old["pass"], old)
 
@@ -1468,7 +1483,7 @@ class KeepPlatformTest(PlatformCase):
     CLEANED = ["preflight", "before", "cleanup"]
     KEPT = {"ran": False, "ok": True, "kept": True, "reason": "--keep-platform"}
 
-    def argv(self, *extra: str, tag: str = "a", mode: str = "done", host: str = "grok") -> list[str]:
+    def argv(self, *extra: str, tag: str = "a", mode: str = "done", host: str = "codex") -> list[str]:
         os.environ["FAKE_MODE"] = mode
         return ["--host", host, *ANTHROPIC_ROUTE.get(host, ()), f"--{host}-bin", str(self.fakes[host]), "--output", str(self.tmp / f"out-{host}-{tag}"), "--case", "plat",
                 "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra]
@@ -1478,7 +1493,7 @@ class KeepPlatformTest(PlatformCase):
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
             code = run.main(self.argv(*extra, tag=tag, mode=mode))
-        return code, printed.getvalue(), self.tmp / f"out-grok-{tag}"
+        return code, printed.getvalue(), self.tmp / f"out-codex-{tag}"
 
     def result(self, out: Path) -> dict:
         return json.loads((out / "result.json").read_text())
@@ -1489,12 +1504,12 @@ class KeepPlatformTest(PlatformCase):
             self.go("--keep-platform")
         self.assertIn("no platform", str(raised.exception))
         self.assertIn("'plat'", str(raised.exception))
-        self.assertFalse((self.tmp / "out-grok-a").exists(), "refused before the output folder was made")
+        self.assertFalse((self.tmp / "out-codex-a").exists(), "refused before the output folder was made")
         self.assertFalse(self.model_started())
         # a custom prompt never has a platform
         self.use_case(self.platform())
         with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "out-custom"), "--prompt", "x",
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(self.tmp / "out-custom"), "--prompt", "x",
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--keep-platform"])
         self.assertIn("'custom' has no platform", str(raised.exception))
         self.assertEqual(self.verbs(), [])
@@ -1511,7 +1526,7 @@ class KeepPlatformTest(PlatformCase):
         purges after days. The refusal comes before any folder is made; a resume reuses its run's folder (--output is ignored there)."""
         self.use_case(self.platform())
         sys_tmp = self.tmp / "sys-tmp"
-        no_output = ["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--case", "plat", "--plugin-dir", str(self.plugin),
+        no_output = ["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--case", "plat", "--plugin-dir", str(self.plugin),
                      "--baseline", str(self.baselines)]
         with mock.patch.object(run.tempfile, "gettempdir", return_value=str(sys_tmp)):
             with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
@@ -1526,20 +1541,20 @@ class KeepPlatformTest(PlatformCase):
                 self.assertEqual(run.main(no_output), 0, "without the flag the default output is as it was")
             self.assertEqual(len(list((sys_tmp / "shiploop-e2e").glob("plat-*"))), 1)
         # a resume of a run that was started with a folder of its own keeps the platform without --output (the existing resume test)
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform", tag="resumed")
-        result, _ = self.resume("grok", Path(first["output"]), "done", "--keep-platform")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", "--keep-platform", tag="resumed")
+        result, _ = self.resume("codex", Path(first["output"]), "done", "--keep-platform")
         self.assertEqual(result["platform"]["cleanup"], self.KEPT)
 
     def test_a_resume_of_a_run_without_a_platform_is_refused_too(self):
         self.use_case(None)
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         with self.assertRaises(SystemExit) as raised, contextlib.redirect_stdout(io.StringIO()):
-            self.resume("grok", Path(first["output"]), "done", "--keep-platform")
+            self.resume("codex", Path(first["output"]), "done", "--keep-platform")
         self.assertIn("no platform", str(raised.exception))
 
     def test_a_finished_delivery_is_kept_and_the_block_says_what_remains_and_how_to_remove_it(self):
         self.use_case(self.platform())
-        code, result, printed = self.invoke("grok", "done", "--keep-platform")
+        code, result, printed = self.invoke("codex", "done", "--keep-platform")
         self.assertEqual(code, 0, result)
         self.assertEqual(self.verbs(), ["preflight", "before"], "no cleanup ran")
         out = Path(result["output"])
@@ -1569,15 +1584,15 @@ class KeepPlatformTest(PlatformCase):
 
     def test_a_kept_record_is_what_the_reader_of_result_json_sees_and_a_regrade_keeps_it(self):
         self.use_case(self.platform())
-        _, result, _ = self.invoke("grok", "done", "--keep-platform")
+        _, result, _ = self.invoke("codex", "done", "--keep-platform")
         out = Path(result["output"])
         calls = self.calls()
-        regraded, printed = self.resume("grok", out, "done", "--grade-only")
+        regraded, printed = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.calls(), calls, "a regrade neither cleans a kept platform nor asks it again")
         self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
         self.assertIn("checks_restated", regraded["platform"])
         self.assertTrue(regraded["pass"])
-        again, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        again, printed = self.resume("codex", out, "done", "--grade-only", "--keep-platform")
         self.assertEqual(self.calls(), calls)
         self.assertEqual(again["platform"]["cleanup"], self.KEPT)
         self.assertIn("--keep-platform changes nothing here: no cleanup was pending", printed)
@@ -1588,20 +1603,20 @@ class KeepPlatformTest(PlatformCase):
     def test_pass_does_not_depend_on_the_cleanup_when_the_platform_is_kept(self):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "cleanup"
-        code, result, printed = self.invoke("grok", "done", "--keep-platform")
+        code, result, printed = self.invoke("codex", "done", "--keep-platform")
         self.assertEqual(code, 0, result)
         self.assertTrue(result["pass"])
         self.assertNotIn("PLATFORM CLEANUP FAILED", printed)
         self.assertEqual(self.verbs(), ["preflight", "before"])
         # the same environment without the flag is the failed cleanup it always was
-        code, result, printed = self.invoke("grok", "done", tag="b")
+        code, result, printed = self.invoke("codex", "done", tag="b")
         self.assertEqual(code, 1)
         self.assertFalse(result["pass"])
         self.assertIn("PLATFORM CLEANUP FAILED", printed)
 
     def test_the_default_run_is_unchanged(self):
         self.use_case(self.platform())
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertEqual(self.verbs(), self.CLEANED)
         self.assertNotIn("kept", result["platform"]["cleanup"])
@@ -1661,14 +1676,14 @@ class KeepPlatformTest(PlatformCase):
                         contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(type(exception)):
                     run.main(self.argv("--keep-platform", tag=tag))
                 self.assertEqual(self.verbs(), self.CLEANED)
-                recorded = json.loads((self.tmp / f"out-grok-{tag}" / "platform" / "cleanup-record.json").read_text())
+                recorded = json.loads((self.tmp / f"out-codex-{tag}" / "platform" / "cleanup-record.json").read_text())
                 self.assertTrue(recorded["ran"] and recorded["ok"])
                 self.assertNotIn("kept", recorded)
                 self.assertNotIn("PLATFORM KEPT", printed.getvalue())
 
     def test_a_crash_after_the_decision_to_keep_still_says_how_to_remove_it(self):
         self.use_case(self.platform())
-        out = self.tmp / "out-grok-late"
+        out = self.tmp / "out-codex-late"
         with mock.patch.object(run, "review_export", side_effect=RuntimeError("late")), \
                 contextlib.redirect_stdout(io.StringIO()) as printed, self.assertRaises(RuntimeError):
             run.main(self.argv("--keep-platform", tag="late"))
@@ -1682,12 +1697,12 @@ class KeepPlatformTest(PlatformCase):
         for tag, again in (("plain", ()), ("again", ("--keep-platform",))):
             with self.subTest(resume=tag):
                 self.plat_log.unlink(missing_ok=True)
-                _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform", tag=tag)
+                _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", "--keep-platform", tag=tag)
                 out = Path(first["output"])
                 self.assertTrue(first["platform"]["cleanup"]["ran"], "the first segment was not finished: cleaned")
                 self.assertIn("not done", first["platform"]["keep_not_honoured"])
-                result, _ = self.resume("grok", out, "done", *again)
-                (resume_file,) = out.glob("invocation-resume-grok-*.json")
+                result, _ = self.resume("codex", out, "done", *again)
+                (resume_file,) = out.glob("invocation-resume-codex-*.json")
                 self.assertIs(json.loads(resume_file.read_text())["keep_platform"], bool(again))
                 if again:
                     self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "preflight"])
@@ -1702,9 +1717,9 @@ class KeepPlatformTest(PlatformCase):
         self.use_case(self.platform())
         out = self.tmp / "r"
         for given, expected in ((("--keep-platform",), True), ((), False)):
-            args = run.parser().parse_args(["--host", "grok", "--model", "m", *given])
+            args = run.parser().parse_args(["--host", "codex", "--model", "m", *given])
             self.assertEqual("--keep-platform" in shlex.split(run.resume_command(out, args)), expected)
-        _, result, printed = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform", tag="line")
+        _, result, printed = self.invoke("codex", "stuck", "--max-resumes", "0", "--keep-platform", tag="line")
         resume_lines = [line for line in printed.splitlines() if line.startswith("resume:") or line.startswith("  resume ")]
         self.assertTrue(resume_lines and all("--keep-platform" in line for line in resume_lines), resume_lines)
 
@@ -1742,7 +1757,7 @@ class KeepPlatformTest(PlatformCase):
         with mock.patch.object(environment, "result_block", side_effect=RuntimeError("late")), \
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
             run.main(self.argv(*extra, tag=tag))
-        out = self.tmp / f"out-grok-{tag}"
+        out = self.tmp / f"out-codex-{tag}"
         self.assertFalse((out / "result.json").exists(), "the run never reached its result")
         return out
 
@@ -1751,7 +1766,7 @@ class KeepPlatformTest(PlatformCase):
         self.use_case(self.platform())
         out = self.late_crash("--keep-platform", tag="kept")
         self.assertEqual(self.verbs(), ["preflight", "before"], "kept before the crash")
-        regraded, printed = self.resume("grok", out, "done", "--grade-only")
+        regraded, printed = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), ["preflight", "before"], "a kept platform is not cleaned by the regrade that follows a crash")
         self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
         self.assertTrue(regraded["pass"], regraded)
@@ -1760,7 +1775,7 @@ class KeepPlatformTest(PlatformCase):
         self.plat_log.unlink()
         out = self.late_crash(tag="cleaned")
         self.assertEqual(self.verbs(), self.CLEANED)
-        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        regraded, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), self.CLEANED, "no second cleanup")
         self.assertTrue(regraded["platform"]["cleanup"]["ran"] and regraded["platform"]["cleanup"]["ok"])
         self.assertTrue(regraded["pass"], regraded)
@@ -1770,18 +1785,18 @@ class KeepPlatformTest(PlatformCase):
         out = self.late_crash(tag="failed")
         del os.environ["PLAT_FAIL"]
         self.assertFalse(json.loads((out / "platform" / "cleanup-record.json").read_text())["ok"])
-        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        regraded, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), self.CLEANED + ["cleanup"])
         self.assertTrue(regraded["platform"]["cleanup"]["ok"])
 
     def test_the_latest_cleanup_record_wins_over_the_one_in_an_older_result(self):
         """R2-H-2: a later invocation that crashed after a failed cleanup leaves result.json holding the earlier invocation's."""
         self.use_case(self.platform())
-        _, first, _ = self.invoke("grok", "done")
+        _, first, _ = self.invoke("codex", "done")
         out = Path(first["output"])
         self.assertTrue(first["platform"]["cleanup"]["ok"])
         (out / "platform" / "cleanup-record.json").write_text(json.dumps({"ran": True, "ok": False, "returncode": 3, "output": "boom"}))
-        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        regraded, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), self.CLEANED + ["cleanup"], "the failed cleanup is cleaned again")
         self.assertTrue(regraded["platform"]["cleanup"]["ok"])
         self.assertNotIn("checks_restated", regraded["platform"], "the platform was not clean when the regrade began")
@@ -1790,11 +1805,11 @@ class KeepPlatformTest(PlatformCase):
         """R2-H-3: the failed run's leftovers must not become a kept, passing run with the failure record overwritten."""
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "cleanup"
-        _, first, _ = self.invoke("grok", "done")
+        _, first, _ = self.invoke("codex", "done")
         out = Path(first["output"])
         self.assertFalse(first["platform"]["cleanup"]["ok"])
         del os.environ["PLAT_FAIL"]
-        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        regraded, printed = self.resume("codex", out, "done", "--grade-only", "--keep-platform")
         self.assertEqual(self.verbs(), self.CLEANED + ["cleanup"], "cleaned, not kept")
         cleanup = regraded["platform"]["cleanup"]
         self.assertTrue(cleanup["ran"] and cleanup["ok"])
@@ -1809,12 +1824,12 @@ class KeepPlatformTest(PlatformCase):
     def test_a_regrade_with_no_cleanup_record_at_all_can_still_keep_a_finished_delivery(self):
         """R2-H-3: a harness killed after the delivery finished leaves no record; there is no failure to refuse on."""
         self.use_case(self.platform())
-        _, first, _ = self.invoke("grok", "done")
+        _, first, _ = self.invoke("codex", "done")
         out = Path(first["output"])
         (out / "result.json").unlink()
         (out / "platform" / "cleanup-record.json").unlink()
         calls = self.calls()
-        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        regraded, printed = self.resume("codex", out, "done", "--grade-only", "--keep-platform")
         self.assertEqual(self.calls(), calls, "kept: the regrade cleaned nothing")
         self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
         self.assertNotIn("keep_not_honoured", regraded["platform"])
@@ -1823,10 +1838,10 @@ class KeepPlatformTest(PlatformCase):
     def test_keep_where_no_cleanup_was_pending_says_it_changes_nothing_and_records_no_refusal(self):
         """R2-H-4: a regrade of a run that was already cleaned cleans nothing, so it does not say it cleaned and does not record a refusal."""
         self.use_case(self.platform())
-        _, first, _ = self.invoke("grok", "done")
+        _, first, _ = self.invoke("codex", "done")
         out = Path(first["output"])
         calls = self.calls()
-        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        regraded, printed = self.resume("codex", out, "done", "--grade-only", "--keep-platform")
         self.assertEqual(self.calls(), calls)
         self.assertIn("--keep-platform changes nothing here: no cleanup was pending", printed)
         self.assertNotIn("NOT honoured", printed)
@@ -1837,7 +1852,7 @@ class KeepPlatformTest(PlatformCase):
         held = listeners.hold_case(out)
         self.assertIsNotNone(held)
         self.addCleanup(held.close)
-        again, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        again, printed = self.resume("codex", out, "done", "--grade-only", "--keep-platform")
         self.assertIn("changes nothing here", printed)
         self.assertNotIn("keep_not_honoured", again["platform"])
 
@@ -2004,12 +2019,12 @@ class KeepUnfinishedTest(PlatformCase):
 
     def test_a_resume_of_a_kept_unfinished_run_skips_the_case_preflight_and_is_told_the_work_is_still_there(self):
         self.use_case(self.spec())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", "--keep-platform")
         out = Path(first["output"])
         self.assertEqual(first["platform"]["cleanup"], self.KEPT_UNFINISHED)
         self.assertEqual(self.verbs(), ["preflight", "before"])
         os.environ["PLAT_FAIL"] = "preflight"  # the platform now holds the run's own items: the case's preflight would refuse it
-        result, printed = self.resume("grok", out, "done", "--keep-platform")
+        result, printed = self.resume("codex", out, "done", "--keep-platform")
         self.assertEqual(self.verbs(), ["preflight", "before"], "the case's preflight did not run again, and nothing was cleaned")
         self.assertTrue(result["pass"], result)
         self.assertEqual(result["platform"]["cleanup"], self.KEPT, "this segment finished: a finished delivery is kept as one")
@@ -2018,56 +2033,56 @@ class KeepUnfinishedTest(PlatformCase):
         self.assertTrue(skipped["ok"] and skipped["skipped"] and skipped["returncode"] is None and skipped["command"], skipped)
         self.assertEqual(result["platform"]["home_links"][0]["name"], ".sfdx", "the links and the wrappers are still made")
         self.assertIn("the case's own preflight is skipped", printed)
-        (resume_file,) = out.glob("invocation-resume-grok-*.json")
+        (resume_file,) = out.glob("invocation-resume-codex-*.json")
         self.assertTrue(json.loads(resume_file.read_text())["platform"]["preflight"]["skipped"])
-        prompt = sorted(out.glob("resume-grok-*.txt"))[-1].read_text()
+        prompt = sorted(out.glob("resume-codex-*.txt"))[-1].read_text()
         self.assertTrue(prompt.endswith(self.NOTE_KEPT), prompt[-200:])
         self.assertNotIn(self.NOTE, prompt, "it was not reset, so the reset note would be false")
 
     def test_a_resume_after_a_cleaned_ending_still_runs_the_case_preflight(self):
         self.use_case(self.spec())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")  # no --keep-platform: cleaned
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")  # no --keep-platform: cleaned
         out = Path(first["output"])
         self.assertEqual(self.verbs(), self.CLEANED)
         os.environ["PLAT_FAIL"] = "preflight"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.resume("grok", out, "done", "--keep-platform")
+            self.resume("codex", out, "done", "--keep-platform")
         self.assertIn("platform preflight refused the run before any model started", str(refused.exception))
         self.assertEqual(self.verbs(), self.CLEANED + ["preflight"], "the case's preflight ran and refused")
 
     def test_a_resume_without_the_flag_skips_the_preflight_but_cleans_at_its_end(self):
         self.use_case(self.spec())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", "--keep-platform")
         out = Path(first["output"])
         os.environ["PLAT_FAIL"] = "preflight"
-        result, _ = self.resume("grok", out, "done")
+        result, _ = self.resume("codex", out, "done")
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
         self.assertTrue(result["platform"]["cleanup"]["ran"] and result["platform"]["cleanup"]["ok"])
-        self.assertTrue(sorted(out.glob("resume-grok-*.txt"))[-1].read_text().endswith(self.NOTE_KEPT))
+        self.assertTrue(sorted(out.glob("resume-codex-*.txt"))[-1].read_text().endswith(self.NOTE_KEPT))
 
     def test_a_segment_killed_hard_after_a_kept_one_leaves_a_pending_record_so_the_preflight_runs_again(self):
         """A task kill leaves no signal handler to clean or keep: the pending record says nothing is known, the next resume's case
         preflight judges the platform (a dirty one is refused, and the printed removal command is the way out)."""
         self.use_case(self.spec())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", "--keep-platform")
         out = Path(first["output"])
         self.assertEqual(first["platform"]["cleanup"], self.KEPT_UNFINISHED)
         with mock.patch.object(run.PlatformGuard, "finish", return_value=None), \
                 mock.patch.object(run, "summarize_events", side_effect=RuntimeError("killed")), \
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
-            self.resume("grok", out, "stuck", "--keep-platform")  # killed after arming, before the keep decision
+            self.resume("codex", out, "stuck", "--keep-platform")  # killed after arming, before the keep decision
         self.assertEqual(json.loads((out / "platform" / "cleanup-record.json").read_text()), run.PENDING_CLEANUP)
         os.environ["PLAT_FAIL"] = "preflight"
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.resume("grok", out, "done", "--keep-platform")
+            self.resume("codex", out, "done", "--keep-platform")
         self.assertIn("platform preflight refused", str(refused.exception))
 
     def test_a_regrade_of_a_kept_unfinished_run_neither_cleans_it_nor_calls_it_a_pass(self):
         self.use_case(self.spec())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--keep-platform")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", "--keep-platform")
         out = Path(first["output"])
         calls = self.calls()
-        regraded, printed = self.resume("grok", out, "stuck", "--grade-only", "--keep-platform")
+        regraded, printed = self.resume("codex", out, "stuck", "--grade-only", "--keep-platform")
         self.assertEqual(self.calls(), calls, "nothing was cleaned and nothing was asked of the platform's commands")
         self.assertEqual(regraded["platform"]["cleanup"], self.KEPT_UNFINISHED)
         self.assertIs(regraded["platform"]["kept_unfinished"], True)
@@ -2163,7 +2178,7 @@ class ManualCleanupTest(PlatformCase):
     def test_the_failure_banner_and_the_start_of_the_run_print_that_command(self):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "cleanup"
-        code, result, printed = self.invoke("grok", "done")
+        code, result, printed = self.invoke("codex", "done")
         out = Path(result["output"])
         text = run.manual_cleanup_command(out, self.platform())
         self.assertEqual(printed.count(text), 2, "once at the start of the run, once in the failure banner")
@@ -2288,13 +2303,13 @@ class RegradeLockTest(PlatformCase):
     def test_a_regrade_does_not_clean_a_run_another_harness_holds_and_says_why(self):
         self.use_case(self.platform())
         os.environ["PLAT_FAIL"] = "cleanup"
-        self.invoke("grok", "done")
-        out = self.tmp / "out-grok-a"
+        self.invoke("codex", "done")
+        out = self.tmp / "out-codex-a"
         del os.environ["PLAT_FAIL"]
         held = listeners.hold_case(out)  # the trial's own harness
         self.assertIsNotNone(held)
         self.addCleanup(held.close)
-        result, printed = self.resume("grok", out, "done", "--grade-only")
+        result, printed = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"], "no second cleanup")
         self.assertIn("is held by another harness", printed)
         self.assertIn("no cleanup is run now", printed)
@@ -2302,7 +2317,7 @@ class RegradeLockTest(PlatformCase):
         self.assertFalse(result["platform"]["cleanup"]["ok"])
         self.assertFalse(result["pass"])
         held.close()
-        result, _ = self.resume("grok", out, "done", "--grade-only")
+        result, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup", "cleanup"], "once the trial's harness is gone it is cleaned")
         self.assertTrue(result["platform"]["cleanup"]["ok"])
 
@@ -2326,51 +2341,51 @@ class HardKillTest(PlatformCase):
 
     def test_a_resumed_segment_killed_before_its_cleanup_is_not_read_as_cleaned_by_the_regrade(self):
         self.use_case(self.platform())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         self.assertEqual(self.verbs(), self.CLEANED)
         self.assertTrue(self.record(out)["ok"], "segment 1 ended with an ok cleanup record")
         segment_one = (out / "result.json").read_text()
-        self.killed(lambda: self.resume("grok", out, "done"))
+        self.killed(lambda: self.resume("codex", out, "done"))
         self.assertEqual(self.verbs(), self.CLEANED + ["preflight"], "segment 2 began and never cleaned")
         self.assertEqual((out / "result.json").read_text(), segment_one, "no result of segment 2: result.json is still segment 1's")
         self.assertEqual(self.record(out), run.PENDING_CLEANUP, "segment 1's ok record no longer stands for the run")
-        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        regraded, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), self.CLEANED + ["preflight", "cleanup"], "the regrade cleans what segment 2 may have deployed")
         self.assertTrue(regraded["platform"]["cleanup"]["ran"] and regraded["platform"]["cleanup"]["ok"])
         self.assertNotIn("checks_restated", regraded["platform"], "the platform was deployed when the regrade began: its checks are asked")
         self.assertTrue(self.record(out)["ran"] and self.record(out)["ok"])
-        self.resume("grok", out, "done", "--grade-only")
+        self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), self.CLEANED + ["preflight", "cleanup"], "cleaned once: the next regrade has nothing to clean")
 
     def test_a_killed_first_segment_is_cleaned_by_the_regrade_too(self):
         self.use_case(self.platform())
-        self.killed(lambda: self.invoke("grok", "stuck", "--max-resumes", "0"))
-        out = self.tmp / "out-grok-a"
+        self.killed(lambda: self.invoke("codex", "stuck", "--max-resumes", "0"))
+        out = self.tmp / "out-codex-a"
         self.assertEqual(self.record(out), run.PENDING_CLEANUP)
         self.assertFalse((out / "result.json").exists())
-        regraded, _ = self.resume("grok", out, "done", "--grade-only")
+        regraded, _ = self.resume("codex", out, "done", "--grade-only")
         self.assertEqual(self.verbs(), self.CLEANED)
         self.assertTrue(regraded["platform"]["cleanup"]["ok"])
 
     def test_the_resume_after_such_a_kill_is_still_told_the_platform_was_reset(self):
         """The note reads segment 1's cleanup in result.json, which wins over a record that says only 'pending'."""
         self.use_case(self.platform(resume_note=self.NOTE))
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
-        self.killed(lambda: self.resume("grok", out, "stuck"))
+        self.killed(lambda: self.resume("codex", out, "stuck"))
         self.assertEqual(self.record(out), run.PENDING_CLEANUP)
-        self.resume("grok", out, "done")
-        latest = sorted(out.glob("resume-grok-*.txt"))[-1]
+        self.resume("codex", out, "done")
+        latest = sorted(out.glob("resume-codex-*.txt"))[-1]
         self.assertTrue(latest.read_text().endswith(self.NOTE), latest.read_text()[-200:])
 
     def test_a_pending_record_is_no_failed_cleanup_so_a_killed_harness_can_still_keep_a_finished_delivery(self):
         """R2-H-3: only a cleanup that was attempted and failed refuses the keep; a harness killed after the delivery finished may keep."""
         self.use_case(self.platform())
-        self.killed(lambda: self.invoke("grok", "done"))
-        out = self.tmp / "out-grok-a"
+        self.killed(lambda: self.invoke("codex", "done"))
+        out = self.tmp / "out-codex-a"
         self.assertEqual(self.record(out), run.PENDING_CLEANUP)
-        regraded, printed = self.resume("grok", out, "done", "--grade-only", "--keep-platform")
+        regraded, printed = self.resume("codex", out, "done", "--grade-only", "--keep-platform")
         self.assertEqual(self.verbs(), ["preflight", "before"], "kept: the regrade cleaned nothing")
         self.assertEqual(regraded["platform"]["cleanup"], self.KEPT)
         self.assertNotIn("keep_not_honoured", regraded["platform"])
@@ -2520,28 +2535,28 @@ class ResumeNoteTest(PlatformCase):
             self.assertEqual(run.resume_prompt(run_dir, cli, self.NOTE), run.resume_prompt(run_dir, cli) + " " + self.NOTE)
 
     def resumed_prompt(self, out: Path) -> str:
-        return next(out.glob("resume-grok-*.txt")).read_text().replace(str(out), "<out>")
+        return next(out.glob("resume-codex-*.txt")).read_text().replace(str(out), "<out>")
 
     def test_a_resumed_run_whose_platform_was_reset_is_told_so_and_a_case_without_a_note_is_not(self):
         texts = {}
         for tag, platform in (("note", self.platform(resume_note=self.NOTE)), ("plain", self.platform())):
             self.use_case(platform)
-            _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", tag=tag)
+            _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", tag=tag)
             out = Path(first["output"])
             self.assertTrue(first["platform"]["cleanup"]["ran"])
-            self.resume("grok", out, "done")
+            self.resume("codex", out, "done")
             texts[tag] = self.resumed_prompt(out)
         self.assertEqual(texts["note"], texts["plain"] + " " + self.NOTE)
         self.assertNotIn("reset", texts["plain"])
 
     def test_no_note_when_the_earlier_segment_did_not_clean_or_when_nothing_starts(self):
         self.use_case(self.platform(resume_note=self.NOTE))
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         record = json.loads((out / "result.json").read_text())
         record["platform"]["cleanup"]["ran"] = False
         (out / "result.json").write_text(json.dumps(record))
-        self.resume("grok", out, "done")
+        self.resume("codex", out, "done")
         self.assertNotIn(self.NOTE, self.resumed_prompt(out))
         spec = {"resume_note": self.NOTE}
         self.assertIsNone(run.resume_platform_note(spec, {"cleanup": {"ran": True}}, regrade=True))
@@ -2560,21 +2575,21 @@ class ResumeAfterCrashTest(ResumeNoteTest):
             with self.subTest(exception=type(exception).__name__):
                 with mock.patch.object(run, "summarize_events", side_effect=exception), \
                         contextlib.redirect_stdout(io.StringIO()), self.assertRaises(type(exception)):
-                    self.invoke("grok", "stuck", "--max-resumes", "0", tag=tag)
-                out = self.tmp / f"out-grok-{tag}"
+                    self.invoke("codex", "stuck", "--max-resumes", "0", tag=tag)
+                out = self.tmp / f"out-codex-{tag}"
                 self.assertFalse((out / "result.json").exists(), "the run never reached its result")
                 self.assertTrue(json.loads((out / "platform" / "cleanup-record.json").read_text())["ran"])
-                self.resume("grok", out, "done")
+                self.resume("codex", out, "done")
                 self.assertIn(self.NOTE, self.resumed_prompt(out))
 
     def test_a_resume_after_a_crash_before_the_model_started_is_not_told(self):
         """No cleanup record, no reset: a platform that was never touched needs no note."""
         self.use_case(self.platform(resume_note=self.NOTE))
-        self.invoke("grok", "stuck", "--max-resumes", "0")
-        out = self.tmp / "out-grok-a"
+        self.invoke("codex", "stuck", "--max-resumes", "0")
+        out = self.tmp / "out-codex-a"
         (out / "result.json").unlink()
         (out / "platform" / "cleanup-record.json").unlink()
-        self.resume("grok", out, "done")
+        self.resume("codex", out, "done")
         self.assertNotIn(self.NOTE, self.resumed_prompt(out))
         self.assertIsNone(run.earlier_cleanup_record(out / "platform"), "no record there, and none inside platform/platform")
         (out / "platform" / "cleanup-record.json").write_text("[1]")
@@ -2587,7 +2602,7 @@ class CheckTimeoutTest(PlatformCase):
     def timeouts(self, platform: dict | None, *extra: str, mode: str = "done") -> list:
         self.use_case(platform)
         with mock.patch.object(run, "run_checks", wraps=run.run_checks) as spy:
-            code, result, _ = self.invoke("grok", mode, *extra, tag=f"t{len(list(self.tmp.glob('out-grok-*')))}")
+            code, result, _ = self.invoke("codex", mode, *extra, tag=f"t{len(list(self.tmp.glob('out-codex-*')))}")
         self.assertEqual(code, 0, result)
         return [call.kwargs["timeout"] for call in spy.call_args_list]
 
@@ -2608,11 +2623,11 @@ class CheckTimeoutTest(PlatformCase):
 
     def test_a_regrade_runs_the_checks_it_asks_again_with_the_case_s_ceiling(self):
         self.use_case(self.platform(check_timeout=900))
-        _, first, _ = self.invoke("grok", "done", "--keep-platform")
+        _, first, _ = self.invoke("codex", "done", "--keep-platform")
         out = Path(first["output"])
         (out / "result.json").unlink()  # nothing to restate: the checks are asked of the platform again
         with mock.patch.object(run, "run_checks", wraps=run.run_checks) as spy:
-            self.resume("grok", out, "done", "--grade-only")
+            self.resume("codex", out, "done", "--grade-only")
         self.assertEqual([call.kwargs["timeout"] for call in spy.call_args_list], [900])
 
 
@@ -2632,7 +2647,7 @@ class PlatformPrefixTest(PlatformCase):
 
     def test_the_run_names_the_new_prefix_everywhere_and_records_it(self):
         self.prefixed_case()
-        code, result, _ = self.invoke("grok", "done", "--platform-prefix", "SLOther1")
+        code, result, _ = self.invoke("codex", "done", "--platform-prefix", "SLOther1")
         self.assertEqual(code, 0, result)
         out = Path(result["output"])
         self.assertEqual((out / "prompt.txt").read_text().strip(),
@@ -2648,18 +2663,18 @@ class PlatformPrefixTest(PlatformCase):
         self.assertNotIn("SLPlat", json.dumps({"prompt": (out / "prompt.txt").read_text(), "spec": spec, "checks": result["checks"]}))
         self.assertEqual(self.verbs(), ["preflight", "before", "cleanup"])
         self.assertIsNone(run.RUN_PREFIX, "one run's: the next run in this process reads the catalog as written")
-        _, plain, _ = self.invoke("grok", "done", tag="b")
+        _, plain, _ = self.invoke("codex", "done", tag="b")
         self.assertNotIn("platform_prefix", plain)
         self.assertNotEqual(plain["boundary"]["case"], result["boundary"]["case"], "the case digest is of the renamed entry")
 
     def test_a_resume_keeps_its_runs_prefix_and_refuses_another(self):
         self.prefixed_case()
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0", "--platform-prefix", "SLOther1")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0", "--platform-prefix", "SLOther1")
         out = Path(first["output"])
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.resume("grok", out, "done", "--platform-prefix", "SLOther2")
+            self.resume("codex", out, "done", "--platform-prefix", "SLOther2")
         self.assertIn("a resume keeps its run's prefix", str(refused.exception))
-        resumed, _ = self.resume("grok", out, "done")
+        resumed, _ = self.resume("codex", out, "done")
         self.assertEqual(resumed["platform_prefix"], "SLOther1")
         self.assertEqual([check["command"] for check in resumed["checks"]], ["echo SLOther1 slOther1Board"])
 
@@ -2669,7 +2684,7 @@ class PlatformPrefixTest(PlatformCase):
                               ("SLPla", "shares a beginning"), ("slOther1", "a capital letter"), ("SLO", "a capital letter"),
                               ("SLOther-1", "a capital letter")):
             with self.subTest(asked=asked), self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-                self.invoke("grok", "done", "--platform-prefix", asked)
+                self.invoke("codex", "done", "--platform-prefix", asked)
             self.assertIn(reason, str(refused.exception))
         for extra, reason in ((("--suite", "smoke"), "does not go with --suite"),
                               (("--seed-at", "release-plan"), "nor with --seed-at")):
@@ -2679,7 +2694,7 @@ class PlatformPrefixTest(PlatformCase):
         self.assertEqual(self.verbs(), [], "nothing ran on the platform")
         self.use_case(self.platform())
         with self.assertRaises(SystemExit) as refused, contextlib.redirect_stdout(io.StringIO()):
-            self.invoke("grok", "done", "--platform-prefix", "SLOther1")
+            self.invoke("codex", "done", "--platform-prefix", "SLOther1")
         self.assertIn("has no platform prefix to rename", str(refused.exception))
 
     def test_both_salesforce_cases_rename_completely(self):
@@ -2716,7 +2731,7 @@ class DeliverySnapshotRunTest(PlatformCase):
 
         # An empty inherited value makes the old check_env path fail deterministically; platform hooks set their own value.
         with mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": ""}):
-            _, result, _ = self.invoke("grok", "done")
+            _, result, _ = self.invoke("codex", "done")
 
         out = Path(result["output"])
         platform_dir = out / "platform"
@@ -2749,7 +2764,7 @@ class DeliverySnapshotRunTest(PlatformCase):
 
     def test_a_run_records_the_delivery_before_and_after_its_checks_and_a_regrade_keeps_the_first(self):
         self.use_case(None)
-        _, result, _ = self.invoke("grok", "done")
+        _, result, _ = self.invoke("codex", "done")
         out = Path(result["output"])
         before, after = result["delivery"]["before"], result["delivery"]["after"]
         self.assertTrue(before["observed"] and after["observed"], result["delivery"])
@@ -2760,17 +2775,17 @@ class DeliverySnapshotRunTest(PlatformCase):
             self.assertTrue((out / "delivery" / "work.bundle").is_file())
         else:
             self.assertIn("no commit", before["bundle_unmeasured"])
-        regraded, _ = self.resume("grok", out, "done")
+        regraded, _ = self.resume("codex", out, "done")
         self.assertEqual(regraded["delivery"]["before"], before, "a regrade keeps the first run's snapshot")
 
 
 class UnchangedCaseTest(PlatformCase):
     def test_a_case_without_a_platform_gains_nothing_from_any_of_this(self):
         self.use_case(None)
-        _, result, printed = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, result, printed = self.invoke("codex", "stuck", "--max-resumes", "0")
         out = Path(result["output"])
-        resumed, _ = self.resume("grok", out, "done")
-        prompt = next(out.glob("resume-grok-*.txt")).read_text()
+        resumed, _ = self.resume("codex", out, "done")
+        prompt = next(out.glob("resume-codex-*.txt")).read_text()
         self.assertTrue(prompt.endswith("Never end the turn while a ShipLoop command is still running."))
         self.assertEqual(prompt.count("reset"), 0)
         for done in (result, resumed):
@@ -2788,9 +2803,7 @@ class UnchangedCaseTest(PlatformCase):
 
 
 class HostAllowTest(unittest.TestCase):
-    """platform.host_allow: the permission rules a case asks the host to pre-approve. Found 2026-10-17: Grok's auto mode blocked a
-    real `sf project deploy start --target-org de` three times ("not requested by the user") once a session restart left it only
-    the generic resume prompt; the run ended blocked."""
+    """platform.host_allow: the permission rules a case asks the host to pre-approve."""
 
     RULES = ("Bash(sf *)", "Bash(cd *)")
 
@@ -2801,14 +2814,8 @@ class HostAllowTest(unittest.TestCase):
         return hosts.host(host, host).argv(prompt="p", prompt_file=self.tmp / "p.txt", cwd=self.tmp, model="m", effort="medium",
                                            permission_mode="auto", max_turns=5, **extra)
 
-    def test_grok_gets_one_allow_flag_per_rule_in_order(self):
-        argv = self.argv("grok", allow=self.RULES)
-        flags = [argv[i + 1] for i, token in enumerate(argv) if token == "--allow"]
-        self.assertEqual(flags, list(self.RULES))
-        self.assertEqual(argv.count("--allow"), 2)
-
     def test_a_launch_without_rules_is_what_it_always_was(self):
-        for host in ("grok", "claude", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 self.assertEqual(self.argv(host), self.argv(host, allow=()))
                 self.assertNotIn("--allow", self.argv(host))
@@ -2845,13 +2852,13 @@ class ResumeGateTest(PlatformCase):
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed), mock.patch.object(run, "released_versions", return_value=self.AHEAD):
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--max-resumes", "0"])
         return printed.getvalue()
 
     def first_run(self) -> Path:
         self.use_case(self.platform())
-        _, first, _ = self.invoke("grok", "stuck", "--max-resumes", "0")
+        _, first, _ = self.invoke("codex", "stuck", "--max-resumes", "0")
         return Path(first["output"])
 
     def test_a_checkout_run_resumes_although_its_local_head_is_ahead_of_origin_main(self):

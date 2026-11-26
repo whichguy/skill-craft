@@ -556,7 +556,7 @@ class QualificationTest(unittest.TestCase):
 
 
 class FileBackedCaseTest(unittest.TestCase):
-    NAME = "grok-chat-outcome"
+    NAME = "file-backed-outcome"
 
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -722,7 +722,6 @@ class FileBackedCaseTest(unittest.TestCase):
         self.case.pop("readiness_file")
         self.write_catalog()
         for extra, reason in ((("--host", "claude"), "incompatible with --host claude"),
-                              (("--host", "grok"), "incompatible with --host grok"),
                               (("--skill", "other:shiploop"), "first line must be"),
                               (("--seed-at", "step-plan"), "does not support --seed-at"),
                               (("--planning-review", "none"), "does not support.*--planning-review none")):
@@ -775,11 +774,11 @@ class FileBackedCaseTest(unittest.TestCase):
     def test_invalid_readiness_fails_closed(self):
         records = ((b"{", "readiness refused"),
                    (b'{"scenario":"other","live_launch":"READY","launch_blockers":[]}', "scenario must be exactly"),
-                   (b'{"scenario":"grok-chat-outcome","live_launch":"ready","launch_blockers":[]}', "live_launch must be"),
-                   (b'{"scenario":"grok-chat-outcome","live_launch":"READY"}', "launch_blockers must be"),
-                   (b'{"scenario":"grok-chat-outcome","live_launch":"READY","launch_blockers":["unresolved"]}',
+                   (b'{"scenario":"file-backed-outcome","live_launch":"ready","launch_blockers":[]}', "live_launch must be"),
+                   (b'{"scenario":"file-backed-outcome","live_launch":"READY"}', "launch_blockers must be"),
+                   (b'{"scenario":"file-backed-outcome","live_launch":"READY","launch_blockers":["unresolved"]}',
                     "launch_blockers must be"),
-                   (b'{"scenario":"grok-chat-outcome","live_launch":"BLOCKED","live_launch":"READY","launch_blockers":[]}',
+                   (b'{"scenario":"file-backed-outcome","live_launch":"BLOCKED","live_launch":"READY","launch_blockers":[]}',
                     "duplicate readiness fields"))
         for record, reason in records:
             with self.subTest(record=record):
@@ -830,7 +829,7 @@ class FileBackedCaseTest(unittest.TestCase):
                       mock.patch.object(iterate, "new_worktree", side_effect=AssertionError("reached new_worktree")) as worktree,
                       mock.patch.object(cycle, "build", side_effect=AssertionError("reached build")) as build,
                       mock.patch.object(iterate, "improve", side_effect=AssertionError("reached improve")) as improve):
-                    with self.assertRaisesRegex(SystemExit, r"--qualify: .*grok-chat-outcome.*discovery-only"):
+                    with self.assertRaisesRegex(SystemExit, r"--qualify: .*file-backed-outcome.*discovery-only"):
                         iterate.main(argv)
                     worktree.assert_not_called()
                     build.assert_not_called()
@@ -841,7 +840,7 @@ class FileBackedCaseTest(unittest.TestCase):
         self.copy_qualification_inputs()
         frozen = boundary.qualification_snapshot(self.harness, [self.NAME])
         for number in (b"NaN", b"Infinity", b"-Infinity"):
-            self.readiness.write_bytes(b'{"scenario":"grok-chat-outcome","live_launch":"READY","launch_blockers":[],'
+            self.readiness.write_bytes(b'{"scenario":"file-backed-outcome","live_launch":"READY","launch_blockers":[],'
                                        b'"observation":' + number + b'}')
             reason = f"invalid JSON number {number.decode()}"
             with self.subTest(number=number, check="setup"):

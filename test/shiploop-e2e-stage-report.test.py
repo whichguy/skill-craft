@@ -474,7 +474,7 @@ class Compare(Temp):
         self.assertIn("3/3 (=)", text)
 
     def test_a_different_model_effort_host_or_backend_is_refused_naming_both_drivers(self):
-        for change in ({"model": "gpt-6-astra"}, {"effort": "medium"}, {"host": "grok"}, {"backend": "ollama"}):
+        for change in ({"model": "gpt-6-astra"}, {"effort": "medium"}, {"host": "claude"}, {"backend": "ollama"}):
             with self.subTest(change=change):
                 a, b = self.root(f"a{len(change)}{next(iter(change))}"), self.root(f"b{len(change)}{next(iter(change))}")
                 sample(a, WRONG, 1)

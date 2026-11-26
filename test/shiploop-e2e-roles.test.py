@@ -79,9 +79,9 @@ class RoleDefaultsTest(unittest.TestCase):
         run_override = run.parser().parse_args(["--host", "claude", "--model", "sonnet-override", "--effort", "high"])
         self.assertEqual((run_override.host, run_override.model, run_override.effort),
                          ("claude", "sonnet-override", "high"))
-        overridden = step_slice.parser().parse_args(["--host", "grok", "--model", "grok-override", "--effort", "medium"])
+        overridden = step_slice.parser().parse_args(["--host", "antigravity", "--model", "gemini-override", "--effort", "medium"])
         self.assertEqual((overridden.host, overridden.model, overridden.effort),
-                         ("grok", "grok-override", "medium"))
+                         ("antigravity", "gemini-override", "medium"))
 
         for args, expected in ((["run", "E1", "--arm", "A"], "codex"),
                                (["run", "E1", "--arm", "A", "--host", "claude"], "claude")):
@@ -89,21 +89,6 @@ class RoleDefaultsTest(unittest.TestCase):
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(experiment.main(args), 0)
             self.assertEqual(launch.call_args.args[3], expected)
-
-    def test_grok_driver_defaults_reach_the_real_argv_builder(self):
-        args = run.parser().parse_args(["--host", "grok"])
-        args.grok_bin = "fake-grok"
-        selected = run.the_host(args)
-        self.assertEqual((selected.name, selected.model, selected.effort),
-                         ("grok", "grok-4.6", "xhigh"))
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            argv = selected.argv(prompt="hello", prompt_file=root / "prompt.txt", cwd=root,
-                                 model=args.model or selected.model, effort=args.effort or selected.effort,
-                                 permission_mode=args.permission_mode, max_turns=args.max_turns)
-        self.assertEqual(argv[0], "fake-grok")
-        self.assertEqual(argv[argv.index("--model") + 1], "grok-4.6")
-        self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "xhigh")
 
     def test_codex_run_defaults_reach_the_real_argv_builder(self):
         args = run.parser().parse_args([])
@@ -228,8 +213,7 @@ class RoleDefaultsTest(unittest.TestCase):
         for parser in (run.parser(), step_slice.parser()):
             help_text = parser.format_help()
             self.assertIn("gpt-6.2-sol", help_text)
-            self.assertNotIn("grok-4.7", help_text)
-            self.assertIn("grok-4.6", help_text, "Grok stays a selectable host and its profile is still named")
+            self.assertIn("antigravity", help_text)
 
     def test_role_specific_overrides_stay_distinct_from_the_subject(self):
         args = argparse.Namespace(host="codex", model="subject-only", effort="low")

@@ -172,7 +172,7 @@ class VersionGateTest(unittest.TestCase):
             self.assertIsNone(run.card_version(Path(tmp) / "missing.md"))
 
     def test_marketplace_records_the_actual_install_path_without_relaxing_failed_installs(self):
-        for name in ("codex", "grok"):
+        for name in ("codex",):
             for passed, path in ((True, "/installed/skill-craft"), (False, None)):
                 with self.subTest(host=name, passed=passed):
                     installed = {"pass": passed, "path": path, "loaded": ["installed"] if passed else [],
@@ -773,7 +773,7 @@ time.sleep(30)
 
 
 class CodexHostTest(unittest.TestCase):
-    """Codex runs through the same host interface; its stream is translated to Grok's shape."""
+    """Codex runs through the same host interface; its stream is translated to the shared tool-event shape."""
 
     STREAM = [
         {"type": "thread.started", "thread_id": "thread-1"},
@@ -903,7 +903,7 @@ class CodexHostTest(unittest.TestCase):
         self.assertIn("clamping SessionEnd", events[2]["data"])
         self.assertEqual(events[-1]["num_turns"], 0)
 
-    def test_translated_stream_reads_like_grok_for_every_parser(self):
+    def test_translated_stream_reads_in_shared_event_shape_for_every_parser(self):
         events = self.translated()
         kinds = [e["type"] for e in events]
         self.assertEqual(kinds, ["available_commands", "tool_call", "tool_call_update", "tool_call",
@@ -1028,7 +1028,7 @@ class ThrowawayKeychainTest(unittest.TestCase):
 
 
 class ClaudeToolBlocksTest(unittest.TestCase):
-    """Claude's tool_use and tool_result blocks go through the one classifier Grok's tool_call events do: failures, model
+    """Claude's tool_use and tool_result blocks go through the same classifier as translated tool_call events: failures, model
     glue, /tmp writes and per-stage tool calls are measured. The calls are recorded ones, from the round-1 Sonnet runs
     (docs/experiments/claude-tool-blocks-20261008, cut by its extract.py); a few are rewritten, as the test says."""
 
@@ -1634,7 +1634,7 @@ class ResumedRunRecordTest(PrintedCase):
 class PluginVerdictCarriedTest(PrintedCase):
     """A run continued or regraded after the harness stopped keeps the plugin verdict of its first launch.
 
-    Only Claude's own events say which plugin loaded. A Grok or Codex run's evidence is the install check made
+    Only Claude's own events say which plugin loaded. A Codex run's evidence is the install check made
     before its first process started, so invocation.json records it and a later invocation reads it back."""
 
     HOSTS = ("claude", "codex")

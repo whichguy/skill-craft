@@ -150,15 +150,15 @@ class PlanningReviewOptionTest(e2e.CaseRunCase):
         self.assertFalse(self.log.exists(), "the host must not have started")
 
     def test_a_missing_improve_card_is_refused_before_any_host_cli_runs(self):
-        # Grok installs the plugin into its profile with its own CLI; the card must be looked for before that, not after.
+        # Codex installs the plugin into its profile with its own CLI; the card must be looked for before that, not after.
         self.card.unlink()
         os.environ["FAKE_MODE"] = "done"
-        out = self.tmp / "c-grok-refused"
+        out = self.tmp / "c-codex-refused"
         with contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as raised:
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--plugin-dir", str(self.plugin),
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(out), "--plugin-dir", str(self.plugin),
                       "--baseline", str(self.baselines), "--case", "hello", "--planning-review", "none"])
         self.assertIn("--improve-skill", str(raised.exception))
-        self.assertFalse((out / "home" / ".grok" / "fake-plugins.txt").exists(), "grok plugin install must not have run")
+        self.assertFalse((out / "home" / ".codex" / "fake-plugin.json").exists(), "codex plugin install must not have run")
         self.assertFalse(self.log.exists())
 
     def test_the_choices_are_the_engines_own(self):
@@ -1379,7 +1379,7 @@ class EventFactsTest(QualityCase):
 
     def test_the_memory_writes_of_the_saved_checkers_run_are_found_in_its_events(self):
         # The real shape: r3-checkers-sonnet lines 599 and 605 (here 2 and 6) wrote feedback_no-broad-pkill.md and MEMORY.md; a Bash
-        # call that only reads the folder, the tool results and a Grok-shaped line are not writes.
+        # call that only reads the folder, the tool results and a non-Claude line are not writes.
         found = quality.memory_writes(MEMORY_EVENTS)
         self.assertEqual([(w["tool"], w["line"], Path(w["path"]).name) for w in found],
                          [("Write", 2, "feedback_no-broad-pkill.md"), ("Write", 6, "MEMORY.md")])
@@ -1431,10 +1431,10 @@ class EventFactsTest(QualityCase):
 
     def test_a_run_with_no_claude_session_has_no_memory_measure_and_says_so(self):
         path = self.events(tool_use_line("Write", file_path="/Users/x/.claude/projects/-a/memory/MEMORY.md"))
-        facts, unmeasured = quality.event_facts(path, ["grok"], [])
+        facts, unmeasured = quality.event_facts(path, ["codex"], [])
         self.assertIsNone(facts["memory_writes"])
-        self.assertIn("grok", unmeasured["memory_writes"])
-        facts, unmeasured = quality.event_facts(path, ["grok", "claude"], [])
+        self.assertIn("codex", unmeasured["memory_writes"])
+        facts, unmeasured = quality.event_facts(path, ["codex", "claude"], [])
         self.assertEqual(len(facts["memory_writes"]), 1, "a run Claude finished is read, whoever started it")
         facts, unmeasured = quality.event_facts(path, [], [])
         self.assertIsNone(facts["memory_writes"])
@@ -1452,7 +1452,7 @@ class EventFactsTest(QualityCase):
                            json.dumps({"type": "text", "data": "ls /x/test/shiploop_e2e/checks"}),
                            json.dumps({"type": "text", "data": "echo $E2E_CHECKS"}),
                            json.dumps({"type": "text", "data": "nothing of the kind"}))
-        facts, unmeasured = quality.event_facts(path, ["grok"], blocks)
+        facts, unmeasured = quality.event_facts(path, ["codex"], blocks)
         self.assertEqual(facts["held_out_seen"], 3)
         self.assertNotIn("held_out_seen", unmeasured)
 
@@ -1504,7 +1504,7 @@ class EventFactsTest(QualityCase):
         blocks = [{"module": "checkers_accept", "calibration": ["test/fixtures/quality/reference_checkers.py"]}]
         path = self.events(json.dumps({"type": "text", "data": "cat ~/src/x/test/fixtures/quality/reference_checkers.py"}),
                            json.dumps({"type": "text", "data": "nothing of the kind"}))
-        facts, _ = quality.event_facts(path, ["grok"], blocks)
+        facts, _ = quality.event_facts(path, ["codex"], blocks)
         self.assertEqual(facts["held_out_seen"], 1)
         self.assertIn("reference_checkers", quality.held_out_markers(blocks))
 
@@ -1604,13 +1604,13 @@ class MeasureBlockTest(QualityCase):
         self.assertFalse((self.out / "quality" / "stale.txt").exists())
 
     def test_hosts_are_runrecords_and_a_run_two_hosts_worked_on_is_marked_and_its_memory_list_says_it_covers_claude_only(self):
-        self.launch("invocation.json", "grok")
+        self.launch("invocation.json", "codex")
         self.launch("invocation-resume-claude-1791508003.json", "claude")
         block = self.measure()
         self.assertEqual((block["hosts_used"], block["mixed_host"]), (quality.runrecord.hosts_used(self.out), quality.runrecord.mixed_host(self.out)))
-        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["grok", "claude"], True))
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["codex", "claude"], True))
         self.assertEqual(len(block["memory_writes"]), 2)
-        self.assertTrue(any("Claude's" in note and "grok" in note for note in block["notes"]), block["notes"])
+        self.assertTrue(any("Claude's" in note and "codex" in note for note in block["notes"]), block["notes"])
 
     def test_a_run_folder_with_no_launch_record_says_so_and_does_not_guess_a_host(self):
         (self.out / "invocation.json").unlink()
@@ -1867,7 +1867,7 @@ class QualityThroughMainTest(e2e.CaseRunCase):
 
     def test_each_host_is_measured_the_same_way(self):
         ratios = {}
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 code, result, _, _ = self.finished(host=host)
                 self.assertEqual(code, 0, result)
@@ -1922,12 +1922,12 @@ class QualityThroughMainTest(e2e.CaseRunCase):
         before = len((out / "events.jsonl").read_text().splitlines())
         with (out / "events.jsonl").open("a") as handle:
             handle.write(MEMORY_EVENTS.read_text())
-        (out / "invocation-resume-grok-1791509021.json").write_text(json.dumps({"case": "q-tiny", "host": "grok", "versions": {}}))
+        (out / "invocation-resume-codex-1791509021.json").write_text(json.dumps({"case": "q-tiny", "host": "codex", "versions": {}}))
         rows = self.baselines.read_text()
         code, regraded, _ = self.regrade(out)
         block = regraded["quality"]
         self.assertTrue(block["observed"], block)
-        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["claude", "grok"], True),
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["claude", "codex"], True),
                          "the run's launch records name the hosts, not the flag of this invocation")
         self.assertEqual([(w["tool"], Path(w["path"]).name, w["line"]) for w in block["memory_writes"]],
                          [("Write", "feedback_no-broad-pkill.md", before + 2), ("Write", "MEMORY.md", before + 6)],
@@ -2012,19 +2012,16 @@ class QualityGateTest(unittest.TestCase):
             self.assertIn(f"stopped by {stop}", self.gate(stop_file=stop))
 
     def test_the_saved_records_of_round_3_are_gated_as_the_audit_read_them(self):
-        # r3-battleship-grok-none: stopped by hand with the engine active and no tracked file (the audit's example of a run that
-        # must not be measured); r3-checkers-sonnet: a finished delivery; r2-battleship-grok-none: a regrade whose host the
-        # record does not observe and whose delivery is done and committed.
         records = json.loads((FIXTURES / "gate-records.json").read_text())
-        gates = {name: self.gate(shiploop=rec["shiploop"], committed=rec["committed"], engine=rec["engine"], process=rec["process"])
-                 for name, rec in records.items()}
-        self.assertIn("a stop was requested", gates["r3-battleship-grok-none"])
-        self.assertIsNone(gates["r3-checkers-sonnet"])
-        self.assertIsNone(gates["r2-battleship-grok-none"])
-        # the same record without the stop is still not a delivery: the engine is active
-        rec = records["r3-battleship-grok-none"]
+        rec = records["r3-checkers-sonnet"]
+        self.assertIsNone(self.gate(shiploop=rec["shiploop"], committed=rec["committed"], engine=rec["engine"], process=rec["process"]))
+        stopped = {"shiploop": {"pass": False, "status": "active", "stage": "implement"},
+                   "committed": {"pass": True},
+                   "engine": {"status": "active", "stage": "implement"},
+                   "process": {"status": "stopped"}}
+        self.assertIn("a stop was requested", self.gate(**stopped))
         self.assertIn("ShipLoop is still active (stage implement)",
-                      self.gate(shiploop=rec["shiploop"], committed=rec["committed"], engine=rec["engine"], process={"status": "timeout"}))
+                      self.gate(shiploop=stopped["shiploop"], committed=stopped["committed"], engine=stopped["engine"], process={"status": "timeout"}))
 
     def test_the_phases_stop_is_a_signal_to_the_harness_or_a_stop_file_each_on_its_own(self):
         with tempfile.TemporaryDirectory() as folder:
