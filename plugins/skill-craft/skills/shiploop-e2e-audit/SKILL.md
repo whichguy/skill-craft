@@ -6,7 +6,7 @@ description: >-
   source checkout: iterate ShipLoop on a real local case, evaluate behavior and
   workflow quality, decide whether ShipLoop needs to change, plan one bounded
   hypothesis, apply and verify the change, and rerun a qualified comparison.
-version: 2.2.0
+version: 2.2.1
 license: MIT
 platforms:
   - linux
@@ -37,7 +37,7 @@ The six-step loop is:
 | Surface | Requirement |
 | --- | --- |
 | Operator host | Any host with shell access to a clean `skill-craft` checkout (Codex, Claude Code, Grok, Cursor, OpenCode, Antigravity `agy`). |
-| Subject host | `--host codex` (`--codex-auto-review`), `--host claude` (`--backend anthropic` or `ollama`), `--host grok`, or `--host antigravity` (`agy`). Reviewer, judge and improver roles default to Antigravity Orchestrator (Neon) (`gemini-pro-orchestrator-neon`) with explicit per-role overrides. |
+| Subject host | Defaults to Antigravity Orchestrator (Neon) (`--host antigravity`, `gemini-pro-orchestrator-neon`, pairing Neon planning with Carbon execution internally); explicit overrides include `--host codex` (`gpt-6.2-sol`, `xhigh`, `--codex-auto-review`), `--host claude` (`--backend anthropic` or `ollama`), and `--host grok`. Reviewer, judge and improver roles also default to Antigravity Orchestrator (Neon) (`gemini-pro-orchestrator-neon`) with explicit per-role overrides. |
 | Python | `python3` — 3.13+ on macOS (`os.waitid` in `listeners.py`), 3.9+ on Linux (ShipLoop itself requires 3.9+). |
 | Git | Configured committer identity (`git -c user.useConfigOnly=true var GIT_COMMITTER_IDENT`) before spending model runs. |
 

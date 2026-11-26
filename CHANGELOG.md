@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-25
 
+### skill-craft 4.20.3
+
+- Skills: shiploop-e2e-audit 2.2.1
+
+### shiploop-e2e-audit 2.2.1
+
+- Default the ShipLoop E2E subject host to Antigravity Orchestrator (Neon) (`gemini-pro-orchestrator-neon`, pairing Neon planning with Carbon execution internally) across `shiploop-e2e-audit` examples and harness defaults, keeping explicit `--host codex` overrides documented.
+
 ### skill-craft 4.20.2
 
 - Skills: shiploop 2.21.1

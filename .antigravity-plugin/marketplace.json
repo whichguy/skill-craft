@@ -9,7 +9,7 @@
     {
       "name": "skill-craft",
       "description": "Skill Craft: portable multi-host agent skills (ShipLoop, Improve, Ask-Agent and more) packaged as one plugin for Claude, Codex, Grok and Cursor.",
-      "version": "4.20.2",
+      "version": "4.20.3",
       "author": {
         "name": "whichguy",
         "url": "https://github.com/whichguy"
@@ -17,8 +17,8 @@
       "category": "Productivity",
       "source": {
         "type": "archive",
-        "url": "https://github.com/whichguy/skill-craft/releases/download/v4.20.2/skill-craft-4.20.2.zip",
-        "sha256": "17c57f8ac79f1d48bf63da5d1b5c5cd0f42505805ea4aa40a98935d6c1e8ebde"
+        "url": "https://github.com/whichguy/skill-craft/releases/download/v4.20.3/skill-craft-4.20.3.zip",
+        "sha256": "eeee29bd6b480c29de2f789b6bca548bedc954e953e6b5f829f34c6da83727f6"
       }
     }
   ]
