@@ -353,6 +353,37 @@ class ReleasePreflightTests(unittest.TestCase):
         self.git("commit", "-q", "--amend", "-m", "feat: change", "-m", f"{key}: no live run for a prompt-only edit\nCo-Authored-By: Test <test@example.invalid>")
         self.assertAccepted(self.release("--dry-run"))
 
+    def test_no_e2e_round_flag_allows_dry_run_and_writes_nothing(self):
+        self.release_commit()
+        self.note("shiploop")
+        self.assertRefused(self.release("--dry-run"))
+        self.assertAccepted(self.release("--dry-run", "--no-e2e-round", "owner approved"))
+        self.untouched()
+
+    def test_no_e2e_round_flag_requires_a_non_empty_reason(self):
+        self.release_commit()
+        self.note("shiploop")
+        for empty in ("", "   "):
+            result = self.release("--dry-run", "--no-e2e-round", empty)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("non-empty reason", result.stderr)
+            self.untouched()
+
+    def test_no_e2e_round_flag_records_trailer_on_the_release_commit(self):
+        self.write("scripts/sync-plugin-views.sh", "#!/usr/bin/env bash\nexit 0\n")
+        (self.repo / "scripts/sync-plugin-views.sh").chmod(0o755)
+        self.commit("test: add stub sync script")
+        self.release_commit()
+        self.note("shiploop")
+        result = self.release("--date", "2000-01-01", "--no-e2e-round", "owner waiver for prompt fix")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.git("status", "--porcelain=v1", "--untracked-files=all"), "")
+        self.assertIn("shiploop@1.0.1", self.git("log", "-1", "--format=%(trailers:key=Skill-Craft-Release,valueonly)"))
+        self.assertEqual(
+            self.git("log", "-1", "--format=%(trailers:key=No-E2E-Round,valueonly)"),
+            "owner waiver for prompt fix",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

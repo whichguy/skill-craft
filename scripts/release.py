@@ -40,13 +40,15 @@ before the latest commit touching test/shiploop_e2e/LEARNINGS.md, or carry a
 `No-E2E-Round: <reason>` trailer (final message paragraph, non-empty reason).
 Merge commits are not counted: a merge of main into a branch adds no change of
 its own, and every non-merge commit it brings in is read. Otherwise the run and
---dry-run both refuse, name those commits, and write nothing. Other releases
+--dry-run both refuse, name those commits, and write nothing. Passing
+`--no-e2e-round <reason>` explicitly waives that preflight and records a
+`No-E2E-Round: <reason>` trailer on the release commit itself. Other releases
 are not asked.
 
 It never pushes. Publish the commit with scripts/release-push.py.
 
 Usage:
-  release.py [--dry-run] [--date YYYY-MM-DD]
+  release.py [--dry-run] [--date YYYY-MM-DD] [--no-e2e-round REASON]
 """
 
 import argparse
@@ -229,7 +231,8 @@ def e2e_round_missing(releases):
     return (f"{E2E_LEAF} would ship {len(uncovered)} change(s) committed {where}:\n"
             + "".join(f"  {head[:100]}\n" for head in uncovered)
             + f"  Add an entry to {E2E_JOURNAL} in a commit after them, or a '{NO_ROUND}: <reason>' trailer on each "
-              "(final message paragraph, next to Co-Authored-By).")
+              "(final message paragraph, next to Co-Authored-By).\n"
+            + "  Or pass '--no-e2e-round <reason>' to scripts/release.py to record a release-level waiver.")
 
 
 def plan():
@@ -268,10 +271,14 @@ def plan():
     return releases
 
 
-def plan_all():
+def plan_all(no_e2e_round=None):
     """(skill releases, plugin version change). Reads only; changes nothing."""
     releases = plan()
     bundle = plan_bundle(releases, released_versions())
+    if no_e2e_round is not None:
+        if not no_e2e_round.strip():
+            raise ReleaseError("--no-e2e-round requires a non-empty reason")
+        return releases, bundle
     missing = e2e_round_missing(releases)
     if missing:
         raise ReleaseError(missing)
@@ -320,7 +327,7 @@ def apply(releases, bundle, date):
             folder.rmdir()
 
 
-def cut(releases, bundle, date):
+def cut(releases, bundle, date, no_e2e_round=None):
     """Apply the plan, regenerate release output and commit it."""
     apply(releases, bundle, date)
     subprocess.run(["bash", str(ROOT / "scripts/sync-plugin-views.sh")], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
@@ -330,17 +337,21 @@ def cut(releases, bundle, date):
     paths = ("skills", "changes", "catalog/skill-craft-plugin.json", "CHANGELOG.md", "README.md", "plugins",
              ".grok-plugin", ".cursor-plugin", ".claude-plugin", ".agents")
     git("add", "-A", "--", *[p for p in paths if (ROOT / p).exists() or git("ls-files", "--", p)])
-    git("commit", "-q", "-m", f"release: {summary}", "-m",
-        f"{TRAILER}: " + ", ".join(f"{name}@{version}" for name, version in shipped))
+    trailers = [f"{TRAILER}: " + ", ".join(f"{name}@{version}" for name, version in shipped)]
+    if no_e2e_round:
+        trailers.append(f"{NO_ROUND}: {' '.join(no_e2e_round.split())}")
+    git("commit", "-q", "-m", f"release: {summary}", "-m", "\n".join(trailers))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dry-run", action="store_true", help="print the plan; change nothing")
     parser.add_argument("--date", default=datetime.date.today().isoformat())
+    parser.add_argument("--no-e2e-round", default=None, metavar="REASON",
+                        help="waive ShipLoop E2E preflight and record a No-E2E-Round trailer on the release commit")
     args = parser.parse_args()
     try:
-        releases, bundle = plan_all()
+        releases, bundle = plan_all(no_e2e_round=args.no_e2e_round)
         for leaf, entry in sorted(releases.items()):
             print(f"release: {leaf} {entry['old']} -> {entry['new']} ({len(entry['notes'])} note(s))")
         if not releases:
@@ -360,7 +371,7 @@ def main():
             raise ReleaseError("checkout must be clean; commit or set aside other work first")
         head = git("rev-parse", "HEAD").strip()
         try:
-            cut(releases, bundle, args.date)
+            cut(releases, bundle, args.date, no_e2e_round=args.no_e2e_round)
         except BaseException:
             # The checkout was clean, so everything outside HEAD is ours to undo.
             if git("rev-parse", "HEAD").strip() == head:
