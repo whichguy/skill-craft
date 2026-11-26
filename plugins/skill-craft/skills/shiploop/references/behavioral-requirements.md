@@ -192,6 +192,34 @@ cross-hop principals and adjacent subsystems (notifications, audit logs, timers)
 adding zero features; and verify edition-quota compaction integrity, config/chain
 drift invalidation and guaranteed non-wedging terminal exits on crash or save failure.
 
+### Configuration scopes and Day-0 guided setup
+
+When an application serves both operator/admin and end-user roles or depends on
+external integrations (skipping extra settings chrome for simple single-user
+local tools):
+
+1. **Separate Admin/Operator Settings from User Preferences:** Treat
+   operator/admin configuration (external providers, credentials/secrets,
+   endpoints, security ceilings, org/group policies, kill switches, retention,
+   catalog governance) and personal user preferences (appearance/theme, default
+   landing view, display/response style, permitted overrides) as distinct actors,
+   UI surfaces, and state owners. Display clear read-only lock badges when an
+   admin locks a user-overridable preference; never conflate scopes, expose
+   admin controls to standard users, or dump raw configuration JSON in place of
+   editable controls.
+2. **Safe Defaults and Honest Day-0 Detection:** Boot cleanly with sensible
+   non-secret defaults and detect unconfigured external dependencies truthfully
+   at runtime (`Unconfigured` / `Needs Setup`). Never pre-seed an unconfigured or
+   unusable provider as `Verified`, and isolate missing prerequisites so
+   already-ready capabilities still work.
+3. **Role-Aware Guided Setup Walkthrough:** When required configuration is
+   missing on first launch or when an action hits an unconfigured prerequisite,
+   present admins/operators with an in-app guided setup checklist whose steps
+   jump directly to editable controls and live verification and clear once
+   verified; present regular end-users with a calm, non-technical status
+   explaining what works now and what needs an administrator—never broken admin
+   forms, silent no-ops, or raw errors.
+
 ### UI-specific planning
 
 When a human-facing surface is affected, retain all three UI planning views in
@@ -201,13 +229,14 @@ project knowledge index and feature context:
 | View | Planning decisions |
 | --- | --- |
 | Components | Existing primitives/compositions and examples; responsibilities, input/event contracts, variants and visible states; keyboard/touch/focus/accessibility behavior. |
-| Interaction model | Human journeys and intent plus machine-originated updates; navigation, validation, local/shared state transitions, feedback, conflict/recovery actions and behavior with the UI absent. |
-| Branding / skin | Existing typography, semantic color/spacing/motion tokens, imagery, density and adaptive layout; preserved identity and intentional visual changes. |
+| Interaction model | Human journeys and intent plus machine-originated updates; navigation, validation, local/shared state transitions, feedback, unconfigured Day-0 state and role-aware guided setup walkthrough alongside normal/loading/empty/error states, conflict/recovery actions, and behavior with the UI absent. |
+| Branding / skin | Existing typography, semantic color/spacing/motion tokens, imagery, density, adaptive layout, and native composition inside host platform shells (host layout chrome, elevation, and native primitives); preserved identity and intentional visual changes. |
 
 Inspect prior design and actual code/behavior before proposing a redesign.
 Distinguish accepted requirements from observed practice or defects. Reuse an
 adequate premise and specify the feature delta; missing design documents do not
-mean a new product. Preserve platform conventions on web/native/mobile clients.
+mean a new product. Preserve platform conventions on web/native/mobile clients
+and compose host-embedded views natively inside the host shell.
 
 For a new graphical UI, fill unspecified visual choices from the
 [light expressive starting point](platforms/ui.md#light-expressive-starting-point).

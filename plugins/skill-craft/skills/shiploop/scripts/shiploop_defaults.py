@@ -55,7 +55,7 @@ FIELDS = ("requirement", "question", "default", "alternative", "why")
 # a row edited in one field only is refused as the whole row copied is, and a text that merely starts and ends with
 # angle brackets ("<details> opens on a click on its <summary>") is not.
 TEMPLATE_ROW = {
-    "requirement": "<R-<n> whose clause states this choice>",
+    "requirement": "<R-<n> (not NFR-<n>) whose clause states this choice>",
     "question": "<what the request leaves open, as the requester would ask it>",
     "default": "<what that person sees or must do, and what happens if they do not>",
     "alternative": "<one workable other answer, and what it would change for that person>",

@@ -151,6 +151,12 @@ its check and `follows` before locking `work_items`.
 Do not silently revise accepted intent or create another ledger, phase, or review
 campaign.
 
+Any requirement that names an Admin/Operator or End-User UI surface must map to
+**both** its backend authority/state owner **and** its interactive UI entrypoint
+(plus its Day-0 unconfigured walkthrough when applicable); a backend-only
+service pass or a raw JSON dump cannot reconcile an interactive configuration UI
+requirement.
+
 ## Carry the reconciled contract forward
 
 Definition is ready to begin when the original request, applicable source

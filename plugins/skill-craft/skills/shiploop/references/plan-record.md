@@ -87,4 +87,9 @@ explicit visual constraints, established identity and platform conventions take 
 A small change to
 an existing UI records its preserved identity and authorized delta; it does
 not create a new concept or reopen an accepted UI AD without a reason from
-the request or current product evidence.
+the request or current product evidence. When applicable to the product, the UI
+AD and step criteria also carry forward from `spec` -> `plan` -> `step-plan` ->
+`product-acceptance`: (a) the separation between Admin/Operator Settings and User
+Preferences surfaces, (b) the Day-0 unconfigured state and role-aware guided
+setup walkthrough, and (c) native composition with host shell elevation and
+component primitives.

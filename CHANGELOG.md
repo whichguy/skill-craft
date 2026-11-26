@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-11-26
 
+### skill-craft 4.20.5
+
+- Skills: shiploop 2.21.3
+
+### shiploop 2.21.3
+
+- Require ShipLoop `spec`, `plan`, and UI planning guides to separate Admin/Operator Settings from User Preferences, use safe non-secret defaults with truthful Day-0 `Unconfigured` detection, provide a role-aware guided setup walkthrough (never closing UI config requirements via backend-only services or raw JSON dumps), and compose natively inside host platform shells.
+- Add Surface-to-Entrypoint completeness, Host-Embedded Native UI precedence, closed async runtime loop tracing, and `product-acceptance` UI Entrypoint Reachability + Architecture-to-Disk Reconciliation checks to ShipLoop; clarify `defaults[].requirement` (`R-<n>` only) and `step-plan` `proof` timing; and document Salesforce unmanaged-DE secret storage, multi-class `--wait` test runs, native `lightning-*`/`--slds-g-*`/`@container`/`<actionOverrides>` LWC physics, idempotent `PermissionSetAssignment` checks, and `.xml` remote-only metadata extensions.
+
 ### skill-craft 4.20.4
 
 - Skills: shiploop 2.21.2
