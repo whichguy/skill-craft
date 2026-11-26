@@ -101,7 +101,13 @@ deployment/packaging/CI gate requires it. Check the payload, target environment,
 effective test level and applicable coverage rule rather than inferring them
 from an org label. A verified LWC-only development deployment with no affected
 Apex and no Apex test gate may exclude Apex tests; do not add Apex or empty test
-classes to fill an inventory. Reopen that exclusion when its basis changes.
+classes to fill an inventory. Reopen that exclusion when its basis changes. When
+a target-native deployment validation (`RunSpecifiedTests` or `RunLocalTests`)
+fails on Apex tests or code coverage, do not silently downgrade the deploy to
+`--test-level NoTestRun` (or a weaker test level) and report release
+verification as clean: either add or fix tests so the validation deploy passes,
+or record an explicit `unverified` gap or owner waiver citing the failing
+validation output and why `NoTestRun` was used.
 [LWC testing](https://developer.salesforce.com/docs/platform/lwc/guide/testing)
 and the [deployment command's test-level contract](https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_deploy_start.html)
 are starting points; verify the rules for the operation actually selected.

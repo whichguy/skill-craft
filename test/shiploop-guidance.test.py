@@ -3465,6 +3465,15 @@ class LiveRunGuidanceTests(unittest.TestCase):
         self.assertIn("A command that fails before it prints (an assert or exception ahead of the print) shows no ID",
                       text)
 
+    def test_salesforce_card_forbids_silent_notestrun_downgrade_without_numeric_floor(self) -> None:
+        card = (ROOT / "skills/shiploop/references/platforms/salesforce.md").read_text(encoding="utf-8")
+        section = normalized(card.split("\n## Testing\n", 1)[1].split("\n## ", 1)[0])
+        self.assertIn("RunSpecifiedTests", section)
+        self.assertIn("RunLocalTests", section)
+        self.assertIn("--test-level NoTestRun", section)
+        self.assertIn("unverified", section)
+        self.assertNotIn("75%", card)
+
 
 class MultiStageCDAndMigrationPromptTests(unittest.TestCase):
     """Multi-stage CD destinations, per-environment settings parity, and expand/deploy/contract migrations reach outer
