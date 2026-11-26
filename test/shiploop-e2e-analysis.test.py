@@ -4692,6 +4692,49 @@ class OpenItemSettlementTests(unittest.TestCase):
                                "due_item": None}],
             })
 
+    def test_product_acceptance_unverified_and_settled_count_as_settled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = {
+                "history": [
+                    {"stage": "reflect-and-revise", "outcome": "done", "workitem": "W1", "action": "a-rr"},
+                    {"stage": "system-test", "outcome": "done", "workitem": None, "action": "a-st"},
+                    {"stage": "product-acceptance", "outcome": "done", "workitem": None, "action": "a-pa"},
+                ],
+                "accepted": {
+                    "a-rr": {"outcome": "done", "summary": "rr", "assumptions": [
+                        {"id": "A1", "assumption": "ui click", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_stage": "product-acceptance"},
+                        {"id": "A2", "assumption": "dark mode", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_stage": "product-acceptance"},
+                    ]},
+                    "a-st": {"outcome": "done", "summary": "st", "assumptions": [
+                        {"id": "A3", "assumption": "omitted", "disposition": "open", "settle": "check",
+                         "reason": "defer", "due_stage": "product-acceptance"},
+                    ]},
+                    "a-pa": {
+                        "outcome": "done",
+                        "summary": "Checked UI; omitted explicit ID in summary.",
+                        "settled": [{"assumption": "A2", "note": "Verified dark theme screenshot."}],
+                        "unverified": [{
+                            "requirement": "R-2",
+                            "outcome": "Click play in real browser.",
+                            "reason": "No click driver (carried from assumption:A1).",
+                            "owner": "requester",
+                            "settle": "Click piece in browser.",
+                            "due_stage": "handoff",
+                        }],
+                    },
+                },
+            }
+            m = self._run_with_state(tmp, state)
+            self.assertEqual(m["open_item_settlement"], {
+                "total": 3,
+                "due_completed": 3,
+                "settled": 2,
+                "unsettled": [{"id": "A3", "source_stage": "system-test", "due_stage": "product-acceptance",
+                               "due_item": None}],
+            })
+
 
 class StateSummaryTests(unittest.TestCase):
     """metrics.delegation and metrics.state_summary read state.md, tests/, and return-receipt.md honestly."""

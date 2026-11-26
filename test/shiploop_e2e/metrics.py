@@ -2481,7 +2481,7 @@ def open_item_settlement(state: dict | None) -> dict:
             if not isinstance(d_res, dict):
                 continue
             parts = [str(d_res.get("summary") or "")]
-            for field in ("assumptions", "follow_on", "criteria", "expectations"):
+            for field in ("assumptions", "follow_on", "criteria", "expectations", "unverified", "settled"):
                 if d_res.get(field) is not None:
                     parts.append(json.dumps(d_res.get(field), sort_keys=True))
             if token.search("\n".join(parts)):
