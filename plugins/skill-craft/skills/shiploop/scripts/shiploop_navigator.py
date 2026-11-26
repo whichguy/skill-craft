@@ -7748,7 +7748,7 @@ def _open_item_settlement_hint(stage: str | None) -> str:
                 "or carry it forward in unverified (citing its ID).")
     if stage == "step-plan":
         return ('Account for each due open item by ID in summary (settled evidence) '
-                'or criteria (from: "assumption:<id>").')
+                'or criteria/expectations (from: "<id>").')
     if stage in assumptions.STAGES:
         return ("Account for each due open item by ID in summary (settled evidence) "
                 "or carry it forward in assumptions.")

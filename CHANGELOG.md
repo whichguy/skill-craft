@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-11-26
+
+### skill-craft 4.20.4
+
+- Skills: shiploop 2.21.2
+
+### shiploop 2.21.2
+
+- Fix `step-plan` open-assumption settlement hint in `shiploop_navigator.py` to cite `criteria/expectations (from: "<id>")` instead of `"assumption:<id>"`, matching `shiploop_expectations.py`.
+
 ## 2026-11-25
 
 ### skill-craft 4.20.3
