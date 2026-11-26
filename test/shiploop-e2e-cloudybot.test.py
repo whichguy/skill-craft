@@ -216,7 +216,6 @@ class CloudyBotCatalogTests(unittest.TestCase):
             "Gemini",
             "Claude",
             "@InvocableMethod",
-            "WaitingOnBot",
             "SKILL.md",
             "marketplace.json",
             "PullRequest",
@@ -233,10 +232,7 @@ class CloudyBotCatalogTests(unittest.TestCase):
             "Visual",
             "Layer 5 — Exposed Runtime Tools Manifest",
             "must end with Layer 5",
-            "cb_search_tools",
-            "sf_get_record",
-            "sf_delete_record",
-            "externalIdField",
+            "RemoteSiteSetting",
             "/services/data/v68.0/tooling",
             "sf_tooling_describe",
             "sf_tooling_query",
@@ -245,7 +241,8 @@ class CloudyBotCatalogTests(unittest.TestCase):
             "sf_tooling_update_record",
             "sf_tooling_delete_record",
             "Test Tooling API",
-            "Database.setSavepoint()",
+            "75%",
+            "uncommitted work pending",
         ):
             self.assertIn(clause, prompt)
 
