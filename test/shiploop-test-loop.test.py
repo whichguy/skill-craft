@@ -2141,24 +2141,22 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(test_loop.stateful_targets(state), org)
 
     def test_a_mixed_item_whose_remote_commands_were_left_out_records_survivors_without_refusing(self):
-        """Sol pass 2, finding 2: the mutants may sit in code only the left-out remote tests reach, so the zero-kill rule
-        does not refuse them. Since the 2026-10-25 panel (P5) each still needs a disposition: not-exercisable, here."""
+        """Sol pass 2, finding 2 / a11571fccf22fe921624878144b54bff31989632: the mutants may sit in code only the left-out
+        remote tests reach, so ``zero_kill_remote_exempt`` aligns ``undisposed`` gating to pass as ``'recorded, not
+        refused'`` without raising ``TestLoopError``."""
         self.calc_item(self.EMPTY_TEST)  # kills nothing
         split = mock.patch.object(mutation, "split_remote",
                                   side_effect=lambda commands, stateful=(): (list(commands), ["sf apex run test -n A"]))
-        with split, self.assertRaisesRegex(test_loop.TestLoopError, "with no disposition"):
-            test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        with split:
+            lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
         record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
+        self.assertTrue(lines)
+        self.assertTrue(record["passed"])
+        self.assertEqual(record["disposition"], "passed")
         self.assertEqual(record["killed"], 0)
         self.assertGreater(record["survived"], 0)
+        self.assertNotIn("undisposed", record)
         self.assertIn("recorded, not refused", record["advisory"])
-        dispositions = [{"mutant": ident, "disposition": "not-exercisable",
-                         "evidence": "only the left-out remote test reaches this code"} for ident in record["undisposed"]]
-        with split:
-            lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action(),
-                                             {"mutant_dispositions": dispositions})
-        self.assertTrue(store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 2))["passed"])
-        self.assertTrue(lines)
 
     PARTIAL_TEST = ("import unittest\n\nimport calc\n\n\nclass CalcTests(unittest.TestCase):\n"
                     "    def test_tc1(self):\n        self.assertEqual(calc.add(2, 3), 5)\n"
