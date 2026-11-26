@@ -1114,7 +1114,7 @@ class RoundSpeedups(unittest.TestCase):
         launched = []
         with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
             experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
-            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Codex GPT-6.2 Sol xhigh subject profile.
+            self.assertEqual(launched[0][4], "antigravity")  # New runs use the owner-selected Antigravity Orchestrator (Neon) subject profile.
 
     def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
         """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""

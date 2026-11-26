@@ -26,9 +26,9 @@ import slice as step_slice
 
 class RoleDefaultsTest(unittest.TestCase):
     def test_role_profiles_and_independent_overrides(self):
-        self.assertEqual(hosts.RUN_DEFAULT_HOST, "codex")
+        self.assertEqual(hosts.RUN_DEFAULT_HOST, "antigravity")
         expected = {
-            "subject": {"host": "codex", "model": "gpt-6.2-sol", "effort": "xhigh"},
+            "subject": {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None},
             "reviewer": {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None},
             "judge": {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None},
             "improver": {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": None},
@@ -37,6 +37,8 @@ class RoleDefaultsTest(unittest.TestCase):
         for role, profile in expected.items():
             with self.subTest(role=role):
                 self.assertEqual(hosts.resolve_role(role), profile)
+        self.assertEqual(hosts.resolve_role("subject", {"host": "codex"}),
+                         {"host": "codex", "model": "gpt-6.2-sol", "effort": "xhigh"})
         self.assertEqual(hosts.resolve_role("reviewer", {"model": "custom-model", "effort": "xhigh"}),
                          {"host": "antigravity", "model": "custom-model", "effort": "xhigh"})
         self.assertEqual(hosts.resolve_role("reviewer", {"host": "codex", "model": "custom-model", "effort": "xhigh"}),
@@ -64,6 +66,8 @@ class RoleDefaultsTest(unittest.TestCase):
             self.assertEqual(hosts.resolve_role("reviewer", {"model": "orchestrator"}),
                              {"host": "antigravity", "model": hosts.ANTIGRAVITY_ORCHESTRATOR_MODEL, "effort": None})
         with mock.patch.dict(os.environ, {hosts.ANTIGRAVITY_ORCHESTRATOR_ENV: "gemini-pro-orchestrator"}):
+            self.assertEqual(hosts.resolve_role("subject"),
+                             {"host": "antigravity", "model": "gemini-pro-orchestrator", "effort": None})
             self.assertEqual(hosts.resolve_role("reviewer", {"model": "orchestrator"}),
                              {"host": "antigravity", "model": "gemini-pro-orchestrator", "effort": None})
             self.assertEqual(hosts.resolve_role("judge"),
@@ -74,24 +78,39 @@ class RoleDefaultsTest(unittest.TestCase):
         self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], hosts.ANTIGRAVITY_ORCHESTRATOR_MODEL)
 
     def test_run_slice_and_experiment_parser_defaults_and_overrides(self):
-        self.assertEqual(run.parser().parse_args([]).host, "codex")
-        self.assertEqual(step_slice.parser().parse_args([]).host, "codex")
+        self.assertEqual(run.parser().parse_args([]).host, "antigravity")
+        self.assertEqual(step_slice.parser().parse_args([]).host, "antigravity")
         run_override = run.parser().parse_args(["--host", "claude", "--model", "sonnet-override", "--effort", "high"])
         self.assertEqual((run_override.host, run_override.model, run_override.effort),
                          ("claude", "sonnet-override", "high"))
-        overridden = step_slice.parser().parse_args(["--host", "antigravity", "--model", "gemini-override", "--effort", "medium"])
+        overridden = step_slice.parser().parse_args(["--host", "codex", "--model", "gpt-override", "--effort", "medium"])
         self.assertEqual((overridden.host, overridden.model, overridden.effort),
-                         ("antigravity", "gemini-override", "medium"))
+                         ("codex", "gpt-override", "medium"))
 
-        for args, expected in ((["run", "E1", "--arm", "A"], "codex"),
+        for args, expected in ((["run", "E1", "--arm", "A"], "antigravity"),
                                (["run", "E1", "--arm", "A", "--host", "claude"], "claude")):
             with self.subTest(args=args), mock.patch.object(experiment, "run", return_value=0) as launch, \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(experiment.main(args), 0)
             self.assertEqual(launch.call_args.args[3], expected)
 
-    def test_codex_run_defaults_reach_the_real_argv_builder(self):
-        args = run.parser().parse_args([])
+    def test_antigravity_and_codex_run_defaults_reach_the_real_argv_builder(self):
+        default_args = run.parser().parse_args([])
+        default_args.antigravity_bin = "fake-agy"
+        default_host = run.the_host(default_args)
+        self.assertEqual((default_host.name, default_host.model, default_host.effort),
+                         ("antigravity", "gemini-pro-orchestrator-neon", None))
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            agy_argv = default_host.argv(prompt="hello", prompt_file=root / "prompt.txt", cwd=root,
+                                         model=default_args.model or default_host.model,
+                                         effort=default_args.effort or default_host.effort,
+                                         permission_mode=default_args.permission_mode, max_turns=default_args.max_turns)
+        self.assertEqual(agy_argv[0], "fake-agy")
+        self.assertEqual(agy_argv[agy_argv.index("--model") + 1], "gemini-pro-orchestrator-neon")
+        self.assertNotIn("--effort", agy_argv)
+
+        args = run.parser().parse_args(["--host", "codex"])
         args.codex_bin = "fake-codex"
         selected = run.the_host(args)
         self.assertEqual((selected.name, selected.model, selected.effort),
@@ -209,10 +228,11 @@ class RoleDefaultsTest(unittest.TestCase):
         import stages
         args = stages._parser()[0].parse_args(["live", "--dry-run"])
         driver = stages.resolve_driver(args)
-        self.assertEqual((driver.name, driver.model, driver.effort), ("codex", "gpt-6.2-sol", "xhigh"))
+        self.assertEqual((driver.name, driver.model, driver.effort),
+                         ("antigravity", "gemini-pro-orchestrator-neon", None))
         for parser in (run.parser(), step_slice.parser()):
             help_text = parser.format_help()
-            self.assertIn("gpt-6.2-sol", help_text)
+            self.assertIn("gemini-pro-orchestrator-neon", help_text)
             self.assertIn("antigravity", help_text)
 
     def test_role_specific_overrides_stay_distinct_from_the_subject(self):

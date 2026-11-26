@@ -210,9 +210,15 @@ def _strict_registration(raw: dict, data: bytes) -> dict:
             if driver["delegation"] not in ("inline", "agents", "ask-agent"):
                 raise SystemExit(f"promotion/5 {name} arm has an unsupported delegation mode")
             fields.add("delegation")
+        host_name = driver.get("host") if isinstance(driver, dict) else None
+        effort = driver.get("effort") if isinstance(driver, dict) else None
+        effort_optional = host_name in hosts.HOST_DEFAULTS and hosts.HOST_DEFAULTS[host_name]["effort"] is None
+        effort_ok = (effort is None if effort_optional and effort is None
+                     else isinstance(effort, str) and bool(effort.strip()))
         if (not isinstance(driver, dict) or set(driver) != fields
                 or any(not isinstance(driver.get(key), str) or not driver[key].strip()
-                       for key in ("host", "model", "effort"))):
+                       for key in ("host", "model"))
+                or not effort_ok):
             raise SystemExit(f"promotion/5 {name} arm needs exact host, model, and effort driver bindings")
         if driver.get("permission_mode") == hosts.CODEX_AUTO_REVIEW:
             skills = arm_spec.get("installed_skills")

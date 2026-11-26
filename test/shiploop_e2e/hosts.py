@@ -60,17 +60,15 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # The host an E2E run drives when no --host is given. An explicitly selected Claude host runs Claude's own models
 # (Sonnet 5.5, backend "anthropic") like every other Claude caller; `--backend ollama` selects a model the local Ollama
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
-# Codex GPT-6.2 Sol at extra-high is the driver profile for new work (owner, 2026-11-19), replacing Grok 4.6 at
-# extra-high (owner, 2026-11-10) and earlier Codex GPT-6.1 Sol at medium (owner, 2026-11-08). Reviewer, judge and
-# improver default to Antigravity Orchestrator (Neon) (`gemini-pro-orchestrator-neon`, owner 2026-11-25, replacing
-# Codex GPT-6.2 Astra high and Codex GPT-6.2 Sol max from 2026-11-19).
-RUN_DEFAULT_HOST = "codex"
+# Antigravity Orchestrator (Neon) (`gemini-pro-orchestrator-neon`, pairing Neon planning with Carbon execution
+# internally) is the default profile for new subjects, reviewers, judges, and improvers (owner, 2026-11-25,
+# replacing Codex GPT-6.2 Sol at extra-high from 2026-11-19 for subjects and matching the 2026-11-25 evaluator default).
+RUN_DEFAULT_HOST = "antigravity"
 GROK_DEFAULT_MODEL = "grok-4.6"
 GROK_DEFAULT_EFFORT = "xhigh"
 CODEX_DEFAULT_MODEL = "gpt-6.2-sol"
 CODEX_DEFAULT_EFFORT = "xhigh"
 CODEX_AUTO_REVIEW = "auto-review"
-ANTIGRAVITY_DEFAULT_MODEL = "claude-sonnet-5-5-medium"
 # Note on Antigravity orchestrator indirection: `agy models` defines concrete orchestrator slugs
 # (`gemini-pro-orchestrator-neon` -> Orchestrator (Neon), `gemini-pro-orchestrator` -> Orchestrator (Carbon),
 # `gemini-pro-orchestrator-argon` -> Orchestrator (Argon)) and `agy` rejects a bare `--model orchestrator` slug while
@@ -80,6 +78,7 @@ ANTIGRAVITY_DEFAULT_MODEL = "claude-sonnet-5-5-medium"
 ANTIGRAVITY_ORCHESTRATOR_ALIAS = "orchestrator"
 ANTIGRAVITY_ORCHESTRATOR_ENV = "SHIPLOOP_E2E_ANTIGRAVITY_ORCHESTRATOR"
 ANTIGRAVITY_ORCHESTRATOR_MODEL = "gemini-pro-orchestrator-neon"
+ANTIGRAVITY_DEFAULT_MODEL = ANTIGRAVITY_ORCHESTRATOR_MODEL
 ANTIGRAVITY_DEFAULT_EFFORT = None
 
 
@@ -125,7 +124,7 @@ def resolve_role(name: str, overrides: dict | None = None) -> dict:
         elif (
             overrides.get("model") is None
             and (host_override is None or host_override == ROLE_DEFAULTS[name]["host"])
-            and name in ("reviewer", "judge", "improver")
+            and name in ROLE_DEFAULTS
             and env_orch
         ):
             resolved["model"] = env_orch
@@ -961,10 +960,10 @@ def enforce_readonly_sandbox(host_name: str, argv: list[str], *, context: str) -
 
 HOSTS: dict[str, type] = {"antigravity": AntigravityHost, "grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
-# Owner-selected profiles for new work (2026-11-25): the driver remains Codex GPT-6.2 Sol at extra-high
-# (2026-11-19); reviewer, judge and improver default to Antigravity Orchestrator (Neon)
-# (`gemini-pro-orchestrator-neon`), replacing Codex GPT-6.2 Astra at high and Codex GPT-6.2 Sol at max
-# (2026-11-19). Recorded and explicit profiles remain authoritative.
+# Owner-selected profiles for new work (2026-11-25): subject, reviewer, judge and improver all default to
+# Antigravity Orchestrator (Neon) (`gemini-pro-orchestrator-neon`, pairing Neon planning with Carbon execution
+# internally), replacing Codex GPT-6.2 Sol at extra-high for subjects (2026-11-19) and Codex Astra/Sol for evaluators.
+# Recorded and explicit profiles (such as `--host codex` with GPT-6.2 Sol `xhigh`) remain authoritative.
 ROLE_DEFAULTS = {
     "subject": {"host": RUN_DEFAULT_HOST, **HOST_DEFAULTS[RUN_DEFAULT_HOST]},
     "reviewer": {"host": "antigravity", "model": ANTIGRAVITY_ORCHESTRATOR_MODEL, "effort": None},

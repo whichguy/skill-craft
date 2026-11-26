@@ -462,10 +462,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
                    help="claude only: anthropic (default, as for run.py), Claude's own models; or ollama, Claude Code on the "
                         f"local Ollama server's {hosts.OLLAMA_MODEL}")
-    p.add_argument("--model", help=f"default: {hosts.CodexHost.model} (codex), claude-sonnet-5-5 (claude), "
+    p.add_argument("--model", help=f"default: {hosts.AntigravityHost.model} (antigravity), {hosts.CodexHost.model} (codex), claude-sonnet-5-5 (claude), "
                                    f"{hosts.OLLAMA_MODEL} (claude --backend ollama), {hosts.GrokHost.model} (grok)")
-    p.add_argument("--effort", help=f"reasoning effort; default: {hosts.CodexHost.effort} (codex), "
-                                    f"host default (claude), {hosts.GrokHost.effort} (grok)")
+    p.add_argument("--effort", help=f"reasoning effort; default: host default (antigravity, claude), "
+                                    f"{hosts.CodexHost.effort} (codex), {hosts.GrokHost.effort} (grok)")
     p.add_argument("--delegation", choices=("inline", "ask-agent"), default="inline",
                    help="inline (default): one session, every packet in the main context; ask-agent: native workers")
     p.add_argument("--plugin-dir", type=Path, help="a skill-craft plugin build to test (default: build this checkout)")

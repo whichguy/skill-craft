@@ -39,7 +39,7 @@ Verify source freshness and installed marketplace packages without starting a mo
 ```sh
 python3 -B "$SOURCE/test/shiploop_e2e/run.py" \
   --preflight-only --case "$CASE" --source marketplace \
-  --host codex --codex-auto-review --output "$PREFLIGHT"
+  --output "$PREFLIGHT"
 ```
 
 ## 1–2. Iterate and evaluate
@@ -76,25 +76,24 @@ prompt behavior in ~1–3 minutes/sample before spending a full delivery:
 python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" list
 python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" verify   # T0: offline oracle calibration (free)
 python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" render   # T1: offline packet render checks (free)
-python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" live <selector> --samples 1 --host codex --effort xhigh
+python3 -B "$SOURCE/test/shiploop_e2e/stage_suite/stages.py" live <selector> --samples 1
 ```
 
 T0 (`verify`) and T1 (`render`) make no model calls. T2 (`live`) informs
 hypotheses and catches stage regressions quickly, but a narrow stage replay
 never substitutes for `promotion/5` end-to-end qualification.
 
-For new campaigns, resolve the latest available Sol model for the subject (`--host codex --model "$SOL" --effort xhigh`,
-currently `gpt-6.2-sol`) and leave reviewer, judge and improver at the harness defaults
-(`antigravity / gemini-pro-orchestrator-neon` — Orchestrator Neon + Carbon; pass explicit `--reviewer-*`,
-`--judge-*`, or `--improver-*` flags such as Codex Astra `high`, Codex Sol `max`, or Claude Sonnet `max` with
-`--improver-host claude` without `--improver-effort medium` only when overriding a role).
+For new campaigns, leave subject, reviewer, judge and improver at the harness defaults
+(`antigravity / gemini-pro-orchestrator-neon` — Orchestrator Neon + Carbon, pairing Neon planning with Carbon
+execution internally; pass explicit `--host codex --model gpt-6.2-sol --effort xhigh --codex-auto-review` or
+`--reviewer-*`, `--judge-*`, `--improver-*` flags such as Codex Astra `high`, Codex Sol `max`, or Claude Sonnet `max`
+with `--improver-host claude` without `--improver-effort medium` only when overriding a role).
 
 Run the published build:
 
 ```sh
 python3 -B "$SOURCE/test/shiploop_e2e/run.py" \
   --case "$CASE" --source marketplace \
-  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
   --output "$RUN" --baseline "$BASELINES"
 ```
 
@@ -111,8 +110,7 @@ new `--output`; each assessment uses its own `assessment_id` and writes
 
 ```sh
 python3 -B "$SOURCE/test/shiploop_e2e/iterate.py" \
-  --case "$CASE" --review-run "$RUN" --output "$ASSESSMENT" \
-  --host codex --model "$SOL" --effort xhigh --codex-auto-review
+  --case "$CASE" --review-run "$RUN" --output "$ASSESSMENT"
 ```
 
 After every run (including failed, blocked, or no-change passes):
@@ -149,7 +147,6 @@ explicitly stated, unmeasured pair (`--attempts N --tolerance T`). Pass
 python3 -B "$LEARNING_WORKTREE/test/shiploop_e2e/iterate.py" \
   --qualify --iterations 1 --case "$CASE" --record "$RECORD_ID" \
   --attempts 3 --tolerance 0.25 --parallel 1 \
-  --host codex --model "$SOL" --effort xhigh --codex-auto-review \
   --output "$CYCLE"
 ```
 

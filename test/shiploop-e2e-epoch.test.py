@@ -256,8 +256,9 @@ class EpochTest(unittest.TestCase):
             output = Path(argv[argv.index("--output") + 1])
             output.mkdir()
             (output / "result.json").write_text('{"pass": false}')
-            self.assertEqual(argv[argv.index("--model") + 1], "gpt-6.2-sol")
-            self.assertEqual(argv[argv.index("--effort") + 1], "xhigh")
+            self.assertEqual(argv[argv.index("--host") + 1], "antigravity")
+            self.assertEqual(argv[argv.index("--model") + 1], "gemini-pro-orchestrator-neon")
+            self.assertNotIn("--effort", argv)
             return 1
         with mock.patch.object(runner, "main", side_effect=fake):
             epoch.launch(self.root, "control-hello", self.plugin)
@@ -795,6 +796,25 @@ class EpochLaunchAndPredictionTest(unittest.TestCase):
 
         with mock.patch.object(runner, "main", side_effect=completed_run):
             epoch.launch(root, "control-hello", self.plugin)
+
+    def test_promotion5_effort_binding_rules(self):
+        # Antigravity (effort-optional host) accepts None, rejects blank strings; Codex requires non-empty string.
+        reg_path = self.root / "registration.json"
+        ok = json.loads(reg_path.read_text())
+        loaded = epoch.promotion.load_registration(reg_path)
+        self.assertIsNone(loaded["arms"]["control"]["driver"]["effort"])
+        for bad_driver in (
+            {"host": "antigravity", "model": "gemini-pro-orchestrator-neon", "effort": ""},
+            {"host": "codex", "model": "gpt-6.2-sol", "effort": None},
+        ):
+            bad = dict(ok, arms={arm: {"shiploop_build": ok["arms"][arm]["shiploop_build"], "driver": bad_driver}
+                               for arm in ("control", "candidate")})
+            path = self.temp / "bad-reg.json"
+            path.write_text(json.dumps(bad))
+            with self.subTest(bad_driver=bad_driver), self.assertRaisesRegex(
+                SystemExit, "needs exact host, model, and effort driver bindings"
+            ):
+                epoch.promotion.load_registration(path)
 
 
 if __name__ == "__main__":

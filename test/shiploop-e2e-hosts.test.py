@@ -18,8 +18,9 @@ def load_tests(loader, standard_tests, pattern):
 
 
 class HostRunDefaultsTest(HarnessCase):
-    def test_codex_sol_xhigh_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
-        self.assertEqual(run.parser().parse_args([]).host, "codex")
+    def test_antigravity_orchestrator_neon_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
+        self.assertEqual(run.parser().parse_args([]).host, "antigravity")
+        self.assertEqual(hosts.HOST_DEFAULTS["antigravity"], {"model": "gemini-pro-orchestrator-neon", "effort": None})
         self.assertEqual(hosts.HOST_DEFAULTS["codex"], {"model": "gpt-6.2-sol", "effort": "xhigh"})
         self.assertEqual(hosts.HOST_DEFAULTS["claude"]["model"], "claude-sonnet-5-5")
 
