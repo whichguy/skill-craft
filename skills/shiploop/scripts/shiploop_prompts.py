@@ -1131,7 +1131,9 @@ DUTIES = {
    (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each acceptance line: positive,
    failure and boundary expectations, each only where it says something the others do not, otherwise `n/a: <reason>`;
    the consumer surface where it is observed; how it is confirmed. Split independently verifiable clauses; keep
-   bundled behaviours visible under one ID.
+   bundled behaviours visible under one ID. For every user- or admin-facing R-<n>, name the concrete
+   Actor -> UI/API Surface -> Interactive Controls/Actions -> Backend Entrypoint (or local client entrypoint);
+   read-only raw JSON summaries never satisfy an editing or configuration requirement.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
    KNOWLEDGE/architecture.md ## Decisions, never in KNOWLEDGE/spec.md; a product decision never takes the AD- prefix.
 4. Map every request outcome to at least one acceptance line (Behavior traceability guidance); keep approved scope, and
@@ -1142,7 +1144,7 @@ DUTIES = {
    Before you submit, read your acceptance lines one at a time against the request and what the product already
    does. Each line that states what the request does not, and that a person who uses or runs the product would
    notice (what they see, a step they must take, something refused), is a choice this spec made: say in the line that
-   it is a default of this date, and record it in `defaults`: its `requirement` (R-<n>), the `question` the request
+   it is a default of this date, and record it in `defaults`: its `requirement` (R-<n> only, not NFR-<n>), the `question` the request
    leaves open, the `default` as what that person sees or must do and what happens if they do not, one workable
    `alternative` with what it changes for them, and `why` this one. This list is the spec's record of the defaults it
    took (RULES). Add no behaviour to fill it; `[]` if no line qualifies. The requester reads the list: write it for
@@ -1171,8 +1173,12 @@ DUTIES = {
    no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
    honoring reduced motion; one icon set. For a new graphical UI, first read the UI visual-direction guide, then
    fill unspecified visual choices from its light expressive starting point; explicit visual constraints, established product identity
-   and platform conventions take precedence. Record the named visual reference and starting appearance here. A new web UI
-   starts light with a dark option unless that precedence establishes another appearance policy; the plan chooses the concrete treatment.
+   and platform conventions take precedence. When a UI is embedded inside an enterprise host platform shell, compose
+   controls, icons, elevation/surface depth, modals and layout natively from the host's component library and styling
+   tokens rather than flat raw HTML boxes, applying expressive hierarchy through the host design system; reserve
+   standalone light-expressive palette defaults for apps outside a host shell. Record the named visual reference and
+   starting appearance here. A new web UI starts light with a dark option unless that precedence establishes another
+   appearance policy; the plan chooses the concrete treatment.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
@@ -1213,6 +1219,9 @@ DUTIES = {
      host subsystems), physical runtime/transaction boundaries (sync versus async hops, callout-versus-write
      ordering rules, execution principal per hop), and classified external/upstream failure outcomes on every live
      call (auth/permission, rate-limit, timeout, upstream/malformed response) with sanitized user-visible feedback.
+     For interactive async flows, trace the closed end-to-end runtime loop (user trigger -> server dispatch/execution
+     -> continuation/scheduler arming -> live push/poll UI update plus initial persisted history readback on open or
+     context switch) so actions never dead-end in a queued record with no dispatch or live refresh.
    - Pass 3 — State-arrival & coexistence matrix (Order 2, zero new features): cross every async, delayed, scheduled
      or external arrival against concurrently active states: (a) active UI state (preserve unsent drafts and
      user-moved scroll, snapshot or flag navigated view context, and reset destructive focus, form selection and
@@ -1553,7 +1562,9 @@ Change no product file in this stage.
      some step. Its `paths` (inside the item's) name every file it changes.
    - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop reruns it at the step's done, so make it safe to repeat. It needs no later step,
-     unwritten test or release artifact (reuse a recorded command that proves them); skipping a missing file, or
+     unwritten test or release artifact (reuse a recorded command that proves them); `proof` runs at the end of
+     `implement` before `test` writes new test files, so never cite unwritten test files or nest unescaped backticks
+     inside double-quoted shell strings; skipping a missing file, or
      asserting only that a file exists where behaviour is asked, proves nothing. Remote-only target: the recorded test
      route only; steps share one proof script. None runs now: change the step boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
@@ -1980,7 +1991,11 @@ preparatory commit); a mismatch there is a send-back.
 2. Assess the product against the original outcome, not only the spec: acceptance lines, cross-cutting
    requirements, consumer impact (Consumer delivery guidance), test evidence, known limits. Reconcile new and
    preserved behaviour against the prior baseline and incoming spec (Current-system baseline guide, Behavior
-   traceability guidance) and check durable knowledge for gaps. Reassess changed security boundaries, including
+   traceability guidance) and check durable knowledge for gaps. Verify UI/API Entrypoint Reachability: every user- or
+   admin-facing R-<n> in KNOWLEDGE/spec.md must be wired and reachable through its real UI/CLI/API entrypoint (not
+   satisfied solely by backend unit tests or raw JSON dumps); route unwired backend-only features to add-work. Verify
+   Architecture-to-Disk Reconciliation: modules, UI bundles and components claimed in KNOWLEDGE/architecture.md must
+   exist on disk and match the delivered structure; fix stale claims or route missing components to add-work. Reassess changed security boundaries, including
    later-added work, even if the plan's security row says no or is absent. Reconcile quoted security decisions with
    the candidate's due evidence; keep checks due later with their owners. A recovered description or planned check
    alone does not establish acceptance: an outcome whose only evidence is inspection or a deferred assumption is

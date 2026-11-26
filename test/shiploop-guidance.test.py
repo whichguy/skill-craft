@@ -3763,7 +3763,39 @@ class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
 
         ui_doc = normalized((REFERENCES / "platforms" / "ui.md").read_text(encoding="utf-8"))
         self.assertIn("Day-0 unconfigured guided setup walkthrough state", ui_doc)
-        self.assertIn("host shell's native component and elevation conventions", ui_doc)
+        self.assertIn("native component library, styling tokens, iconography and tactile surface elevation", ui_doc)
+
+    def test_entrypoint_reachability_host_native_ui_and_salesforce_physics_contracts(self) -> None:
+        spec = normalized(prompts.prompt("spec"))
+        for clause in (
+            "Actor -> UI/API Surface -> Interactive Controls/Actions -> Backend Entrypoint",
+            "R-<n> only, not NFR-<n>",
+            "embedded inside an enterprise host platform shell",
+            "closed end-to-end runtime loop",
+        ):
+            with self.subTest(stage="spec", clause=clause[:50]):
+                self.assertIn(clause, spec)
+
+        step_plan = normalized(prompts.prompt("step-plan"))
+        self.assertIn("runs at the end of `implement` before `test` writes new test files", step_plan)
+
+        acceptance = normalized(prompts.prompt("product-acceptance"))
+        self.assertIn("UI/API Entrypoint Reachability", acceptance)
+        self.assertIn("Architecture-to-Disk Reconciliation", acceptance)
+
+        sf_doc = (REFERENCES / "platforms" / "salesforce.md").read_text(encoding="utf-8")
+        sf_norm = normalized(sf_doc)
+        for clause in (
+            "NamespacePrefix = null",
+            "--wait 10 --code-coverage --result-format tap",
+            "--slds-g-*",
+            "@container",
+            "<actionOverrides>",
+            "Duplicate PermissionSetAssignment",
+            "- `.xml`",
+        ):
+            with self.subTest(doc="platforms/salesforce.md", clause=clause):
+                self.assertIn(clause, sf_doc if "\n" in clause or clause.startswith("- ") else sf_norm)
 
 
 if __name__ == "__main__":

@@ -1914,7 +1914,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertIn(("salesforce", "sf apex run test"), commands)
         self.assertIn(("salesforce", "sf project deploy validate"), commands)
         self.assertIn(("salesforce", "sf project deploy start"), commands)
-        self.assertEqual(mutation.remote_only_extensions().get("salesforce"), [".cls", ".trigger"])
+        self.assertEqual(mutation.remote_only_extensions().get("salesforce"), [".cls", ".trigger", ".xml"])
         self.assertIsNone(mutation._remote_reason([{"command": "npx sfdx-lwc-jest -- --verbose"}]))
         # Run-5 batch I2: beside a local command, a remote one is left out of the mutant runs and recorded.
         local, remote = mutation.split_remote([{"command": "npx sfdx-lwc-jest -- --verbose"},

@@ -117,6 +117,8 @@ used.
 and the [deployment command's test-level contract](https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_deploy_start.html)
 are starting points; verify the rules for the operation actually selected.
 
+Unmanaged Salesforce DX projects (`NamespacePrefix = null`) cannot deploy `Protected` Custom Settings: store write-only admin secrets in an OWD-Private encrypted Custom Object (`Text(Encrypted)` or AES256) with zero tabs or PermissionSet grants and server-side `WITH SYSTEM_MODE` custody (never returning raw secrets to clients, logs, or exports).
+
 ShipLoop reads a focused Apex test's outcome from the runner's own pass or fail
 mark on the line that names it, so record the command with a reporter it can
 read and with coverage collection enabled:
@@ -125,6 +127,9 @@ read and with coverage collection enabled:
 reads and counts, so a `not ok` test fails the command even when it exits 0, and
 populates `ApexCodeCoverageAggregate` so aggregate and per-class coverage can be
 re-checked after the final test additions rather than assumed from pass counts.
+Note that `--synchronous` accepts only a single `--class-names` class; running
+multiple Apex test classes requires
+`sf apex run test --target-org <alias> --class-names <ClassA> <ClassB> --wait 10 --code-coverage --result-format tap`.
 The default table and `--result-format human` put the outcome word after the
 test name, which ShipLoop does not read. ShipLoop still accepts a focused
 command that uses them when it exits 0 and its output names every listed test
@@ -149,6 +154,16 @@ Do not hard-code a Salesforce hostname as the universal consumer boundary.
 and [page types](https://developer.salesforce.com/docs/platform/lwc/guide/reference-page-reference-type.html)
 define the supported navigation contract. This supplements the generic
 [browser evidence guidance](../testing-and-documentation.md#lightweight-and-browser-checks).
+
+Lightning Web Components hosted inside Salesforce Lightning Experience must compose
+standard chrome, forms, tabs, modals, icons and tactile surface elevation from
+Salesforce Lightning Base Components (`lightning-*`) and SLDS design tokens /
+styling hooks (`--slds-g-*`) rather than flat raw HTML controls. Use CSS Container
+Queries (`container-type: inline-size` / `@container`) instead of viewport `@media`
+queries for narrow Utility Bar popovers and Record Page sidebars, because viewport
+`@media` does not trigger on wide desktop monitors. Activate any custom `RecordPage`
+`FlexiPage` via `<actionOverrides>` in the `CustomApplication` (or Org Default);
+an unactivated `FlexiPage` file is invisible to users.
 
 Attempt the intended UI entry first in the selected browser context. If sign-in
 is needed, discover whether the authorized `sf` CLI already has authentication
@@ -202,6 +217,7 @@ Source files with these extensions execute only in the Salesforce org, never in 
 
 - `.cls`
 - `.trigger`
+- `.xml`
 
 ## Consumer entry access (read-only probe)
 
@@ -233,3 +249,8 @@ before relying on a query. A gap the run may not fix stays open with its
 owner, and release-verify's person ask starts there: step 1 is the App
 Launcher entry and its URL path, and what to answer when the page does not
 exist.
+
+When an authorized release or setup step assigns a permission set, note that
+`sf org assign permset` exits non-zero if the user already holds it
+(`Duplicate PermissionSetAssignment`). Check `PermissionSetAssignment` first so
+repeatable steps and proofs stay idempotent.
