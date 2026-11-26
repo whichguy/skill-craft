@@ -1193,9 +1193,18 @@ DUTIES = {
    mechanism the request and host do not involve):
    - Pass 1 — Host-value & analogous archetype baseline (Order 0 -> 1): ask why the capability lives inside the
      named host or existing app rather than standalone. Adopt single-item (`cardinality = 1`) table-stakes host
-     integration—Day-0 operator setup and live readiness verification only when introducing a new external provider
-     or unconfigured integration (reuse already-configured host subsystems without adding a new setup gate),
-     caller-scoped host-context reads, and read-only before/after preview plus explicit human confirmation before
+     integration—applying the 3-part configuration design proportionally whenever an app has distinct operator/admin
+     vs. end-user roles or new external integrations (skipping extra configuration surfaces for simple single-user local
+     tools): (1) separate Admin/Operator Settings (external providers, credentials/secrets, endpoints, security
+     ceilings, org/group policies, kill switches, retention, catalog governance) from User Preferences (personal
+     appearance, default landing view, response style, user-overridable preferences with clear read-only lock badges
+     when admin-locked—never exposing admin controls or raw config JSON); (2) boot with safe non-secret defaults plus
+     honest runtime `Unconfigured`/`Needs Setup` detection (never pre-seeding an unconfigured/unusable provider as
+     `Verified`, and isolating missing prerequisites so default-ready features still work; reuse already-configured host
+     subsystems without adding a new setup gate); and (3) give admins/operators a role-aware guided setup
+     walkthrough jumping directly to editable controls + live readiness verification that clears once verified, while
+     showing regular end-users a calm, non-technical status explaining what works now and what needs an administrator.
+     Include caller-scoped host-context reads and read-only before/after preview plus explicit human confirmation before
      agent-proposed, irreversible or cross-entity mutations (keeping routine reversible self-service actions direct)—
      recording requester-visible choices in `defaults` while excluding unrequested channels, batching, inline-edit
      subflows or adjacent products.
@@ -1342,7 +1351,10 @@ DUTIES = {
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
    platform-services, scale, security, observability, config, performance, accessibility: either
    `{id, applies: "yes", decision, anchor, owner_stage}` or `{id, applies: "no", reason}`; one clause each; capture promotion, migration and settings choices in switchover,
-   migrate-before/after and config. In multi-item plans, `W1` maps all 15 rows; `W2+` may map all 15 rows or set `"deferred"`.
+   migrate-before/after and config. Where the product includes Admin/Operator Settings, User Preferences, or a Day-0
+   guided setup walkthrough, `config` and `ui` rows must assign those surfaces and their role-aware unconfigured
+   walkthroughs to concrete UI work items (never closing interactive configuration UI requirements via backend-only
+   services or raw JSON display). In multi-item plans, `W1` maps all 15 rows; `W2+` may map all 15 rows or set `"deferred"`.
    Carry each acceptance line's required surface and completion condition into the owning item's context. For a
    later or unavailable observation, retain its owner, due phase and unresolved status under the existing
    completion and unverified policies. Opt-in execution or a lower-layer pass does not close a stronger explicit

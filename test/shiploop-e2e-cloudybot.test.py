@@ -269,6 +269,11 @@ class CloudyBotCatalogTests(unittest.TestCase):
             "75%",
             "Test.isRunningTest()",
             "uncommitted work pending",
+            "Not Configured Yet",
+            "Role-Aware Guided Setup Walkthrough",
+            "Admin Settings (`Admin-Only`)",
+            "My Preferences (Every User)",
+            "Standard User",
         ):
             self.assertIn(clause, prompt)
 

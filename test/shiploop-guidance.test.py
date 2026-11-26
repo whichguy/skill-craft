@@ -3711,6 +3711,60 @@ class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
             self.assertEqual(defaults.changed(state), set())
             self.assertEqual(sorted(knowledge.entries(repo, "spec.md")), ["R-1", "R-2"])
 
+    def test_configuration_scopes_and_day0_walkthrough_contracts_are_present_across_spec_plan_and_guides(self) -> None:
+        spec = normalized(prompts.prompt("spec"))
+        for clause in (
+            "separate Admin/Operator Settings",
+            "from User Preferences",
+            "clear read-only lock badges when admin-locked",
+            "never exposing admin controls or raw config JSON",
+            "honest runtime `Unconfigured`/`Needs Setup` detection",
+            "never pre-seeding an unconfigured/unusable provider as `Verified`",
+            "role-aware guided setup walkthrough jumping directly to editable controls + live readiness verification",
+            "showing regular end-users a calm, non-technical status",
+        ):
+            with self.subTest(stage="spec", clause=clause[:50]):
+                self.assertIn(clause, spec)
+
+        plan = normalized(prompts.prompt("plan"))
+        for clause in (
+            "Admin/Operator Settings, User Preferences, or a Day-0 guided setup walkthrough",
+            "`config` and `ui` rows must assign those surfaces",
+            "never closing interactive configuration UI requirements via backend-only services or raw JSON display",
+        ):
+            with self.subTest(stage="plan", clause=clause[:50]):
+                self.assertIn(clause, plan)
+
+        beh_doc = normalized((REFERENCES / "behavioral-requirements.md").read_text(encoding="utf-8"))
+        for clause in (
+            "### Configuration scopes and Day-0 guided setup",
+            "Separate Admin/Operator Settings from User Preferences",
+            "Safe Defaults and Honest Day-0 Detection",
+            "Role-Aware Guided Setup Walkthrough",
+            "unconfigured Day-0 state and role-aware guided setup walkthrough",
+            "compose host-embedded views natively inside the host shell",
+        ):
+            with self.subTest(doc="behavioral-requirements.md", clause=clause[:50]):
+                self.assertIn(clause, beh_doc)
+
+        req_doc = normalized((REFERENCES / "requirements-definition.md").read_text(encoding="utf-8"))
+        self.assertIn(
+            "must map to **both** its backend authority/state owner **and** its interactive UI entrypoint",
+            req_doc,
+        )
+        self.assertIn(
+            "backend-only service pass or a raw JSON dump cannot reconcile an interactive configuration UI requirement",
+            req_doc,
+        )
+
+        plan_rec = normalized((REFERENCES / "plan-record.md").read_text(encoding="utf-8"))
+        self.assertIn("separation between Admin/Operator Settings and User Preferences surfaces", plan_rec)
+        self.assertIn("Day-0 unconfigured state and role-aware guided setup walkthrough", plan_rec)
+
+        ui_doc = normalized((REFERENCES / "platforms" / "ui.md").read_text(encoding="utf-8"))
+        self.assertIn("Day-0 unconfigured guided setup walkthrough state", ui_doc)
+        self.assertIn("host shell's native component and elevation conventions", ui_doc)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
