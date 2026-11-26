@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-11-26
 
+### skill-craft 4.20.6
+
+- Skills: shiploop 2.21.4, shiploop-run-review 0.6.2
+
+### shiploop 2.21.4
+
+- Keep planning-to-execution model-switch context lossless through ShipLoop's canonical artifacts: persist `### Design basis` in `KNOWLEDGE/architecture.md`, dynamically surface `spec` defaults, expanded `plan` summaries/lessons, and `RUN/experiments/<exp-id>/decision.md` probe decisions in `RUN/context-index.md` (`## Planning basis`), include `discovery` and `research` in `step-plan` `reads`, and point fresh profile-switched `shiploop-drive` sessions directly at those canonical records.
+
+### shiploop-run-review 0.6.2
+
+- Synchronize `defaults/stages.json` with `shiploop_stage_spec.py` after adding `discovery` and `research` to `step-plan` `reads`.
+
 ### skill-craft 4.20.5
 
 - Skills: shiploop 2.21.3

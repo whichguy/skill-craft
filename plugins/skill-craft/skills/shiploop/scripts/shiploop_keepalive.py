@@ -1505,10 +1505,25 @@ RESUMING_HOSTS = ("cursor", "opencode")
 EXIT_DONE, EXIT_NEEDS_USER, EXIT_STUCK, EXIT_CAP = 0, 3, 4, 5
 
 
-def _driver_prompt(status: Mapping[str, Any]) -> str:
+def _driver_prompt(
+    status: Mapping[str, Any],
+    *,
+    switched_from: str | None = None,
+    switched_to: str | None = None,
+) -> str:
+    handoff = ""
+    if switched_from and switched_to:
+        run_dir = status.get("run_dir") or "RUN"
+        repo_dir = status.get("repo") or "."
+        handoff = (
+            f"Profile handoff ({switched_from} -> {switched_to}): ground in `{run_dir}/context-index.md` "
+            "(`## Planning basis`, `spec` defaults, `plan` assumptions, `experiments/`), "
+            f"`{repo_dir}/docs/shiploop/` (`spec.md`, `architecture.md` `### Design basis`, `environment.md`), "
+            f"and `{run_dir}/request.md` before planning or editing. "
+        )
     return (f"First run `{status['next']}` once to recover the current action, existing artifacts and exit/repeat "
             "conditions in this fresh session. Continue only its remaining work and exact callback; "
-            "do not restart, reissue or replay recorded work. " + _continue_reason(status))
+            "do not restart, reissue or replay recorded work. " + handoff + _continue_reason(status))
 
 
 def host_argv(host: str, prompt: str, session: str | None, extra: list[str]) -> list[str]:
@@ -1629,11 +1644,14 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
     sessions_file = logs / "sessions.json"
     sessions: dict[str, str] = {}
     last_target_key: str | None = None
+    last_target_label: str | None = None
     if routing is not None:
         _write_json(routing_file, routing)
         sessions = _load_sessions(sessions_file)
         if isinstance(sessions.get("_last_target"), str):
             last_target_key = sessions["_last_target"]
+        if isinstance(sessions.get("_last_label"), str):
+            last_target_label = sessions["_last_label"]
     while deadline is None or clock() < deadline:
         number += 1
         before = run_status(run_dir)
@@ -1659,9 +1677,15 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
                     bound = bindings_for_run(active_host, run_dir)
                     session = bound[0]["session"] if bound else None
             switched = last_target_key is not None and last_target_key != target.target_key
-            prompt = (_continue_reason(before)
-                      if (session and active_host in RESUMING_HOSTS and not switched)
-                      else _driver_prompt(before))
+            prompt = (
+                _continue_reason(before)
+                if (session and active_host in RESUMING_HOSTS and not switched)
+                else _driver_prompt(
+                    before,
+                    switched_from=(last_target_label or "previous profile") if (switched and not session) else None,
+                    switched_to=target.label if (switched and not session) else None,
+                )
+            )
             session_extra = [*extra, *model_routing.host_model_args(active_host, target)]
             run_env = {
                 **os.environ,
@@ -1706,7 +1730,9 @@ def _drive_sessions(host: str, run_dir: str, logs: Path, journal: Path, *, deadl
             if captured:
                 sessions[active_host] = captured
             last_target_key = target.target_key
+            last_target_label = target.label
             sessions["_last_target"] = last_target_key
+            sessions["_last_label"] = last_target_label
             _write_json(sessions_file, sessions)
         # The session is over however it ended; let the next one own the run.
         release_owner(run_dir)
