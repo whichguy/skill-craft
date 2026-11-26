@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-11-25
 
+### skill-craft 4.20.0
+
+- Skills: shiploop 2.21.0
+
+### shiploop 2.21.0
+
+- - Tailor open-item settlement hints in packets to each stage's actual result fields (`unverified` at `product-acceptance`, `criteria` at `step-plan`, `summary` at other non-`assumptions` stages, preserving `follow_on` at `handoff` and `assumptions` at `assumptions.STAGES`).
+- Add unattended Hybrid 4-order progressive state-arrival elaboration across `intake`, `discovery`, `spec`, and `plan`: self-interrogate implied decision frontiers in dependency order (`Order 0 -> 1 -> 2 -> 3`), ground host-embedded capabilities at single-item cardinality (`1` target, `1` operation, read-only diff preview) instead of collapsing to zero-host shells, cross async/scheduled arrivals against active UI state, cross-hop principals, and existing subsystems without adding unrequested features, require edition-quota atomic compaction, drift invalidation, and no-wedge terminal exits, and reconcile `AD-<n>` / `RUN/experiments/` execution-hop consequences back into `spec.md` during `plan`.
+- Clarify in the Salesforce platform guide that a failing `RunSpecifiedTests` or `RunLocalTests` deployment validation must not be silently downgraded to `--test-level NoTestRun` without either fixing/adding tests to pass validation or recording an explicit `unverified` gap or owner waiver.
+
 ### skill-craft 4.19.0
 
 - Skills: improve 0.7.5, shiploop 2.20.0, shiploop-e2e-audit 2.2.0

@@ -7738,6 +7738,23 @@ def _followed_lines(repo: Path, label: str, value: Any) -> list[str]:
     return [label + ":", *(line for ident, _text in value for line in _entry_lines(repo, str(ident)))]
 
 
+def _open_item_settlement_hint(stage: str | None) -> str:
+    """Tell each stage how to account for due open assumptions using the fields it actually submits."""
+    if stage == "handoff":
+        return ('Account for each open item due at handoff in follow_on (source: "assumption:<id>") '
+                "or cite its ID in summary.")
+    if stage == "product-acceptance":
+        return ("Account for each due open item by ID in summary (settled evidence) "
+                "or carry it forward in unverified (citing its ID).")
+    if stage == "step-plan":
+        return ('Account for each due open item by ID in summary (settled evidence) '
+                'or criteria (from: "assumption:<id>").')
+    if stage in assumptions.STAGES:
+        return ("Account for each due open item by ID in summary (settled evidence) "
+                "or carry it forward in assumptions.")
+    return "Account for each due open item by ID in summary (settled evidence)."
+
+
 def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Collection[str] = (),
                   *, stage: str | None = None) -> list[str]:
     """One hand-off value in the consumer contract's wording (section 4); "not recorded by <stage>" when missing.
@@ -7771,13 +7788,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
                          + " | due: " + assumptions.due(row)
                          + (" | owner: " + _one_line(row["owner"]) if row.get("owner") else "")
                          + " | from " + str(item.stage) + (" " + str(item.workitem) if item.workitem else ""))
-        lines.append(
-            'Account for each open item due at handoff in follow_on (source: "assumption:<id>") '
-            "or cite its ID in summary."
-            if stage == "handoff" else
-            "Account for each due open item by ID in summary (settled evidence) "
-            "or carry it forward in assumptions."
-        )
+        lines.append(_open_item_settlement_hint(stage))
         return lines
     label = source.key + " (" + (str(source.workitem) + " " if source.workitem else "") + str(source.stage) + ")"
     value = source.value
@@ -8349,8 +8360,7 @@ def _test_evidence_lines(root: Path, state: Mapping[str, Any], stage: str, work_
                 lines.append("- " + str(row.get("id")) + ": " + _one_line(row.get("assumption"))
                              + " | settle: " + _one_line(row.get("settle"))
                              + " | reason: " + _one_line(row.get("reason")))
-            lines.append("Account for each due open item by ID in summary (settled evidence) "
-                         "or carry it forward in assumptions.")
+            lines.append(_open_item_settlement_hint(stage))
         return lines
     if stage == "test-strategy":
         intake_action = current.get((None, "intake"))

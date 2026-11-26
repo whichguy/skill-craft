@@ -641,7 +641,14 @@ Choose the simplest placement that meets the request: a single-user game or tool
 with no shared or lasting state runs entirely in the client. Add server state,
 identity, a store or a live channel only for a requirement that needs it, and use
 the runtime's native storage, identity, cache, workflow and notification services
-before building your own.
+before building your own. When a terse request places a capability inside an
+existing host platform or multi-subsystem application, ground why it lives in
+that host at single-item cardinality (`1` target, `1` operation, read-only diff
+preview): keep Day-0 operator readiness verification when introducing a new
+external provider or unconfigured integration (reusing already-configured host
+subsystems as-is), caller-scoped host-context reads, and human-confirmed mutation
+safety before agent-proposed, irreversible or cross-entity writes, while
+excluding unrequested external channels, batching or adjacent products.
 Simplicity removes machinery, never safeguards: at every placement, keep the
 personal-data handling above, a server-side check on every action by a caller the
 product does not control, validation and abuse limits on anonymous input, and a
@@ -951,9 +958,17 @@ DUTIES = {
    destructive data work require separate authority (Delivery authority guidance).
 5. Say where and when the outcome is visible: an isolated run's source checkout stays at its snapshot until the
    final return, and an outcome in a deployed target exists only after release.
-6. For an interactive product, list the open interaction and state questions: actors and how the runtime identifies
-   them; shared state across people, devices or sessions; its lifetime and what ends it; what stays hidden from
-   whom; what the runtime already provides. Answer from the request, else record the default and what it rules out.
+6. For an interactive or stateful product, list the open interaction and state questions by walking the implied
+   decision tree in dependency order (unattended self-interrogation: settle prerequisites first, then surface the
+   frontier of downstream questions each choice opens, with no external interview skill): actors and how the runtime
+   identifies them; when placed inside a host platform or existing multi-subsystem app, why it lives in that host
+   versus standalone (adopting single-item `cardinality = 1` host-context reads, Day-0 readiness verification when
+   introducing a new external provider, and human-confirmed write previews before agent-proposed, irreversible or
+   cross-entity mutations as the baseline default rather than a zero-host shell, while reusing already-configured
+   host subsystems as-is and excluding unrequested channels, batching or adjacent products); shared state across
+   people, devices or sessions; its lifetime and what ends it; what stays hidden from whom; what existing host
+   subsystems (notifications, audit logs, drafts, timers, quotas) it meets and what the runtime already provides. Route factual branches to `inspect`, `research` or
+   `experiment`; for open product branches answer from the request, else record the default and what it rules out.
 7. A request that continues an earlier run follows Prior-run and recovery guidance.
 8. Implement nothing; add no scope. `evidence_refs`: each source used.
 9. Key questions. Ask the key questions about this request before anything is planned. For each category
@@ -1019,6 +1034,10 @@ DUTIES = {
    change the spec. Record source version, actor and conditions, and evidence limits in existing notes. Carry
    material unknowns to the affected requirements. Missing access does not establish absent behavior; observed
    defects or incidental internal design are not automatically obligations.
+   When a terse request places a capability inside a host platform or multi-subsystem codebase without naming an
+   external reference, inventory the host's native context, caller permission model, edition quotas and touched
+   stateful subsystems (notifications, audit logs, live drafts, timers, background workers) in RUN/notes/discovery.md
+   so spec grounds host value instead of collapsing to an isolated shell.
 6. Check the repository index, README and AGENTS for skill links before proposing an implementation
    (Repository-local skill guidance). Record fit or no fit under ## Skills with a locator; for a chosen skill, its
    entrypoint, inputs and defaults, contract and revalidation condition. Edit no skill package.
@@ -1163,10 +1182,47 @@ DUTIES = {
    requirements in KNOWLEDGE/spec.md. Per piece of state: owner and location; who may read it (information one user must
    not see, such as an opponent's hidden game state or another person's record, stays off that client; what a lone
    user could only misuse against themselves may stay); how simultaneous changes resolve; what ends and removes it;
-   the runtime quotas it meets. Personal or secret data: where shown, stored, logged, how long kept, how removed.
-   Map each to what the runtime offers. Add no identity, sharing or persistence the request does not need; record a
-   default for an open choice in `defaults` (duty 4). Affected UI: component, interaction and skin premises
-   and truthful async feedback as consumer-visible behaviour.
+   the runtime quotas it meets. Personal or secret data: where shown, stored, logged, how long kept, how removed
+   (never echo stored secrets back to clients or logs).
+   Map each to what the runtime offers. Add no identity, sharing or persistence a standalone single-user request
+   does not need; record a default for an open choice in `defaults` (duty 4). Affected UI: component, interaction
+   and skin premises and truthful async feedback as consumer-visible behaviour.
+   For any stateful, multi-hop or host-embedded request, walk four progressive causal passes in dependency order
+   before finalizing R-<n> (unattended self-interrogation: each pass resolves only consequences of earlier passes;
+   Passes 3-4 add zero new user-facing features, and invent no admin console, preview modal or redirect graph for a
+   mechanism the request and host do not involve):
+   - Pass 1 — Host-value & analogous archetype baseline (Order 0 -> 1): ask why the capability lives inside the
+     named host or existing app rather than standalone. Adopt single-item (`cardinality = 1`) table-stakes host
+     integration—Day-0 operator setup and live readiness verification only when introducing a new external provider
+     or unconfigured integration (reuse already-configured host subsystems without adding a new setup gate),
+     caller-scoped host-context reads, and read-only before/after preview plus explicit human confirmation before
+     agent-proposed, irreversible or cross-entity mutations (keeping routine reversible self-service actions direct)—
+     recording requester-visible choices in `defaults` while excluding unrequested channels, batching, inline-edit
+     subflows or adjacent products.
+   - Pass 2 — State carriers, classified errors & execution hops (Order 1): inventory concrete state carriers (UI
+     drafts, scroll, focus/selection bindings, in-flight requests, pending confirmations, durable records, touched
+     host subsystems), physical runtime/transaction boundaries (sync versus async hops, callout-versus-write
+     ordering rules, execution principal per hop), and classified external/upstream failure outcomes on every live
+     call (auth/permission, rate-limit, timeout, upstream/malformed response) with sanitized user-visible feedback.
+   - Pass 3 — State-arrival & coexistence matrix (Order 2, zero new features): cross every async, delayed, scheduled
+     or external arrival against concurrently active states: (a) active UI state (preserve unsent drafts and
+     user-moved scroll, snapshot or flag navigated view context, and reset destructive focus, form selection and
+     tokens after commit, cancel or error); (b) active execution/protocol state (background or event hops never
+     silently shift or widen caller permissions under system principals, and in-flight request/tool/response turns
+     never interleave or split); (c) concurrent actor and subsystem state (idempotent confirmation across reload or
+     double-submit, stale-record conflict check against previewed state, inbound follow-ups arriving on closed or
+     merged entities where applicable, cross-principal/requester privacy isolation, and suppression or consolidation
+     of existing notification, audit and timer subsystems, rechecking live state when scheduled actions fire).
+   - Pass 4 — Accumulation, drift & no-wedge exit (Order 3, zero new features): fast-forward Order-2 state across
+     scale, edits and failures: (a) quota and atomic compaction (fit target edition data/file/row ceilings with
+     graceful backpressure, and window or compact strictly on atomic turn/tool-pair or operation groups without
+     evicting open confirmations); (b) configuration and pointer-chain drift (where external endpoints, models,
+     capacities or credentials are configurable, edits invalidate prior readiness verification or reconcile active
+     queues/in-flight work without secret readback; where entities redirect or merge, transitive chains flatten or
+     bound hops without cycles); (c) guaranteed terminal exit
+     (every non-terminal `Pending`/`Running`/`Submitting` state defines deterministic recovery via worker finalizer,
+     lease/timeout reconciliation, rollback or user cancel so crashes or failed post-call saves never wedge the UI
+     or queue).
 """ + _duty_focus(10, "KNOWLEDGE/spec.md", "spec") + """\
 11. """ + _BACKCHAIN_ITEM + """
 12. A complete spec establishes acceptance lines, not implementation or test success. `evidence_refs`: KNOWLEDGE/spec.md, each
@@ -1292,6 +1348,16 @@ DUTIES = {
    completion and unverified policies. Opt-in execution or a lower-layer pass does not close a stronger explicit
    acceptance condition. Correct conflicts through the existing routes; do not postpone an already-due check
    simply to advance.
+   Whenever an AD-<n> or `RUN/experiments/` probe introduces an async hop, background/system principal,
+   callout-versus-write split, storage-tier/compaction split or subsystem hook whose Order-2 arrival coexistence
+   (principal preservation across hops, in-flight draft/scroll/focus safety, idempotent stale-checked confirmation,
+   notification/timer/inbound-reply race) or Order-3 accumulation, drift or no-wedge exit (edition quota split,
+   atomic group compaction, config/chain drift invalidation, crash/finalizer/lease terminal recovery) is not yet
+   explicit in KNOWLEDGE/spec.md, reconcile it before locking `work_items` (adding zero unrequested features):
+   append the declarative observable clause in place under its R-<n> (or add a new R-<n>) in
+   KNOWLEDGE/spec.md (## Requirements, ## Non-functional requirements) while keeping every existing R-<n> ID and
+   accepted clause intact, record any real-boundary check under KNOWLEDGE/architecture.md ## Real-boundary checks,
+   and map the R-<n>/AD-<n> into the owning item's `follows`, `concerns` and `context`.
 4. Carry the initial baseline's evidence and classification into `evidence_refs` and each affected item's `context`
    (Initial repository baseline guide). A foundation repair, setup prerequisite or missing-test bootstrap goes in the
    earliest feasible item before the feature that depends on it; its readiness evidence is the original check's
@@ -2020,10 +2086,10 @@ preparatory commit); a mismatch there is a send-back.
    controls for each check's claim per GUIDES/testing-and-documentation.md#release-entry-and-release-check;
    unqualified required checks remain open. Fix a faulty check in KNOWLEDGE/environment.md ## Commands and rerun.
    Never mutate or delete the target to manufacture absence; infer no grant or setup workaround.
-5. Isolated run only: run the packet's `plan-return` command (producing `return-plan.md`), then decide every undecided path with review-return (a
-   dry run; decisions are kept for the return at release). Compare review-return's expected return and the
-   rollback it prints (the keep rows filled in) with the procedure in KNOWLEDGE/environment.md; if they differ,
-   correct the procedure and rerun plan-return.
+5. Isolated run only: run the packet's plan-return command, then decide every undecided path with review-return (a
+   dry run; decisions are kept for the return at release, recorded in `return-plan.md`). Compare review-return's
+   expected return and the rollback it prints (the keep rows filled in) with the procedure in
+   KNOWLEDGE/environment.md; if they differ, correct the procedure and rerun plan-return.
 6. Keep stale or failed evidence in `evidence_refs` as is; replay or promote nothing for a fresh observation. A
    material change to code, tests, fixtures, configuration, migrations or target invalidates the observations it
    affects: rerun those through the planned route, reuse the rest only with identity and relevance stated.

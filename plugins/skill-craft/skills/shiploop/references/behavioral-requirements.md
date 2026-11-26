@@ -182,6 +182,15 @@ affected. Apply only the following relevant questions, in the existing notes:
 Use the existing sequence/transition and test records for these decisions. Reuse
 current supported mechanisms; neither these questions nor a message-format
 standard prescribe an event bus, global handler, transport or new ShipLoop state.
+For stateful, multi-hop or host-embedded requests in unattended runs, walk these
+implications progressively in dependency order (`Order 0 -> 1 -> 2 -> 3`): ground
+host-value table stakes at single-item cardinality (`1` target, `1` operation,
+read-only diff preview) without adding unrequested channels or batching; name
+state carriers, classified external error outcomes and execution/principal hops;
+cross async/scheduled/external arrivals against active UI drafts/scroll/focus,
+cross-hop principals and adjacent subsystems (notifications, audit logs, timers)
+adding zero features; and verify edition-quota compaction integrity, config/chain
+drift invalidation and guaranteed non-wedging terminal exits on crash or save failure.
 
 ### UI-specific planning
 
