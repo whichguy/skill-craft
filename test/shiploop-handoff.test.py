@@ -2215,6 +2215,45 @@ class ConsumesTests(RepoCase):
             "or cite its ID in summary.",
             hf_lines,
         )
+        pa_lines = "\n".join(navigator.handoff_lines(self.root, state, "product-acceptance"))
+        self.assertIn(
+            "Account for each due open item by ID in summary (settled evidence) "
+            "or carry it forward in unverified (citing its ID).",
+            pa_lines,
+        )
+        self.assertNotIn("carry it forward in assumptions", pa_lines)
+        plan_entry, plan_result = row("pl1", "plan", None, {
+            "work_items": [{"id": "W1", "title": "Main flow", "concerns": []}],
+            "assumptions": [{
+                "id": "A9",
+                "assumption": "Endpoint needs auth check.",
+                "disposition": "open",
+                "settle": "inspect endpoint",
+                "reason": "defer to step-plan",
+                "due_item": "W1",
+            }],
+        })
+        sp_state = dict(
+            state,
+            history=[plan_entry],
+            accepted={"pl1": plan_result},
+            work_items=[{"id": "W1", "title": "Main flow"}],
+            work_index=0,
+        )
+        sp_lines = "\n".join(navigator.handoff_lines(self.root, sp_state, "step-plan"))
+        self.assertIn(
+            'Account for each due open item by ID in summary (settled evidence) '
+            'or criteria (from: "assumption:<id>").',
+            sp_lines,
+        )
+        self.assertNotIn("carry it forward in assumptions", sp_lines)
+        ts_entry, ts_result = row("ts_prep", "test-strategy", None, {
+            "assumptions": [open_row("A8", "prepare")],
+        })
+        prep_state = dict(state, history=[ts_entry], accepted={"ts_prep": ts_result})
+        prep_lines = "\n".join(navigator._test_evidence_lines(self.root, prep_state, "prepare", None))
+        self.assertIn("Account for each due open item by ID in summary (settled evidence).", prep_lines)
+        self.assertNotIn("carry it forward in assumptions", prep_lines)
         # No open items -> no settlement hint emitted.
         empty_state = dict(state, history=[], accepted={})
         self.assertEqual(
