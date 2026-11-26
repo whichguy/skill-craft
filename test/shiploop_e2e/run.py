@@ -119,6 +119,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import select
 import shlex
 import shutil
 import signal
@@ -753,7 +754,16 @@ def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None
     else:
         plugin_dir = export_released(out)
         how = "origin/main export"
+        installer = getattr(host, "install_plugin", None)
+        if callable(installer):
+            installed = installer(env, plugin_dir)
+            if installed is not None:
+                plugin = installed
+                plugin_dir = Path(installed["path"]) if installed.get("path") else out / "missing-plugin"
+                how = f"origin/main export + {host.name} plugin staging"
     versions = {"source": "marketplace", "installed_by": how, **installed_versions(plugin_dir), "released": released}
+    if (plugin_dir / "skills" / "shiploop").is_dir() and "shiploop_sha256" not in versions:
+        versions.update(skill_digests(plugin_dir))
     versions["gate"] = version_gate(released, versions["plugin_version"], versions["shiploop_version"])
     if plugin is not None and not plugin["pass"]:
         versions["gate"].append("the marketplace install failed: " + ("; ".join(plugin["loaded"]) or "no plugin"))
@@ -788,8 +798,23 @@ class LiveView:
         self.start, self.enabled, self.text, self.priced = start, enabled, "", priced
 
     def emit(self, line: str):
-        if self.enabled:
-            print(f"[{time.time() - self.start:6.0f}s] {scrub(line)}", flush=True)  # the terminal and its logs keep no credential
+        if not self.enabled:
+            return
+        text = f"[{time.time() - self.start:6.0f}s] {scrub(line)}\n"  # the terminal and its logs keep no credential
+        try:
+            fd = sys.stdout.fileno()
+        except (AttributeError, OSError, ValueError):
+            print(text, end="", flush=True)
+            return
+        try:
+            _, writable, _ = select.select([], [fd], [], 0.05)
+            if not writable:
+                self.enabled = False
+                return
+            sys.stdout.write(text)
+            sys.stdout.flush()
+        except (BrokenPipeError, BlockingIOError, OSError):
+            self.enabled = False
 
     def flush_text(self):
         if self.text.strip():
@@ -4724,7 +4749,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # verdict the run recorded (see the invocation record below). Claude's init event shows the plugin on
         # any launch, so Claude is graded from its events again.
         plugin_dir = Path(earlier.get("plugin_dir") or out / "missing-plugin")
-        plugin = None if args.host == "claude" else recorded.get("plugin")
+        plugin = None if args.host == "claude" else (recorded.get("plugin") or earlier.get("plugin"))
         versions = {"source": None, "plugin_version": None, "shiploop_version": None,
                     **(recorded.get("versions") or earlier.get("versions") or {}), "regraded": True}
     elif resumed and earlier.get("host") == args.host and Path(earlier.get("plugin_dir") or "").is_dir():

@@ -2176,6 +2176,62 @@ print(json.dumps({{"event": "result", "result": {{
         self.assertEqual(problems, [], problems)
         self.assertEqual(sorted(p.name for p in real_home.iterdir()), [".gemini", "Library"])
 
+    def test_marketplace_preflight_stages_antigravity_plugin_and_records_skill_digests(self):
+        exported = self.tmp / "exported" / "plugins" / "skill-craft"
+        (exported / ".antigravity-plugin").mkdir(parents=True)
+        (exported / ".antigravity-plugin" / "plugin.json").write_text('{"name":"skill-craft","version":"4.20.3"}\n')
+        (exported / ".claude-plugin").mkdir(parents=True)
+        (exported / ".claude-plugin" / "plugin.json").write_text('{"name":"skill-craft","version":"4.20.3"}\n')
+        (exported / "skills" / "shiploop").mkdir(parents=True)
+        (exported / "skills" / "shiploop" / "SKILL.md").write_text("---\nname: shiploop\nversion: 2.21.1\n---\n")
+        (exported / "skills" / "improve").mkdir(parents=True)
+        (exported / "skills" / "improve" / "SKILL.md").write_text("---\nname: improve\nversion: 1.0.0\n---\n")
+        home = self.tmp / "home"
+        agent = hosts.AntigravityHost("fake-agy")
+        with mock.patch.dict(os.environ, {"HOME": str(self.tmp / "real-home")}):
+            env = agent.env(home)
+        out = self.tmp / "out"
+        out.mkdir()
+        released = {
+            "origin_main": "a" * 40,
+            "local_head": "a" * 40,
+            "local_behind_main": False,
+            "catalog_version": "4.20.3",
+            "shiploop_version": "2.21.1",
+            "unreleased": [],
+            "ci": "success",
+        }
+        with mock.patch.object(run, "the_host", return_value=agent), \
+                mock.patch.object(run, "released_versions", return_value=released), \
+                mock.patch.object(run, "export_released", return_value=exported), \
+                contextlib.redirect_stdout(io.StringIO()):
+            selected, plugin, versions = run.marketplace_preflight(argparse.Namespace(), out, env)
+        self.assertTrue(plugin and plugin["pass"], plugin)
+        self.assertEqual(selected, home / ".antigravity-e2e" / ".agents" / "plugins" / "skill-craft")
+        expected_digests = run.skill_digests(selected)
+        self.assertEqual(versions.get("shiploop_sha256"), expected_digests["shiploop_sha256"])
+        self.assertEqual(versions.get("improve_sha256"), expected_digests["improve_sha256"])
+        self.assertEqual(versions["gate"], [])
+
+    def test_live_view_emit_disables_cleanly_on_unwritable_or_broken_stdout(self):
+        fake_out = mock.Mock()
+        fake_out.fileno.return_value = 9
+        view = run.LiveView(0.0, enabled=True)
+        with mock.patch.object(sys, "stdout", fake_out), \
+                mock.patch.object(run.select, "select", return_value=([], [], [])):
+            view.emit("line one")
+        self.assertFalse(view.enabled)
+        fake_out.write.assert_not_called()
+
+        view2 = run.LiveView(0.0, enabled=True)
+        fake_out2 = mock.Mock()
+        fake_out2.fileno.return_value = 9
+        fake_out2.write.side_effect = BrokenPipeError()
+        with mock.patch.object(sys, "stdout", fake_out2), \
+                mock.patch.object(run.select, "select", return_value=([], [9], [])):
+            view2.emit("line two")
+        self.assertFalse(view2.enabled)
+
 
 if __name__ == "__main__":
     unittest.main()
