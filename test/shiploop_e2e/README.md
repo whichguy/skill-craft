@@ -24,12 +24,15 @@ one Codex session for a new project.
 
 For the opt-in **CloudyBot** Salesforce Developer Edition multi-bot harness case
 (`hosted-platform`, blank repo start, org `de`, prefix `CloudyBot` — covering
-instantiated `@handle` bots, provider credential & default/override URL setup,
-customizable admin override matrix, Org/Public Group/User governance, 4-layer
-system prompts, org-stored tool registry, resumable multi-provider dialogues,
-timeout-safe hop requeueing, skills, two-way Git marketplace sync, and thinking
-feedback), preflight read-only, run with `--keep-platform` to keep the deployed
-Lightning app in `de` on pass, and evaluate independently with `iterate.py`:
+instantiated `@handle` bots, provider + Self-Org Tooling API credential &
+default/override URL setup, customizable admin override matrix, Org/Public
+Group/User governance, 5-layer system prompts ending strictly with exposed
+tools, concrete `USER_MODE` direct SOQL + CRM CRUD & real HTTP Salesforce
+Tooling REST API schema/SOQL/CRUD tools, resumable multi-provider dialogues,
+timeout-safe & callout-first hop requeueing, skills, two-way Git marketplace
+sync, and thinking feedback), preflight read-only, run with `--keep-platform`
+to keep the deployed Lightning app in `de` on pass, and evaluate independently
+with `iterate.py`:
 
 ```sh
 python3 -B test/shiploop_e2e/run.py --preflight-only --case cloudybot --source marketplace --host codex --codex-auto-review --output ~/e2e-runs/cloudybot-preflight/check

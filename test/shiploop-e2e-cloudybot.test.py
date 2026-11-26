@@ -231,6 +231,21 @@ class CloudyBotCatalogTests(unittest.TestCase):
             "Kill Switch",
             "Response Format",
             "Visual",
+            "Layer 5 — Exposed Runtime Tools Manifest",
+            "must end with Layer 5",
+            "cb_search_tools",
+            "sf_get_record",
+            "sf_delete_record",
+            "externalIdField",
+            "/services/data/v68.0/tooling",
+            "sf_tooling_describe",
+            "sf_tooling_query",
+            "sf_tooling_get_record",
+            "sf_tooling_create_record",
+            "sf_tooling_update_record",
+            "sf_tooling_delete_record",
+            "Test Tooling API",
+            "Database.setSavepoint()",
         ):
             self.assertIn(clause, prompt)
 
