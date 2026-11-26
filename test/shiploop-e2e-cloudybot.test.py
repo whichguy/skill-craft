@@ -67,6 +67,17 @@ FAKE_SF_CODE = textwrap.dedent(r"""
 
     if argv[:2] == ["data", "query"]:
         soql = argv[argv.index("--query") + 1]
+        if "FROM ApexCodeCoverageAggregate" in soql:
+            recs = [
+                {
+                    "ApexClassOrTrigger": {"Name": r["Name"]},
+                    "NumLinesCovered": r["NumLinesCovered"],
+                    "NumLinesUncovered": r["NumLinesUncovered"],
+                }
+                for r in state.get("apex_coverage", [])
+            ]
+            print(json.dumps({"status": 0, "result": {"records": recs}}))
+            raise SystemExit(0)
         if "FROM ApexClass" in soql and "Body" in soql:
             recs = [{"Name": n, "Body": b} for n, b in state.get("apex_bodies", {}).items()]
             print(json.dumps({"status": 0, "result": {"records": recs}}))
@@ -292,6 +303,7 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
                 "content_documents": [],
                 "tab_visibility": [],
                 "apex_bodies": {},
+                "apex_coverage": [],
                 "tap_output": "1..0\n",
             }),
             encoding="utf-8",
@@ -453,6 +465,7 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
             "CloudyBotDriver": "public class CloudyBotDriver {}",
             "CloudyBotDriverTest": "@isTest private class CloudyBotDriverTest {}",
         }
+        state["apex_coverage"] = [{"Name": "CloudyBotDriver", "NumLinesCovered": 80, "NumLinesUncovered": 20}]
         state["tap_output"] = "\n".join(["1..10"] + [f"ok {i} CloudyBotDriverTest.t{i}" for i in range(1, 11)]) + "\n"
         self.state_file.write_text(json.dumps(state))
 
@@ -463,13 +476,37 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
             0,
         )
 
-        # deployed & tests pass
+        # deployed & tests pass when coverage >= 75%
         dep_chk = self.run_checker("deployed", "--org", "de", "--prefix", "CloudyBot")
         self.assertEqual(dep_chk.returncode, 0, dep_chk.stdout)
-        tst_chk = self.run_checker("tests", "--org", "de", "--prefix", "CloudyBot", "--min-tests", "10")
+        tst_chk = self.run_checker("tests", "--org", "de", "--prefix", "CloudyBot", "--min-tests", "10", "--min-coverage", "75")
         self.assertEqual(tst_chk.returncode, 0, tst_chk.stdout)
+        self.assertIn("80.0% Apex coverage", tst_chk.stdout)
 
-        # Fails if too few tests or SKIP/not ok
+        # Fails when aggregate Apex coverage falls below 75% and reports lowest classes; --min-coverage 0 disables
+        state["apex_coverage"] = [
+            {"Name": "CloudyBotDriver", "NumLinesCovered": 80, "NumLinesUncovered": 20},
+            {"Name": "CloudyBotActions", "NumLinesCovered": 12, "NumLinesUncovered": 230},
+        ]
+        self.state_file.write_text(json.dumps(state))
+        low_cov = self.run_checker("tests", "--org", "de", "--prefix", "CloudyBot", "--min-tests", "10", "--min-coverage", "75")
+        self.assertEqual(low_cov.returncode, 1, low_cov.stdout)
+        self.assertIn("< 75.0%", low_cov.stdout)
+        self.assertIn("CloudyBotActions=5.0%", low_cov.stdout)
+        self.assertEqual(
+            self.run_checker("tests", "--org", "de", "--prefix", "CloudyBot", "--min-tests", "10", "--min-coverage", "0").returncode,
+            0,
+        )
+
+        # Fails when no coverage rows are reported for deployed non-test classes
+        state["apex_coverage"] = []
+        self.state_file.write_text(json.dumps(state))
+        no_cov = self.run_checker("tests", "--org", "de", "--prefix", "CloudyBot", "--min-tests", "10", "--min-coverage", "75")
+        self.assertEqual(no_cov.returncode, 1, no_cov.stdout)
+        self.assertIn("no ApexCodeCoverageAggregate lines", no_cov.stdout)
+
+        # Restore valid coverage & verify failure if too few tests or SKIP/not ok
+        state["apex_coverage"] = [{"Name": "CloudyBotDriver", "NumLinesCovered": 80, "NumLinesUncovered": 20}]
         state["tap_output"] = "1..2\nok 1 A.t1\nok 2 A.t2 # SKIP\n"
         self.state_file.write_text(json.dumps(state))
         self.assertEqual(self.run_checker("tests", "--org", "de", "--prefix", "CloudyBot", "--min-tests", "2").returncode, 1)

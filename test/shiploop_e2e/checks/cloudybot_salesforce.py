@@ -877,6 +877,31 @@ def parse_tap(output: str) -> tuple[int, list[str], list[str]]:
     return passed, failed, skipped
 
 
+def query_apex_coverage(org: str, prefix: str) -> tuple[int, int, list[tuple[str, float, int, int]]]:
+    soql = (
+        "SELECT ApexClassOrTrigger.Name, NumLinesCovered, NumLinesUncovered "
+        f"FROM ApexCodeCoverageAggregate WHERE ApexClassOrTrigger.Name LIKE '{prefix}%'"
+    )
+    recs = tooling_or_data_query(org, soql, tooling=True)
+    covered = 0
+    uncovered = 0
+    per_class: list[tuple[str, float, int, int]] = []
+    for rec in recs:
+        target = rec.get("ApexClassOrTrigger") or {}
+        name = str(target.get("Name") or rec.get("Name") or "")
+        if not name or not matches_prefix("ApexClass", name, prefix):
+            continue
+        c = int(rec.get("NumLinesCovered") or 0)
+        u = int(rec.get("NumLinesUncovered") or 0)
+        total_lines = c + u
+        covered += c
+        uncovered += u
+        pct = (100.0 * c / total_lines) if total_lines > 0 else 100.0
+        per_class.append((name, pct, c, total_lines))
+    per_class.sort(key=lambda row: (row[1], row[0]))
+    return covered, uncovered, per_class
+
+
 def cmd_tests(args) -> int:
     check_prefix(args.prefix)
     recs = tooling_or_data_query(
@@ -926,6 +951,37 @@ def cmd_tests(args) -> int:
             say(tail(combined, 400))
         return 1
 
+    if args.min_coverage > 0:
+        covered, uncovered, per_class = query_apex_coverage(args.org, args.prefix)
+        total = covered + uncovered
+        non_test_classes = [
+            str(r["Name"])
+            for r in recs
+            if r.get("Name") and not re.search(r"@isTest\b", str(r.get("Body") or ""), re.IGNORECASE)
+        ]
+        if total == 0:
+            if non_test_classes:
+                say(
+                    f"FAIL: Apex tests passed ({passed}) across {len(test_classes)} class(es), "
+                    f"but no ApexCodeCoverageAggregate lines were reported for {args.prefix}*"
+                )
+                return 1
+            say(f"PASS: {passed} Apex test(s) passed across {len(test_classes)} class(es): {', '.join(test_classes)}")
+            return 0
+        pct = 100.0 * covered / total
+        if pct < args.min_coverage:
+            lowest = [f"{name}={cpct:.1f}%" for name, cpct, _c, _t in per_class[:5]]
+            say(
+                f"FAIL: Apex coverage {pct:.1f}% ({covered}/{total}) < {args.min_coverage:.1f}% "
+                f"across {len(per_class)} class(es); lowest: {', '.join(lowest)}"
+            )
+            return 1
+        say(
+            f"PASS: {passed} Apex test(s) passed across {len(test_classes)} class(es) with "
+            f"{pct:.1f}% Apex coverage ({covered}/{total}): {', '.join(test_classes)}"
+        )
+        return 0
+
     say(f"PASS: {passed} Apex test(s) passed across {len(test_classes)} class(es): {', '.join(test_classes)}")
     return 0
 
@@ -956,6 +1012,8 @@ def build_parser() -> argparse.ArgumentParser:
     tp.add_argument("--org", required=True)
     tp.add_argument("--prefix", required=True)
     tp.add_argument("--min-tests", type=int, default=10)
+    tp.add_argument("--min-coverage", type=float, default=75.0,
+                    help="minimum aggregate Apex code coverage percentage (0 disables)")
     tp.add_argument("--platform-dir")
     return p
 

@@ -2148,9 +2148,9 @@
     "checks": [
       "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" project --org de --prefix CloudyBot",
       "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" deployed --org de --prefix CloudyBot",
-      "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" tests --org de --prefix CloudyBot --min-tests 10"
+      "python3 \"$E2E_CHECKS/cloudybot_salesforce.py\" tests --org de --prefix CloudyBot --min-tests 10 --min-coverage 75"
     ],
-    "checks_source": "the request: project checks DX layout, .gitignore and CloudyBot prefix hygiene offline; deployed checks org de metadata and consumer-entry visibility; tests runs all deployed CloudyBot Apex test classes via TAP with >=10 executed passing tests",
+    "checks_source": "the request: project checks DX layout, .gitignore and CloudyBot prefix hygiene offline; deployed checks org de metadata and consumer-entry visibility; tests runs all deployed CloudyBot Apex test classes via TAP with >=10 executed passing tests and >=75% aggregate Apex code coverage",
     "platform": {
       "kind": "salesforce",
       "org": "de",
