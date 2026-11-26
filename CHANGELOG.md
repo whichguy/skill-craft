@@ -4,6 +4,10 @@ Written by scripts/release.py.
 
 ## 2026-11-25
 
+### skill-craft 4.20.1
+
+- Release output regenerated; no skill changed.
+
 ### skill-craft 4.20.0
 
 - Skills: shiploop 2.21.0
