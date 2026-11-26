@@ -37,7 +37,7 @@ import shiploop_store as store  # noqa: E402
 import shiploop_trace as trace  # noqa: E402
 from shiploop_packet_view import assert_top_block, head_packet_path  # noqa: E402
 
-RECORDED_HOSTS = ("antigravity", "claude", "codex", "cursor")
+RECORDED_HOSTS = ("antigravity", "claude", "codex")
 
 
 def shiploop(*argv: str) -> subprocess.CompletedProcess:
@@ -361,9 +361,7 @@ class HookDecisionTests(KeepaliveTestCase):
                                  {} if host == "antigravity" else None)
                 self.assertEqual(keepalive.load_binding(host, session)["run_dir"], str(self.run_dir))
                 reply = self.hook("stop", host, self.payload(host, "stop", session))
-                if host == "cursor":
-                    self.assertIn("next --run-dir", reply["followup_message"])
-                elif host == "antigravity":
+                if host == "antigravity":
                     self.assertEqual(reply["decision"], "continue")
                     self.assertIn("next --run-dir", reply["reason"])
                 else:
@@ -459,7 +457,7 @@ class HookDecisionTests(KeepaliveTestCase):
         self.assertIsNone(self.hook("stop", "claude", ending))
 
     def test_another_hosts_payload_is_left_to_that_host(self) -> None:
-        self.assertIsNone(self.hook("observe", "cursor", self.payload("claude", "observe")))
+        self.assertIsNone(self.hook("observe", "codex", self.payload("claude", "observe")))
         self.assertEqual(list((self.temp / "state").glob("bindings/*")), [])
 
     def test_a_shiploop_command_binds_even_when_its_output_was_filtered(self) -> None:
@@ -804,8 +802,7 @@ class ConcurrencyTests(KeepaliveTestCase):
         self.assertEqual(decisions.count("continue"), 1)
 
     def test_plugin_hooks_resolve_the_calling_host(self) -> None:
-        for env, payload_host, expected in ((
-                {"CURSOR_PLUGIN_ROOT": "/p"}, "cursor", "cursor"),
+        for env, payload_host, expected in (
                 ({}, "antigravity", "antigravity"), ({}, "codex", "codex"), ({}, "claude", "claude")):
             with self.subTest(expected=expected), mock.patch.dict(os.environ, env):
                 keepalive.release_owner(str(self.run_dir))
@@ -819,7 +816,7 @@ class ConcurrencyTests(KeepaliveTestCase):
                 if expected == "antigravity":
                     self.assertEqual(reply.get("decision"), "continue")
                 else:
-                    self.assertIn("followup_message" if expected == "cursor" else "decision", reply)
+                    self.assertIn("decision", reply)
 
     def test_antigravity_reactive_subagent_wait_preserves_ownership_and_execution_num_tracks_continuation(self) -> None:
         self.assertEqual(keepalive.detected_host(self.payload("antigravity", "observe")), "antigravity")
@@ -868,7 +865,7 @@ class SessionEndTests(KeepaliveTestCase):
         return keepalive.load_binding(host, session)["run_dir"]
 
     def test_each_hosts_session_end_releases_the_run_its_session_owned(self) -> None:
-        for host in ("claude", "codex", "cursor"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 session = f"ending-{host}"
                 run_dir = self.bind(host, session)
@@ -967,7 +964,7 @@ class InstallTests(KeepaliveTestCase):
         agy_cfg.parent.mkdir(parents=True)
         other_agy = {"Stop": [{"type": "command", "command": "./other.sh"}]}
         agy_cfg.write_text(json.dumps({"other-hook": other_agy}))
-        active_hosts = [h for h in keepalive.HOSTS if h not in ("grok", "opencode")]
+        active_hosts = [h for h in keepalive.HOSTS if h not in ("grok", "opencode", "cursor")]
         for host in active_hosts:
             keepalive.install(host)
             self.assertEqual(keepalive.status(host), "installed", host)
@@ -979,17 +976,12 @@ class InstallTests(KeepaliveTestCase):
         self.assertEqual(len(data["hooks"]["Stop"]), 2)
         self.assertEqual(data["hooks"]["PostToolUse"][0]["matcher"], "Bash")
         self.assertIn("session-end --host claude", data["hooks"]["SessionEnd"][0]["hooks"][0]["command"])
-        cursor = json.loads((self.home() / ".cursor" / "hooks.json").read_text())
-        self.assertEqual(cursor["version"], 1)
-        self.assertIn("afterShellExecution", cursor["hooks"])
-        self.assertIn("session-end --host cursor", cursor["hooks"]["sessionEnd"][0]["command"])
         for host in active_hosts:
             keepalive.install(host, remove=True)
             self.assertEqual(keepalive.status(host), "absent", host)
         self.assertEqual(json.loads(agy_cfg.read_text()), {"other-hook": other_agy})
         self.assertEqual(json.loads(settings.read_text()),
                          {"model": "opus", "hooks": {"Stop": [{"hooks": [other]}]}})
-        self.assertFalse((self.home() / ".cursor" / "hooks.json").exists())
         agy_cfg.unlink()
         keepalive.install("antigravity")
         self.assertTrue(agy_cfg.is_file())
@@ -1023,62 +1015,13 @@ class InstallTests(KeepaliveTestCase):
         self.assertEqual(keepalive.status("claude"), "absent")
 
 
-class SelfInstallTests(KeepaliveTestCase):
-    """Grok never runs plugin hooks, so ShipLoop installs its global hooks there itself."""
-
-    GROK = {"GROK_AGENT": "1"}
-
-    def grok_file(self) -> Path:
-        return self.temp / "home" / ".grok" / "hooks" / "shiploop-keepalive.json"
-
-    def test_first_command_under_grok_installs_the_hooks_once(self) -> None:
-        notice = keepalive.ensure_hooks(self.GROK)
-        self.assertIn("installed the grok hooks", notice)
-        self.assertEqual(keepalive.status("grok"), "installed")
-        self.assertIsNone(keepalive.ensure_hooks(self.GROK))
-
-    def test_other_hosts_and_a_disabled_keepalive_write_nothing(self) -> None:
-        self.assertIsNone(keepalive.ensure_hooks({}))
-        with mock.patch.dict(os.environ, {"SHIPLOOP_KEEPALIVE": "off"}):
-            self.assertIsNone(keepalive.ensure_hooks(self.GROK))
-        self.assertFalse(self.grok_file().exists())
-        self.assertEqual(keepalive.status("claude"), "absent")
-
-    def test_a_working_copy_is_kept_and_a_missing_one_repaired(self) -> None:
-        keepalive.install("grok")
-        installed = self.grok_file().read_text()
-        other = self.temp / "other-copy" / "shiploop-hook"
-        other.parent.mkdir()
-        other.write_text("#!/bin/sh\n")
-        moved = installed.replace(str(SCRIPTS / "shiploop-hook"), str(other))
-        self.grok_file().write_text(moved)
-        self.assertIsNone(keepalive.ensure_hooks(self.GROK))
-        self.assertEqual(self.grok_file().read_text(), moved)
-        other.unlink()
-        self.assertIn("updated the grok hooks", keepalive.ensure_hooks(self.GROK))
-        self.assertEqual(keepalive.status("grok"), "installed")
-
-    def test_the_cli_reports_the_install_once_on_stderr(self) -> None:
-        env = {**os.environ, **self.GROK}
-        argv = [sys.executable, str(SCRIPTS / "shiploop"), "next", "--run-dir", str(self.run_dir)]
-        first = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
-        self.assertEqual(first.returncode, 0, first.stderr)
-        self.assertIn("ShipLoop keepalive: installed the grok hooks", first.stderr)
-        self.assertNotIn("ShipLoop keepalive:", first.stdout)
-        second = subprocess.run(argv, capture_output=True, text=True, env=env, check=False)
-        self.assertNotIn("ShipLoop keepalive:", second.stderr)
-        self.assertEqual(first.stdout, second.stdout)
-
-
 class MarketplacePackageTests(KeepaliveTestCase):
     """Installing the ShipLoop plugin from a marketplace brings the keepalive hooks."""
 
     # Generated file, plugin-root variable, recorded payload host, extra env.
     HOST_FILES = (
         ("hooks.json", "CLAUDE_PLUGIN_ROOT", "claude", {}),
-        ("hooks.json", "CLAUDE_PLUGIN_ROOT", "grok", {"GROK_PLUGIN_ROOT": "set"}),
         ("codex.json", "PLUGIN_ROOT", "codex", {}),
-        ("cursor.json", "CURSOR_PLUGIN_ROOT", "cursor", {}),
     )
 
     @staticmethod
@@ -1097,22 +1040,15 @@ class MarketplacePackageTests(KeepaliveTestCase):
             with self.subTest(host=host):
                 keepalive.release_owner(str(self.run_dir))
                 hooks = json.loads((plugin / "hooks" / file_name).read_text())
-                cursor = file_name == "cursor.json"
-                observe = self.commands(hooks, "afterShellExecution" if cursor else "PostToolUse")
-                stop = self.commands(hooks, "stop" if cursor else "Stop")
-                ended = self.commands(hooks, "sessionEnd" if cursor else "SessionEnd")
+                observe = self.commands(hooks, "PostToolUse")
+                stop = self.commands(hooks, "Stop")
+                ended = self.commands(hooks, "SessionEnd")
                 self.assertEqual((len(observe), len(stop), len(ended)), (1, 1, 1))
                 # Every packet is full, so no host needs a compaction hook.
                 self.assertNotIn("SessionStart", hooks["hooks"])
-                # Grok does not strip quotes: a quoted command becomes a file name
-                # relative to the hooks folder ("command not found").
                 for command in (*observe, *stop):
                     self.assertFalse(command.startswith(('"', "'")), command)
                 env = {**os.environ, variable: str(plugin), **extra}
-                if variable != "CURSOR_PLUGIN_ROOT":
-                    env.pop("CURSOR_PLUGIN_ROOT", None)
-                if not extra:
-                    env.pop("GROK_PLUGIN_ROOT", None)
                 session = f"plugin-{host}"
                 for command, payload in ((observe[0], self.payload(host, "observe", session)),
                                          (stop[0], self.payload(host, "stop", session))):
@@ -1121,7 +1057,7 @@ class MarketplacePackageTests(KeepaliveTestCase):
                                             capture_output=True, text=True, env=env, check=False)
                     self.assertEqual(result.returncode, 0, result.stderr)
                 reply = json.loads(result.stdout)
-                text = reply["followup_message"] if cursor else reply["reason"]
+                text = reply["reason"]
                 self.assertIn(str(plugin), text)
                 self.assertIsNotNone(keepalive.load_binding(host, session))
                 ended_run = subprocess.run(["bash", "-c", ended[0]], input=json.dumps(self.payload(host, "session-end", session)),
@@ -1191,7 +1127,7 @@ class DriverTests(KeepaliveTestCase):
         status = self.status()
         status.pop("completion", None)  # no pending acknowledgement supplied by core
         with mock.patch.object(keepalive, "run_status", return_value=status):
-            code, lines = self.drive("grok", lambda argv, **kwargs: self.done(argv))
+            code, lines = self.drive("claude", lambda argv, **kwargs: self.done(argv))
         self.assertEqual(code, keepalive.EXIT_STUCK)
         self.assertIn("two sessions in a row", lines[-1])
 
@@ -1261,21 +1197,6 @@ class DriverTests(KeepaliveTestCase):
         code, lines = self.drive("codex", lambda argv, **kwargs: self.done(argv, returncode=1))
         self.assertEqual(code, keepalive.EXIT_STUCK)
         self.assertIn("may have failed to start", lines[-1])
-
-    def test_resuming_hosts_continue_the_bound_session(self) -> None:
-        self.hook("observe", "cursor", self.payload("cursor", "observe", "chat-42"))
-        prompt = keepalive._continue_reason(self.status())
-        seen = []
-
-        def runner(argv, **kwargs):
-            seen.append(argv)
-            self.advance()
-            return self.done(argv)
-
-        code, _ = self.drive("cursor", runner, max_minutes=2)
-        self.assertEqual(code, keepalive.EXIT_CAP)
-        self.assertEqual(seen[0][:4], ["cursor-agent", "-p", "--resume", "chat-42"])
-        self.assertEqual(seen[0][-1], prompt)
 
     def test_there_is_no_ceiling_by_default(self) -> None:
         # Owner 2026-10-28: runs go on for a very long time; the old default stopped after 20 sessions.
@@ -1730,12 +1651,6 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
             self.assertEqual(rc, 0)
             self.assertEqual(m_drive.call_args.kwargs["routing"], model_routing.default_routing(host))
 
-        for host in ("cursor", "opencode", "grok"):
-            with self.subTest(unrouted_host=host), mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
-                rc = keepalive.drive_main(["--host", host, "--run-dir", str(self.run_dir)])
-            self.assertEqual(rc, 0)
-            self.assertIsNone(m_drive.call_args.kwargs["routing"])
-
         with mock.patch.object(keepalive, "drive", return_value=0) as m_drive:
             keepalive.drive_main(["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing"])
             self.assertIsNone(m_drive.call_args.kwargs["routing"])
@@ -1753,7 +1668,6 @@ class ModelTelemetryAndRoutingTests(KeepaliveTestCase):
             ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--routing", "default"],
             ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--planning-model", "sonnet"],
             ["--host", "claude", "--run-dir", str(self.run_dir), "--no-routing", "--plan-reflect-and-improve"],
-            ["--host", "cursor", "--run-dir", str(self.run_dir), "--plan-reflect-and-improve"],
         ):
             with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 keepalive.drive_main(bad_args)

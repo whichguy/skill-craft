@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cursor marketplace and native host adapters are generated from skill frontmatter.
+# Native host catalogs (Claude, Codex) and plugin adapters are generated from skill frontmatter.
 # Exercise drift failures in an isolated checkout so this test never mutates
 # the caller's materialized plugin views.
 #
@@ -69,7 +69,7 @@ bash scripts/sync-plugin-views.sh --check || fail "baseline adapter check"
 # nothing; an unknown option is refused rather than silently dropped.
 gen="scripts/skill-frontmatter-to-plugin-json.js"
 generated_digest() {
-  (find plugins .cursor-plugin .claude-plugin .agents README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
+  (find plugins .claude-plugin .agents README.md -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null
 }
 generated_digest > "$tmp/generated-before-cli"
 expect_failure "unknown option" "unknown argument --bogus" node "$gen" --package --check --bogus
@@ -83,8 +83,7 @@ node "$gen" --marketplaces --check >/dev/null || fail "--marketplaces --check mu
 generated_digest | cmp -s - "$tmp/generated-before-cli" || fail "generator command-line refusals changed generated files"
 
 # The bundle carries every actual source skill, and nothing inferred from
-# empty/stale directories; the Cursor catalog lists exactly one
-# local plugin entry (the bundle), not one per skill.
+# empty/stale directories; each native catalog lists the bundle plugin, not one per skill.
 node - <<NODE || exit 1
 const fs = require("fs");
 const plugin = "$PLUGIN";
@@ -95,15 +94,6 @@ const leaves = fs
   .sort();
 if (leaves.length === 0) {
   throw new Error("expected at least one source skill");
-}
-const cursor = JSON.parse(fs.readFileSync(".cursor-plugin/marketplace.json", "utf8"));
-const names = cursor.plugins.map((p) => p.name);
-if (JSON.stringify(names) !== JSON.stringify([plugin])) {
-  throw new Error(\`Cursor catalog must list exactly the one bundle plugin, got \${names}\`);
-}
-const cursorPlugin = cursor.plugins[0];
-if (cursorPlugin.source !== \`./plugins/\${plugin}\` || !cursorPlugin.description) {
-  throw new Error("Cursor entry invalid");
 }
 
 const base = \`plugins/\${plugin}\`;
@@ -258,23 +248,16 @@ bash scripts/sync-plugin-views.sh || fail "restore hand-edited Codex catalog"
 # the root marketplace indexes, while the marketplaces check does.
 node - <<'NODE'
 const fs = require("fs");
-const path = ".cursor-plugin/marketplace.json";
+const path = ".claude-plugin/marketplace.json";
 const catalog = JSON.parse(fs.readFileSync(path, "utf8"));
-catalog.metadata.description = "stale test value";
+catalog.description = "stale test value";
 fs.writeFileSync(path, JSON.stringify(catalog, null, 2) + "\n");
 NODE
 node "$gen" --package --check >/dev/null \
   || fail "package check should not inspect root marketplace indexes"
-expect_failure "stale Cursor index" "Cursor marketplace index" \
+expect_failure "stale Claude index" "Claude marketplace index" \
   node "$gen" --marketplaces --check
-bash scripts/sync-plugin-views.sh || fail "restore stale Cursor index"
-
-# A missing bundle Cursor manifest is caught by the package check.
-rm -f "plugins/$PLUGIN/.cursor-plugin/plugin.json"
-expect_failure "missing Cursor manifest" "missing" \
-  node "$gen" --package --check
-node "$gen" --package --write >/dev/null || fail "restore missing Cursor manifest"
-node "$gen" --package --check >/dev/null || fail "restored Cursor manifest"
+bash scripts/sync-plugin-views.sh || fail "restore stale Claude index"
 
 # Codex is a generated peer adapter, not a hand-maintained special case.
 rm -f "plugins/$PLUGIN/.codex-plugin/plugin.json"
@@ -321,11 +304,11 @@ if (!readme.includes("[catalog-fixture](skills/catalog-fixture/SKILL.md) | 1.2.3
   throw new Error("new skill/version/escaped description missing from README inventory");
 }
 if (!readme.includes("<!-- outside-inventory-sentinel -->")) throw new Error("outside prose lost");
-for (const host of ["cursor"]) {
-  const catalog = JSON.parse(fs.readFileSync(\`.\${host}-plugin/marketplace.json\`, "utf8"));
-  const names = catalog.plugins.map((p) => p.name);
-  if (JSON.stringify(names) !== JSON.stringify([plugin])) {
-    throw new Error(\`\${host} catalog must still list only the one bundle plugin after a new leaf, got \${names}\`);
+for (const [host, path] of [["claude", ".claude-plugin/marketplace.json"], ["codex", ".agents/plugins/marketplace.json"]]) {
+  const catalog = JSON.parse(fs.readFileSync(path, "utf8"));
+  const localNames = catalog.plugins.filter((p) => p.name === plugin).map((p) => p.name);
+  if (JSON.stringify(localNames) !== JSON.stringify([plugin])) {
+    throw new Error(\`\${host} catalog must still list only the one bundle plugin after a new leaf, got \${localNames}\`);
   }
 }
 if (!fs.existsSync(\`plugins/\${plugin}/skills/catalog-fixture/SKILL.md\`)) {
@@ -368,7 +351,7 @@ grep -q 'catalog-fixture' README.md && fail "removed leaf remains in README inve
 # or overwrite a previously good inventory/catalog with an empty release.
 plugins_digest() { (find plugins -type f | LC_ALL=C sort | xargs shasum) 2>/dev/null; }
 cp README.md "$tmp/readme-before-empty"
-cp .cursor-plugin/marketplace.json "$tmp/cursor-before-empty"
+cp .claude-plugin/marketplace.json "$tmp/claude-before-empty"
 plugins_digest > "$tmp/plugins-before-empty"
 mv skills "$tmp/held-skills"
 mkdir skills
@@ -377,7 +360,7 @@ expect_failure "empty full sync" "no source skills" bash scripts/sync-plugin-vie
 expect_failure "empty direct generation" "no source skills" \
   node scripts/skill-frontmatter-to-plugin-json.js --marketplaces --write
 cmp -s README.md "$tmp/readme-before-empty" || fail "empty source changed README"
-cmp -s .cursor-plugin/marketplace.json "$tmp/cursor-before-empty" || fail "empty source changed Cursor index"
+cmp -s .claude-plugin/marketplace.json "$tmp/claude-before-empty" || fail "empty source changed Claude index"
 plugins_digest | cmp -s - "$tmp/plugins-before-empty" || fail "empty source changed plugins/"
 rmdir skills
 mv "$tmp/held-skills" skills
@@ -386,9 +369,9 @@ mv "$tmp/held-skills" skills
 # rejected by a full check, packaged or not: this repo publishes exactly one
 # plugin (plugins/skill-craft), so any other entry is a leftover, not noise.
 mkdir -p "skills/_zz-empty"
-mkdir -p "plugins/_zz-orphan/.cursor-plugin"
+mkdir -p "plugins/_zz-orphan/.claude-plugin"
 printf '%s\n' '{"name":"_zz-orphan","version":"0.0.0"}' \
-  >"plugins/_zz-orphan/.cursor-plugin/plugin.json"
+  >"plugins/_zz-orphan/.claude-plugin/plugin.json"
 expect_failure "stray plugins/<name> directory" "is not generated" \
   bash scripts/sync-plugin-views.sh --check
 bash scripts/sync-plugin-views.sh || fail "restore stray plugins directory"

@@ -990,11 +990,11 @@ class LiveDryRun(NoLaunch):
         self.assertNothingStarted()
 
     def test_the_driver_defaults_are_slices_and_the_options_override_them(self):
-        for argv, wanted in ((("--host", "grok"), "grok/grok-4.6/xhigh"),
+        for argv, wanted in ((("--host", "antigravity"), f"antigravity/{stages.hosts.ANTIGRAVITY_DEFAULT_MODEL}/default"),
                              (("--host", "codex"), "codex/gpt-6.2-sol/xhigh"),
                              (("--host", "claude"), "claude:anthropic/claude-sonnet-5-5/default"),
                              (("--host", "claude", "--backend", "ollama"), "claude:ollama/"),
-                             (("--host", "grok", "--model", "x", "--effort", "low"), "grok/x/low")):
+                             (("--host", "codex", "--model", "x", "--effort", "low"), "codex/x/low")):
             with self.subTest(argv=argv):
                 code, out, err = cli("live", "--dry-run", *argv, "--cases-dir", str(self.cases))
                 self.assertEqual((code, err), (0, ""))

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """No-model checks for the ShipLoop E2E harness (test/shiploop_e2e/).
 
-Fake `grok` and `claude` executables stand in for the hosts, so these checks
-cover the harness contract (empty start directory, isolated Grok profile,
+Fake `codex` and `claude` executables stand in for the hosts, so these checks
+cover the harness contract (empty start directory, isolated Codex profile,
 argv, plugin and invocation grading, review parsing and the premise filter)
 without launching a model. Every case passes its host and fake binary
 explicitly and supplies a plugin build, so no real host or build is reached.

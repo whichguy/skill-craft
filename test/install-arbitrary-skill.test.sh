@@ -31,14 +31,12 @@ assert_all_hosts() {
   local source="$2"
   assert_symlink "$HOME/.claude/skills/$leaf" "$source"
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
-  assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
 }
 
 assert_no_hosts() {
   local leaf="$1"
   assert_absent "$HOME/.claude/skills/$leaf"
   assert_absent "$HOME/.codex/skills/$leaf"
-  assert_absent "$HOME/.cursor/skills/$leaf"
 }
 
 fresh_home() {
@@ -54,7 +52,7 @@ trap cleanup EXIT
 [[ -f "$fixture_sample/SKILL.md" ]] || fail "missing frozen fixture: $fixture_sample/SKILL.md"
 
 # ---------------------------------------------------------------------------
-# E1: --from fixture sample-skill → Claude/Codex/Cursor get sample-skill symlink
+# E1: --from fixture sample-skill → Claude/Codex get sample-skill symlink
 # ---------------------------------------------------------------------------
 fresh_home e1
 fixture_abs="$(cd "$fixture_sample" && pwd -P)"

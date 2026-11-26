@@ -113,9 +113,6 @@ class ModelRoutingResolutionTests(unittest.TestCase):
                          ["-m", "gpt-6.2-sol", "-c", "model_reasoning_effort=low"])
         claude_t = routing.RouteTarget(host="claude", profile="planning", model="opus", effort="high")
         self.assertEqual(routing.host_model_args("claude", claude_t), ["--model", "opus", "--effort", "high"])
-        grok_t = routing.RouteTarget(host="grok", profile="planning", model="grok-4.7", effort="high")
-        self.assertEqual(routing.host_model_args("grok", grok_t),
-                         ["--model", "grok-4.7", "--reasoning-effort", "high"])
 
     def test_invalid_configs_are_refused(self) -> None:
         for bad in (
@@ -170,9 +167,8 @@ class ModelRoutingResolutionTests(unittest.TestCase):
             self.assertEqual((p.resume, e.resume), ("fresh", "fresh"), host)
         # Antigravity Orchestrator maps both profiles to one target key -> no driver boundary stop.
         self.assertEqual(routing.resolve(cfg, "plan", "agy").target_key, routing.resolve(cfg, "implement", "agy").target_key)
-        # Hosts without built-in defaults return None.
-        for other in ("cursor", "opencode", "grok"):
-            self.assertIsNone(routing.default_routing(other), other)
+        # Unconfigured hosts without built-in defaults return None.
+        self.assertIsNone(routing.default_routing("unknown"))
         # Pass-through CLI model detection.
         self.assertTrue(routing.extra_sets_model(["--model", "haiku"]))
         self.assertTrue(routing.extra_sets_model(["--model=haiku"]))

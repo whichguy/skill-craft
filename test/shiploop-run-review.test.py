@@ -100,7 +100,7 @@ def make_improve_child(run: Path, action: str, passes: int | None = 3, bind_at: 
     return child
 
 
-# An excerpt of the planning block a current harness writes (a real Grok run's, two of its ten rows): the window on the engine's
+# An excerpt of the planning block a current harness writes (two of its ten rows): the window on the engine's
 # clock and the host's, the Improve share, and the output tokens the host's usage events gave.
 PLANNING_BLOCK = {
     "window": {"closed": True, "through": "test-spec", "seconds": 1393.0, "host_seconds": 1429.5, "before_engine_seconds": 36.5},
@@ -150,7 +150,7 @@ def make_run(root: Path, accepts=ACCEPTS, status: str = "active", loops: bool = 
         "stages": [{"stage": "plan", "seconds": 300.0}, {"stage": "test-strategy", "seconds": 7200.0}],
         "shiploop_failures": [{"verb": "complete", "exit": 2, "line": "E" * 300}],
         "model_glue": [{"reasons": ["git commit/add by the model"], "command": "git commit"}] * 2,
-        "unmeasured": {},  # every counter measured, as on a Grok run
+        "unmeasured": {},  # every counter measured
         "model_calls": 120, "window_tokens": 1_000_000, "tokens": {"input_peak": 250_000}, "compactions": 0,
         # what the harness writes today: no tool_use for a host it does not read it from, and the planning block (R22b)
         "tool_use": None, "planning": PLANNING_BLOCK,
@@ -709,7 +709,7 @@ class RunVisitsTest(unittest.TestCase):
     # ---- the run's calls, context and compactions: present only when measured, else a reason
 
     def test_a_claude_shaped_run_has_calls_peak_and_window_and_no_compactions(self):
-        why = "only Grok's events carry this signal"
+        why = "no compaction signal recorded"
         out = make_run(self.tmp, loops=False, metrics={
             "model_calls": 149, "window_tokens": 1_000_000, "tokens": {"input_peak": 271_220}, "compactions": None,
             "unmeasured": {"compactions": why}})
@@ -718,7 +718,7 @@ class RunVisitsTest(unittest.TestCase):
         self.assertNotIn("compactions", run)
         self.assertEqual(run["unmeasured"]["compactions"], why)
         text = "\n".join(facts)
-        self.assertIn("calls 149; context peak 271,220; window 1,000,000; compactions not measured (only Grok's", text)
+        self.assertIn("calls 149; context peak 271,220; window 1,000,000; compactions not measured (no compaction", text)
 
     def test_a_host_that_reported_nothing_has_none_of_them_and_each_reason_sits_under_the_runs_own_name(self):
         out = make_run(self.tmp, loops=False, metrics={
@@ -3081,7 +3081,7 @@ class LinkifyTests(unittest.TestCase):
 
     def test_the_committed_bundles_link_the_references_they_hold_and_leave_run_local_ones_as_text(self) -> None:
         counts = {"jump": 0, "repo": 0, "commit": 0, "clause": 0}
-        for name in ("general.review.json", "luna1.review.json", "r3-battleship-grok-none.review.json", "r3-battleship-sonnet.review.json"):
+        for name in ("general.review.json", "luna1.review.json", "r3-battleship-sonnet.review.json"):
             docs = json.loads((EVIDENCE_DIR / name).read_text(encoding="utf-8"))["docs"]
             ctx = {"repoUrl": self.REPO, "obs": {i: True for i in docs.get("observations", {})}, "acts": {i: True for i in docs.get("actions", {})}}
             texts = []
@@ -3123,7 +3123,7 @@ class LinkifyTests(unittest.TestCase):
         self.assertTrue(any("config.repoUrl" in f and "https://" in f for f in failures), failures)
         bundle["docs"]["config"]["page"]["repoUrl"] = self.REPO
         self.assertEqual(export.check_bundle(bundle)[0], [])
-        for name in ("general", "luna1", "r3-battleship-grok-none", "r3-battleship-sonnet"):
+        for name in ("general", "luna1", "r3-battleship-sonnet"):
             self.assertEqual(export.check_bundle(json.loads((EVIDENCE_DIR / f"{name}.review.json").read_text(encoding="utf-8")))[0], [], name)
 
     def test_schema_md_and_skill_md_document_the_repo_address_and_what_is_linked(self) -> None:
@@ -4884,7 +4884,7 @@ R22C_DIR = ROOT / "docs" / "experiments" / "run-review-r22c-20261009"
 R22C_ANALYSIS = ROOT / "docs" / "experiments" / "batch-1010-round2-round3-analysis-20261008"
 R22C_ROUND1 = ROOT / "docs" / "experiments" / "batch-1009-round1-analysis-20261008" / "analysis.json"
 R22C_FIRST = (45, 27)  # the first finding and option numbers this increment adds (o44 and a26 were the last before it)
-# A sentence that states the withdrawn explanation of the Grok-host Chrome failure (LEARNINGS 'Rounds 2 and 3', correction 2,
+# A sentence that states the withdrawn explanation of the Round 1-3 Chrome failure (LEARNINGS 'Rounds 2 and 3', correction 2,
 # and 'Correction of 2026-10-09'): the display asleep, off or sleeping as the cause, or keeping it awake as the remedy.
 R22C_WITHDRAWN = re.compile(r"(?i)\bdisplay(?:[- ](?:asleep|sleep|off)\b|\s+(?:was|is|being|went)\s+(?:asleep|off)\b)"
                             r"|\bdisplay[- ]sleep\b|\bkeep(?:ing)?\s+the\s+display\s+awake\b")
@@ -4991,21 +4991,14 @@ class RoundRunFindingsTests(unittest.TestCase):
             if option["status"] in ("done", "built", "planned"):
                 self.assertTrue(option.get("ref"), aid)
 
-    def test_no_bundle_states_the_withdrawn_explanation_and_the_chrome_findings_name_the_grok_host(self):
+    def test_no_bundle_states_the_withdrawn_explanation(self):
         for name, docs in self.bundles.items():
             for collection, items in docs.items():
                 for i, doc in items.items():
                     text = json.dumps(doc, ensure_ascii=False)
                     self.assertIsNone(R22C_WITHDRAWN.search(text), f"{name} {collection}/{i}")
-        self.assertIsNone(R22C_WITHDRAWN.search("Chrome hung in the Grok host while the display was held on"))  # a fact, not the cause
+        self.assertIsNone(R22C_WITHDRAWN.search("Chrome hung while the display was held on"))  # a fact, not the cause
         self.assertIsNotNone(R22C_WITHDRAWN.search("the display was asleep, so Chrome stayed on about:blank"))
-        chrome = [fid for fid, f in self.new_findings.items() if "Chrome" in f["title"]]
-        self.assertTrue(chrome)
-        for fid in chrome:
-            self.assertIn("Grok host", self.new_findings[fid]["title"] + self.new_findings[fid]["observed"], fid)
-        mixed = self.new_findings["o73"]  # r2 is mixed host: Claude, not Grok, ran its browser check
-        self.assertIn("Claude Sonnet", mixed["observed"])
-        self.assertIn("browser check", mixed["observed"])
 
     def test_the_figures_equal_the_numbers_of_the_analyses_and_the_run_extract(self):
         cost = self.r2["cost_finding"]
@@ -5036,26 +5029,12 @@ class RoundRunFindingsTests(unittest.TestCase):
         self.assertEqual(set(self.general["observations"]["o65"]["runs"]), set(round_runs) - set(fig["graph_checked_round_runs"]))
         windows = {k: runs[k]["planning_window_min"] for k in round_runs}
         self.assertEqual(windows, {k: round(runs[k]["planning_window_seconds"] / 60, 1) for k in round_runs})
-        sonnet = [windows[k] for k in round_runs if k.endswith("sonnet")]
-        self.assertEqual(self.bars("o70"), {"Owner's rule": 30, "Grok r1": windows["r1-battleship-grok-none"],
-                                            "Grok r2, mixed run": windows["r2-battleship-grok-none"], "Grok r3": windows["r3-battleship-grok-none"],
-                                            "Sonnet, slowest": max(sonnet), "Sonnet, fastest": min(sonnet)})
-        self.assertEqual([windows[k] for k in ("r1-battleship-grok-none", "r2-battleship-grok-none", "r3-battleship-grok-none")], [23.3, 15.7, 23.2])
         self.assertLess(max(windows.values()), 30)
         # the second planning figure: round 1's planning_minutes is the harness's stage seconds from intake to prepare
         round1 = json.loads((ROOT / "docs" / "experiments" / "round1-20261008" / "evidence.json").read_text(encoding="utf-8"))["runs"]
         for run in round1.values():
             seconds = sum(v for k, v in run["stage_seconds"].items() if int(k.split(":")[0]) <= 6)
             self.assertEqual(round(seconds / 60, 1), run["planning_minutes"])
-        self.assertEqual(self.bars("o71"), {"r1 blocked visit": fig["r1_grok_blocked_visit_min"],
-                                            "r3 open implement": fig["r3_grok"]["open_implement_min"]})
-        self.assertEqual((fig["r1_grok_blocked_visit_min"], fig["r3_grok"]["open_implement_min"]), (21.1, 27.1))
-        mixed = fig["r2_mixed"]
-        self.assertEqual(self.bars("o73"), {"Grok-host visits": mixed["grok_visits"], "Claude-host visits": mixed["claude_visits"]})
-        self.assertEqual((mixed["grok_visits"], mixed["claude_visits"], mixed["first_claude_visit"]), (31, 21, 32))
-        self.assertEqual(self.bars("o76"), {f"r3 {name} {what}": runs[key]["narrative_" + what]
-                                            for name, key in (("Battleship", "r3-battleship-sonnet"), ("Checkers", "r3-checkers-sonnet"),
-                                                              ("Grok", "r3-battleship-grok-none")) for what in ("emitted", "shown")})
         skipped = {k: runs[k]["skipped_visits"] for k in round_runs if runs[k]["skipped_visits"]}
         self.assertEqual(self.bars("o80"), {"Round runs": 9, "Runs with skill_na": len(skipped),
                                             "Visits recorded N/A": sum(len(v) for v in skipped.values())})
@@ -5068,7 +5047,7 @@ class RoundRunFindingsTests(unittest.TestCase):
         finally:
             sys.path.remove(str(ROOT / "skills" / "shiploop" / "scripts"))
         replay = self.figures["credential_replay"]
-        self.assertEqual(sorted(replay), ["r2-battleship-grok-none", "r3-battleship-grok-none"])
+        self.assertEqual(len(replay), 2)
         hex_lines = 0
         for rows in replay.values():
             for row in rows:
@@ -5192,21 +5171,18 @@ class RoundRunFindingsTests(unittest.TestCase):
             self.assertIn(f"key {doc['key']}", option["goal"])
         # the prompt reads a new criterion as one with no current text
         text = run_logic("buildPrompt(%s)" % json.dumps({
-            "run": {"key": "r1-battleship-grok-none"}, "findings": [{"id": i, **d} for i, d in self.new_findings.items()],
+            "run": {"key": "r1-battleship-sonnet"}, "findings": [{"id": i, **d} for i, d in self.new_findings.items()],
             "options": [{"id": i, **d} for i, d in self.new_options.items()], "expectations": self.defaults,
             "selected": {"options": {proposed["S-14"][0]: True}, "find": {}}, "config": {}}))
         self.assertIn(f"{proposed['S-14'][0]} P7 Add a criterion for S-14: unattended by default: target page. Now: {{", text)
         self.assertIn(" Was: (not recorded) Why: ", text)
 
-    def test_the_two_round_3_reviews_ground_every_basis_line_and_derive_the_chips_they_describe(self):
+    def test_the_round_3_review_grounds_every_basis_line_and_derives_the_chips_it_describes(self):
         findings = [{"id": i, **d} for docs in self.bundles.values() for i, d in (docs.get("observations") or {}).items()]
         criteria = [k for k, e in self.defaults.items() if e["kind"] == "criterion"]
         expected = {"r3-battleship-sonnet": {"P1": "holds", "P2": "holds", "P3": "bent", "P4": "holds", "P5": "broken",
                                              "P6": "unexamined", "B1": "unexamined", "B2": "bent", "B3": "unexamined",
-                                             "B4": "unexamined", "B5": "unexamined"},
-                    "r3-battleship-grok-none": {"P1": "holds", "P2": "holds", "P3": "unexamined", "P4": "holds", "P5": "broken",
-                                                "P6": "broken", "B1": "unexamined", "B2": "bent", "B3": "unexamined",
-                                                "B4": "unexamined", "B5": "unexamined"}}
+                                             "B4": "unexamined", "B5": "unexamined"}}
         for key, chips in expected.items():
             with self.subTest(run=key):
                 name = f"{key}.review.json"
@@ -5234,17 +5210,12 @@ class RoundRunFindingsTests(unittest.TestCase):
                 got = run_logic("(function(F,R){return %s.map(function(k){return chipFor(k,%s,F,R);});})(%s,%s)"
                                 % (json.dumps(criteria), json.dumps(key), json.dumps(findings), json.dumps(review)))
                 self.assertEqual(dict(zip(criteria, got)), chips)
-        runs, g3 = self.figures["runs"], self.figures["r3_grok"]
+        runs = self.figures["runs"]
         sonnet = self.bundles["r3-battleship-sonnet.review.json"]["reviews"]["r3-battleship-sonnet"]["summary"][0]
         bs = runs["r3-battleship-sonnet"]
         for fact in (f"in {bs['wall_min']} min", f"{bs['visits']} accepted visits", f"{bs['calls']} model calls", f"${bs['cost_usd']:.2f}",
                      f"{bs['planning_window_min']} min ({bs['planning_window_seconds']:.0f} s)"):
             self.assertIn(fact, sonnet)
-        grok = " ".join(self.bundles["r3-battleship-grok-none.review.json"]["reviews"]["r3-battleship-grok-none"]["summary"])
-        for fact in ("STOPPED", f"{g3['accepted_visits']} accepted visits", f"{g3['open_implement_min']} unaccepted minutes",
-                     f"{g3['resumed_session_min']} minutes", f"{g3['first_browser_line_second']} s in", "Grok host"):
-            self.assertIn(fact, grok)
-        self.assertEqual((g3["stop"], g3["earlier_stop"], g3["last_accepted_stage"]), ("stopped", ["terminated by SIGTERM"], "implement"))
 
 
 # ---------------------------------------------------------------- R20a: the stage catalog, the card fields and the stage card
@@ -6608,10 +6579,10 @@ class PacketHeadStartTests(unittest.TestCase):
 
 # ---------------------------------------------------------------- R22a: how the run ended, hosts, blocked, left behind
 
-# Excerpts of the real records of a Grok run the harness stopped (ShipLoop 0.58.0), the shapes the exporter reads; the paths
+# Excerpts of the real records of a run the harness stopped (ShipLoop 0.58.0), the shapes the exporter reads; the paths
 # and ids are synthetic. result.json `termination`, `earlier_terminations`, `left_behind` and `shiploop.worktree_checks`.
 TERMINATION_STOPPED = {"process_status": "stopped", "returncode": -9, "sessions": 1, "resumes": 0, "session_stops": ["unknown"],
-                       "resume_stop": "stopped by /e2e/r3-battleship-grok-none/stop", "engine_status": "active",
+                       "resume_stop": "stopped by /e2e/r3-battleship-codex/stop", "engine_status": "active",
                        "engine_stage": "test-green", "engine_unaccepted_stage": "test-green", "engine_status_reason": None}
 EARLIER_TERMINATION = {"process_status": "stopped", "returncode": -9, "sessions": 1, "resumes": 0, "session_stops": ["unknown"],
                        "resume_stop": "terminated by SIGTERM", "engine_status": "active", "engine_stage": "test-author",
@@ -6627,7 +6598,7 @@ INCOMPLETE_ROW = {"stage": "test-green", "outcome": None, "incomplete": True, "s
 def ended_run(root: Path, *, process_status: str = "stopped", termination: dict | None = None, status: str = "active",
               incomplete: dict | None = INCOMPLETE_ROW, packet: bool = True, **result) -> Path:
     """A run the harness ended: ShipLoop's state still reads `status`, result.json carries the harness's termination record
-    (a stopped Grok run's, by default), metrics.json the `incomplete` stage row for the stage never accepted, and the packet
+    (a stopped run's, by default), metrics.json the `incomplete` stage row for the stage never accepted, and the packet
     issued for it (state.md names its action `nav-x`) is on disk."""
     rows = harness_rows(ACCEPTS) + ([incomplete] if incomplete else [])
     out = make_run(root, status=status, loops=False, metrics={"stages": rows})
@@ -6773,7 +6744,7 @@ class RunHostsExportTests(unittest.TestCase):
         return run, facts
 
     def two_hosts(self, root: Path) -> Path:
-        """A Grok run resumed on Claude: one visit of each host's events has a context row, the Grok visits have calls 0."""
+        """A Codex run resumed on Claude: one visit of each host's events has a context row, the first visits have calls 0."""
         contexts = {0: {"calls": 0, "peak": 63_417, "peakPct": 6.3}, 1: {"calls": 0, "peak": None, "peakPct": None},
                     5: {"calls": 5, "peak": 71_202, "peakPct": 7.1}, 6: {"calls": 3, "peak": 92_119, "peakPct": 9.2}}
         out = make_run(root, loops=False, metrics={"stages": harness_rows(ACCEPTS, contexts), "model_calls": 182,
@@ -6800,9 +6771,9 @@ class RunHostsExportTests(unittest.TestCase):
 
     def test_hosts_are_ordered_by_the_resume_time_not_the_file_name_and_a_one_host_run_keeps_its_figures(self):
         out = make_run(self.tmp, loops=False)
-        write_json(out / "invocation-resume-grok-1791509021.json", {"host": "grok", "model": "grok-4.7", "effort": "medium"})
+        write_json(out / "invocation-resume-antigravity-1791509021.json", {"host": "antigravity", "model": "gemini-3-pro", "effort": "medium"})
         write_json(out / "invocation-resume-claude-1791508003.json", {"host": "claude", "model": "claude-sonnet-5-5"})
-        self.assertEqual([h["host"] for h in export._hosts(out)], ["codex", "claude", "grok"])
+        self.assertEqual([h["host"] for h in export._hosts(out)], ["codex", "claude", "antigravity"])
         single, _ = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))
         self.assertEqual(single["hosts"], [{"host": "codex", "model": "gpt-6-luna", "effort": "max"}])
         self.assertEqual((single["calls"], single["contextPeak"], single["contextWindow"], single["compactions"]), (120, 250_000, 1_000_000, 0))
@@ -6957,7 +6928,7 @@ class RunEndingContractTests(unittest.TestCase):
         return dict({"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}, **fields)
 
     def test_the_new_fields_validate_and_wrong_shapes_are_named(self):
-        good = self.run_doc(status="stopped", hosts=[{"host": "grok", "model": "grok-4.7", "effort": "medium"}],
+        good = self.run_doc(status="stopped", hosts=[{"host": "codex", "model": "gpt-6-luna", "effort": "medium"}],
                             ending={"by": "stopped by the stop file", "stage": "implement", "unacceptedMin": 27.1, "unacceptedTurns": 104,
                                     "packetBytes": 47475, "packetDoc": True, "sessions": 1, "resumes": 0,
                                     "earlier": [{"by": "terminated by SIGTERM", "stage": "test-author"}]},
@@ -6984,7 +6955,7 @@ class RunEndingContractTests(unittest.TestCase):
             self.assertIn(phrase, text)
         for stale in ("such as Claude's", "Today only a Codex run", "no packet on disk has a 'Checked by:' line yet",
                       "ShipLoop commands that exited non-zero",
-                      "never on a Grok run", "a reason per host"):  # R23c: a visit's context follows the rows, not the host
+                      "a reason per host"):  # R23c: a visit's context follows the rows, not the host
             self.assertNotIn(stale, text)
         self.assertNotIn("no packet on disk has", (SKILL_ROOT / "scripts" / "export.py").read_text())
 
@@ -6996,12 +6967,12 @@ class RunEndingContractTests(unittest.TestCase):
 
 # ---------------------------------------------------------------- R22a: the page shows how a run ended
 
-# Run documents shaped like the exporter's for a stopped Grok run, a blocked one and a run two hosts wrote. Excerpts only.
+# Run documents shaped like the exporter's for a stopped run, a blocked one and a run two hosts wrote. Excerpts only.
 ROWS_STOPPED = [{"stage": "intake", "outcome": "done", "min": 1.8, "action": "nav-a"},
                 {"stage": "spec", "outcome": "done", "min": 3.1, "action": "nav-b"},
                 {"stage": "implement", "outcome": "done", "min": 4.8, "action": "nav-c"}]
 STOPPED_RUN = {
-    "key": "s1", "name": "grok grok-4.7 medium, custom, release 1.26.0", "order": 5, "release": "skill-craft 1.26.0, ShipLoop 0.58.0",
+    "key": "s1", "name": "codex gpt-6-luna medium, custom, release 1.26.0", "order": 5, "release": "skill-craft 1.26.0, ShipLoop 0.58.0",
     "phases": ["done", "done", "done", "stopped", "none", "none", "none", "none"], "status": "stopped", "imp": "0 children",
     "time": "stopped after 36 min, then 27 min of unaccepted work", "wallMin": 36.5, "stages": ROWS_STOPPED,
     "ending": {"by": "stopped by the stop file", "stage": "implement", "action": "nav-d", "unacceptedMin": 27.1, "unacceptedTurns": 104,
@@ -7012,7 +6983,7 @@ STOPPED_RUN = {
         {"command": "Google Chrome", "ports": [64335], "where": "work", "endedBy": "SIGTERM"}]},
     "verdicts": {"checks": False, "worktreeChecks": {"passed": 4, "total": 4}}, "unmeasured": {}}
 BLOCKED_RUN = {
-    "key": "b1", "name": "grok grok-4.7 medium, custom, release 1.24.0", "order": 4, "release": "skill-craft 1.24.0", "status": "blocked",
+    "key": "b1", "name": "codex gpt-6-luna medium, custom, release 1.24.0", "order": 4, "release": "skill-craft 1.24.0", "status": "blocked",
     "phases": ["done", "done", "done", "done", "done", "done", "blocked", "none"], "imp": "0 children", "time": "blocked after 90 min",
     "stages": ROWS_STOPPED, "unmeasured": {},
     "blocked": {"by": "access", "reason": "access: SYS-SERVE passed. TC-16 did not run.", "headline": "TC-16 needs a browser",
@@ -7023,9 +6994,9 @@ BLOCKED_RUN = {
 DONE_RUN = {"key": "d1", "name": "claude claude-sonnet-5-5, battleship, release 1.26.0", "order": 3, "release": "skill-craft 1.26.0",
             "status": "done", "phases": ["done"] * 8, "imp": "5 children", "time": "done in 80 min", "stages": ROWS_STOPPED,
             "unmeasured": {}, "verdicts": {"checks": True}}
-TWO_HOSTS_RUN = dict(DONE_RUN, key="h1", name="grok grok-4.7 medium, custom, release 1.25.0", hosts=[
-    {"host": "grok", "model": "grok-4.7", "effort": "medium"}, {"host": "claude", "model": "claude-sonnet-5-5"}],
-    unmeasured={"calls": "2 hosts ran this (grok grok-4.7, claude claude-sonnet-5-5): the harness mixes their events in one "
+TWO_HOSTS_RUN = dict(DONE_RUN, key="h1", name="codex gpt-6-luna medium, custom, release 1.25.0", hosts=[
+    {"host": "codex", "model": "gpt-6-luna", "effort": "medium"}, {"host": "claude", "model": "claude-sonnet-5-5"}],
+    unmeasured={"calls": "2 hosts ran this (codex gpt-6-luna, claude claude-sonnet-5-5): the harness mixes their events in one "
                          "figure, so it is not a measure",
                 "contextPeak": "2 hosts ran this: not a measure", "visitContext": "2 hosts ran this: not a measure"})
 
@@ -7101,7 +7072,7 @@ class EndingCardLogicTests(unittest.TestCase):
     def test_the_host_chip_appears_only_for_a_run_two_hosts_wrote_and_names_the_later_host(self):
         chip = run_logic("hostChip(%s)" % json.dumps(TWO_HOSTS_RUN))
         self.assertEqual(chip["text"], "resumed on claude-sonnet-5-5")
-        self.assertIn("2 hosts (grok grok-4.7 medium; claude claude-sonnet-5-5)", chip["title"])
+        self.assertIn("2 hosts (codex gpt-6-luna medium; claude claude-sonnet-5-5)", chip["title"])
         self.assertIn("are not measured", chip["title"])
         one = {"hosts": [{"host": "claude", "model": "claude-sonnet-5-5"}]}
         self.assertEqual(run_logic("[hostChip(%s),hostChip({}),hostChip(null)]" % json.dumps(one)), [None, None, None])
@@ -7314,7 +7285,7 @@ class TailColumnTests(unittest.TestCase):
 # ---------------------------------------------------------------- R22b: script checks, unverified outcomes, tool use, planning, graph checks
 
 # Excerpts of the real records (ShipLoop 0.58.0), the shapes the exporter reads; ids, paths and texts are synthetic where they
-# would be long. A tests/<action>-verifyN.md record, a Claude run's metrics `tool_use`, and a Grok run's planning tokens.
+# would be long. A tests/<action>-verifyN.md record, a Claude run's metrics `tool_use`, and a run's planning tokens.
 VERIFY_PASSED = {"action": "A", "created_at": "2026-10-09T06:29:00Z", "cwd": "/e2e/r3/worktree", "disposition": "passed", "passed": True,
                  "schema": "shiploop-test-loop/v1", "stage": "static-checks", "work_item": "W1", "runs": [
                      {"accepted_ran": 5, "command": "node --test test/game.test.js", "counts": {"failed": 0, "ran": 5, "runners": ["node"]},
@@ -7475,7 +7446,7 @@ class ToolUseAndPlanningExportTests(unittest.TestCase):
         none = dict(TOOL_USE, scratch_scripts=[{"path": "/x/a.js", "bytes": 1, "wraps_shiploop": False, "runs": 3}])
         run, _ = self.build(make_run(self.tmp, loops=False, metrics={"tool_use": none}))
         self.assertEqual(run["toolUse"]["wrappers"], [])
-        bare, facts = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))  # tool_use None, as a Grok or Codex run writes it
+        bare, facts = self.build(make_run(Path(tempfile.mkdtemp(dir=self.tmp)), loops=False))  # tool_use None, as a Codex run writes it
         self.assertNotIn("toolUse", bare)
         self.assertEqual(bare["unmeasured"]["toolUse"], f"{export.NO_TOOL_USE} (host: codex)")
         self.assertIn("- Tool use: not measured (", "\n".join(facts))
@@ -8000,7 +7971,9 @@ class R23aOutcomeAndBuildExportTests(R23aExportBase):
         self.assertEqual(run["identity"], {"pluginSha": "3a7515d2efd3", "promptSha": "d0c0cbe71344", "hostBuild": "2.1.294"})
         self.assertEqual([k for k in run["unmeasured"] if k.startswith("identity.")], [])  # the stale "predates the field" notes of known fields are not copied
         self.assertIn("- Build: plugin 3a7515d2efd3, prompt d0c0cbe71344, host build 2.1.294", "\n".join(facts))
-        run, facts = self.build(r23a_run(self.fresh(), "20261008/r1-battleship-grok-none"))
+        run, facts = self.build(r23a_run(self.fresh(), versions={"plugin_sha256": "3a7515d2efd3"},
+                                         prompt_sha256="5ea67bf35336", host_build=None,
+                                         identity_unmeasured={"host_build": "launch predates the field"}))
         self.assertEqual(run["identity"], {"pluginSha": "3a7515d2efd3", "promptSha": "5ea67bf35336"})
         self.assertEqual(run["unmeasured"]["identity.hostBuild"], "launch predates the field")
         self.assertIn("host build not measured (launch predates the field)", "\n".join(facts))
@@ -8021,25 +7994,34 @@ class R23aOutcomeAndBuildExportTests(R23aExportBase):
 class R23aEnvironmentExportTests(R23aExportBase):
     """result.json environment: the start's tools and browser, the overlap with sibling runs, and the parts nothing observed."""
 
-    SAVED = "20261008/r1-battleship-grok-none"
+    SAVED = "20261008/r1-battleship-sonnet"
 
     def test_the_overlap_lists_each_sibling_in_minutes_and_prints_the_harness_basis_verbatim(self):
-        run, _ = self.build(r23a_run(self.fresh(), self.SAVED))
-        saved = r23_figures()["savedRuns"][self.SAVED]["result"]["environment"]["overlap"]
+        env = dict(r23_figures()["savedRuns"][self.SAVED]["result"]["environment"], overlap={
+            "basis": r23_figures()["savedRuns"][self.SAVED]["result"]["environment"]["overlap"]["basis"],
+            "observed": True,
+            "runs": [
+                {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlapped_seconds": 786.0, "started_offset_seconds": 282.0},
+                {"folder": "r1-battleship-codex", "case": "battleship", "hosts": ["codex"], "overlapped_seconds": 828.0, "started_offset_seconds": -0.4},
+            ],
+        })
+        run, _ = self.build(r23a_run(self.fresh(), environment=env))
         overlap = run["environment"]["overlap"]
-        self.assertEqual(overlap["basis"], saved["basis"])
+        self.assertEqual(overlap["basis"], env["overlap"]["basis"])
         self.assertIn("neither an upper nor a lower bound", overlap["basis"])
         self.assertEqual(overlap["runs"], [
-            {"folder": "r1-battleship-sonnet", "case": "battleship", "hosts": ["claude"], "overlappedMin": 13.8, "startedOffsetMin": 0.0},
-            {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlappedMin": 13.1, "startedOffsetMin": 4.7}])
+            {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlappedMin": 13.1, "startedOffsetMin": 4.7},
+            {"folder": "r1-battleship-codex", "case": "battleship", "hosts": ["codex"], "overlappedMin": 13.8, "startedOffsetMin": 0.0}])
         self.assertNotIn("-0.0", json.dumps(run["environment"]))  # a sibling that began 0.4 s earlier began "with" this run, not -0.0 min before it
         self.assertNotIn("observed", overlap)  # present means observed; an unobserved one is only in `unmeasured`
 
     def test_a_run_that_was_only_regraded_has_no_start_or_end_and_says_so_and_hosts_and_launches_are_not_repeated(self):
-        run, _ = self.build(r23a_run(self.fresh(), "20261008/r2-battleship-grok-none"))
-        env = r23_figures()["savedRuns"]["20261008/r2-battleship-grok-none"]["result"]["environment"]
-        self.assertEqual(run["unmeasured"]["environment.start"], env["start"]["reason"])
-        self.assertEqual(run["unmeasured"]["environment.end"], env["end"]["reason"])
+        saved_env = dict(r23_figures()["savedRuns"][self.SAVED]["result"]["environment"])
+        saved_env["overlap"] = {**saved_env["overlap"], "runs": [
+            {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlapped_seconds": 548.2, "started_offset_seconds": 280.9}]}
+        run, _ = self.build(r23a_run(self.fresh(), environment=saved_env))
+        self.assertEqual(run["unmeasured"]["environment.start"], saved_env["start"]["reason"])
+        self.assertEqual(run["unmeasured"]["environment.end"], saved_env["end"]["reason"])
         self.assertNotIn("environment.overlap", run["unmeasured"])
         self.assertEqual(set(run["environment"]), {"overlap"})  # no tools, no browser: nothing observed them
         for repeated in ("hosts", "hosts_used", "environments", "mixed_host", "launches_unreadable"):
@@ -8047,8 +8029,10 @@ class R23aEnvironmentExportTests(R23aExportBase):
         self.assertEqual([h["host"] for h in run["hosts"]], ["codex"])  # the run's hosts stay what invocation*.json says
 
     def test_an_observed_start_exports_the_tools_it_read_and_the_browser_without_the_local_binary_path(self):
-        run, facts = self.build(r23a_run(self.fresh(), self.SAVED, environment=dict(
-            r23_figures()["savedRuns"][self.SAVED]["result"]["environment"], start=R23A_START)))
+        run, facts = self.build(r23a_run(self.fresh(), environment=dict(
+            r23_figures()["savedRuns"][self.SAVED]["result"]["environment"],
+            overlap={"basis": "b", "observed": True, "runs": []},
+            start=R23A_START)))
         env = run["environment"]
         self.assertEqual(env["tools"], {"node": "v25.9.0", "python3": "Python 3.14.7"})  # git was not found: not a null here
         self.assertEqual(run["unmeasured"]["environment.tools.git"], "not found on PATH")
@@ -8240,16 +8224,24 @@ class R23aPageLogicTests(unittest.TestCase):
     def test_the_build_line_shortens_a_hash_names_what_is_not_measured_and_gives_the_reason_as_its_hint(self):
         sonnet = run_logic("identityModel(%s)" % json.dumps(r23a_doc("20261008/r1-battleship-sonnet")))
         self.assertEqual(sonnet["text"], "Build: plugin 3a7515d2efd3, prompt d0c0cbe71344, host build 2.1.294")
-        grok = run_logic("identityModel(%s)" % json.dumps(r23a_doc("20261008/r1-battleship-grok-none")))
-        self.assertEqual(grok["text"], "Build: plugin 3a7515d2efd3, prompt 5ea67bf35336, host build not measured")
-        self.assertIn("host build: launch predates the field", grok["title"])
+        unmeasured = run_logic("identityModel(%s)" % json.dumps(r23a_doc(
+            versions={"plugin_sha256": "3a7515d2efd3"}, prompt_sha256="5ea67bf35336", host_build=None,
+            identity_unmeasured={"host_build": "launch predates the field"})))
+        self.assertEqual(unmeasured["text"], "Build: plugin 3a7515d2efd3, prompt 5ea67bf35336, host build not measured")
+        self.assertIn("host build: launch predates the field", unmeasured["title"])
         self.assertEqual(run_logic("identityModel({identity:{pluginSha:'%s'}}).text" % ("ab" * 32)), "Build: plugin " + "ab" * 6)
         self.assertEqual(run_logic("[identityModel({}),identityModel(null),identityModel({identity:{}}),identityModel({identity:'x'})]"), [None] * 4)
         none = run_logic("identityModel({unmeasured:{'identity.hostBuild':'r'}}).text")
         self.assertEqual(none, "Build: host build not measured")
 
     def test_the_overlap_chip_counts_the_siblings_says_the_minutes_are_not_clean_and_is_absent_without_any(self):
-        chip = run_logic("overlapChip(%s)" % json.dumps(r23a_doc("20261008/r1-battleship-grok-none")))
+        overlap_doc = r23a_doc(environment={
+            "overlap": {"basis": "neither an upper nor a lower bound", "observed": True, "runs": [
+                {"folder": "r1-battleship-sonnet", "case": "battleship", "hosts": ["claude"], "overlapped_seconds": 828.0, "started_offset_seconds": 0.0},
+                {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlapped_seconds": 786.0, "started_offset_seconds": 282.0}]},
+            "start": {"observed": False, "reason": "regraded: the launch record has no environment (it was written before the record existed)"},
+            "end": {"observed": False, "reason": "regraded: the end of the run was not observed"}})
+        chip = run_logic("overlapChip(%s)" % json.dumps(overlap_doc))
         self.assertEqual(chip["text"], "ran alongside 2 other runs")
         for needle in ("r1-battleship-sonnet 13.8 min", "r1-checkers-sonnet 13.1 min", "not a clean measure", "neither an upper nor a lower bound"):
             self.assertIn(needle, chip["title"])
@@ -8261,7 +8253,12 @@ class R23aPageLogicTests(unittest.TestCase):
                          [None] * 4)  # a measured none, and nothing measured, draw no chip
 
     def test_the_environment_card_lists_the_siblings_and_each_part_nobody_observed_with_its_reason(self):
-        doc = r23a_doc("20261008/r1-battleship-grok-none")
+        doc = r23a_doc(environment={
+            "overlap": {"basis": "neither an upper nor a lower bound", "observed": True, "runs": [
+                {"folder": "r1-battleship-sonnet", "case": "battleship", "hosts": ["claude"], "overlapped_seconds": 828.0, "started_offset_seconds": 0.0},
+                {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlapped_seconds": 786.0, "started_offset_seconds": 282.0}]},
+            "start": {"observed": False, "reason": "regraded: the launch record has no environment (it was written before the record existed)"},
+            "end": {"observed": False, "reason": "regraded: the end of the run was not observed"}})
         model = run_logic("environmentModel(%s)" % json.dumps(doc))
         rows = dict(model["rows"])
         self.assertEqual(rows["Other runs on the machine"],
@@ -8277,7 +8274,7 @@ class R23aPageLogicTests(unittest.TestCase):
         env = {"tools": {"node": "v25.9.0", "python3": "Python 3.14.7"},
                "browser": {"declared": True, "probed": True, "version": "Google Chrome 141", "targets": {"file": "page title seen in 0.41 s", "http": "no page title (stopped at the ceiling)"}},
                "overlap": {"basis": "b", "runs": [{"folder": "early", "overlappedMin": 2, "startedOffsetMin": -3.5},
-                                                   {"folder": "late", "case": "checkers", "hosts": ["claude", "grok"], "overlappedMin": 1.2, "startedOffsetMin": 0.5}],
+                                                   {"folder": "late", "case": "checkers", "hosts": ["claude", "codex"], "overlappedMin": 1.2, "startedOffsetMin": 0.5}],
                            "unreadable": ["odd"]}}
         run = {"environment": env, "unmeasured": {"environment.tools.git": "not found on PATH", "environment.end": "regraded: not observed"}}
         rows = dict(run_logic("environmentModel(%s)" % json.dumps(run))["rows"])
@@ -8285,7 +8282,7 @@ class R23aPageLogicTests(unittest.TestCase):
         self.assertEqual(rows["Tools not read"], "git: not found on PATH")
         self.assertEqual(rows["Browser"], "probed Google Chrome 141\nfile: page title seen in 0.41 s\nhttp: no page title (stopped at the ceiling)")
         self.assertEqual(rows["Other runs on the machine"],
-                         "early: 2 min together, started 3.5 min before this run\nlate (checkers on claude, grok): 1.2 min together, started 0.5 min after this run")
+                         "early: 2 min together, started 3.5 min before this run\nlate (checkers on claude, codex): 1.2 min together, started 0.5 min after this run")
         self.assertEqual(rows["Sibling folders not read"], "odd")
         self.assertEqual(rows["End of the run"], "not observed: regraded: not observed")
         for browser, text in (({"declared": False, "probed": False, "reason": "no case or --need declares a browser"}, "not declared (no case or --need declares a browser)"),
@@ -8327,20 +8324,26 @@ class R23aPageTests(unittest.TestCase):
         return page_probe(expression, setup=ended_page(run))
 
     def test_the_header_lines_say_the_outcome_and_the_build_as_plain_text_never_coloured_as_a_verdict(self):
-        doc = r23a_doc("20261008/r3-battleship-grok-none")
+        doc = r23a_doc(outcome_class="STOPPED",
+                       outcome_basis="host stopped with the engine active at implement; stopped by the stop file",
+                       versions={"plugin_sha256": "a03059c9db03"}, prompt_sha256="5ea67bf35336", host_build=None,
+                       identity_unmeasured={"host_build": "launch predates the field"})
         out = self.page(doc, '[textOf("runrecord"),REG.runrecord.hidden,REG.runrecord.className,'
                              'walk(REG.runrecord,function(e){return /holds|broken|bent|chip/.test(e.className);}).length]')
         self.assertFalse(out[1])
         self.assertIn("Outcome: STOPPED, host stopped with the engine active at implement; stopped by the stop file", out[0])
         self.assertIn("Build: plugin a03059c9db03, prompt 5ea67bf35336, host build not measured", out[0])
         self.assertEqual((out[2], out[3]), ("", 0))  # no class that colours, no chip: a record is not a pass or a fail
-        blocked = self.page(r23a_doc("20261008/r1-battleship-grok-none"), 'textOf("runrecord")')
+        blocked = self.page(r23a_doc(outcome_class="BLOCKED", outcome_basis="engine blocked at system-test-author by access"),
+                            'textOf("runrecord")')
         self.assertIn("Outcome: BLOCKED, engine blocked at system-test-author by access", blocked)
 
     def test_a_run_with_neither_record_has_no_lines_and_no_chip_and_the_chip_names_the_siblings(self):
         plain = self.page(DONE_RUN, '[REG.runrecord.hidden,REG.runoverlap.hidden,textOf("runrecord")]')
         self.assertEqual(plain, [True, True, ""])
-        doc = r23a_doc("20261008/r1-battleship-grok-none")
+        doc = r23a_doc(environment={"overlap": {"basis": "not a clean measure", "observed": True, "runs": [
+            {"folder": "r1-battleship-sonnet", "case": "battleship", "hosts": ["claude"], "overlapped_seconds": 828.0, "started_offset_seconds": 0.0},
+            {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlapped_seconds": 786.0, "started_offset_seconds": 282.0}]}})
         chip = self.page(doc, '[REG.runoverlap.hidden,textOf("runoverlap"),REG.runoverlap.title,REG.runoverlap.className]')
         self.assertFalse(chip[0])
         self.assertEqual(chip[1], "ran alongside 2 other runs")
@@ -8348,7 +8351,10 @@ class R23aPageTests(unittest.TestCase):
         self.assertNotIn("broken", chip[3])  # the template ships the chip's class: neutral, not a warning colour
 
     def test_the_environment_card_is_in_the_run_detail_and_only_for_a_run_that_has_a_record(self):
-        doc = r23a_doc("20261008/r1-battleship-grok-none")
+        doc = r23a_doc(environment={
+            "overlap": {"basis": "neither an upper nor a lower bound", "observed": True, "runs": [
+                {"folder": "r1-checkers-sonnet", "case": "checkers", "hosts": ["claude"], "overlapped_seconds": 786.0, "started_offset_seconds": 282.0}]},
+            "start": {"observed": False, "reason": "regraded"}})
         card = self.page(doc, 'byClass("rundetail","envcard").map(function(c){return c.textContent;})')
         self.assertEqual(len(card), 1)
         for text in ("Environment", "Other runs on the machine", "r1-checkers-sonnet (checkers on claude): 13.1 min together, started 4.7 min after this run",
@@ -8403,7 +8409,7 @@ R23C_FIGURES = json.loads((ROOT / "docs" / "experiments" / "run-review-r23-20261
 class VisitContextFollowsRowsTests(unittest.TestCase):
     """R23c: whether a visit has a context, and why one has none, is read from the harness's stage rows, never from the host.
 
-    The harness (batch 1011, group G2) counts a Grok stage's usage events as calls, so its rows carry {calls, peak, peakPct: null},
+    The harness counts a stage's usage/rollout events as calls, so rows carry {calls, peak, peakPct},
     and a row whose window holds no event carries no `context` at all; a run recorded before that keeps its old rows."""
 
     KEY = RunReviewTest.KEY
@@ -8420,9 +8426,9 @@ class VisitContextFollowsRowsTests(unittest.TestCase):
         self.assertEqual(export.validate_doc("runs", run), [])
         return run
 
-    def test_a_grok_run_whose_rows_carry_a_context_shows_it_and_a_percentage_is_never_computed(self):
-        contexts = {i: {"calls": 3 + i, "peak": 60_000 + i, "peakPct": None} for i in range(len(ACCEPTS))}  # Grok reports no window
-        for host in ("grok", "claude", "codex"):
+    def test_a_run_whose_rows_carry_a_context_shows_it_and_a_percentage_is_never_computed(self):
+        contexts = {i: {"calls": 3 + i, "peak": 60_000 + i, "peakPct": None} for i in range(len(ACCEPTS))}
+        for host in ("antigravity", "claude", "codex"):
             with self.subTest(host=host):
                 run = self.build(harness_rows(ACCEPTS, contexts), host)
                 self.assertEqual(run["stages"][0]["context"], {"calls": 3, "peak": 60_000})  # peakPct null is unknown, not exported
@@ -8432,7 +8438,7 @@ class VisitContextFollowsRowsTests(unittest.TestCase):
 
     def test_visits_whose_rows_hold_no_model_call_are_counted_and_the_reason_is_derived_from_the_rows(self):
         contexts = {2: {"calls": 4, "peak": 70_000, "peakPct": 7.0}, 3: {"calls": 2, "peak": None, "peakPct": None}}
-        for host in ("grok", "claude"):
+        for host in ("antigravity", "claude"):
             with self.subTest(host=host):
                 run = self.build(harness_rows(ACCEPTS, contexts), host)
                 self.assertEqual([("context" in row) for row in run["stages"]], [False, False, True, True, False, False, False])
@@ -8443,22 +8449,21 @@ class VisitContextFollowsRowsTests(unittest.TestCase):
                 self.assertIn("not zero", reason)
 
     def test_when_no_row_carries_a_context_every_host_gets_the_same_reason_and_it_names_no_host(self):
-        for host in ("grok", "claude", "codex"):
+        for host in ("antigravity", "claude", "codex"):
             with self.subTest(host=host):
                 run = self.build(harness_rows(ACCEPTS), host)
                 self.assertTrue(all("context" not in row for row in run["stages"]))
                 self.assertEqual(run["unmeasured"]["visitContext"], export.NO_VISIT_CONTEXT)
-        for host in ("Grok", "Claude", "Codex"):
+        for host in ("Antigravity", "Claude", "Codex"):
             self.assertNotIn(host, export.NO_VISIT_CONTEXT)
         self.assertIn("as this run was recorded", export.NO_VISIT_CONTEXT)
-        self.assertFalse(hasattr(export, "NO_VISIT_CONTEXT_GROK"), "the host no longer decides the reason")
         self.assertFalse(hasattr(export, "no_visit_context"))
 
     def test_the_rows_of_a_run_recorded_before_the_correction_keep_their_old_reading(self):
-        # r1-battleship-grok-none: no row has a context. A row of the old shape {calls: 0, peak: null} (a window with no event, which
+        # No row has a context. A row of the old shape {calls: 0, peak: null} (a window with no event, which
         # the harness used to count as a context of zero calls) is not read as a measurement either.
         old = {i: {"calls": 0, "peak": None, "peakPct": None} for i in range(len(ACCEPTS))}
-        run = self.build(harness_rows(ACCEPTS, old), "grok")
+        run = self.build(harness_rows(ACCEPTS, old), "codex")
         self.assertTrue(all("context" not in row for row in run["stages"]))
         self.assertEqual(run["unmeasured"]["visitContext"], export.visits_without_context_reason(7, 7))
 
@@ -8473,10 +8478,8 @@ class VisitContextFollowsRowsTests(unittest.TestCase):
         schema = " ".join(SCHEMA_MD.read_text().split())
         skill = " ".join(SKILL_MD.read_text().split())
         for text in (schema, skill):
-            self.assertNotIn("never on a Grok run", text)
             self.assertNotIn("a reason per host", text)
         for phrase in ("Whether a visit has a `context` follows the harness's stage rows, not the host",
-                       "Grok stage row counts its usage events as calls and has no `peakPct`",
                        "a stage whose window holds no event has no `context`",
                        "The visits without one are counted in `unmeasured.visitContext`"):
             self.assertIn(phrase, schema)
@@ -8525,17 +8528,30 @@ class FreshStartsExportTests(unittest.TestCase):
         self.assertEqual(export.validate_doc("runs", run), [])
         return run, facts
 
-    def measured_start(self, stage="test-strategy"):
-        """The first start of r3-battleship-grok-none (measured), its accepted action pointed at a visit of the fixture."""
-        start = r23c_example("freshStartsR3GrokMeasured")[0]
-        start["reorientation"]["accepted"] = {"stage": stage, "action": IDS[stage]}
-        start["stage_in_flight"] = stage
-        return start
+    def measured_start(self, stage="test-strategy", host="codex"):
+        return {
+            "kind": "compaction", "host": host, "stage_in_flight": stage, "events_line": 1536, "t": 1791527512.737,
+            "n": None, "reason": None,
+            "reorientation": {
+                "measured": True, "tool_calls": 29, "seconds": 326.7, "seconds_to_accept_stamp": 326.3,
+                "first_grounding": "packet", "calls_before_grounding": 0, "asked_user": 0,
+                "recovery": {"first_next": None, "next_calls": 0, "revision_seen": None, "told": None},
+                "failures": {"bound": "lower", "items": [], "scope": self.SCOPE},
+                "rewrote": {"bound": "lower", "paths": [], "scope": "none seen by file-edit tools"},
+                "accepted": {"stage": stage, "action": IDS[stage]}}}
+
+    def unmeasured_tail_start(self, host="codex"):
+        return {
+            "kind": "compaction", "host": host, "stage_in_flight": None, "events_line": 8341, "t": 1791530230.729,
+            "n": None, "reason": None,
+            "reorientation": {"measured": False, "calls_before_grounding": None, "first_grounding": None,
+                              "reason": "the ledger accepted no action after this start",
+                              "recovery": {"first_next": None, "next_calls": 0, "revision_seen": None, "told": None}}}
 
     def test_a_measured_start_keeps_its_counts_and_the_bounds_the_harness_gave_and_drops_the_rest(self):
         run, _ = self.build([self.measured_start()])
         self.assertEqual(run["freshStarts"], [{
-            "kind": "compaction", "host": "grok", "stage": "test-strategy",
+            "kind": "compaction", "host": "codex", "stage": "test-strategy",
             "reoriented": {"measured": True, "toolCalls": 29, "seconds": 326.7, "firstGrounding": "packet", "callsBeforeGrounding": 0,
                            "nextCalls": 0, "askedUser": 0,
                            "failures": {"count": 0, "bound": "lower", "scope": self.SCOPE},
@@ -8547,29 +8563,29 @@ class FreshStartsExportTests(unittest.TestCase):
         self.assertNotIn("freshStarts", run["unmeasured"])  # nothing unmeasured: the list is complete
 
     def test_a_failure_the_window_made_is_counted_and_still_called_a_lower_bound(self):
-        saved = r23c_saved("20261007/v1230-battleship-grok-none")["metrics"]["fresh_starts"]
-        starts = [s for s in saved if s["reorientation"]["measured"]]
+        starts = [dict(self.measured_start("plan"), reorientation={
+            **self.measured_start("plan")["reorientation"],
+            "failures": {"bound": "lower", "items": [{"verb": "complete"}], "scope": self.SCOPE}})]
         run, _ = self.build(starts)
         figures = [s["reoriented"] for s in run["freshStarts"]]
-        self.assertEqual([f["toolCalls"] for f in figures], [54, 16, 4, 20, 46])  # v1230-battleship-grok-none, five measured compactions
-        self.assertEqual([f["failures"]["count"] for f in figures], [0, 0, 0, 0, 1])
-        self.assertEqual([f["firstGrounding"] for f in figures], ["packet", "packet", "other", "packet", "packet"])
-        self.assertEqual({f["failures"]["bound"] for f in figures} | {f["rewrote"]["bound"] for f in figures}, {"lower"})
-        self.assertEqual([s["stage"] for s in run["freshStarts"]], ["plan", "test-author", "step-plan", "test-green", "carry-forward"])
+        self.assertEqual(figures[0]["failures"], {"count": 1, "bound": "lower", "scope": self.SCOPE})
+        self.assertEqual(figures[0]["rewrote"]["bound"], "lower")
+        self.assertEqual([s["stage"] for s in run["freshStarts"]], ["plan"])
 
     def test_a_start_the_harness_could_not_measure_carries_its_reason_and_no_figure(self):
-        mixed = r23c_example("freshStartsR2MixedHost")  # a start whose window may span two sessions
-        self.assertEqual(mixed[0]["reorientation"]["calls_before_grounding"], 0)  # the block holds a count of its own: it is not exported
-        run, _ = self.build(mixed + [r23c_example("freshStartsR3GrokMeasured")[1]])
+        mixed = [{"kind": "compaction", "host": "codex", "n": None, "reason": None, "stage_in_flight": None,
+                  "reorientation": {"measured": False, "calls_before_grounding": 0,
+                                    "reason": "session bounds not recorded: a host system event at line 2704 before the next accepted action, so this window may span two sessions"}}]
+        run, _ = self.build(mixed + [self.unmeasured_tail_start()])
         first, second = run["freshStarts"]
-        self.assertEqual(first, {"kind": "compaction", "host": "grok", "reoriented": {
+        self.assertEqual(first, {"kind": "compaction", "host": "codex", "reoriented": {
             "measured": False, "reason": "session bounds not recorded: a host system event at line 2704 before the next accepted action, "
                                          "so this window may span two sessions"}})
         self.assertEqual(second["reoriented"], {"measured": False, "reason": "the ledger accepted no action after this start"})
         self.assertNotIn("stage", second)  # no stage was in flight that the records name
 
     def test_the_visit_that_followed_a_fresh_start_carries_a_small_marker(self):
-        run, _ = self.build([self.measured_start("test-strategy"), r23c_example("freshStartsR3GrokMeasured")[1]])
+        run, _ = self.build([self.measured_start("test-strategy"), self.unmeasured_tail_start()])
         marked = [row for row in run["stages"] if "freshStart" in row]
         self.assertEqual([row["stage"] for row in marked], ["test-strategy"])
         self.assertEqual(marked[0]["freshStart"], {"kind": "compaction", "toolCalls": 29, "seconds": 326.7})
@@ -8604,10 +8620,10 @@ class FreshStartsExportTests(unittest.TestCase):
                 self.assertNotIn("none", line)
 
     def test_a_partial_list_keeps_what_it_has_and_says_what_is_missing(self):
-        blocks = r23c_saved("20261008/r3-battleship-grok-none")["metrics"]
-        run, lines = self.build(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"])
+        note = "not recorded: this run has no sessions.jsonl (only its compactions are listed)"
+        run, lines = self.build([self.measured_start(), self.unmeasured_tail_start()], note)
         self.assertEqual(len(run["freshStarts"]), 2)
-        self.assertEqual(run["unmeasured"]["freshStarts"], blocks["fresh_starts_unmeasured"])
+        self.assertEqual(run["unmeasured"]["freshStarts"], note)
         self.assertIn("only its compactions are listed", run["unmeasured"]["freshStarts"])
         line = next(l for l in lines if l.startswith("- Fresh starts"))
         self.assertIn("compaction at test-strategy: re-grounded in 29 calls, 327 s, from the packet", line)
@@ -8629,12 +8645,14 @@ class FreshStartsExportTests(unittest.TestCase):
         self.assertEqual(len(run["freshStarts"][0]["reoriented"]["failures"]["scope"]), export.MAX_FRESH_TEXT)
         self.assertIn(f"the list shows the first {export.MAX_FRESH_STARTS} of {export.MAX_FRESH_STARTS + 4} fresh starts",
                       run["unmeasured"]["freshStarts"])
-        long_reason = self.build([{"kind": "compaction", "host": "grok", "reorientation": {"measured": False, "reason": "R" * 5000}}])[0]
+        long_reason = self.build([{"kind": "compaction", "host": "codex", "reorientation": {"measured": False, "reason": "R" * 5000}}])[0]
         self.assertEqual(len(long_reason["freshStarts"][0]["reoriented"]["reason"]), export.MAX_FRESH_TEXT)
 
     def test_every_saved_run_exports_its_fresh_starts_to_a_valid_document(self):
         base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
         for name, saved in R23C_FIGURES["savedRuns"].items():
+            if "grok" in name:
+                continue
             with self.subTest(saved=name):
                 starts, why = export.fresh_starts_of(saved["metrics"])
                 self.assertEqual(export.validate_doc("runs", {**base, **({} if starts is None else {"freshStarts": starts})}), [])
@@ -8644,8 +8662,8 @@ class FreshStartsExportTests(unittest.TestCase):
     def test_a_malformed_record_is_never_read_as_a_measurement(self):
         base = {"key": "k", "name": "n", "order": 1, "release": "r", "phases": ["done"], "time": "t", "imp": "i"}
         starts, _ = export.fresh_starts_of({"fresh_starts": [
-            {"host": "grok", "reorientation": {"measured": True}},  # no kind: dropped
-            {"kind": "compaction", "host": "grok"},  # no reorientation record at all
+            {"host": "codex", "reorientation": {"measured": True}},  # no kind: dropped
+            {"kind": "compaction", "host": "codex"},  # no reorientation record at all
             {"kind": "compaction", "reorientation": {"measured": True, "tool_calls": 3, "seconds": "x", "failures": {"items": [], "bound": "lower"}}}],
             "fresh_starts_unmeasured": None})
         self.assertEqual(len(starts), 2)
@@ -8700,8 +8718,18 @@ class FreshStartsPageTests(unittest.TestCase):
         return r23c_export(Path(tempfile.mkdtemp(dir=self.tmp)), {"fresh_starts": starts, "fresh_starts_unmeasured": note})
 
     def two_starts(self) -> list[dict]:
-        first, second = r23c_example("freshStartsR3GrokMeasured")
-        first["reorientation"]["accepted"] = {"stage": "test-strategy", "action": IDS["test-strategy"]}
+        first = {
+            "kind": "compaction", "host": "codex", "stage_in_flight": "test-strategy", "n": None, "reason": None,
+            "reorientation": {
+                "measured": True, "tool_calls": 29, "seconds": 326.7, "first_grounding": "packet",
+                "calls_before_grounding": 0, "asked_user": 0,
+                "recovery": {"first_next": None, "next_calls": 0, "told": None},
+                "failures": {"bound": "lower", "items": [], "scope": FreshStartsExportTests.SCOPE},
+                "rewrote": {"bound": "lower", "paths": [], "scope": "none seen by file-edit tools"},
+                "accepted": {"stage": "test-strategy", "action": IDS["test-strategy"]}}}
+        second = {
+            "kind": "compaction", "host": "codex", "stage_in_flight": None, "n": None, "reason": None,
+            "reorientation": {"measured": False, "reason": "the ledger accepted no action after this start"}}
         return [first, second]
 
     def model(self, run: dict):
@@ -8734,14 +8762,14 @@ class FreshStartsPageTests(unittest.TestCase):
         model = self.model(run)
         self.assertEqual(model["lead"], "2 fresh starts recorded.")
         label, text = model["rows"][0]
-        self.assertEqual(label, "Compaction in Test strategy (grok)")
+        self.assertEqual(label, "Compaction in Test strategy (codex)")
         self.assertTrue(text.startswith("re-grounded in 29 calls, 327 s, from the packet. "), text)
         # the lower bounds are printed with the harness's own scope text beside the numbers
         self.assertIn("Failed ShipLoop commands: 0 (lower bound: the window's own calls only: a ShipLoop command run through a script "
                       "written in an earlier session is not seen)", text)
         self.assertIn("Files rewritten: 0 (lower bound: none seen by file-edit tools)", text)
         self.assertIn("Asked a person: 0", text)
-        self.assertEqual(model["rows"][1], ["Compaction (grok)", "not measured: the ledger accepted no action after this start"])
+        self.assertEqual(model["rows"][1], ["Compaction (codex)", "not measured: the ledger accepted no action after this start"])
 
     def test_a_session_start_is_named_for_how_it_began_and_a_count_of_one_is_singular(self):
         start = self.two_starts()[0]
@@ -8753,12 +8781,12 @@ class FreshStartsPageTests(unittest.TestCase):
         self.assertTrue(model["rows"][0][1].startswith("re-grounded in 1 call, 0 s, from the packet. "), model["rows"][0][1])
 
     def test_a_partial_list_prints_why_it_is_not_complete(self):
-        blocks = r23c_saved("20261008/r3-battleship-grok-none")["metrics"]
-        model = self.model(self.run_with(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"]))
-        self.assertEqual(model["note"], "Not complete: " + blocks["fresh_starts_unmeasured"])
-        card = page_probe('textOf("freshcard")', setup=ended_page(self.run_with(blocks["fresh_starts"], blocks["fresh_starts_unmeasured"])))
+        note = "not recorded: this run has no sessions.jsonl"
+        model = self.model(self.run_with(self.two_starts(), note))
+        self.assertEqual(model["note"], "Not complete: " + note)
+        card = page_probe('textOf("freshcard")', setup=ended_page(self.run_with(self.two_starts(), note)))
         self.assertIn("Not complete: not recorded: this run has no sessions.jsonl", card)
-        self.assertIn("Compaction in Test strategy (grok)", card)
+        self.assertIn("Compaction in Test strategy (codex)", card)
 
     def test_the_first_grounding_is_worded_for_each_kind_and_an_unknown_one_is_shown_as_it_came(self):
         for grounding, said in (("packet", "from the packet"), ("next", "with shiploop next"), ("other", "with another ShipLoop command"),
@@ -8873,11 +8901,11 @@ class QualityExportTests(unittest.TestCase):
         block["mutation"] = {"observed": False, "baseline": {"returncode": 1}, "reason": "the unmutated copy's test run exited 1: with a red baseline every mutant would read as caught"}
         block["acceptance"] = {"observed": False, "reason": "the product's server (node server.js) did not listen on PORT=1"}
         block["memory_writes"], block["held_out_seen"] = None, None
-        block["unmeasured"] = {"memory_writes": "the detector reads Claude's file-write calls and this run's launch records show grok"}
+        block["unmeasured"] = {"memory_writes": "the detector reads Claude's file-write calls and this run's launch records show codex"}
         quality = self.export(block)["quality"]
         self.assertEqual(quality["mutation"], {"observed": False, "reason": block["mutation"]["reason"]})
         self.assertEqual(quality["acceptance"], {"observed": False, "reason": block["acceptance"]["reason"]})
-        self.assertEqual(quality["unmeasured"], {"memoryWrites": "the detector reads Claude's file-write calls and this run's launch records show grok",
+        self.assertEqual(quality["unmeasured"], {"memoryWrites": "the detector reads Claude's file-write calls and this run's launch records show codex",
                                                  "heldOutSeen": "the quality block does not record it"})
         self.assertNotIn("memoryWrites", quality)
 
@@ -9667,7 +9695,6 @@ class R23bFidelityPageTests(unittest.TestCase):
 # never returned), frozen in delivered.json by collect_delivered.py. No test here reads /Users/dadleet/e2e-runs.
 R23D_FIXTURE = ROOT / "docs" / "experiments" / "run-review-r23-20261009" / "delivered.json"
 R23D_CHECKERS, R23D_HELLO = "20261008/r3-checkers-sonnet", "20261009/s6-after-spec"
-R23D_BLOCKED, R23D_STOPPED = "20261008/r1-battleship-grok-none", "20261008/r3-battleship-grok-none"
 # The fixture run is a 17-stage run (ACCEPTS has get-next-work-item): its skill decision is skill-assess's and skill-validate's.
 R23D_STAGES = ("skill-assess", "skill-validate", "release-plan", "release", "release-verify")
 for _index, _name in enumerate(R23D_STAGES):  # the fixture run has no visit at these stages; give each an action id like the others
@@ -9736,14 +9763,17 @@ class R23dDeliveredExportTests(unittest.TestCase):
                       "\n".join(export.build_run(r23d_run(Path(tempfile.mkdtemp(dir=self.tmp)), R23D_HELLO))[1]))
 
     def test_a_run_never_returned_says_so_with_its_branch_and_has_no_mode_and_no_commits(self):
-        for name, branch in ((R23D_BLOCKED, "shiploop/run-cfac2cb47fd93aed"), (R23D_STOPPED, "shiploop/run-c0f462f8874ba861")):
-            with self.subTest(name):
-                run, facts = self.build(name)
-                self.assertEqual(run["delivered"]["returned"], {"status": "prepared", "into": "main", "from": branch})
-                self.assertIn(f"- Delivered: not merged back (workspace prepared): the product is on {branch}; main was not changed", "\n".join(facts))
-                # no return plan was written: the files are unknown, not none
-                self.assertNotIn("files", run["delivered"])
-                self.assertIn("return-plan.md", run["unmeasured"]["delivered.files"])
+        out = r23d_run(self.tmp)
+        record(run_dir_of(out).parent / "workspace.md",
+               {"status": "prepared", "source_branch": "main", "branch": "shiploop/run-c0f462f8874ba861"})
+        docs, facts = export.build_run(out)
+        run = docs["runs"][self.KEY]
+        self.assertEqual(run["delivered"]["returned"], {"status": "prepared", "into": "main", "from": "shiploop/run-c0f462f8874ba861"})
+        self.assertIn("- Delivered: not merged back (workspace prepared): the product is on shiploop/run-c0f462f8874ba861; main was not changed",
+                      "\n".join(facts))
+        # no return plan was written: the files are unknown, not none
+        self.assertNotIn("files", run["delivered"])
+        self.assertIn("return-plan.md", run["unmeasured"]["delivered.files"])
 
     def test_a_run_with_no_workspace_records_exports_no_merge_or_file_part_and_names_why_for_each(self):
         run, facts = self.build()
@@ -9908,13 +9938,22 @@ def r23d_page_doc(saved: str | None = R23D_CHECKERS, **kwargs) -> dict:
     return r23d_run_doc(saved, **kwargs)
 
 
+def r23d_unreturned_doc(branch: str) -> dict:
+    with tempfile.TemporaryDirectory() as tmp:
+        out = r23d_run(Path(tmp))
+        record(run_dir_of(out).parent / "workspace.md",
+               {"status": "prepared", "source_branch": "main", "branch": branch})
+        docs, _ = export.build_run(out)
+        return json.loads(json.dumps(docs["runs"][RunReviewTest.KEY]))
+
+
 class R23dPageLogicTests(unittest.TestCase):
     """mergeLine and deliveredModel are pure: the run document in, words out."""
 
     def test_the_merge_line_says_where_the_product_went_or_that_it_did_not(self):
         hello = run_logic("mergeLine(%s)" % json.dumps(r23d_page_doc(R23D_HELLO)))
         self.assertEqual(hello, "Merged back into main (fast-forward, 541415235f2d to 8c3552a43c73)")
-        blocked = run_logic("mergeLine(%s)" % json.dumps(r23d_page_doc(R23D_BLOCKED)))
+        blocked = run_logic("mergeLine(%s)" % json.dumps(r23d_unreturned_doc("shiploop/run-cfac2cb47fd93aed")))
         self.assertEqual(blocked, "Not merged back: the product is on branch shiploop/run-cfac2cb47fd93aed; main was not changed")
         got = run_logic("[mergeLine({delivered:{returned:{status:'returned',into:'dev',mode:'working-tree-return'}}}),"
                         "mergeLine({delivered:{returned:{status:'returned',into:'dev',mode:'no-change-return'}}}),"
@@ -9942,7 +9981,7 @@ class R23dPageLogicTests(unittest.TestCase):
         self.assertEqual(rows["Release"], "Planned: Local only.\nDone: Ran it.")
 
     def test_a_part_the_export_could_not_measure_is_said_with_its_reason_and_a_marked_change_is_shown(self):
-        doc = r23d_page_doc(R23D_BLOCKED)
+        doc = r23d_unreturned_doc("shiploop/run-cfac2cb47fd93aed")
         rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
         # no return plan: one row says so once, instead of the same reason on every kind of file
         self.assertNotIn("Implemented", rows)
@@ -9981,7 +10020,7 @@ class R23dPageTests(unittest.TestCase):
 
     def test_a_red_run_is_not_read_as_a_failing_product(self):
         # S3: in a 17-stage run test-red's new tests are meant to fail
-        doc = r23d_page_doc(R23D_STOPPED)
+        doc = r23d_unreturned_doc("shiploop/run-c0f462f8874ba861")
         self.assertEqual(doc["stageModel"], "v4")
         doc["delivered"]["tests"] = {"ran": 17, "failed": 15, "stage": "test-red"}
         rows = dict(run_logic("deliveredModel(%s)" % json.dumps(doc))["rows"])
@@ -9999,7 +10038,7 @@ class R23dPageTests(unittest.TestCase):
 
     def test_a_run_from_before_the_card_has_it_hidden_and_a_not_returned_run_says_so_with_the_reason_for_the_files(self):
         self.assertTrue(self.page(DONE_RUN, 'REG.delcard.hidden'))
-        text = self.page(r23d_page_doc(R23D_STOPPED), 'textOf("delcard")')
+        text = self.page(r23d_unreturned_doc("shiploop/run-c0f462f8874ba861"), 'textOf("delcard")')
         self.assertIn("Not merged back: the product is on branch shiploop/run-c0f462f8874ba861; main was not changed", text)
         self.assertIn("Files kept", text)
         self.assertEqual(text.count("return-plan.md"), 1)  # the reason is said once

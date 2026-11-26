@@ -1494,7 +1494,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
                 receipt = standalone.receipt_path(state["active_improve"])
                 receipt.parent.mkdir(parents=True, exist_ok=True)
                 receipt.write_text("{}", encoding="utf-8")
-                improve_packets[stage] = nav.render(None, run, state, host="cursor")
+                improve_packets[stage] = nav.render(None, run, state, host="claude")
                 improve_packets_codex[stage] = nav.render(None, run, state, host="codex")
                 briefs[stage] = nav.improve_worker_brief_text(None, run, state)
                 handoffs[stage] = nav.improve_handoff_text(None, run, state)
@@ -1515,7 +1515,7 @@ class AgentsHybridDelegationTests(unittest.TestCase):
             self.assertLess(len(improve_packets_codex[stage]), 3_200,
                             f"agents Improve packet (codex) too large at {stage}: {len(improve_packets_codex[stage])}")
             self.assertIn("worker-brief.md", pkt)
-            self.assertIn("Host hint (cursor, pilot-ide):", pkt)
+            self.assertIn("Host hint (claude):", pkt)
             self.assertIn("never from files alone", pkt)
             self.assertIn("review the returned findings/changes/checks", pkt)
             self.assertIn("one observation wait of at least 120 s", pkt)
@@ -1552,10 +1552,10 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         self.assertIn("commit NOTHING", briefs["document"])
 
     def test_host_binding_cli_and_delegation_switch_and_review_mode_guard(self):
-        hb = self.cli("host-binding", extra_env={"CURSOR_AGENT": "1"})
+        hb = self.cli("host-binding", extra_env={"CLAUDECODE": "1"})
         self.assertEqual(hb.returncode, 0, hb.stderr)
         data = json.loads(hb.stdout)
-        self.assertEqual((data["schema"], data["host"]), ("skill-craft/host-bindings/v2", "cursor"))
+        self.assertEqual((data["schema"], data["host"]), ("skill-craft/host-bindings/v2", "claude"))
 
         hb_override = self.cli("host-binding", "--host", "codex")
         self.assertEqual(hb_override.returncode, 0, hb_override.stderr)
@@ -1624,7 +1624,6 @@ class AgentsHybridDelegationTests(unittest.TestCase):
         hosts = {
             "codex": "Host hint (codex):",
             "claude": "Host hint (claude):",
-            "cursor": "Host hint (cursor, pilot-ide):",
             "antigravity": "Host hint (antigravity):",
             "unknown": "Host hint (unknown):",
         }

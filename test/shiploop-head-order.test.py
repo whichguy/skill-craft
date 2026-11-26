@@ -7,7 +7,7 @@ this suite checks both routes through every stage of the graph (test/shiploop_he
 - each normal print is exactly the complete packet followed by one HEAD_END marker; a missing marker exposes a cut tail,
   while host middle elision requires the separate file-recovery instruction;
 - active producer prints preserve the P0 and P1 tokens for their action, checks, status, duties, rules, inputs and result;
-- Grok's simulated middle cut remains visible, and the packet-file recovery pointer does not depend on the closing marker;
+- a simulated middle cut remains visible, and the packet-file recovery pointer does not depend on the closing marker;
 - print order, the one progress block inside the status hook's window, and one Keepalive marker remain stable;
 - the explicitly requested legacy compact-head helper still selects required blocks before optional blocks.
 """
@@ -41,12 +41,12 @@ CLI_PATH_LENGTH = 96          # a plugin-cache install: <root>/skills/shiploop/s
 INSTALL_RUN_DIR = 83          # the run directory a normal install has
 LIVE_RUN_DIR = 163            # the run directory of the live run the plan was measured on
 HOST_CUT = 30_000             # lowest common stdout ceiling across Claude Code, Codex, and Antigravity
-GROK_PART = 15_000            # simulated half-window kept at either end when modeling a host middle cut above HOST_CUT
+HALF_WINDOW = 15_000          # simulated half-window kept at either end when modeling a host middle cut above HOST_CUT
 
 
-def grok_view(text: str) -> str:
-    """Simulated middle-eliding host view above ``HOST_CUT`` (first and last ``GROK_PART`` characters)."""
-    return text if len(text) <= HOST_CUT else text[:GROK_PART] + text[-GROK_PART:]
+def middle_cut_view(text: str) -> str:
+    """Simulated middle-eliding host view above ``HOST_CUT`` (first and last ``HALF_WINDOW`` characters)."""
+    return text if len(text) <= HOST_CUT else text[:HALF_WINDOW] + text[-HALF_WINDOW:]
 
 
 _RENDERS: dict = {}
@@ -233,7 +233,7 @@ class PrintedPacketTests(unittest.TestCase):
                     if len(text) <= HOST_CUT:
                         continue
                     over += 1
-                    seen = grok_view(text)
+                    seen = middle_cut_view(text)
                     with self.subTest(route=delegation, run_dir=length, packet=key):
                         self.assertEqual(text, row["whole"] + navigator.HEAD_END + "\n")
                         self.assertTrue(seen.endswith(navigator.HEAD_END + "\n"))
@@ -247,10 +247,10 @@ class PrintedPacketTests(unittest.TestCase):
                         self.assertEqual(packet_view.packet_file_named(without_marker), path)
         self.assertGreater(over, 0)
 
-    def test_grok_view_helper_keeps_the_first_and_last_ten_thousand(self) -> None:
+    def test_middle_cut_view_helper_keeps_the_first_and_last_half_window(self) -> None:
         text = "a" * 15_000 + "b" * 500 + "c" * 15_000
-        self.assertEqual(grok_view(text), "a" * 15_000 + "c" * 15_000)
-        self.assertEqual(grok_view(text[:30_000]), text[:30_000])
+        self.assertEqual(middle_cut_view(text), "a" * 15_000 + "c" * 15_000)
+        self.assertEqual(middle_cut_view(text[:30_000]), text[:30_000])
 
 
 class OrderTests(unittest.TestCase):

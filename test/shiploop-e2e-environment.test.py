@@ -79,14 +79,14 @@ class QuietHarnessCase(base.PrintedCase):
         return workspace
 
     def first_run(self, *extra: str) -> Path:
-        """A Grok run whose first session ended without a ShipLoop state and was not resumed: the base of a regrade."""
-        code, result, _ = self.invoke_printed("grok", "nothing", "--max-resumes", "0", *extra)
+        """A Codex run whose first session ended without a ShipLoop state and was not resumed: the base of a regrade."""
+        code, result, _ = self.invoke_printed("codex", "nothing", "--max-resumes", "0", *extra)
         return Path(result["output"])
 
     def grade_only(self, out: Path, *extra: str) -> tuple[int, dict, str]:
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out), "--grade-only",
+            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out), "--grade-only",
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
@@ -143,7 +143,7 @@ class ProductAtStopTest(QuietHarnessCase):
             "engine": {"status": "blocked", "stage": "test-refine"}})
 
     def test_a_run_with_no_shiploop_state_says_so_not_that_a_worktree_is_missing(self):
-        code, result, _ = self.invoke_printed("grok", "nothing", "--max-resumes", "0", "--prompt", "build it", *self.CHECKS)
+        code, result, _ = self.invoke_printed("codex", "nothing", "--max-resumes", "0", "--prompt", "build it", *self.CHECKS)
         self.assertEqual(code, 1)
         self.assertEqual(result["product_at_stop"]["reason"], "no ShipLoop state.md under the output directory")
         self.assertFalse(result["product_at_stop"]["ran"])
@@ -156,7 +156,7 @@ class ProductAtStopTest(QuietHarnessCase):
         self.assertEqual(result["product_at_stop"]["reason"], "the case declares no checks")
 
     def test_a_run_that_passed_has_no_product_at_stop(self):
-        code, result, _ = self.invoke_printed("grok", "done")
+        code, result, _ = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertNotIn("product_at_stop", result)
 
@@ -906,14 +906,14 @@ class OverlapTest(unittest.TestCase):
     def test_a_neighbour_that_began_before_and_one_that_began_after_this_run_both_overlap_it(self):
         me = self.write_run("me", 1000, 2000)
         self.write_run("early", 500, 1500, case="a")
-        self.write_run("late", 1600, 3000, hosts=("grok",), case="b")
+        self.write_run("late", 1600, 3000, hosts=("codex",), case="b")
         record = self.environment.overlap(me)
         self.assertTrue(record["observed"])
         found = self.entries(record)
         self.assertEqual(sorted(found), ["early", "late"])
         self.assertEqual((found["early"]["overlapped_seconds"], found["early"]["started_offset_seconds"]), (500.0, -500.0))
         self.assertEqual((found["late"]["overlapped_seconds"], found["late"]["started_offset_seconds"]), (400.0, 600.0))
-        self.assertEqual((found["late"]["case"], found["late"]["hosts"]), ("b", ["grok"]))
+        self.assertEqual((found["late"]["case"], found["late"]["hosts"]), ("b", ["codex"]))
         # The case a count taken when the run starts gets wrong: only one neighbour was running at 1000.
         self.assertEqual(sum(entry["started_offset_seconds"] <= 0 for entry in record["runs"]), 1)
         self.assertEqual(len(record["runs"]), 2)
@@ -955,8 +955,8 @@ class OverlapTest(unittest.TestCase):
 
     def test_a_neighbour_that_two_hosts_worked_on_names_both_in_launch_order(self):
         me = self.write_run("me", 1000, 2000)
-        self.write_run("mixed", 900, 1100, hosts=("grok", "claude"))
-        self.assertEqual(self.entries(self.environment.overlap(me))["mixed"]["hosts"], ["grok", "claude"])
+        self.write_run("mixed", 900, 1100, hosts=("codex", "claude"))
+        self.assertEqual(self.entries(self.environment.overlap(me))["mixed"]["hosts"], ["codex", "claude"])
 
     def test_a_run_with_no_readable_timeline_of_its_own_is_unobserved_and_says_why(self):
         me = self.parent / "me"
@@ -993,14 +993,14 @@ class OverlapTest(unittest.TestCase):
 
     def test_a_neighbour_whose_launch_records_cannot_be_read_has_unknown_hosts_with_the_reason(self):
         me = self.write_run("me", 1000, 2000)
-        self.write_run("intact", 1500, 1800, hosts=("grok", "claude"), case="x")
+        self.write_run("intact", 1500, 1800, hosts=("codex", "claude"), case="x")
         broken = self.write_run("broken", 1500, 1800)
         (broken / "invocation.json").write_text('{"case": "custom", "ho')
         (self.write_run("none", 1500, 1800) / "invocation.json").unlink()
-        partial = self.write_run("partial", 1500, 1800, hosts=("grok", "claude"))
+        partial = self.write_run("partial", 1500, 1800, hosts=("codex", "claude"))
         (partial / "invocation-resume-claude-1001.json").write_text('{"case": "custom", "ho')
         found = self.entries(self.environment.overlap(me))
-        self.assertEqual((found["intact"]["hosts"], found["intact"]["hosts_reason"]), (["grok", "claude"], None))
+        self.assertEqual((found["intact"]["hosts"], found["intact"]["hosts_reason"]), (["codex", "claude"], None))
         for name in ("broken", "partial"):
             self.assertIsNone(found[name]["hosts"], name)
             self.assertIn("could not be read", found[name]["hosts_reason"], name)
@@ -1015,29 +1015,6 @@ class OverlapTest(unittest.TestCase):
         self.environment.overlap(me)
         self.assertEqual({path.name: path.stat().st_mtime_ns for folder in (me, other) for path in folder.iterdir()}, before)
         self.assertEqual(sorted(path.name for path in other.iterdir()), listing, "no lock file or other mark was left in a neighbour")
-
-    def test_the_nine_round_runs_of_2026_10_08_all_overlapped_and_three_saw_it_begin_after_their_own_start(self):
-        # Compact extracts of the saved runs (the first and last timeline stamps are what the reader looks at).
-        shutil.copytree(FIXTURES / "rounds", self.parent / "20261008")
-        parent = self.parent / "20261008"
-        names = sorted(path.name for path in parent.iterdir())
-        self.assertEqual(len(names), 9)
-        records = {name: self.environment.overlap(parent / name) for name in names}
-        self.assertTrue(all(record["observed"] and record["runs"] for record in records.values()), "all 9 overlapped another run")
-        late = {name for name, record in records.items() if any(e["started_offset_seconds"] > 1 for e in record["runs"])}
-        self.assertEqual(late, {"r1-battleship-grok-none", "r1-battleship-sonnet", "r3-battleship-grok-none"})
-        # The overlap a start-time count would have recorded as 0 or 1: r1 Grok met r1 Checkers 280 s after it began.
-        # The runs root is the folder above 20261008 (the runs' grandparent), so a neighbour is named by its path under it.
-        grok = self.entries(records["r1-battleship-grok-none"])
-        self.assertAlmostEqual(grok["20261008/r1-checkers-sonnet"]["started_offset_seconds"], 280.4, places=1)
-        self.assertAlmostEqual(grok["20261008/r1-checkers-sonnet"]["overlapped_seconds"], 787.0, delta=1.0)
-        self.assertEqual(grok["20261008/r1-battleship-sonnet"]["hosts"], ["claude"])
-        r3 = self.entries(records["r3-battleship-grok-none"])
-        self.assertAlmostEqual(r3["20261008/r3-checkers-sonnet"]["started_offset_seconds"], 763.3, places=1)
-        self.assertEqual(records["r3-checkers-sonnet"]["runs"][0]["folder"], "20261008/r3-battleship-grok-none",
-                         "the later Checkers run overlapped the Grok run it killed")
-        # The r2 trio started within a second of each other: nothing began later.
-        self.assertTrue(all(e["started_offset_seconds"] < 1 for e in records["r2-battleship-grok-none"]["runs"]))
 
     def test_chess_run_5_overlapped_sixteen_slices_in_another_folder_under_the_runs_root_and_runs_3_and_4_none(self):
         # E1 of docs/experiments/e2e-runner-review-20261024: compact extracts of the three chess runs and every run folder under
@@ -1061,10 +1038,10 @@ class OverlapTest(unittest.TestCase):
 
     def test_the_walk_finds_a_run_nested_under_plain_folders_and_never_looks_inside_a_run_folder(self):
         me = self.write_run("runs/20261024/me", 1000, 2000)
-        self.write_run("runs/e6/K3/B/2/slice", 1500, 2500, hosts=("grok",))
+        self.write_run("runs/e6/K3/B/2/slice", 1500, 2500, hosts=("codex",))
         self.write_run("runs/20261024/me/work/app", 1000, 2000)  # a product's own timeline.jsonl inside a run: not a run
-        self.write_run("runs/20261023/other/home/.grok/x", 1000, 2000)
-        (self.parent / "runs/20261023/other/invocation.json").write_text(json.dumps({"case": "c", "host": "grok"}))
+        self.write_run("runs/20261023/other/home/.codex/x", 1000, 2000)
+        (self.parent / "runs/20261023/other/invocation.json").write_text(json.dumps({"case": "c", "host": "codex"}))
         self.write_run("runs/.hidden/run", 1000, 2000)  # a hidden folder is not walked
         self.write_run("elsewhere/run", 1000, 2000)  # outside the root: not seen, which the basis says
         record = self.environment.overlap(me)
@@ -1158,43 +1135,48 @@ class LaunchRecordsTest(unittest.TestCase):
     def setUp(self):
         self.environment = import_environment()
 
-    def r2(self) -> Path:
+    def mixed_run(self) -> Path:
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        out = Path(tmp.name) / "r2-battleship-grok-none"
-        shutil.copytree(FIXTURES / "rounds" / "r2-battleship-grok-none", out)
+        out = Path(tmp.name) / "mixed-codex-claude"
+        out.mkdir()
+        (out / "invocation.json").write_text(json.dumps({
+            "case": "battleship", "host": "codex", "model": "gpt-6.2-sol", "effort": "medium", "versions": {}}))
+        (out / "invocation-resume-claude-1791508003.json").write_text(json.dumps({
+            "case": "battleship", "host": "claude", "model": "claude-sonnet-5-5", "versions": {}}))
+        (out / "invocation-resume-codex-1791509021.json").write_text(json.dumps({
+            "case": "battleship", "host": "codex", "model": "gpt-6.2-sol", "versions": {"regraded": True}}))
         return out
 
-    def test_the_mixed_host_run_names_both_hosts_though_its_result_says_grok(self):
-        # r2-battleship-grok-none: Grok started it, Claude Sonnet finished it (visits 31 to 52), a regrade then restated Grok.
-        out = self.r2()
+    def test_the_mixed_host_run_names_both_hosts_though_its_result_says_codex(self):
+        out = self.mixed_run()
         entries = self.environment.launch_environments(out)
         self.assertEqual([(e["launch"], e["host"], e["model"]) for e in entries],
-                         [("invocation.json", "grok", "grok-4.7"),
+                         [("invocation.json", "codex", "gpt-6.2-sol"),
                           ("invocation-resume-claude-1791508003.json", "claude", "claude-sonnet-5-5")])
         block = self.environment.result_block(out, {"observed": False, "reason": "t"}, {"observed": False, "reason": "t"})
-        self.assertEqual(block["hosts_used"], ["grok", "claude"])
+        self.assertEqual(block["hosts_used"], ["codex", "claude"])
         self.assertTrue(block["mixed_host"])
         self.assertEqual(len(block["environments"]), 2, "the regrade started no host and is not a launch")
 
     def test_an_old_launch_record_has_no_environment_and_no_host_build_and_says_null(self):
-        entry = self.environment.launch_environments(self.r2())[0]
+        entry = self.environment.launch_environments(self.mixed_run())[0]
         self.assertIsNone(entry["environment"])
         self.assertIsNone(entry["host_build"])
         self.assertEqual(entry["effort"], "medium")
 
     def test_the_host_build_and_environment_a_launch_recorded_are_passed_through_not_probed(self):
-        out = self.r2()
+        out = self.mixed_run()
         record = json.loads((out / "invocation.json").read_text())
-        record.update(host_build="grok 1.0.50 (c58f321264ba)", environment={"observed": True, "at": "2026-10-09T15:20:01Z"})
+        record.update(host_build="codex 0.50.0", environment={"observed": True, "at": "2026-10-09T15:20:01Z"})
         (out / "invocation.json").write_text(json.dumps(record))
         with mock.patch.object(subprocess, "run", side_effect=AssertionError("no process is started to read a host build")):
             entry = self.environment.launch_environments(out)[0]
-        self.assertEqual(entry["host_build"], "grok 1.0.50 (c58f321264ba)")
+        self.assertEqual(entry["host_build"], "codex 0.50.0")
         self.assertEqual(entry["environment"]["at"], "2026-10-09T15:20:01Z")
 
     def test_a_regrade_restates_the_last_launchs_start_and_says_so_when_there_is_none(self):
-        out = self.r2()
+        out = self.mixed_run()
         restated = self.environment.restated_start(out)
         self.assertEqual(restated["observed"], False)
         self.assertIn("has no environment", restated["reason"])
@@ -1204,7 +1186,7 @@ class LaunchRecordsTest(unittest.TestCase):
         self.assertEqual(self.environment.restated_start(out)["at"], "2026-10-09T16:00:00Z")
 
     def test_a_launch_record_that_cannot_be_read_makes_the_hosts_unknown_and_is_named(self):
-        out = self.r2()
+        out = self.mixed_run()
         name = "invocation-resume-claude-1791508003.json"
         (out / name).write_text('{"case": "custom", "host": "cla')  # a record cut off mid-write
         block = self.environment.result_block(out, {"observed": True}, {"observed": True})
@@ -1213,8 +1195,8 @@ class LaunchRecordsTest(unittest.TestCase):
             self.assertIn(name, block[key]["reason"])
         self.assertEqual(block["launches_unreadable"], [name])
         self.assertEqual([entry["launch"] for entry in block["environments"]], ["invocation.json"])
-        intact = self.environment.result_block(self.r2(), {"observed": True}, {"observed": True})
-        self.assertEqual((intact["launches_unreadable"], intact["hosts_used"]), ([], ["grok", "claude"]))
+        intact = self.environment.result_block(self.mixed_run(), {"observed": True}, {"observed": True})
+        self.assertEqual((intact["launches_unreadable"], intact["hosts_used"]), ([], ["codex", "claude"]))
 
     def test_unreadable_names_a_launch_record_that_exists_and_cannot_be_read_as_a_record(self):
         import runrecord
@@ -1223,12 +1205,12 @@ class LaunchRecordsTest(unittest.TestCase):
         out = Path(tmp.name)
         self.assertEqual(runrecord.unreadable(out), [], "a folder with no launch record has none that cannot be read")
         (out / "invocation.json").mkdir()
-        (out / "invocation-resume-grok-5.json").write_text("[1]")
-        (out / "invocation-resume-grok-6.json").write_text("{bad")
-        (out / "invocation-resume-grok-7.json").write_text(json.dumps({"host": "grok", "versions": {}}))
+        (out / "invocation-resume-codex-5.json").write_text("[1]")
+        (out / "invocation-resume-codex-6.json").write_text("{bad")
+        (out / "invocation-resume-codex-7.json").write_text(json.dumps({"host": "codex", "versions": {}}))
         (out / "invocation-other.json").write_text("{bad")  # not a launch record's name
-        (out / "invocation-resume-grok-later.json").write_text("{bad")  # matches the glob, not the name a launch record has
-        self.assertEqual(runrecord.unreadable(out), ["invocation.json", "invocation-resume-grok-5.json", "invocation-resume-grok-6.json"])
+        (out / "invocation-resume-codex-later.json").write_text("{bad")  # matches the glob, not the name a launch record has
+        self.assertEqual(runrecord.unreadable(out), ["invocation.json", "invocation-resume-codex-5.json", "invocation-resume-codex-6.json"])
 
     def test_a_null_host_build_or_environment_says_why(self):
         tmp = tempfile.TemporaryDirectory()
@@ -1240,11 +1222,11 @@ class LaunchRecordsTest(unittest.TestCase):
 
         # The reason of a null build is read through runrecord.host_build under the launch record's key names
         # (identity_unmeasured.host_build) and with group G3's reasons (batch 1011 integration; it was host_build_reason).
-        record("invocation.json", host="grok")
+        record("invocation.json", host="codex")
         record("invocation-resume-claude-1001.json", host="claude")
-        record("invocation-resume-grok-1002.json", host="grok", host_build=None, environment="oops")
-        record("invocation-resume-grok-1003.json", host="grok", host_build="grok 1.0.50 (c58f321264ba)", environment={"observed": True})
-        record("invocation-resume-grok-1004.json", host="grok", host_build=None,
+        record("invocation-resume-codex-1002.json", host="codex", host_build=None, environment="oops")
+        record("invocation-resume-codex-1003.json", host="codex", host_build="codex 0.50.0", environment={"observed": True})
+        record("invocation-resume-codex-1004.json", host="codex", host_build=None,
                identity_unmeasured={"host_build": "probe failed: silent"})  # as G3's launch writes a failed probe
         old, claude, nulled, whole, probed = self.environment.launch_environments(out)
         self.assertEqual(old["identity_unmeasured"], {"host_build": "launch predates the field"})
@@ -1254,7 +1236,7 @@ class LaunchRecordsTest(unittest.TestCase):
         self.assertEqual(nulled["identity_unmeasured"], {"host_build": "no reason recorded"})
         self.assertIn("not a record", nulled["environment_reason"])
         self.assertEqual((whole["host_build"], whole["identity_unmeasured"], whole["environment_reason"]),
-                         ("grok 1.0.50 (c58f321264ba)", {}, None))
+                         ("codex 0.50.0", {}, None))
         self.assertEqual(probed["identity_unmeasured"], {"host_build": "probe failed: silent"}, "the launch's own reason wins")
         record("invocation-resume-claude-1005.json", host="claude", host_build="2.1.295")
         self.assertEqual(self.environment.launch_environments(out)[-1]["identity_unmeasured"], {}, "a Claude launch that recorded a build")
@@ -1263,18 +1245,18 @@ class LaunchRecordsTest(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         out = Path(tmp.name)
-        (out / "invocation.json").write_text(json.dumps({"host": "grok", "versions": {}}))
+        (out / "invocation.json").write_text(json.dumps({"host": "codex", "versions": {}}))
         self.assertIn("has no environment", self.environment.restated_start(out)["reason"])
-        (out / "invocation.json").write_text(json.dumps({"host": "grok", "versions": {}, "environment": "oops"}))
+        (out / "invocation.json").write_text(json.dumps({"host": "codex", "versions": {}, "environment": "oops"}))
         self.assertIn("not a record", self.environment.restated_start(out)["reason"])
         self.assertNotIn("launched before", self.environment.restated_start(out)["reason"])
 
     def test_a_part_that_cannot_be_read_is_unobserved_and_the_others_stand(self):
-        out = self.r2()
+        out = self.mixed_run()
         with mock.patch.object(self.environment, "overlap", side_effect=RuntimeError("no listing")):
             block = self.environment.result_block(out, {"observed": True}, {"observed": True})
         self.assertEqual(block["overlap"], {"observed": False, "reason": "no listing"})
-        self.assertEqual(block["hosts_used"], ["grok", "claude"])
+        self.assertEqual(block["hosts_used"], ["codex", "claude"])
 
 
 class EnvironmentThroughMainTest(QuietHarnessCase):
@@ -1312,7 +1294,7 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
         self.addCleanup(setattr, run, "CASES", saved)
 
     def test_the_start_record_is_in_the_launch_record_and_the_whole_block_is_in_result_json_on_every_host(self):
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 code, result, printed = self.invoke_printed(host, "done")
                 self.assertEqual(code, 0, result)
@@ -1335,10 +1317,10 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
 
     def test_the_display_hold_is_what_keep_awake_decides(self):
         with mock.patch.object(run, "display_held", return_value=True):
-            _, result, _ = self.invoke_printed("grok", "done")
+            _, result, _ = self.invoke_printed("codex", "done")
         self.assertIs(result["environment"]["start"]["display_hold"], True)
         with mock.patch.object(run, "display_held", return_value=False):
-            _, result, _ = self.invoke_printed("grok", "done")
+            _, result, _ = self.invoke_printed("codex", "done")
         self.assertIs(result["environment"]["start"]["display_hold"], False)
 
     def test_a_run_started_beside_a_neighbour_records_the_overlap_with_its_hosts_and_seconds(self):
@@ -1350,7 +1332,7 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
         (neighbour / "invocation.json").write_text(json.dumps({"case": "other", "host": "codex", "versions": {}}))
         clock = SimpleNamespace(time=lambda: now, monotonic=time.monotonic, sleep=time.sleep, strftime=time.strftime)
         with mock.patch.object(run, "time", clock):
-            code, result, printed = self.invoke_printed("grok", "done")
+            code, result, printed = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         overlap = result["environment"]["overlap"]
         self.assertEqual(overlap["span"], {"first": round(now, 3), "last": round(now, 3)})
@@ -1365,14 +1347,14 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
                                  "needs_source": "the request says a page"},
                         "plain": {"style": "s", "prompt": "p", "checks": [], "checks_source": "t"}})
         with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 3.0), mock.patch.object(self.environment, "GRACE_SECONDS", 0.2):
-            _, plain, _ = self.invoke_printed("grok", "done", "--case", "plain", "--browser-bin", str(self.browser))
+            _, plain, _ = self.invoke_printed("codex", "done", "--case", "plain", "--browser-bin", str(self.browser))
             self.assertEqual(self.browser_launches(), [], "no browser was started for a case that declares none")
             self.assertEqual(plain["environment"]["start"]["browser"]["declared"], False)
-            _, page, _ = self.invoke_printed("grok", "done", "--case", "page", "--browser-bin", str(self.browser))
+            _, page, _ = self.invoke_printed("codex", "done", "--case", "page", "--browser-bin", str(self.browser))
             self.assertTrue(page["environment"]["start"]["browser"]["probed"])
             self.assertEqual(json.loads((Path(page["output"]) / "invocation.json").read_text())["needs"], ["browser"])
             first = len(self.browser_launches())
-            _, flagged, _ = self.invoke_printed("grok", "done", "--prompt", "build it", "--need", "browser",
+            _, flagged, _ = self.invoke_printed("codex", "done", "--prompt", "build it", "--need", "browser",
                                                 "--browser-bin", str(self.browser))
             self.assertTrue(flagged["environment"]["start"]["browser"]["probed"])
             self.assertGreater(len(self.browser_launches()), first)
@@ -1393,7 +1375,7 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
                 mock.patch.object(self.environment, "probe_target", side_effect=interrupt_probe) as probe, \
                 mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
             start = time.monotonic()
-            code, result, printed = self.invoke_printed("grok", "done", "--prompt", "p", "--need", "browser",
+            code, result, printed = self.invoke_printed("codex", "done", "--prompt", "p", "--need", "browser",
                                                         "--browser-bin", str(self.browser))
             elapsed = time.monotonic() - start
         self.assertLess(elapsed, 3.0, "the probe did not wait out its 4 s ceiling")
@@ -1413,21 +1395,21 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
                     "shiploop_version": None, "unreleased": [], "ci": "success"}
         os.environ["FAKE_MODE"] = "stuck"
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(run, "released_versions", return_value=released):
-            run.main(["--grok-bin", str(self.fakes["grok"]), "--claude-bin", str(self.fakes["claude"]),
-                      "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+            run.main(["--claude-bin", str(self.fakes["claude"]), "--codex-bin", str(self.fakes["codex"]),
+                      "--resume-run", str(out), "--plugin-dir", str(self.plugin),
                       "--baseline", str(self.baselines), "--max-resumes", "0", *extra])
         return json.loads((out / "result.json").read_text())
 
     def test_the_needs_a_launch_declared_carry_to_each_later_launch_and_are_probed_again(self):
         (self.plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps({"version": "9.9.9"}))
         with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 3.0), mock.patch.object(self.environment, "GRACE_SECONDS", 0.2):
-            _, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0", "--prompt", "p")
+            _, first, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0", "--prompt", "p")
             out = Path(first["output"])
             self.assertEqual(self.browser_launches(), [], "the first launch declared no need")
             self.resume_all(out, "--need", "browser", "--browser-bin", str(self.browser))
             self.assertEqual(len(self.browser_launches()), 2, "a resume that declares the need probes the browser")
             self.resume_all(out, "--browser-bin", str(self.browser))  # declares nothing itself
-        records = [json.loads(path.read_text()) for path in sorted(out.glob("invocation-resume-grok-*.json"))]
+        records = [json.loads(path.read_text()) for path in sorted(out.glob("invocation-resume-codex-*.json"))]
         self.assertEqual([record["needs"] for record in records], [["browser"], ["browser"]], "the last launch's needs carry on")
         self.assertTrue(records[1]["environment"]["browser"]["probed"])
         self.assertEqual(len(self.browser_launches()), 4, "and the later resume probes again")
@@ -1440,37 +1422,37 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
 
     def test_the_browser_line_is_printed_before_the_host_starts(self):
         with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 3.0), mock.patch.object(self.environment, "GRACE_SECONDS", 0.2):
-            _, _, printed = self.invoke_printed("grok", "done", "--prompt", "p", "--need", "browser", "--browser-bin", str(self.browser))
+            _, _, printed = self.invoke_printed("codex", "done", "--prompt", "p", "--need", "browser", "--browser-bin", str(self.browser))
         line = next(ln for ln in printed.splitlines() if ln.startswith("  environment") and "browser" in ln)
         self.assertLess(printed.index(line), printed.index("tool  run_terminal_command"))
         self.assertIn("title", line)
 
     def test_a_custom_prompt_that_declares_no_need_says_so(self):
-        _, _, printed = self.invoke_printed("grok", "done", "--prompt", "build it")
+        _, _, printed = self.invoke_printed("codex", "done", "--prompt", "build it")
         self.assertIn("declares no need by itself", printed)
         self.assertIn("--need browser", printed)
-        _, _, quiet_case = self.invoke_printed("grok", "done")
+        _, _, quiet_case = self.invoke_printed("codex", "done")
         self.assertNotIn("declares no need", quiet_case, "a named case speaks for itself")
 
     def test_a_browser_that_hangs_or_a_probe_that_raises_never_changes_a_verdict_or_the_exit_code(self):
         with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 1.0), mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
-            code, result, _ = self.invoke_printed("grok", "done", "--prompt", "p", "--need", "browser", "--browser-bin", str(self.browser))
+            code, result, _ = self.invoke_printed("codex", "done", "--prompt", "p", "--need", "browser", "--browser-bin", str(self.browser))
         self.assertEqual(code, 0, result)
         self.assertFalse(result["environment"]["start"]["browser"]["http"]["title_seen"])
         with mock.patch.object(self.environment, "start_record", side_effect=RuntimeError("boom")):
-            code, result, _ = self.invoke_printed("grok", "done")
+            code, result, _ = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["environment"]["start"]["observed"], False)
         self.assertIn("boom", result["environment"]["start"]["reason"])
         with mock.patch.object(self.environment, "overlap", side_effect=RuntimeError("no listing")), \
                 mock.patch.object(self.environment, "end_record", side_effect=RuntimeError("no load")):
-            code, result, _ = self.invoke_printed("grok", "done")
+            code, result, _ = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["environment"]["overlap"], {"observed": False, "reason": "no listing"})
         self.assertEqual(result["environment"]["end"]["observed"], False)
 
     def test_a_regrade_restates_every_launch_starts_no_probe_and_says_the_end_was_not_observed(self):
-        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0", "--prompt", "p")
+        code, first, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0", "--prompt", "p")
         out = Path(first["output"])
         recorded = json.loads((out / "invocation.json").read_text())["environment"]
         run.store.write_record(out / "work" / ".shiploop" / "state.md", {"status": "blocked", "stage": "x"})
@@ -1629,12 +1611,10 @@ class OutcomeClassTest(unittest.TestCase):
                 self.assertEqual(self.cls(False, engine_status="active", engine_stage="implement", **kw)[0], "STOPPED")
 
     def test_a_host_session_that_ended_on_the_cap_the_harness_gave_it_is_stopped_on_every_host(self):
-        # --max-turns and --max-budget-usd are the harness's own limits: the host ending on them is the harness ending the run,
-        # whether or not the host can be resumed (Claude cannot; Grok is resumed until its budget is spent).
+        # --max-turns and --max-budget-usd are the harness's own limits: the host ending on them is the harness ending the run.
         caps = {"claude turns": run.metrics.session_stop({"type": "result", "subtype": "error_max_turns", "is_error": True,
                                                           "num_turns": 10000}),
-                "claude budget": run.metrics.session_stop({"type": "result", "subtype": "error_max_budget_usd", "is_error": True}),
-                "grok turns": run.metrics.session_stop({"type": "end", "stopReason": {"kind": "max_turns"}})}
+                "claude budget": run.metrics.session_stop({"type": "result", "subtype": "error_max_budget_usd", "is_error": True})}
         for label, stop in caps.items():
             for resume_stop in ("host is not resumable", "no host session id to resume"):
                 with self.subTest(label, resume_stop=resume_stop):
@@ -1745,47 +1725,7 @@ class LearningsOutcomeLineTest(unittest.TestCase):
 
 
 class RecordedOutcomeClassTest(unittest.TestCase):
-    """The 11 recorded results of 2026-10-07 and 2026-10-08, and the engine states of the three that did not pass."""
-
-    EXPECTED = {"v1230-battleship-grok-none": "BLOCKED", "r1-battleship-grok-none": "BLOCKED", "r3-battleship-grok-none": "STOPPED"}
-
-    def recorded(self) -> dict:
-        return {path.stem: json.loads(path.read_text()) for path in sorted((FIXTURES / "recorded").glob("*/*.json"))}
-
-    def test_only_the_three_grok_runs_that_did_not_pass_have_another_class_and_the_rest_pass(self):
-        records = self.recorded()
-        self.assertEqual(len(records), 11)
-        for name, record in records.items():
-            with self.subTest(run=name):
-                cls, _ = run.outcome_class(record["pass"], record["termination"])
-                self.assertEqual(cls, self.EXPECTED.get(name, "PASS"))
-
-    def test_the_two_blocked_runs_are_blocked_whether_or_not_their_old_record_has_the_blocked_detail(self):
-        # Their results predate the detail: the class is BLOCKED and says no blocked result was read.
-        for name in ("v1230-battleship-grok-none", "r1-battleship-grok-none"):
-            record = self.recorded()[name]
-            self.assertNotIn("engine_blocked_by", record["termination"])
-            cls, basis = run.outcome_class(record["pass"], record["termination"])
-            self.assertEqual(cls, "BLOCKED")
-            self.assertIn("no blocked result", basis)
-
-    def test_the_engine_states_give_the_blocked_detail_the_old_records_lack(self):
-        want = {"v1230-battleship-grok-none": ("access", "present", True), "r1-battleship-grok-none": ("access", "answer", True),
-                "r3-battleship-grok-none": (None, None, None)}
-        records = self.recorded()
-        for name, (by, kind, no_default) in want.items():
-            with self.subTest(run=name):
-                engine = run.metrics.engine_state(FIXTURES / "engine" / name)
-                self.assertTrue(engine, "the extract holds a readable state.md")
-                process = records[name]["process"]
-                t = run.termination_facts(process, engine, records[name]["termination"]["resume_stop"])
-                self.assertEqual((t["engine_blocked_by"], t["engine_awaiting_kind"], t["engine_awaiting_no_default"]),
-                                 (by, kind, no_default))
-                cls, basis = run.outcome_class(records[name]["pass"], t)
-                self.assertEqual(cls, self.EXPECTED[name])
-        blocked = run.termination_facts(records["r1-battleship-grok-none"]["process"],
-                                        run.metrics.engine_state(FIXTURES / "engine" / "r1-battleship-grok-none"), "ShipLoop run is blocked")
-        self.assertIn("by access", run.outcome_class(False, blocked)[1])
+    """Reading blocked-detail records and classifying recorded outcomes."""
 
     def test_the_detail_is_read_only_while_the_engine_is_blocked_and_says_when_no_default_was_stated(self):
         # metrics.blocked_detail is the one reader of the blocked detail (the fidelity record can call it too).
@@ -1829,11 +1769,11 @@ class RecordedOutcomeClassTest(unittest.TestCase):
                          (None, None, None))
 
 
-# A fake Grok that ends its session with the engine blocked on a person, as a real run does at a stage that needs one: the
+# A fake Codex that ends its session with the engine blocked on a person, as a real run does at a stage that needs one: the
 # state the engine accepted (a blocked result naming who can unblock it, awaiting an answer with a stated reason). It is the
 # base fake with one more mode, so the arguments, the plugin install and the session log are the base fake's own.
-BLOCKING_GROK_ANCHOR = 'if mode == "done" or (mode == "resume" and resumed):'
-BLOCKING_GROK = base.FAKE_GROK.replace(BLOCKING_GROK_ANCHOR, '''if mode == "blocked":
+BLOCKING_CODEX_ANCHOR = 'if mode == "done" or (mode in ("resume", "early") and resumed):'
+BLOCKING_CODEX = base.FAKE_CODEX.replace(BLOCKING_CODEX_ANCHOR, '''if mode == "blocked":
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {"status": "blocked", "stage": "system-test-author",
         "status_reason": "access: no browser is connected",
@@ -1841,7 +1781,7 @@ BLOCKING_GROK = base.FAKE_GROK.replace(BLOCKING_GROK_ANCHOR, '''if mode == "bloc
         "accepted": {"a1": {"outcome": "blocked", "blocked_by": "access", "headline": "needs a browser",
                             "awaiting": {"kind": "answer", "question": "How should it proceed?",
                                          "no_default": "nothing else can proceed without a browser"}}}})
-elif mode == "done" or (mode == "resume" and resumed):''', 1)
+elif mode == "done" or (mode in ("resume", "early") and resumed):''', 1)
 
 
 class OutcomeClassThroughMainTest(QuietHarnessCase):
@@ -1849,9 +1789,9 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
 
     def setUp(self):
         super().setUp()
-        self.assertIn(BLOCKING_GROK_ANCHOR, base.FAKE_GROK, "the base fake changed: the blocking mode needs a new anchor")
-        self.blocking = self.tmp / "grok-blocking"
-        self.blocking.write_text(BLOCKING_GROK)
+        self.assertIn(BLOCKING_CODEX_ANCHOR, base.FAKE_CODEX, "the base fake changed: the blocking mode needs a new anchor")
+        self.blocking = self.tmp / "codex-blocking"
+        self.blocking.write_text(BLOCKING_CODEX)
         self.blocking.chmod(self.blocking.stat().st_mode | stat.S_IXUSR)
 
     def sessions(self) -> list[dict]:
@@ -1859,7 +1799,7 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
         return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
 
     def test_a_run_that_passed_is_pass_on_every_host_and_is_in_the_baseline_row_and_the_report(self):
-        for host in ("claude", "grok", "codex"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 code, result, printed = self.invoke_printed(host, "done")
                 self.assertEqual(code, 0, result)
@@ -1868,22 +1808,22 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
                 self.assertIn("  outcome   PASS", printed)
 
     def test_a_requested_stop_is_stopped_and_its_header_and_exit_code_are_unchanged(self):
-        code, result, printed = self.invoke_printed("grok", "stuck-stop", "--max-resumes", "3")
+        code, result, printed = self.invoke_printed("codex", "stuck-stop", "--max-resumes", "3")
         self.assertEqual(code, 1)
         self.assertEqual(result["outcome_class"], "STOPPED")
         self.assertIn("stopped by", result["outcome_basis"])
         self.assertTrue(printed.splitlines()[next(i for i, ln in enumerate(printed.splitlines()) if ln.startswith("STOPPED  shiploop e2e"))])
 
     def test_a_spent_resume_budget_is_stopped_and_a_host_that_gave_up_is_failed(self):
-        _, spent, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "1")
+        _, spent, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "1")
         self.assertEqual((spent["outcome_class"], spent["termination"]["resume_stop"]), ("STOPPED", "resume budget spent (1)"))
-        _, anonymous, _ = self.invoke_printed("grok", "anon")
+        _, anonymous, _ = self.invoke_printed("codex", "anon")
         self.assertEqual((anonymous["outcome_class"], anonymous["termination"]["resume_stop"]), ("FAILED", "no host session id to resume"))
         _, errored, _ = self.invoke_printed("claude", "api-error")
         self.assertEqual(errored["outcome_class"], "FAILED")
 
     def test_a_blocked_run_is_blocked_with_the_detail_the_engine_recorded_and_is_neither_resumed_nor_answered(self):
-        code, result, printed = self.invoke_printed("grok", "blocked", "--grok-bin", str(self.blocking))
+        code, result, printed = self.invoke_printed("codex", "blocked", "--codex-bin", str(self.blocking))
         self.assertEqual(code, 1)
         self.assertFalse(result["pass"])
         self.assertEqual(result["outcome_class"], "BLOCKED")
@@ -1914,7 +1854,7 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
         self.assertEqual(len(self.sessions()), before, "no host was started")
 
     def test_a_regrade_keeps_the_ending_it_recorded_and_one_that_observed_nothing_is_unknown(self):
-        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, first, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         self.assertEqual(first["outcome_class"], "STOPPED")
         _, kept, _ = self.grade_only(out)
@@ -1928,7 +1868,7 @@ class OutcomeClassThroughMainTest(QuietHarnessCase):
 
     def test_a_class_that_cannot_be_computed_is_null_with_the_reason_and_changes_nothing(self):
         with mock.patch.object(run, "outcome_class", side_effect=RuntimeError("boom")):
-            code, result, _ = self.invoke_printed("grok", "done")
+            code, result, _ = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         self.assertTrue(result["pass"])
         self.assertIsNone(result["outcome_class"])
@@ -1948,7 +1888,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         self.addCleanup(patched.stop)
 
     def stopped(self, *extra: str) -> Path:
-        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0", *extra)
+        code, first, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0", *extra)
         self.assertEqual(first["shiploop"]["status"], "active")
         return Path(first["output"])
 
@@ -1957,8 +1897,8 @@ class ResumeDefaultsTest(QuietHarnessCase):
         os.environ["FAKE_MODE"] = mode
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--grok-bin", str(self.fakes["grok"]), "--claude-bin", str(self.fakes["claude"]),
-                             "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+            code = run.main(["--claude-bin", str(self.fakes["claude"]), "--codex-bin", str(self.fakes["codex"]),
+                             "--resume-run", str(out), "--plugin-dir", str(self.plugin),
                              "--baseline", str(self.baselines), "--max-resumes", "0", *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
@@ -1966,13 +1906,13 @@ class ResumeDefaultsTest(QuietHarnessCase):
         return [(name, record["host"], record["model"], record["effort"]) for name, record in run.runrecord.launches(out)]
 
     def test_a_resume_that_names_no_host_continues_on_the_host_the_run_was_launched_on(self):
-        out = self.stopped("--model", "grok-4.7", "--effort", "medium")
+        out = self.stopped("--model", "gpt-6.2-sol", "--effort", "medium")
         code, result, printed = self.resume(out)
-        self.assertEqual(result["host"], "grok")
-        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "grok"])
+        self.assertEqual(result["host"], "codex")
+        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["codex", "codex"])
         self.assertIn("This session ended while the ShipLoop run was still active", self.seen()["prompt"])
-        self.assertIn("continuing on grok (grok-4.7, medium)", printed)
-        self.assertEqual(result["environment"]["hosts_used"], ["grok"])
+        self.assertIn("continuing on codex (gpt-6.2-sol, medium)", printed)
+        self.assertEqual(result["environment"]["hosts_used"], ["codex"])
 
     def test_model_and_effort_come_from_the_runs_own_record_and_an_explicit_one_wins(self):
         out = self.stopped("--model", "my-model", "--effort", "high")
@@ -1991,7 +1931,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         with self.assertRaises(SystemExit) as raised:
             self.resume(out, "--host", "claude")
         message = str(raised.exception)
-        for text in ("grok", "claude", "--allow-host-change", "mixed-host"):
+        for text in ("codex", "claude", "--allow-host-change", "mixed-host"):
             self.assertIn(text, message)
         self.assertEqual(len(self.sessions()), sessions, "no host was started")
         self.assertEqual((out / "result.json").read_text(), result_before)
@@ -2005,31 +1945,29 @@ class ResumeDefaultsTest(QuietHarnessCase):
         out = self.stopped("--model", "my-model", "--effort", "high")
         code, result, printed = self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change")
         self.assertEqual([(host, model) for _, host, model, _ in self.launches(out)],
-                         [("grok", "my-model"), ("claude", "claude-sonnet-5-5")],
+                         [("codex", "my-model"), ("claude", "claude-sonnet-5-5")],
                          "the recorded model belongs to the host that recorded it")
         block = result["environment"]
-        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["grok", "claude"], True))
+        self.assertEqual((block["hosts_used"], block["mixed_host"]), (["codex", "claude"], True))
         self.assertEqual(len(block["environments"]), 2)
         self.assertEqual(result["host"], "claude")
-        self.assertIn("MIXED HOST: grok, claude", printed)
+        self.assertIn("MIXED HOST: codex, claude", printed)
         self.assertIn("--allow-host-change", printed)
 
     def test_naming_the_recorded_host_is_not_a_change_and_a_mixed_run_continues_on_the_host_that_last_ran_it(self):
         out = self.stopped()
-        code, result, _ = self.resume(out, "--host", "grok")
+        code, result, _ = self.resume(out, "--host", "codex")
         out = self.stopped()
         self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change", mode="active")  # claude leaves it active
         code, result, printed = self.resume(out)  # no host: the one that last ran it, not the first and not Claude by default
-        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "claude", "claude"])
+        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["codex", "claude", "claude"])
         self.assertIn("continuing on claude", printed)
 
     def test_a_regrade_restates_the_identity_of_the_last_launch_not_the_result_an_earlier_regrade_wrote(self):
-        # r2-battleship-grok-none: Grok started it, Claude finished it, and a regrade left result.json saying Grok beside a
-        # Claude-finished run (its header read host=grok, its metrics said Claude 2.1.294, its environment said mixed).
         out = self.stopped("--model", "my-model", "--effort", "high")
         self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change")
         saved = json.loads((out / "result.json").read_text())
-        saved.update(host="grok", model="grok-4.7", effort="medium")
+        saved.update(host="codex", model="gpt-6.2-sol", effort="medium")
         (out / "result.json").write_text(json.dumps(saved))
         code, regraded, printed = self.resume(out, "--grade-only")
         self.assertEqual((regraded["host"], regraded["model"]), ("claude", "claude-sonnet-5-5"))
@@ -2051,7 +1989,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
             self.assertEqual(run.launch_stamp(out, "claude"), now + 1, "the record of the launch before is kept")
             (out / f"resume-claude-{now + 1}.txt").write_text("a prompt")
             self.assertEqual(run.launch_stamp(out, "claude"), now + 2, "so is a prompt file")
-            self.assertEqual(run.launch_stamp(out, "grok"), now, "another host's names are its own")
+            self.assertEqual(run.launch_stamp(out, "codex"), now, "another host's names are its own")
 
     def test_a_regrade_in_the_same_second_as_the_launch_it_follows_leaves_that_launch_on_record(self):
         out = self.stopped()
@@ -2059,7 +1997,7 @@ class ResumeDefaultsTest(QuietHarnessCase):
         names = sorted(path.name for path in out.glob("invocation-resume-*.json"))
         self.resume(out, "--grade-only")  # no pause: the second may well be the same
         self.assertTrue(set(names) <= {path.name for path in out.glob("invocation-resume-*.json")})
-        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["grok", "claude"], "the regrade is not a launch")
+        self.assertEqual([host for _, host, _, _ in self.launches(out)], ["codex", "claude"], "the regrade is not a launch")
 
     def test_a_resume_of_a_mixed_run_names_the_last_launch_as_where_it_resumed_from(self):
         out = self.stopped()
@@ -2072,14 +2010,14 @@ class ResumeDefaultsTest(QuietHarnessCase):
         with self.assertRaises(SystemExit) as raised:
             self.resume(out, "--host", "claude")
         text = str(raised.exception)
-        for phrase in ("last launched on grok", "--host claude would finish it", "would become a mixed-host run", "--allow-host-change"):
+        for phrase in ("last launched on codex", "--host claude would finish it", "would become a mixed-host run", "--allow-host-change"):
             self.assertIn(phrase, text)
         self.assertNotIn("already", text)
         self.resume(out, "--host", "claude", "--backend", "anthropic", "--allow-host-change", mode="active")
         with self.assertRaises(SystemExit) as raised:
-            self.resume(out, "--host", "grok")
+            self.resume(out, "--host", "codex")
         text = str(raised.exception)
-        for phrase in ("last launched on claude", "already is a mixed-host run", "hosts so far: grok, claude", "--host grok"):
+        for phrase in ("last launched on claude", "already is a mixed-host run", "hosts so far: codex, claude", "--host codex"):
             self.assertIn(phrase, text)
         self.assertNotIn("would become", text)
 
@@ -2093,11 +2031,11 @@ class ResumeDefaultsTest(QuietHarnessCase):
         self.assertNotIn("the last launch used", quiet)
 
     def test_a_regrade_still_restates_the_recorded_identity_whatever_the_flags_say(self):
-        out = self.stopped("--model", "grok-4.7", "--effort", "medium")
+        out = self.stopped("--model", "gpt-6.2-sol", "--effort", "medium")
         self.blocked_workspace(out)
         before = len(self.sessions())
         code, result, printed = self.resume(out, "--host", "claude", "--model", "other")
-        self.assertEqual((result["host"], result["model"]), ("grok", "grok-4.7"))
+        self.assertEqual((result["host"], result["model"]), ("codex", "gpt-6.2-sol"))
         self.assertIn("regrade: no host starts", printed)
         self.assertEqual(len(self.sessions()), before)
 

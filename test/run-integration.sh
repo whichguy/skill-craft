@@ -12,7 +12,6 @@ Usage: test/run-integration.sh <command>
 Optional commands (never part of default CI):
   list, --list       List available optional integrations.
   help, --help, -h   Show this help without checking host prerequisites.
-  cursor-imports     Verify imported Cursor skills are available on this host.
   marketplace-claude  Install local candidate plugins in a disposable Claude profile.
   marketplace-codex   Install local candidate plugins in a disposable Codex profile.
   marketplace-codex-ask-agent  Exercise installed Ask Agent in a disposable Codex profile.
@@ -34,10 +33,6 @@ case "${1:-list}" in
   list|--list|help|--help|-h)
     [[ "$#" == "0" || "$#" == "1" ]] || { usage >&2; exit 64; }
     usage
-    ;;
-  cursor-imports)
-    [[ "$#" == "1" ]] || { usage >&2; exit 64; }
-    exec bash "$root/test/cursor-imported-skills.test.sh"
     ;;
   marketplace-claude|marketplace-codex)
     [[ "$#" == "1" ]] || { usage >&2; exit 64; }

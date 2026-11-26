@@ -53,16 +53,16 @@ _pool_spec.loader.exec_module(sg2_pool)
 _UNSET = object()
 
 
-def _write_invocation(sample: Path, *, host="grok", model=_UNSET, effort=_UNSET, **fields) -> Path:
-    """A sample's slice launch record. Unset fields take the Grok host's own profile (what a run started on the default
+def _write_invocation(sample: Path, *, host="codex", model=_UNSET, effort=_UNSET, **fields) -> Path:
+    """A sample's slice launch record. Unset fields take the Codex host's own profile (what a run started on the default
     driver records), so a retained sample matches the profile a new launch would request; an explicit None is kept, as
     it is for the Claude host, which has no effort of its own."""
     folder = sample / "slice"
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / "invocation.json"
     record = {"host": host,
-              "model": hosts.GrokHost.model if model is _UNSET else model,
-              "effort": hosts.GrokHost.effort if effort is _UNSET else effort,
+              "model": hosts.CodexHost.model if model is _UNSET else model,
+              "effort": hosts.CodexHost.effort if effort is _UNSET else effort,
               **fields}
     path.write_text(json.dumps(record))
     return path
@@ -1036,7 +1036,7 @@ class RoundSpeedups(unittest.TestCase):
         done = _write_invocation(self.tmp / "Q" / "T" / "2").parent
         (done / "slice-result.json").write_text("{}")
         with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
-            status = experiment.queue(["Q"], ["T", "Cg"], 4, 3, "grok", self.tmp, [], early_stop=False, runner=runner)
+            status = experiment.queue(["Q"], ["T", "Cg"], 4, 3, "codex", self.tmp, [], early_stop=False, runner=runner)
         self.assertEqual(status, 0)
         self.assertEqual(sorted(ran), sorted((("Q", a, n) for n in range(1, 5) for a in ("T", "Cg") if (a, n) != ("T", 2))))
         self.assertEqual(len(ran), len(set(ran)))
@@ -1047,7 +1047,7 @@ class RoundSpeedups(unittest.TestCase):
         runner, ran, _peak, patches = self._fake({"T": 1, "Cg": 0})
         printed = io.StringIO()
         with patches[0], patches[1], contextlib.redirect_stdout(printed):
-            experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], runner=runner)
+            experiment.queue(["Q"], ["T", "Cg"], 4, 1, "codex", self.tmp, [], runner=runner)
         # After T 1-2 all 1 and Cg 1-2 all 0, no completion of samples 3 and 4 leaves Cg above T: they are skipped.
         self.assertEqual(ran, [("Q", "T", 1), ("Q", "Cg", 1), ("Q", "T", 2), ("Q", "Cg", 2)])
         self.assertIn("Q/T/3: skipped, the verdict cannot change", printed.getvalue())
@@ -1057,7 +1057,7 @@ class RoundSpeedups(unittest.TestCase):
         """Four against four binary samples reach p < 0.05 only as a perfect split, so one missing sample can still undo it."""
         runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
         with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
-            experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], runner=runner)
+            experiment.queue(["Q"], ["T", "Cg"], 4, 1, "codex", self.tmp, [], runner=runner)
         self.assertEqual(len(ran), 8)
 
     def test_a_round_of_fewer_than_four_samples_is_never_stopped_early(self):
@@ -1065,7 +1065,7 @@ class RoundSpeedups(unittest.TestCase):
         there would stop the round after its first sample. R3 runs 3 full slices per arm, so it must run them all."""
         runner, ran, _peak, patches = self._fake({"T": 0, "Cg": 1})
         with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
-            experiment.queue(["Q"], ["T", "Cg"], 3, 1, "grok", self.tmp, [], runner=runner)
+            experiment.queue(["Q"], ["T", "Cg"], 3, 1, "codex", self.tmp, [], runner=runner)
         self.assertEqual(len(ran), 6)
 
     def test_the_downstream_experiments_run_the_whole_item_and_their_evaluator_verifies(self):
@@ -1074,7 +1074,7 @@ class RoundSpeedups(unittest.TestCase):
             with self.subTest(exp=exp_id):
                 self.assertNotIn("stop_after", exp)
                 self.assertEqual((exp["samples"], sorted(exp["arms"])), (3, ["Cg", "T"]))
-                argv = experiment.slice_argv(exp, exp["arms"]["Cg"], self.tmp / "slice", "grok", None)
+                argv = experiment.slice_argv(exp, exp["arms"]["Cg"], self.tmp / "slice", "codex", None)
                 self.assertNotIn("--stop-after", argv)
                 self.assertEqual(argv[argv.index("--seed-at") + 1], "step-plan")
                 missing = [a["ref"] for a in exp["arms"].values() if subprocess.run(
@@ -1083,7 +1083,7 @@ class RoundSpeedups(unittest.TestCase):
                     self.skipTest(f"{missing[0]} is not in this clone")
                 rows = experiment.verify(exp_id)
                 self.assertTrue(rows and all(r["ok"] for r in rows), rows)
-        shape = experiment.slice_argv(experiment.load("E6-K2"), {"ref": T_REF}, self.tmp / "slice", "grok", None)
+        shape = experiment.slice_argv(experiment.load("E6-K2"), {"ref": T_REF}, self.tmp / "slice", "codex", None)
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
     def test_r3_on_todays_shiploop_differs_only_in_the_bound_and_runs_on_the_default_host(self):
@@ -1139,8 +1139,7 @@ class RoundSpeedups(unittest.TestCase):
         self.assertEqual(e6_downstream.host_cancelled(self.tmp), 2)
         self.assertEqual(e6_downstream.host_cancelled(self.tmp / "none"), 0)
 
-    # R3's T 1 stderr.txt, verbatim (2026-10-26): every Grok call after the balance ran out.
-    REFUSED = ('Error: Internal error: {\n  "message": "API error (status 402 Payment Required): Grok Build usage balance '
+    REFUSED = ('Error: Internal error: {\n  "message": "API error (status 402 Payment Required): usage balance '
                'exhausted",\n  "http_status": 402\n}')
 
     def _slice(self, sample: Path, passed: bool, stderr: str = "", value: int = 1) -> Path:
@@ -1151,10 +1150,10 @@ class RoundSpeedups(unittest.TestCase):
         return folder
 
     def test_a_slice_the_host_refused_is_a_host_failure_never_a_score(self):
-        """R3 (journal F37): six slices failed on Grok's HTTP 402 and would have scored 0, as items not delivered."""
+        """Slices that fail on HTTP 402 are recorded as host failures rather than scored as failed deliverables."""
         refused = self.tmp / "Q" / "T" / "1"
         self._slice(refused, False, self.REFUSED)
-        self.assertEqual(experiment.host_failure(refused), "HTTP 402: Grok Build usage balance exhausted")
+        self.assertEqual(experiment.host_failure(refused), "HTTP 402: usage balance exhausted")
         self.assertFalse(experiment.finished(refused))
         signed_out = self.tmp / "Q" / "T" / "3"
         self._slice(signed_out, False, '{"error": "unauthorized", "http_status": 401}')
@@ -1172,7 +1171,7 @@ class RoundSpeedups(unittest.TestCase):
             table = experiment.score("Q", self.tmp)
         self.assertEqual([(r["sample"], r["value"]) for r in table["T"]], [(2, 0)])
         record = json.loads((refused / "score.json").read_text())
-        self.assertEqual((record["value"], record["host_failure"]), (None, "HTTP 402: Grok Build usage balance exhausted"))
+        self.assertEqual((record["value"], record["host_failure"]), (None, "HTTP 402: usage balance exhausted"))
         rows = [{"sample": 1, "value": None}, {"sample": 2, "value": 0}]
         self.assertEqual(experiment.possible_verdicts(rows, [{"sample": n, "value": 1} for n in (1, 2, 3, 4)], 4),
                          experiment.possible_verdicts(rows[1:], [{"sample": n, "value": 1} for n in (1, 2, 3, 4)], 4))
@@ -1192,12 +1191,12 @@ class RoundSpeedups(unittest.TestCase):
         printed = io.StringIO()
         with mock.patch.object(experiment, "load", return_value=exp), \
                 mock.patch.object(experiment.subprocess, "run", side_effect=slice_run), contextlib.redirect_stdout(printed):
-            status = experiment.run("Q", "T", 4, "grok", self.tmp, [])
+            status = experiment.run("Q", "T", 4, "codex", self.tmp, [])
         self.assertEqual((status, launched), (1, ["1", "2"]))  # sample 1 reran; sample 2's refusal stopped 3 and 4
         self.assertEqual(len(list(refused.glob("slice.host-failed-*"))), 1)
         self.assertFalse((refused / "score.json").exists())
         self.assertTrue(experiment.finished(refused))
-        self.assertIn("Q/T/2: the host refused its calls (HTTP 402: Grok Build usage balance exhausted)", printed.getvalue())
+        self.assertIn("Q/T/2: the host refused its calls (HTTP 402: usage balance exhausted)", printed.getvalue())
 
     def test_the_queue_starts_no_more_samples_after_a_host_refusal(self):
         ran = []
@@ -1209,7 +1208,7 @@ class RoundSpeedups(unittest.TestCase):
         _runner, _ran, _peak, patches = self._fake({})
         printed = io.StringIO()
         with patches[0], patches[1], contextlib.redirect_stdout(printed):
-            status = experiment.queue(["Q"], ["T", "Cg"], 4, 1, "grok", self.tmp, [], early_stop=False, runner=runner)
+            status = experiment.queue(["Q"], ["T", "Cg"], 4, 1, "codex", self.tmp, [], early_stop=False, runner=runner)
         self.assertEqual((status, ran), (1, [("T", 1), ("Cg", 1)]))
         self.assertIn("Q/Cg/1: the host refused its calls (HTTP 402", printed.getvalue())
         self.assertIn("with 6 samples not started", printed.getvalue())
@@ -1219,7 +1218,7 @@ class RoundSpeedups(unittest.TestCase):
         import os  # noqa: PLC0415
         (self.tmp / ".queue.lock").write_text(f"{os.getppid()} now\n")
         with self.assertRaisesRegex(SystemExit, "another queue"):
-            experiment.queue(["E6-K5"], ["T", "Cg"], 4, 2, "grok", self.tmp, [], runner=lambda *a: 0)
+            experiment.queue(["E6-K5"], ["T", "Cg"], 4, 2, "codex", self.tmp, [], runner=lambda *a: 0)
 
     def test_decide_refuses_arms_run_under_different_planning_review_options(self):
         for arm, mode in (("T", "stage"), ("Cg", "none")):
@@ -1284,7 +1283,7 @@ class ProgressCard(unittest.TestCase):
         (done / "slice-result.json").write_text(json.dumps({"pass": False}))
         (done / "stderr.txt").write_text(RoundSpeedups.REFUSED)
         state = progress_card.sample_state(done.parent, None, now=0.0, scorer=lambda folder: {"value": 0})
-        self.assertEqual(state, {"state": "error", "why": "host refused: HTTP 402: Grok Build usage balance exhausted"})
+        self.assertEqual(state, {"state": "error", "why": "host refused: HTTP 402: usage balance exhausted"})
         # R3's Cg 3 (2026-10-26) was refused before it wrote a result; the card counted it as a fifth running slice.
         (done / "slice-result.json").unlink()
         state = progress_card.sample_state(done.parent, None, now=0.0, scorer=lambda folder: {"value": 0})

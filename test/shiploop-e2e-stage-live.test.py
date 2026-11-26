@@ -1403,7 +1403,7 @@ class Refusals(LiveCase):
         self.assertEqual(live.host_gap(FakeHost(self.tmp, [{}]), "m"), "")
 
     def test_a_host_whose_plugin_install_failed_starts_nothing(self):
-        """slice.py and run.py both call run.require_installed after the install: a Codex or Grok host that did not enable the
+        """slice.py and run.py both call run.require_installed after the install: a Codex host that did not enable the
         build would run the model without the ShipLoop under test."""
         failed = {"pass": False, "loaded": [], "output": "marketplace add failed"}
         host = self.refused(r"did not install the plugin build.*\(loaded: no plugin\).*no host is started.*marketplace add failed",

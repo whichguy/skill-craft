@@ -30,13 +30,11 @@ grep -qi 'host-only' "$ap" || fail "anti-patterns.md missing host-only"
 grep -qi 'divergent' "$ap" || fail "anti-patterns.md missing divergent"
 grep -qiE 'silent fallback|Silent fallback' "$ap" || fail "anti-patterns.md missing silent fallback"
 
-# host-paths.md mentions all five hosts
+# host-paths.md mentions active hosts
 hp="$si/references/host-paths.md"
 [[ -f "$hp" ]] || fail "missing host-paths.md"
 grep -q '\.claude' "$hp" || fail "host-paths.md missing .claude"
-grep -q '\.grok' "$hp" || fail "host-paths.md missing .grok"
 grep -q '\.codex' "$hp" || fail "host-paths.md missing .codex"
-grep -q '\.cursor' "$hp" || fail "host-paths.md missing .cursor"
 
 # No model pin strings in create-template prompts
 if grep -qiE 'sonnet|opus|gpt-' "$si/references/create-template/prompts/"*.tmpl 2>/dev/null; then

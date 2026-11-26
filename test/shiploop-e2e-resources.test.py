@@ -32,7 +32,7 @@ class SuiteTest(HarnessCase):
         os.environ["FAKE_MODE"] = "done"
         out = self.tmp / "suite-out"
         with contextlib.redirect_stdout(io.StringIO()):
-            code = run.main(["--suite", name, "--host", "grok", "--grok-bin", str(self.fakes["grok"]),
+            code = run.main(["--suite", name, "--host", "codex", "--codex-bin", str(self.fakes["codex"]),
                              "--output", str(out), "--plugin-dir", str(self.plugin),
                              "--baseline", str(self.baselines)])
         return code, json.loads((out / "suite-result.json").read_text())
@@ -164,11 +164,11 @@ class SuiteTest(HarnessCase):
                         self.assertIn('"' + sub + '":', path.read_text())
 
     def test_a_second_run_reports_the_change_against_the_previous_row(self):
-        self.invoke("grok", "done")
+        self.invoke("codex", "done")
         output = io.StringIO()
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(output):
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "again"),
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(self.tmp / "again"),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertIn("baseline  vs", output.getvalue())
         self.assertEqual(len(self.baselines.read_text().splitlines()), 2)
@@ -1213,19 +1213,19 @@ class TerminationThroughMainTest(PrintedCase):
     """Why a run stopped, as run.main records it in result.json, the baseline row and the printed report."""
 
     def test_a_finished_run_records_why_it_stopped_everywhere_it_is_reported(self):
-        code, result, printed = self.invoke_printed("grok", "done")
+        code, result, printed = self.invoke_printed("codex", "done")
         self.assertEqual(code, 0, result)
         t = result["termination"]
         self.assertEqual((t["process_status"], t["returncode"], t["sessions"], t["resumes"]), ("exited", 0, 1, 0))
         self.assertEqual((t["session_stops"], t["resume_stop"], t["engine_status"]),
-                         (["cancelled"], "ShipLoop run is done", "done"))
+                         (["end_turn"], "ShipLoop run is done", "done"))
         # The row keeps why it stopped; the blocked detail stays in result.json (batch 1011 integration).
         self.assertEqual(self.last_row()["termination"], run.row_termination(t))
-        self.assertEqual(self.stopped(printed), "  stopped   host exited rc=0; session stops cancelled; "
+        self.assertEqual(self.stopped(printed), "  stopped   host exited rc=0; session stops end_turn; "
                                                 "no further resume: ShipLoop run is done; engine done")
 
     def test_the_result_the_baseline_row_and_the_report_are_wired_to_the_same_records(self):
-        code, result, printed = self.invoke_printed("grok", "done")
+        code, result, printed = self.invoke_printed("codex", "done")
         row = self.last_row()
         self.assertEqual(result["metrics"]["stages"], [])  # the key is there: a comparison reads it
         self.assertEqual(row["stages"], run.baseline_stages(result["metrics"]["stages"]))
@@ -1234,35 +1234,35 @@ class TerminationThroughMainTest(PrintedCase):
         self.assertIn("  baseline  nothing compared: no earlier row for hello", printed)
 
     def test_a_run_that_never_finishes_names_the_stage_and_the_spent_budget(self):
-        code, result, printed = self.invoke_printed("grok", "stuck", "--max-resumes", "2")
+        code, result, printed = self.invoke_printed("codex", "stuck", "--max-resumes", "2")
         self.assertEqual(code, 1)
         t = result["termination"]
         self.assertEqual((t["sessions"], t["resumes"], t["resume_stop"]), (3, 2, "resume budget spent (2)"))
         self.assertEqual((t["engine_status"], t["engine_unaccepted_stage"]), ("active", "test-refine"))
         self.assertFalse(self.baselines.exists(), "a run left active is not a baseline, so no row carries its termination")
         self.assertEqual(self.stopped(printed),
-                         "  stopped   host exited rc=0; session stops cancelled, cancelled, cancelled; "
+                         "  stopped   host exited rc=0; session stops end_turn, end_turn, end_turn; "
                          "no further resume: resume budget spent (2); engine active with test-refine never accepted")
 
     def test_the_last_permitted_resume_that_finishes_the_run_is_not_called_a_spent_budget(self):
-        code, result, _ = self.invoke_printed("grok", "resume", "--max-resumes", "1")
+        code, result, _ = self.invoke_printed("codex", "resume", "--max-resumes", "1")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["termination"]["sessions"], 2)
         self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
 
     def test_a_run_finished_by_its_only_permitted_session_is_not_called_a_spent_budget(self):
-        code, result, _ = self.invoke_printed("grok", "done", "--max-resumes", "0")
+        code, result, _ = self.invoke_printed("codex", "done", "--max-resumes", "0")
         self.assertEqual(code, 0, result)
         self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
 
     def test_a_session_that_names_no_host_session_cannot_be_resumed(self):
-        code, result, _ = self.invoke_printed("grok", "anon")
+        code, result, _ = self.invoke_printed("codex", "anon")
         self.assertEqual(code, 1)
         self.assertEqual(result["termination"]["resume_stop"], "no host session id to resume")
         self.assertEqual(result["termination"]["sessions"], 1)
 
     def test_a_killed_session_is_unknown_and_the_deadline_is_the_stop(self):
-        code, result, printed = self.invoke_printed("grok", "hang", "--timeout", "3")
+        code, result, printed = self.invoke_printed("codex", "hang", "--timeout", "3")
         self.assertEqual(code, 1)
         t = result["termination"]
         self.assertEqual((t["process_status"], t["returncode"]), ("timeout", -9))
@@ -1271,11 +1271,11 @@ class TerminationThroughMainTest(PrintedCase):
         self.assertIn("host timeout rc=-9; session stops unknown", self.stopped(printed))
 
     def test_session_stops_has_one_entry_per_session_and_unknown_for_a_crashed_one(self):
-        code, result, _ = self.invoke_printed("grok", "crash-resumed", "--max-resumes", "2")
+        code, result, _ = self.invoke_printed("codex", "crash-resumed", "--max-resumes", "2")
         self.assertEqual(code, 1)
         t = result["termination"]
         self.assertEqual(len(result["process"]["sessions"]), 3)
-        self.assertEqual((t["sessions"], t["session_stops"]), (3, ["cancelled", "unknown", "unknown"]))
+        self.assertEqual((t["sessions"], t["session_stops"]), (3, ["end_turn", "unknown", "unknown"]))
         self.assertEqual((t["process_status"], t["returncode"]), ("failed", 1))
         self.assertEqual(t["resume_stop"], "resume budget spent (2)")
 
@@ -1283,7 +1283,7 @@ class TerminationThroughMainTest(PrintedCase):
         """No resume limit is the default (owner 2026-10-24), so a resumed host that can never run (an expired auth, a
         broken binary) would be resumed forever. Three resumed sessions in a row that fail while ShipLoop's revision stands
         still end the loop as the host's failure. The --timeout only keeps a regression from hanging the suite."""
-        code, result, _ = self.invoke_printed("grok", "crash-resumed", "--timeout", "300")
+        code, result, _ = self.invoke_printed("codex", "crash-resumed", "--timeout", "300")
         self.assertEqual(code, 1)
         t = result["termination"]
         self.assertEqual(t["sessions"], 1 + run.RESUME_STALL)
@@ -1294,7 +1294,7 @@ class TerminationThroughMainTest(PrintedCase):
     def test_with_no_resume_limit_a_session_that_ends_without_moving_the_run_is_resumed_three_times_then_stopped(self):
         """The same evidence for a host that exits cleanly: a model that ends every turn with ShipLoop's revision where it
         was would otherwise spend forever. The harness ends that run (STOPPED), and the printed command continues it."""
-        code, result, printed = self.invoke_printed("grok", "stuck", "--timeout", "300")
+        code, result, printed = self.invoke_printed("codex", "stuck", "--timeout", "300")
         self.assertEqual(code, 1)
         t = result["termination"]
         self.assertEqual((t["sessions"], t["resume_stop"]),
@@ -1331,10 +1331,11 @@ class SuiteTmpCheckHostTest(HarnessCase):
         return out
 
     @staticmethod
-    def grok_writer(out: Path, target: str) -> Path:
+    def codex_writer(out: Path, target: str) -> Path:
         out.mkdir()
-        stream = [{"type": "usage", "usage": {"input_tokens": 1}},
-                  {"type": "tool_call", "toolCallId": "1", "rawInput": {"command": f"echo x > {target}"}}]
+        stream = [{"type": "available_commands", "commands": []},
+                  {"type": "tool_call", "toolCallId": "1", "toolName": "run_terminal_command",
+                   "rawInput": {"command": f"echo x > {target}"}}]
         (out / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in stream))
         return out
 
@@ -1344,8 +1345,8 @@ class SuiteTmpCheckHostTest(HarnessCase):
 
     def test_a_collision_is_found_across_hosts(self):
         outs = [self.claude_writer(self.tmp / "a", "/tmp/shared-notes.txt"),
-                self.grok_writer(self.tmp / "b", "/tmp/shared-notes.txt"),
-                self.grok_writer(self.tmp / "c", "/tmp/shared-notes.txt"),
+                self.codex_writer(self.tmp / "b", "/tmp/shared-notes.txt"),
+                self.codex_writer(self.tmp / "c", "/tmp/shared-notes.txt"),
                 self.claude_writer(self.tmp / "d", "/tmp/own-notes.txt")]
         self.assertEqual(run.shared_tmp_writes(outs), {"/tmp/shared-notes.txt": ["a", "b", "c"]})
 
@@ -1419,7 +1420,7 @@ class StopFileTest(PrintedCase):
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed), mock.patch.object(
                 run, "review_export", return_value="review export: fake") as exporter:
-            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines),
                              "--timeout", "30", *extra])
         self.exporter = exporter
@@ -1491,12 +1492,12 @@ class StopFileTest(PrintedCase):
         self.assertEqual(printed.count("--resume-run"), 1, "only the start line: a run with no engine state cannot be resumed")
 
     def test_a_stale_stop_file_does_not_stop_a_later_resume(self):
-        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, first, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         (out / "stop").write_text("")  # left over from a stop nobody consumed
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "codex", "--allow-host-change", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertEqual(result["termination"]["resume_stop"], "ShipLoop run is done")
@@ -1504,7 +1505,7 @@ class StopFileTest(PrintedCase):
         self.assertFalse((out / "stop").exists())
 
     def test_a_stop_never_answers_a_blocked_run(self):
-        code, first, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")
+        code, first, _ = self.invoke_printed("codex", "stuck", "--max-resumes", "0")
         out = Path(first["output"])
         shutil.rmtree(out / "work" / ".shiploop")
         (out / "work" / ".shiploop").mkdir()
@@ -1513,7 +1514,7 @@ class StopFileTest(PrintedCase):
         (out / "stop").write_text("")
         self.log.unlink(missing_ok=True)
         with contextlib.redirect_stdout(io.StringIO()):
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         result = json.loads((out / "result.json").read_text())
         self.assertFalse(self.log.exists(), "no host was started for a blocked run")
@@ -1752,7 +1753,7 @@ class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
         self.scope_to_tmp()
 
     def test_a_server_a_host_leaves_running_is_stopped_and_recorded(self):
-        for host in ("claude", "grok"):
+        for host in ("claude", "codex"):
             with self.subTest(host=host):
                 portfile = self.tmp / f"leak-{host}"
                 self.addCleanup(kill_leaked, portfile)
@@ -1841,7 +1842,7 @@ class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
         self.assertIn("  left      not observed: lsof not found", printed)
 
     def test_a_resume_stops_what_the_earlier_invocation_left_before_its_host_starts(self):
-        code, first, _, out = self.case_main("case-resume", "--max-resumes", "0", mode="stuck", host="grok")
+        code, first, _, out = self.case_main("case-resume", "--max-resumes", "0", mode="stuck", host="codex")
         self.assertEqual(first["shiploop"]["status"], "active")
         orphan, port = self.serve(out / "work")  # a model's server that outlived a killed harness
         self.log.unlink()
@@ -1851,7 +1852,7 @@ class LeftBehindThroughMainTest(RealListeners, CaseRunCase):
                     "shiploop_version": None, "unreleased": [], "ci": "success"}  # a resume on its own install checks main's state
         with contextlib.redirect_stdout(io.StringIO()), mock.patch.dict(os.environ, {"FAKE_PROBE_PORT": str(orphan.portfile)}), \
                 mock.patch.object(run, "released_versions", return_value=released):
-            run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out),
+            run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out),
                       "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         self.assertEqual(Path(str(self.log) + ".probe").read_text().split(), ["refused"], "gone before the new session began")
         result = json.loads((out / "result.json").read_text())
@@ -1976,11 +1977,11 @@ class StalePreflightThroughMainTest(CaseRunCase):
         self.assertEqual(code, 0, result)
 
     def resume_argv(self, out: Path, *extra: str) -> list[str]:
-        return ["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
+        return ["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--resume-run", str(out), "--plugin-dir", str(self.plugin),
                 "--baseline", str(self.baselines), *extra]
 
     def test_a_second_harness_for_a_case_whose_harness_is_alive_is_refused_and_touches_nothing(self):
-        code, first, _, out = self.case_main("case-live", "--max-resumes", "0", mode="stuck", host="grok")
+        code, first, _, out = self.case_main("case-live", "--max-resumes", "0", mode="stuck", host="codex")
         self.assertEqual(first["shiploop"]["status"], "active")
         live = listeners.hold_case(out)  # the harness that is running this case
         self.assertIsNotNone(live)
@@ -2040,7 +2041,7 @@ class StalePreflightThroughMainTest(CaseRunCase):
             (out / "stop").write_text("")
 
         threading.Thread(target=watch, daemon=True).start()
-        code, result, printed, _ = self.case_main("case-lock", "--timeout", "30", mode="hang-active", host="grok")
+        code, result, printed, _ = self.case_main("case-lock", "--timeout", "30", mode="hang-active", host="codex")
         self.assertEqual(seen, [True], "alive while the host runs")
         self.assertFalse(listeners.case_alive(out), "dropped when main returns")
 
@@ -2049,7 +2050,7 @@ class StalePreflightThroughMainTest(CaseRunCase):
                               {"wide": {"kind": "breadth", "cases": ["a", "b"]}})
         ended = self.ended_case()
         os.environ["FAKE_MODE"] = "done"
-        argv = ["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "suite-out"),
+        argv = ["--suite", "wide", "--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(self.tmp / "suite-out"),
                 "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)]
         with self.leaking(ended), contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as refused:
             run.main(argv)
@@ -2101,8 +2102,7 @@ class TerminationSignalTest(CaseRunCase):
         super().setUp()
         isolate_git(self)
         self.home = self.tmp / "home"
-        (self.home / ".grok").mkdir(parents=True)
-        (self.home / ".grok" / "auth.json").write_text("{}")
+        self.home.mkdir(parents=True)
         tools = self.tmp / "tools"
         tools.mkdir()
         (tools / "lsof").write_text("#!/bin/sh\nexit 1\n")
@@ -2118,8 +2118,8 @@ class TerminationSignalTest(CaseRunCase):
 
     def start(self, name: str, *extra: str, launcher: tuple = (), reset: str = "SIGINT,SIGTERM,SIGHUP") -> tuple[subprocess.Popen, Path]:
         out = self.tmp / name
-        proc = subprocess.Popen([*launcher, sys.executable, "-c", self.DEFAULT_SIGNALS, reset, str(run.HERE / "run.py"), "--host", "grok",
-                                 "--grok-bin", str(self.fakes["grok"]), "--output", str(out), "--plugin-dir", str(self.plugin),
+        proc = subprocess.Popen([*launcher, sys.executable, "-c", self.DEFAULT_SIGNALS, reset, str(run.HERE / "run.py"), "--host", "codex",
+                                 "--codex-bin", str(self.fakes["codex"]), "--output", str(out), "--plugin-dir", str(self.plugin),
                                  "--baseline", str(self.baselines), "--timeout", "120", *extra],
                                 env=self.env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         # Registered before the harness's own kill, so it runs after it: a harness that is still alive would start another host.
@@ -2341,7 +2341,7 @@ class SignalledHarnessThroughMainTest(CaseRunCase):
         out = self.tmp / "suite-out"
         os.environ["FAKE_MODE"] = "done"
         with contextlib.redirect_stdout(io.StringIO()):
-            code = run.main(["--suite", "wide", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+            code = run.main(["--suite", "wide", "--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         rows = json.loads((out / "suite-result.json").read_text())["cases"]
         self.assertEqual(code, 1)
@@ -2359,7 +2359,7 @@ class SignalledHarnessThroughMainTest(CaseRunCase):
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--suite", "b", "--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(out),
+            code = run.main(["--suite", "b", "--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(out),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
         rows = json.loads((out / "suite-result.json").read_text())["cases"]
         self.assertEqual(code, 1)
@@ -2382,7 +2382,7 @@ class SignalledHarnessThroughMainTest(CaseRunCase):
             return {"status": "exited", "returncode": 0, "elapsed_seconds": 1.0, "stop": None, "left_behind": None}
 
         with mock.patch.object(run, "launch", side_effect=host_that_ends_as_the_signal_arrives):
-            code, result, printed, out = self.case_main("case-between", host="grok")
+            code, result, printed, out = self.case_main("case-between", host="codex")
         self.assertEqual(len(calls), 1, "no second session is started or recorded for a harness that was told to end")
         self.assertEqual(result["termination"]["resume_stop"], "terminated by SIGHUP")
         self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))

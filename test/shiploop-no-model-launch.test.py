@@ -84,7 +84,7 @@ def historical_context_host_receipt(
     ).hexdigest()
     receipt = {
         "schema": "shiploop-context-host/v1",
-        "host": "grok",
+        "host": "codex",
         "run_id": state["run_id"],
         "repo": str(repo.resolve()),
         "run_dir": str(run_dir.resolve()),
@@ -172,7 +172,7 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
             with self.subTest(filename=filename):
                 self.assertFalse((scripts / filename).exists())
 
-        rejected = self.run_cli("drive", "--host", "grok")
+        rejected = self.run_cli("drive", "--host", "codex")
         self.assertEqual(rejected.returncode, 2, rejected.stdout + rejected.stderr)
         self.assertIn("invalid choice: 'drive'", rejected.stderr)
         self.assert_no_model_launch()

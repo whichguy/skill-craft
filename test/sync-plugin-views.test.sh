@@ -316,18 +316,15 @@ pass_sync "the bundle view is exact; stale entries reported and removed"
 # whole bundle, merged into one file per host, each command running its own
 # skill's script through that host's root variable.
 hooks_json() { python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1])), sort_keys=True))' "$1"; }
-[[ "$(ls "$BASE/hooks")" == $'codex.json\ncursor.json\nhooks.json' ]] \
-  || fail "$BASE/hooks is not exactly the three generated host files"
+[[ -f "$BASE/hooks/hooks.json" && -f "$BASE/hooks/codex.json" ]] \
+  || fail "$BASE/hooks missing generated Claude/Codex hook files"
 [[ "$(hooks_json "$BASE/hooks/hooks.json")" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook", "timeout": 10, "type": "command"}, {"command": "${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe", "timeout": 30, "type": "command"}], "matcher": "Bash"}, {"hooks": [{"command": "${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-skill-call", "timeout": 10, "type": "command"}], "matcher": "Skill"}], "SessionEnd": [{"hooks": [{"command": "${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-session-end", "timeout": 10, "type": "command"}]}], "Stop": [{"hooks": [{"command": "${CLAUDE_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop", "timeout": 30, "type": "command"}]}]}}' ]] \
-  || fail "Claude/Grok hook file content"
+  || fail "Claude hook file content"
 [[ "$(hooks_json "$BASE/hooks/codex.json")" == '{"hooks": {"PostToolUse": [{"hooks": [{"command": "$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-status-hook", "timeout": 10, "type": "command"}, {"command": "$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-observe", "timeout": 30, "type": "command"}], "matcher": "Bash"}], "SessionEnd": [{"hooks": [{"command": "$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-session-end", "timeout": 10, "type": "command"}]}], "Stop": [{"hooks": [{"command": "$PLUGIN_ROOT/skills/shiploop/scripts/shiploop-keepalive-stop", "timeout": 30, "type": "command"}]}]}}' ]] \
   || fail "Codex hook file content"
-[[ "$(hooks_json "$BASE/hooks/cursor.json")" == '{"hooks": {"afterShellExecution": [{"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-status-hook", "timeout": 10}, {"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-observe", "timeout": 30}], "sessionEnd": [{"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-session-end", "timeout": 10}], "stop": [{"command": "${CURSOR_PLUGIN_ROOT}/skills/shiploop/scripts/shiploop-keepalive-stop", "loop_limit": 50, "timeout": 30}]}, "version": 1}' ]] \
-  || fail "Cursor hook file content"
 [[ "$(hooks_json "$BASE/hooks.json")" == '{"shiploop": {"PostToolUse": [{"hooks": [{"command": "./skills/shiploop/scripts/shiploop-keepalive-observe", "timeout": 30, "type": "command"}], "matcher": "run_command"}], "Stop": [{"command": "./skills/shiploop/scripts/shiploop-keepalive-stop", "timeout": 30, "type": "command"}]}}' ]] \
   || fail "Antigravity root hooks.json content"
 grep -q '"hooks": "./hooks/codex.json"' "$BASE/.codex-plugin/plugin.json" || fail "Codex manifest hooks field"
-grep -q '"hooks": "./hooks/cursor.json"' "$BASE/.cursor-plugin/plugin.json" || fail "Cursor manifest hooks field"
 ! grep -q '"hooks"' "$BASE/.claude-plugin/plugin.json" || fail "Claude manifest must use the default hooks path"
 python3 scripts/check-marketplace-packages.py "$BASE" >/dev/null || fail "package check of generated hooks"
 
@@ -371,7 +368,7 @@ sed 's|scripts/shiploop-status-hook|../SKILL.md|' "$decl.orig" > "$decl"
 expect_fail "declaration outside scripts/" "script must be scripts/<file>" bash scripts/sync-plugin-views.sh --check
 sed 's|scripts/shiploop-status-hook|scripts/shiploop_status_hook.py|' "$decl.orig" > "$decl"
 expect_fail "non-executable declared script" "must be an executable regular file" bash scripts/sync-plugin-views.sh --check
-sed 's|"grok"|"unknown-host"|' "$decl.orig" > "$decl"
+sed 's|"codex"|"unknown-host"|' "$decl.orig" > "$decl"
 expect_fail "unknown host" "hosts must be distinct values" bash scripts/sync-plugin-views.sh --check
 # The Skill-tool event exists on Claude Code only: a declaration naming another host for it is refused, not dropped.
 python3 - "$decl.orig" "$decl" <<'PY'

@@ -1,7 +1,7 @@
 """No-model checks for the ShipLoop E2E harness (test/shiploop_e2e/).
 
-Fake `grok` and `claude` executables stand in for the hosts, so these checks
-cover the harness contract (empty start directory, isolated Grok profile,
+Fake `codex` and `claude` executables stand in for the hosts, so these checks
+cover the harness contract (empty start directory, isolated Codex profile,
 argv, plugin and invocation grading, review parsing and the premise filter)
 without launching a model. Every case passes its host and fake binary
 explicitly and supplies a plugin build, so no real host or build is reached.
@@ -198,88 +198,13 @@ print(json.dumps({{"type": "result", "subtype": "success", "num_turns": 3, "tota
                   "result": "done"}}))
 """
 
-FAKE_GROK = f"""#!{sys.executable}
-import json, os, sys
-from pathlib import Path
-{PRODUCT}
-{LISTEN}
-argv = sys.argv[1:]
-home = Path(os.environ["HOME"])
-registry = home / ".grok" / "fake-plugins.txt"
-if argv[:2] == ["plugin", "install"]:
-    registry.write_text(f"  skill-craft-1: skill-craft [local: {{Path(argv[2]).resolve()}}]\\n")
-    print("Installed 1 plugin(s)")
-    sys.exit(0)
-if argv[:2] == ["plugin", "list"]:
-    print(registry.read_text() if registry.exists() else "")
-    sys.exit(0)
-os.chdir(argv[argv.index("--cwd") + 1])
-probe_a_port()
-prompt = Path(argv[argv.index("--prompt-file") + 1]).read_text()
-resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
-with open(os.environ["FAKE_LOG"] + ".sessions", "a") as log:
-    log.write(json.dumps({{"resumed": resumed, "prompt": prompt, "pid": os.getpid()}}) + "\\n")
-if os.environ.get("FAKE_MODE") == "crash-resumed" and resumed:
-    sys.exit(1)  # a resumed session dies without writing any event
-Path(os.environ["FAKE_LOG"]).write_text(json.dumps({{
-    "argv": argv, "prompt": prompt, "cwd_listing": os.listdir("."), "home": str(home),
-    "auth_is_symlink": (home / ".grok" / "auth.json").is_symlink(),
-    "claude_skills": os.environ.get("GROK_CLAUDE_SKILLS_ENABLED")}}))
-print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["shiploop", "improve"]}}))
-print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "shiploop next"}}}}))
-for chunk in ("Ship", "ped."):
-    print(json.dumps({{"type": "text", "data": chunk}}))
-leak_a_listener()
-mode = os.environ.get("FAKE_MODE")
-# A block of its own before the mode chain, whose first line other suites anchor their modes on (test-environment).
-if mode == "refused" and resumed:
-    mode = "resume"  # the resumed session finishes the same run, as resume's does
-elif mode == "refused":
-    # Grok's headless permission check refuses a shell call, which ends the session (grok_preempt's module docstring).
-    Path(".shiploop").mkdir(exist_ok=True)
-    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "release-plan", "revision": 40}})
-    print(json.dumps({{"type": "tool_call", "toolCallId": "call-refused-1", "toolName": "run_terminal_command",
-                      "rawInput": {{"command": 'COPY="/r/run/scratch/rv-copy"\\nmkdir -p "$COPY"'}}}}))
-    print(json.dumps({{"type": "tool_call_update", "toolCallId": "call-refused-1", "status": "failed", "content": [
-        {{"type": "content", "content": {{"type": "text",
-                                        "text": "User cancelled the execution for tool `run_terminal_command`"}}}}]}}))
-if mode == "done" or (mode == "resume" and resumed):
-    import shutil
-    shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
-    product()
-elif mode == "early" and not resumed:
-    pass  # the first session ends before ShipLoop writes any state
-elif mode == "early":
-    product()
-elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
-    if mode == "hang-active":
-        Path(".shiploop").mkdir(exist_ok=True)
-        store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
-    print(json.dumps({{"type": "session", "sessionId": "sess-1"}}), flush=True)
-    import time
-    time.sleep(600)  # killed by --timeout or by a requested stop
-elif mode in ("resume", "stuck", "stuck-stop", "hang-resumed", "anon", "crash-resumed"):
-    Path(".shiploop").mkdir(exist_ok=True)
-    store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
-end = {{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}
-if mode == "anon":
-    del end["sessionId"]  # the host never named its session: there is nothing to resume
-print(json.dumps(end), flush=True)
-if mode == "stuck-stop":
-    # A person asks for a stop in the last instant of this session: after its end event, and the process leaves at once.
-    # The request used to land before the end event and the interpreter's shutdown, a window the harness's poll could
-    # fall in when the machine was busy and kill a host that was already finishing (3 of 16 parallel runs).
-    (Path.cwd().parent / "stop").write_text("")
-    os._exit(0)
-"""
-
-
 # A fake Codex CLI: plugin marketplace add / plugin add / plugin list --json, and
 # `exec --json ... [resume ID] PROMPT` emitting Codex's JSON event stream.
 FAKE_CODEX = f"""#!{sys.executable}
 import json, os, sys
 from pathlib import Path
 {PRODUCT}
+{LISTEN}
 argv = sys.argv[1:]
 home = Path(os.environ["CODEX_HOME"])
 state = home / "fake-plugin.json"
@@ -301,26 +226,40 @@ if argv[:2] == ["plugin", "list"]:
     sys.exit(0)
 assert argv[:2] == ["exec", "--json"], argv
 os.chdir(argv[argv.index("-C") + 1])
+probe_a_port()
 resumed = argv[argv.index("resume") + 1] if "resume" in argv else None
 prompt = sys.stdin.buffer.read().decode("utf-8") if argv[-1] == "-" else argv[-1]
-entry = {{"argv": argv, "prompt": prompt, "resumed": resumed,
+entry = {{"argv": argv, "prompt": prompt, "resumed": resumed, "pid": os.getpid(),
     "cwd_listing": os.listdir("."), "codex_home": str(home),
     "auth_is_symlink": (home / "auth.json").is_symlink()}}
-Path(os.environ["FAKE_LOG"]).write_text(json.dumps(entry))
 with open(os.environ["FAKE_LOG"] + ".sessions", "a") as sessions:
     sessions.write(json.dumps(entry) + "\\n")
+mode = os.environ.get("FAKE_MODE")
+if mode == "crash-resumed" and resumed:
+    sys.exit(1)  # a resumed session dies without writing any event
+Path(os.environ["FAKE_LOG"]).write_text(json.dumps(entry))
 def emit(event):
     print(json.dumps(event), flush=True)
-emit({{"type": "thread.started", "thread_id": resumed or "codex-thread-1"}})
+if mode == "anon":
+    emit({{"type": "thread.started"}})
+else:
+    emit({{"type": "thread.started", "thread_id": resumed or "codex-thread-1"}})
 cli = "python3 /x/skills/shiploop/scripts/shiploop next"
 emit({{"type": "item.completed", "item": {{"id": "item_0", "type": "command_execution", "command": cli,
       "aggregated_output": "ShipLoop navigator\\n", "exit_code": 0, "status": "completed"}}}})
-mode = os.environ.get("FAKE_MODE")
+leak_a_listener()
+# A block of its own before the mode chain, whose first line other suites anchor their modes on (test-environment).
 if mode == "done" or (mode in ("resume", "early") and resumed):
     import shutil
     shutil.rmtree(".shiploop", ignore_errors=True)  # a resumed session finishes the same run
     product()
-elif mode in ("stuck", "resume"):
+elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
+    if mode == "hang-active":
+        Path(".shiploop").mkdir(exist_ok=True)
+        store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
+    import time
+    time.sleep(600)  # killed by --timeout or by a requested stop
+elif mode in ("stuck", "resume", "stuck-stop", "hang-resumed", "anon", "crash-resumed"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
 emit({{"type": "item.completed", "item": {{"id": "item_1", "type": "agent_message", "text": "Shipped."}}}})
@@ -334,6 +273,9 @@ if os.environ.get("FAKE_ROLLOUT"):
         "thread_id": "t", "session_id": "t", "response_id": "r%d" % n,
         "usage": {{"total_tokens": 1000 * (n + 1)}}}}}}) + "\\n" for n in range(2)))
 emit({{"type": "turn.completed", "usage": {{"input_tokens": 10, "cached_input_tokens": 5, "output_tokens": 2}}}})
+if mode == "stuck-stop":
+    (Path.cwd().parent / "stop").write_text("")
+    os._exit(0)
 """
 
 class HarnessCase(unittest.TestCase):
@@ -342,7 +284,7 @@ class HarnessCase(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         self.tmp = Path(tmp.name)
         self.fakes = {}
-        for name, body in (("claude", FAKE_CLAUDE), ("grok", FAKE_GROK), ("codex", FAKE_CODEX)):
+        for name, body in (("claude", FAKE_CLAUDE), ("codex", FAKE_CODEX)):
             path = self.tmp / name
             path.write_text(body)
             path.chmod(path.stat().st_mode | stat.S_IXUSR)
@@ -358,10 +300,6 @@ class HarnessCase(unittest.TestCase):
         self.baselines = self.tmp / "baselines.jsonl"  # never the committed file
         os.environ["FAKE_LOG"] = str(self.log)
         self.addCleanup(os.environ.pop, "FAKE_MODE", None)
-        auth = self.tmp / "auth.json"
-        auth.write_text("{}")
-        saved, hosts.GROK_AUTH = hosts.GROK_AUTH, auth
-        self.addCleanup(setattr, hosts, "GROK_AUTH", saved)
         codex_home = self.tmp / "real-codex"
         codex_home.mkdir()
         (codex_home / "auth.json").write_text("{}")
@@ -939,8 +877,8 @@ def isolate_git(case: unittest.TestCase) -> None:
 
 
 
-def grok_usage(count: int, output: int = 100, reasoning: int = 40) -> list[dict]:
-    """`count` per-call usage events, the shape Grok writes (and the Codex translator does not)."""
+def usage_stream(count: int, output: int = 100, reasoning: int = 40) -> list[dict]:
+    """``count`` synthetic per-call usage events."""
     return [{"type": "usage", "usage": {"input_tokens": 1000, "output_tokens": output, "reasoning_tokens": reasoning}}
             for _ in range(count)]
 

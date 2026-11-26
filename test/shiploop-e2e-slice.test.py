@@ -760,14 +760,16 @@ class ClearTriggerTests(unittest.TestCase):
         self.assertIsNotNone(clear.trigger(self.events, self.state, inside, self.stage_of, since=stopped))
 
     def test_a_stream_the_harness_cannot_read_stops_at_a_boundary_and_never_inside(self):
-        # Grok and Codex events are tool_call / tool_call_update lines, not Claude's message blocks (hosts.CodexTranslator):
+        # Translated Codex events are tool_call / tool_call_update lines, not Claude's message blocks (hosts.CodexTranslator):
         # the calls cannot be read, so an inside position has nothing to wait on. It is accepted, recorded as requested
         # (invocation.json clear_at) and reported unfired; it is not refused, and a boundary is state-based.
-        grok = [{"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command",
-                 "rawInput": {"command": "sed -n 1,5p src/a.js"}},
-                {"type": "tool_call_update", "toolCallId": "c1", "status": "completed",
-                 "rawOutput": {"output_for_prompt": "ShipLoop navigator | implement | revision 9"}}]
-        self.events.write_text("".join(json.dumps(x) + "\n" for x in grok))
+        codex_translated = [
+            {"type": "tool_call", "toolCallId": "c1", "toolName": "run_terminal_command",
+             "rawInput": {"command": "sed -n 1,5p src/a.js"}},
+            {"type": "tool_call_update", "toolCallId": "c1", "status": "completed",
+             "rawOutput": {"output_for_prompt": "ShipLoop navigator | implement | revision 9"}},
+        ]
+        self.events.write_text("".join(json.dumps(x) + "\n" for x in codex_translated))
         self.assertIsNotNone(clear.trigger(self.events, self.state, {"stage": "implement", "inside": False}, self.stage_of))
         self.assertIsNone(clear.trigger(self.events, self.state, {"stage": "implement", "inside": True}, self.stage_of))
 

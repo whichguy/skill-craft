@@ -65,7 +65,7 @@ class HostCommandTests(unittest.TestCase):
 
     def test_each_marker_alone_names_its_host(self) -> None:
         for host, names in self.data["detect"]["markers"].items():
-            if host in ("grok", "opencode"):
+            if host in ("grok", "opencode", "cursor"):
                 continue
             for name in names:
                 with self.subTest(host=host, marker=name):
@@ -77,11 +77,8 @@ class HostCommandTests(unittest.TestCase):
     def test_innermost_host_wins_and_the_others_are_reported(self) -> None:
         cases = [
             ({"CLAUDECODE": "1", "CODEX_THREAD_ID": "t"}, "codex", ["CLAUDECODE"]),
-            ({"CURSOR_AGENT": "1", "CLAUDECODE": "1"}, "claude", ["CURSOR_AGENT"]),
-            ({"CURSOR_AGENT": "1", "CODEX_THREAD_ID": "t"}, "codex", ["CURSOR_AGENT"]),
             ({"ANTIGRAVITY_AGENT": "1", "CODEX_THREAD_ID": "t"}, "codex", ["ANTIGRAVITY_AGENT"]),
             ({"ANTIGRAVITY_AGENT": "1", "CLAUDECODE": "1"}, "claude", ["ANTIGRAVITY_AGENT"]),
-            ({"ANTIGRAVITY_AGENT": "1", "CURSOR_AGENT": "1"}, "cursor", ["ANTIGRAVITY_AGENT"]),
         ]
         for environ, host, others in cases:
             with self.subTest(environ=environ):
@@ -90,12 +87,10 @@ class HostCommandTests(unittest.TestCase):
 
     def test_prefixes_and_empty_values_are_not_markers(self) -> None:
         # Codex plugin variables are set in Claude Code sessions (journal E10): a CODEX_ prefix match would misdetect Claude as Codex.
-        leak = {"CODEX_COMPANION_SESSION_ID": "x", "CODEX_COMPANION_TRANSCRIPT_PATH": "/tmp/t", "CURSOR_TRACE_ID": "y"}
+        leak = {"CODEX_COMPANION_SESSION_ID": "x", "CODEX_COMPANION_TRANSCRIPT_PATH": "/tmp/t"}
         self.assertEqual(self.report(**leak)["host"], "unknown")
         self.assertEqual(self.report(CLAUDECODE="1", **leak)["host"], "claude")
-        self.assertEqual(self.report(CURSOR_AGENT="1", **leak)["host"], "cursor")
         self.assertEqual(self.report(CODEX_THREAD_ID="")["host"], "unknown")
-        self.assertEqual(self.report(CURSOR_AGENT="", CURSOR_CONVERSATION_ID="")["host"], "unknown")
         self.assertEqual(self.report(ANTIGRAVITY_AGENT="", ANTIGRAVITY_CONVERSATION_ID="")["host"], "unknown")
         self.assertEqual(self.report(ANTIGRAVITY_AGENT="1")["host"], "antigravity")
 
@@ -123,12 +118,10 @@ class HostCommandTests(unittest.TestCase):
     def test_shiploop_host_bindings_helpers_and_hints(self) -> None:
         self.assertTrue(self.sl_bindings.supports_fork("claude"))
         self.assertTrue(self.sl_bindings.supports_fork("codex"))
-        self.assertTrue(self.sl_bindings.supports_fork("cursor"))
         self.assertFalse(self.sl_bindings.supports_fork("antigravity"))
         self.assertFalse(self.sl_bindings.supports_fork("unknown"))
         self.assertEqual(self.sl_bindings.worker_capacity("codex"), 3)
         self.assertEqual(self.sl_bindings.worker_capacity("claude"), 4)
-        self.assertEqual(self.sl_bindings.worker_capacity("cursor"), 4)
         self.assertEqual(self.sl_bindings.worker_capacity("antigravity"), 4)
 
         codex_hint = self.sl_bindings.host_hint({"CODEX_THREAD_ID": "t1"}, worktree="/tmp/wt")
@@ -136,11 +129,6 @@ class HostCommandTests(unittest.TestCase):
         self.assertIn('fork_turns="none"', codex_hint)
         self.assertIn("120000", codex_hint)
         self.assertIn("live native tool schema wins", codex_hint)
-
-        cursor_hint = self.sl_bindings.host_hint({"CURSOR_AGENT": "1"}, worktree="/tmp/wt")
-        self.assertIn("Host hint (cursor, pilot-ide):", cursor_hint)
-        self.assertIn('subagent_type="generalPurpose"', cursor_hint)
-        self.assertIn('resume="self"', cursor_hint)
 
         override_hint = self.sl_bindings.host_hint({"CODEX_THREAD_ID": "t1"}, host_override="claude", worktree="/tmp/wt")
         self.assertIn("Host hint (claude):", override_hint)

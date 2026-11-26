@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermetic install.sh coverage for skill-craft: Claude/Codex/Cursor targets, flags, skip-if-exists, dry-run, --relink.
+# Hermetic install.sh coverage for skill-craft: Claude/Codex targets, flags, skip-if-exists, dry-run, --relink.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -30,14 +30,12 @@ assert_all_hosts() {
   local source="$2"
   assert_symlink "$HOME/.claude/skills/$leaf" "$source"
   assert_symlink "$HOME/.codex/skills/$leaf" "$source"
-  assert_symlink "$HOME/.cursor/skills/$leaf" "$source"
 }
 
 assert_no_hosts() {
   local leaf="$1"
   assert_absent "$HOME/.claude/skills/$leaf"
   assert_absent "$HOME/.codex/skills/$leaf"
-  assert_absent "$HOME/.cursor/skills/$leaf"
 }
 
 fresh_home() {
@@ -54,16 +52,14 @@ trap cleanup EXIT
 [[ -f "$source_interop/SKILL.md" ]] || fail "missing skills/skill-interop/SKILL.md"
 
 # ---------------------------------------------------------------------------
-# I1: Fresh HOME, --claude-only → only Claude Code is linked; Codex and Cursor stay absent.
+# I1: Fresh HOME, --claude-only → only Claude Code is linked; Codex stays absent.
 # ---------------------------------------------------------------------------
 fresh_home i1
 out="$("$install_sh" --claude-only 2>&1)" || fail "I1 install.sh failed on fresh home: $out"
 assert_symlink "$HOME/.claude/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
-assert_absent "$HOME/.cursor/skills/skill-interop"
 grep -q 'Claude Code' <<<"$out" || fail "I1 stdout missing Claude Code install line"
 grep -q 'Codex' <<<"$out" && fail "I1 --claude-only must not touch Codex: $out"
-grep -q 'Cursor' <<<"$out" && fail "I1 --claude-only must not touch Cursor: $out"
 # Plan Dispatcher is an ordinary skills/ leaf; same scope.
 assert_symlink "$HOME/.claude/skills/plan-dispatcher" "$root/skills/plan-dispatcher"
 assert_absent "$HOME/.codex/skills/plan-dispatcher"
@@ -76,14 +72,13 @@ grep -q 'Already installed' <<<"$out2" || fail "I2 re-run should report already 
 assert_symlink "$HOME/.claude/skills/skill-interop" "$source_interop"
 
 # ---------------------------------------------------------------------------
-# I1b: --all → Claude, Codex, and Cursor × all skills.
+# I1b: --all → Claude and Codex × all skills.
 # ---------------------------------------------------------------------------
 fresh_home i1all
 outall="$("$install_sh" --all 2>&1)" || fail "I1b install.sh --all failed: $outall"
 assert_all_hosts "skill-interop" "$source_interop"
 grep -q 'Claude Code' <<<"$outall" || fail "I1b stdout missing Claude install line"
 grep -q 'Codex' <<<"$outall" || fail "I1b stdout missing Codex install line"
-grep -q 'Cursor' <<<"$outall" || fail "I1b stdout missing Cursor install line"
 assert_all_hosts "plan-dispatcher" "$root/skills/plan-dispatcher"
 
 # ---------------------------------------------------------------------------
@@ -119,7 +114,6 @@ fresh_home i6
 out6="$("$install_sh" --claude-only --skill skill-interop 2>&1)" || fail "I6 failed: $out6"
 assert_symlink "$HOME/.claude/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.codex/skills/skill-interop"
-assert_absent "$HOME/.cursor/skills/skill-interop"
 
 # ---------------------------------------------------------------------------
 # I8: --codex-only
@@ -128,7 +122,6 @@ fresh_home i8
 out8="$("$install_sh" --codex-only --skill skill-interop 2>&1)" || fail "I8 failed: $out8"
 assert_symlink "$HOME/.codex/skills/skill-interop" "$source_interop"
 assert_absent "$HOME/.claude/skills/skill-interop"
-assert_absent "$HOME/.cursor/skills/skill-interop"
 
 # ---------------------------------------------------------------------------
 # I10: --dry-run creates no files
@@ -139,7 +132,6 @@ grep -q 'Would install' <<<"$out10" || fail "I10 dry-run should print Would inst
 assert_no_hosts "skill-interop"
 [[ ! -d "$HOME/.claude" ]] || fail "I10 dry-run must not create ~/.claude"
 [[ ! -d "$HOME/.codex" ]] || fail "I10 dry-run must not create ~/.codex"
-[[ ! -d "$HOME/.cursor" ]] || fail "I10 dry-run must not create ~/.cursor"
 
 # ---------------------------------------------------------------------------
 # I11: dangling symlink without --relink → skipped
@@ -199,16 +191,7 @@ assert_symlink "$HOME/.claude/agents/skill-interop.md" "$agent_src"
 assert_absent "$HOME/.codex/agents/skill-interop.md"
 
 # ---------------------------------------------------------------------------
-# I15: --cursor-only
-# ---------------------------------------------------------------------------
-fresh_home i15
-out15="$("$install_sh" --cursor-only --skill skill-interop 2>&1)" || fail "I15 failed: $out15"
-assert_symlink "$HOME/.cursor/skills/skill-interop" "$source_interop"
-assert_absent "$HOME/.claude/skills/skill-interop"
-assert_absent "$HOME/.codex/skills/skill-interop"
-
-# ---------------------------------------------------------------------------
-# I19: --all explicitly selects Claude/Codex/Cursor
+# I19: --all explicitly selects Claude/Codex
 # ---------------------------------------------------------------------------
 fresh_home i19
 out19="$("$install_sh" --all --skill skill-interop 2>&1)" || fail "I19 failed: $out19"
@@ -270,13 +253,13 @@ expect_from_refused "I21 cached view copy relink" --claude-only --relink \
 expect_from_refused "I21 cached leaf view copy" --claude-only \
   --from "$cache_root/1.0.0/skills/skill-interop"
 # One host's manifest is enough (a Codex cache need not keep the others).
-rm -rf "$cache_root/1.0.0/.claude-plugin" "$cache_root/1.0.0/.cursor-plugin"
+rm -rf "$cache_root/1.0.0/.claude-plugin"
 expect_from_refused "I21 Codex-only cached copy" --claude-only --relink \
   --from "$cache_root/1.0.0/skills/plan-dispatcher"
 # The repository may be spelled as a .git URL or an npm-style object.
 spelled="$tmpdir/spelled-copy"
-mkdir -p "$spelled/.cursor-plugin" "$spelled/skills/spelled-leaf"
-printf '{"repository":{"type":"git","url":"%s.git/"}}\n' "$repo_const" >"$spelled/.cursor-plugin/plugin.json"
+mkdir -p "$spelled/.codex-plugin" "$spelled/skills/spelled-leaf"
+printf '{"repository":{"type":"git","url":"%s.git/"}}\n' "$repo_const" >"$spelled/.codex-plugin/plugin.json"
 printf -- '---\nname: spelled-leaf\n---\n' >"$spelled/skills/spelled-leaf/SKILL.md"
 expect_from_refused "I21 repository spelling" --claude-only --from "$spelled/skills/spelled-leaf"
 assert_absent "$HOME/.claude/skills/spelled-leaf"
@@ -343,4 +326,4 @@ set -e
 [[ "$rc_agents" -eq 64 ]] || fail "--status --agents want exit 64 got $rc_agents: $out_agents"
 grep -q -- '--agents is only valid for install' <<<"$out_agents" || fail "--agents message: $out_agents"
 
-printf 'install-targets.test.sh: PASS I1, I1b, I2–I8, I10–I15, I18, I19, I21 (skill-craft install, 5 hosts, default-hosts scope, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'
+printf 'install-targets.test.sh: PASS I1, I1b, I2–I8, I10–I14, I19, I21 (skill-craft install, Claude/Codex, default-hosts scope, identity dest, flags, dry-run, skip-if-exists, --relink, --agents, marketplace-only sources)\n'

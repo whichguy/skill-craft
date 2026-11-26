@@ -256,49 +256,6 @@ class ForkCompletenessTests(unittest.TestCase):
             self.assertEqual(res["child_completes"], 0)
             self.assertIn("nested_spawns 1, child_completes 0", fork_completeness.summary_line(res))
 
-    def test_grok_stream_collects_spawns_waits_interrupts_and_reports_na_for_child_internals(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp)
-            run_dir = out / "run"
-            _write_jsonl(run_dir / "trace.jsonl", [
-                {"ts": 1000.0, "kind": "packet", "stage": "improve", "reviewed": "plan"},
-                {"ts": 1030.0, "kind": "command", "verb": "complete"},
-            ])
-            _write_jsonl(out / "events.jsonl", [
-                {"ts": 1001.0, "type": "tool_call", "toolCallId": "g1", "toolName": "spawn_subagent",
-                 "rawInput": {"task_name": "plan_review", "background": True}},
-                {"ts": 1001.1, "type": "tool_call_update", "toolCallId": "g1", "status": "completed",
-                 "rawOutput": {"task_id": "sub-1"}},
-                {"ts": 1002.0, "type": "tool_call", "toolCallId": "w1", "toolName": "get_command_or_subagent_output",
-                 "rawInput": {"task_id": "sub-1"}},
-                {"ts": 1010.0, "type": "tool_call_update", "toolCallId": "w1", "status": "completed",
-                 "rawOutput": {"timed_out": True}},
-                {"ts": 1011.0, "type": "tool_call", "toolCallId": "w2", "toolName": "get_command_or_subagent_output",
-                 "rawInput": {"task_id": "sub-1"}},
-                {"ts": 1020.0, "type": "tool_call_update", "toolCallId": "w2", "status": "completed",
-                 "rawOutput": {"timed_out": False, "status": "completed"}},
-                {"ts": 1025.0, "type": "tool_call", "toolCallId": "rc1", "toolName": "run_terminal_command",
-                 "rawInput": {"command": "shiploop complete --action A2"}},
-                {"ts": 1035.0, "type": "tool_call", "toolCallId": "g2", "toolName": "spawn_subagent",
-                 "rawInput": {"task_name": "killed_worker", "background": False}},
-                {"ts": 1036.0, "type": "tool_call", "toolCallId": "k2", "toolName": "kill_command_or_subagent",
-                 "rawInput": {"task_id": "killed_worker"}},
-                {"ts": 1040.0, "type": "tool_call", "toolCallId": "g3", "toolName": "spawn_subagent",
-                 "rawInput": {"task_name": "abandoned_worker", "background": False}},
-            ])
-            res = fork_completeness.collect(out, run_dir)
-            self.assertEqual(res["spawns"], 3)
-            self.assertEqual(res["completed"], 1)
-            self.assertEqual(res["order_ok"], 1)
-            self.assertEqual(res["interrupted"], 1)
-            self.assertEqual(res["abandoned"], 1)
-            self.assertIsNone(res["nested_spawns"])
-            self.assertIsNone(res["child_completes"])
-            self.assertEqual(res["waits"], 2)
-            self.assertEqual(res["wait_timeouts"], 1)
-            line = fork_completeness.summary_line(res)
-            self.assertIn("nested_spawns n/a, child_completes n/a", line)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -83,41 +83,37 @@ class CliVersionTest(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         self.tmp = Path(tmp.name)
 
-    def test_grok_and_codex_answer_with_the_first_stdout_line_of_version(self):
-        grok = script(self.tmp / "grok", "#!/bin/sh\necho 'grok 1.0.50 (c58f321264ba)'\necho 'a second line'\n")
+    def test_codex_answers_with_the_first_stdout_line_of_version(self):
         # codex warns on stderr when CODEX_HOME does not exist; only stdout is the build
         codex = script(self.tmp / "codex", "#!/bin/sh\necho 'WARNING: CODEX_HOME does not exist' >&2\necho 'codex-cli 0.162.0'\n")
-        self.assertEqual(hosts.GrokHost(str(grok)).cli_version({}), ("grok 1.0.50 (c58f321264ba)", None))
         self.assertEqual(hosts.CodexHost(str(codex)).cli_version({}), ("codex-cli 0.162.0", None))
 
     def test_a_probe_that_fails_says_which_way(self):
-        failing = script(self.tmp / "fails", "#!/bin/sh\necho 'grok 9'\nexit 1\n")
+        failing = script(self.tmp / "fails", "#!/bin/sh\necho 'codex 9'\nexit 1\n")
         silent = script(self.tmp / "silent", "#!/bin/sh\nexit 0\n")
         for binary, why in ((failing, "probe failed: non-zero exit 1"), (silent, "probe failed: silent"),
                             (self.tmp / "missing", "probe failed: not found")):
             with self.subTest(binary=binary.name):
-                self.assertEqual(hosts.GrokHost(str(binary)).cli_version({}), (None, why))
                 self.assertEqual(hosts.CodexHost(str(binary)).cli_version({}), (None, why))
 
     def test_a_probe_that_hangs_is_ended_by_the_timeout_and_is_none(self):
         # It would print a version if it were left to finish: only the timeout makes it unknown.
-        hangs = script(self.tmp / "hangs", f"#!{sys.executable}\nimport time\ntime.sleep(30)\nprint('grok late')\n")
+        hangs = script(self.tmp / "hangs", f"#!{sys.executable}\nimport time\ntime.sleep(30)\nprint('codex late')\n")
         started = time.time()
         with mock.patch.object(hosts, "VERSION_TIMEOUT_SECONDS", 1):
-            build, why = hosts.GrokHost(str(hangs)).cli_version({})
+            build, why = hosts.CodexHost(str(hangs)).cli_version({})
         self.assertEqual(build, None)
         self.assertTrue(why.startswith("probe failed: hung"), why)
         self.assertLess(time.time() - started, 10)
 
     def test_the_probe_runs_in_the_launchs_own_environment_with_stdin_closed_and_a_ceiling(self):
-        # `grok --version` creates ~/.grok under whatever HOME it runs in: the probe must run in the run's isolated one.
-        echo = script(self.tmp / "grok", '#!/bin/sh\necho "grok home=$HOME codex=$CODEX_HOME"\n')
+        echo = script(self.tmp / "codex", '#!/bin/sh\necho "codex home=$HOME codex=$CODEX_HOME"\n')
         env = {"HOME": "/isolated/home", "CODEX_HOME": "/isolated/home/.codex"}
-        self.assertEqual(hosts.GrokHost(str(echo)).cli_version(env)[0], "grok home=/isolated/home codex=/isolated/home/.codex")
-        done = mock.Mock(returncode=0, stdout="grok 1\n", stderr="")
+        self.assertEqual(hosts.CodexHost(str(echo)).cli_version(env)[0], "codex home=/isolated/home codex=/isolated/home/.codex")
+        done = mock.Mock(returncode=0, stdout="codex 1\n", stderr="")
         with mock.patch.object(hosts.subprocess, "run", return_value=done) as called:
-            hosts.GrokHost("grok").cli_version(env)
-        self.assertEqual(called.call_args.args[0], ["grok", "--version"])
+            hosts.CodexHost("codex").cli_version(env)
+        self.assertEqual(called.call_args.args[0], ["codex", "--version"])
         self.assertEqual(called.call_args.kwargs["env"], env)
         self.assertEqual(called.call_args.kwargs["stdin"], subprocess.DEVNULL)
         self.assertEqual(called.call_args.kwargs["timeout"], hosts.VERSION_TIMEOUT_SECONDS)
@@ -283,18 +279,6 @@ class PromptDigestTest(unittest.TestCase):
         self.assertEqual(got, self.sha("Use <output> and not /a/run10/x or /a/run1.bak, then <output>."))
         # the same characters inside a longer path are not the folder
         self.assertEqual(run.masked_prompt_digest("see /other/a/run1/x", out), self.sha("see /other/a/run1/x"))
-
-    def test_the_five_recorded_grok_prompts_are_five_raw_hashes_and_one_masked_hash(self):
-        # prompt.txt of the Grok `none` runs of 2026-10-06, 10-07 and 10-08 (r1, r2, r3): each embeds its own folder.
-        raw, masked = set(), set()
-        for folder in sorted((FIXTURES / "prompts").iterdir()):
-            text = (folder / "prompt.txt").read_text()
-            recorded = json.loads((folder / "output.json").read_text())["output"]
-            self.assertIn(recorded, text)
-            raw.add(hashlib.sha256(text.strip().encode()).hexdigest()[:8])
-            masked.add(run.masked_prompt_digest(text, Path(recorded)))
-        self.assertEqual((len(raw), len(masked)), (5, 1))
-        self.assertTrue(masked.pop().startswith("5ea67bf3"))
 
 
 class SpanAndPlanningTest(unittest.TestCase):
@@ -472,15 +456,13 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, json.loads((out / "result.json").read_text()), printed.getvalue()
 
-    def test_grok_and_codex_builds_come_from_version_at_launch_and_sit_on_the_launch_record_and_the_row(self):
-        for host, line in (("grok", "grok 1.0.50 (c58f321264ba)"), ("codex", "codex-cli 0.162.0")):
-            with self.subTest(host=host):
-                code, result, _ = self.run_as(host, binary=self.versioned(host, line))
-                self.assertEqual(code, 0, result)
-                out = Path(result["output"])
-                self.assertEqual(result["host_build"], line)
-                self.assertEqual(json.loads((out / "invocation.json").read_text())["host_build"], line)
-                self.assertEqual(self.last_row()["host_build"], line)
+    def test_codex_build_comes_from_version_at_launch_and_sits_on_the_launch_record_and_the_row(self):
+        code, result, _ = self.run_as("codex", binary=self.versioned("codex", "codex-cli 0.162.0"))
+        self.assertEqual(code, 0, result)
+        out = Path(result["output"])
+        self.assertEqual(result["host_build"], "codex-cli 0.162.0")
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["host_build"], "codex-cli 0.162.0")
+        self.assertEqual(self.last_row()["host_build"], "codex-cli 0.162.0")
 
     def test_claude_build_is_its_init_event_and_its_launch_record_probes_nothing(self):
         wrapper = self.versioned("claude", "2.1.295 (Claude Code)")
@@ -495,28 +477,25 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         self.assertFalse(Path(f"{wrapper}.probes").exists(), "Claude was probed")
 
     def test_a_build_that_cannot_be_read_is_null_with_its_reason_and_the_run_still_finishes(self):
-        for host in ("grok", "codex"):
-            with self.subTest(host=host):
-                code, result, _ = self.run_as(host)  # the shared fakes exit non-zero on --version
-                self.assertEqual(code, 0, result)
-                self.assertIn("host_build", result)
-                self.assertIsNone(result["host_build"])
-                self.assertIsNone(self.last_row()["host_build"])
-                reason = result["identity_unmeasured"]["host_build"]
-                self.assertTrue(reason.startswith("probe failed: non-zero exit"), reason)
-                self.assertEqual(self.last_row()["identity_unmeasured"]["host_build"], reason)
-                launch = json.loads((Path(result["output"]) / "invocation.json").read_text())
-                self.assertEqual((launch["host_build"], launch["identity_unmeasured"]["host_build"]), (None, reason))
+        code, result, _ = self.run_as("codex")  # the shared fake exits non-zero on --version
+        self.assertEqual(code, 0, result)
+        self.assertIn("host_build", result)
+        self.assertIsNone(result["host_build"])
+        self.assertIsNone(self.last_row()["host_build"])
+        reason = result["identity_unmeasured"]["host_build"]
+        self.assertTrue(reason.startswith("probe failed: non-zero exit"), reason)
+        self.assertEqual(self.last_row()["identity_unmeasured"]["host_build"], reason)
+        launch = json.loads((Path(result["output"]) / "invocation.json").read_text())
+        self.assertEqual((launch["host_build"], launch["identity_unmeasured"]["host_build"]), (None, reason))
 
     def test_the_probe_runs_in_the_isolated_home_of_the_launch_not_the_users(self):
-        # `grok --version` creates ~/.grok: a probe under the user's real HOME would write into their profile
-        wrapper = self.versioned("grok", "grok home=$HOME")
-        code, result, _ = self.run_as("grok", binary=wrapper)
-        self.assertEqual(result["host_build"], f"grok home={Path(result['output']) / 'home'}")
+        wrapper = self.versioned("codex", "codex home=$HOME")
+        code, result, _ = self.run_as("codex", binary=wrapper)
+        self.assertEqual(result["host_build"], f"codex home={Path(result['output']) / 'home'}")
 
     def test_the_version_is_probed_once_per_launch_not_once_per_session_or_at_the_end(self):
-        wrapper = self.versioned("grok", "grok 1.0.50 (c58f321264ba)")
-        code, result, _ = self.run_as("grok", "resume", "--max-resumes", "2", binary=wrapper)
+        wrapper = self.versioned("codex", "codex-cli 0.162.0")
+        code, result, _ = self.run_as("codex", "resume", "--max-resumes", "2", binary=wrapper)
         self.assertEqual(code, 0, result)
         self.assertGreater(len(result["process"]["sessions"]), 1)
         self.assertEqual(len(Path(f"{wrapper}.probes").read_text().split()), 1)
@@ -533,71 +512,72 @@ class IdentityThroughMainTest(main_tests().PrintedCase):
         return json.loads((out / "result.json").read_text())
 
     def test_a_resume_launch_records_its_own_build_and_the_result_keeps_the_first_launchs(self):
-        code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0", binary=self.versioned("grok", "grok 1.0.50 (aaa)"))
+        code, stopped, _ = self.run_as("codex", "stuck", "--max-resumes", "0", binary=self.versioned("codex", "codex-cli 0.161.0"))
         out = Path(stopped["output"])
-        result = self.resume_on("grok", out, "grok 1.0.51 (bbb)")
-        records = sorted(out.glob("invocation-resume-grok-*.json"))
+        result = self.resume_on("codex", out, "codex-cli 0.162.0")
+        records = sorted(out.glob("invocation-resume-codex-*.json"))
         self.assertEqual(len(records), 1)
-        self.assertEqual(json.loads(records[0].read_text())["host_build"], "grok 1.0.51 (bbb)")
-        self.assertEqual(json.loads((out / "invocation.json").read_text())["host_build"], "grok 1.0.50 (aaa)")
-        self.assertEqual(result["host_build"], "grok 1.0.50 (aaa)")  # one meaning: the first launch's
+        self.assertEqual(json.loads(records[0].read_text())["host_build"], "codex-cli 0.162.0")
+        self.assertEqual(json.loads((out / "invocation.json").read_text())["host_build"], "codex-cli 0.161.0")
+        self.assertEqual(result["host_build"], "codex-cli 0.161.0")  # one meaning: the first launch's
 
     def test_a_run_resumed_whose_first_launch_predates_the_field_does_not_get_todays_build(self):
-        code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0")
+        code, stopped, _ = self.run_as("codex", "stuck", "--max-resumes", "0")
         out = Path(stopped["output"])
         first = json.loads((out / "invocation.json").read_text())
         first.pop("host_build", None)
         first.pop("identity_unmeasured", None)
         (out / "invocation.json").write_text(json.dumps(first))  # a launch made before the probe existed
-        result = self.resume_on("grok", out, "grok 1.0.51 (bbb)")
+        result = self.resume_on("codex", out, "codex-cli 0.162.0")
         self.assertIsNone(result["host_build"])
         self.assertEqual(result["identity_unmeasured"]["host_build"], "first launch predates the field")
-        record = json.loads(next(out.glob("invocation-resume-grok-*.json")).read_text())
-        self.assertEqual(record["host_build"], "grok 1.0.51 (bbb)")  # the resume launch itself was probed
+        record = json.loads(next(out.glob("invocation-resume-codex-*.json")).read_text())
+        self.assertEqual(record["host_build"], "codex-cli 0.162.0")  # the resume launch itself was probed
 
     def test_the_environment_record_reads_each_launchs_build_and_reason_as_its_launch_record_wrote_them(self):
         # Batch 1011 integration: one host_build contract. G3 writes host_build and identity_unmeasured.host_build on each launch
         # record; G4's environment.environments[] reads each launch through runrecord.host_build and carries the same two keys,
         # with G3's reasons (it derived reasons of its own before).
         import runrecord
-        code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0", binary=self.versioned("grok", "grok 1.0.50 (aaa)"))
+        code, stopped, _ = self.run_as("codex", "stuck", "--max-resumes", "0", binary=self.versioned("codex", "codex-cli 0.161.0"))
         out = Path(stopped["output"])
-        result = self.resume_on("grok", out, "")  # the resume's probe prints nothing
+        result = self.resume_on("codex", out, "")  # the resume's probe prints nothing
         records = [record for _name, record in runrecord.launches(out)]
         entries = result["environment"]["environments"]
         self.assertEqual([(e["host_build"], e["identity_unmeasured"]) for e in entries],
-                         [("grok 1.0.50 (aaa)", {}), (None, {"host_build": "probe failed: silent"})])
+                         [("codex-cli 0.161.0", {}), (None, {"host_build": "probe failed: silent"})])
         self.assertEqual([(r["host_build"], r["identity_unmeasured"].get("host_build")) for r in records],
-                         [("grok 1.0.50 (aaa)", None), (None, "probe failed: silent")])
+                         [("codex-cli 0.161.0", None), (None, "probe failed: silent")])
         self.assertFalse(any("host_build_reason" in e for e in entries), "one set of key names")
         code, claude, _ = self.run_as("claude")
         entry = claude["environment"]["environments"][0]
         self.assertEqual((entry["host_build"], entry["identity_unmeasured"]),
                          (None, {"host_build": "Claude: read from the init event after the run"}))
-        self.assertEqual(runrecord.host_build({"host": "grok"}), (None, "launch predates the field"))
+        self.assertEqual(runrecord.host_build({"host": "codex"}), (None, "launch predates the field"))
         self.assertEqual(runrecord.host_build({"host": "claude"}), (None, "Claude: read from the init event after the run"))
-        self.assertEqual(runrecord.host_build({"host": "grok", "host_build": None}), (None, "no reason recorded"))
+        self.assertEqual(runrecord.host_build({"host": "codex", "host_build": None}), (None, "no reason recorded"))
 
     def test_a_run_resumed_on_another_host_names_no_single_build(self):
-        code, stopped, _ = self.run_as("grok", "stuck", "--max-resumes", "0", binary=self.versioned("grok", "grok 1.0.50 (aaa)"))
+        code, stopped, _ = self.run_as("claude", "active", "--max-resumes", "0")
         out = Path(stopped["output"])
         # A finish on another host is refused unless it is said to be deliberate (group G4's resume rule).
         result = self.resume_on("codex", out, "codex-cli 0.162.0", "--allow-host-change")
         self.assertIsNone(result["host_build"])
         self.assertEqual(result["identity_unmeasured"]["host_build"], "resumed on another host: see the launch records")
-        self.assertEqual(json.loads(next(out.glob("invocation-resume-codex-*.json")).read_text())["host_build"], "codex-cli 0.162.0")
+        self.assertEqual(json.loads(next(out.glob("invocation-resume-codex-*.json")).read_text())["host_build"],
+                         "codex-cli 0.162.0")
 
     def test_a_regrade_restates_the_recorded_build_and_never_asks_the_cli(self):
-        code, first, _ = self.run_as("grok", binary=self.versioned("grok", "grok 1.0.50 (c58f321264ba)"))
+        code, first, _ = self.run_as("codex", binary=self.versioned("codex", "codex-cli 0.162.0"))
         out = Path(first["output"])
 
         def regrade() -> dict:
             with contextlib.redirect_stdout(io.StringIO()), \
-                    mock.patch.object(hosts.GrokHost, "cli_version", side_effect=AssertionError("a regrade probed the CLI")):
+                    mock.patch.object(hosts.CodexHost, "cli_version", side_effect=AssertionError("a regrade probed the CLI")):
                 run.main(["--resume-run", str(out), "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines)])
             return json.loads((out / "result.json").read_text())
 
-        self.assertEqual(regrade()["host_build"], "grok 1.0.50 (c58f321264ba)")
+        self.assertEqual(regrade()["host_build"], "codex-cli 0.162.0")
         # a run recorded before the field existed: today's build is never stamped on it
         for name in ("result.json", "invocation.json"):
             record = json.loads((out / name).read_text())
@@ -756,7 +736,7 @@ class MatchingRowsTest(unittest.TestCase):
         self.assertEqual(self.match(old, same, case="custom", prompt=None)[0], [])
 
     def test_the_other_rules_are_unchanged_the_driver_the_mode_and_the_source(self):
-        rows, seen, skipped = self.match(row(turns=1), row(turns=2, host="grok"), row(turns=3, planning_review="none"),
+        rows, seen, skipped = self.match(row(turns=1), row(turns=2, host="codex"), row(turns=3, planning_review="none"),
                                          row(turns=4, source="marketplace"), row(turns=5, case="checkers"))
         self.assertEqual(([r["turns"] for r in rows], seen), ([1], 3))
         self.assertEqual(dict(skipped), {"another host, model or effort": 1, "another planning_review mode": 1})
@@ -776,14 +756,13 @@ class ComparisonThroughMainTest(main_tests().PrintedCase):
 
     def finish_blocked(self) -> Path:
         """The shared fake of the host, then a ShipLoop state that blocked itself: the host exits 0, the engine is blocked."""
-        wrapper = self.tmp / "grok-blocks"
+        wrapper = self.tmp / "codex-blocks"
         script(wrapper, f"""#!/bin/sh
-"{self.fakes['grok']}" "$@"
+"{self.fakes['codex']}" "$@"
 rc=$?
-# Only the session itself carries --cwd. The harness also calls this binary before it (plugin install, plugin list, --version) from the
-# checkout the suite runs from, and a relative write there left .shiploop/state.md in the repository root, which CI's guard refused.
+# Only exec carries -C <cwd> (the harness also calls plugin marketplace/add/list and --version before it).
 work=""; prev=""
-for arg in "$@"; do if [ "$prev" = "--cwd" ]; then work="$arg"; fi; prev="$arg"; done
+for arg in "$@"; do if [ "$prev" = "-C" ]; then work="$arg"; fi; prev="$arg"; done
 [ -n "$work" ] || exit $rc
 cd "$work" || exit 1
 {sys.executable} - <<'PY'
@@ -799,7 +778,7 @@ exit $rc
 """)
         return wrapper
 
-    def once(self, mode="done", *extra, binary: Path | None = None, host="grok") -> tuple[int, dict, str]:
+    def once(self, mode="done", *extra, binary: Path | None = None, host="codex") -> tuple[int, dict, str]:
         os.environ["FAKE_MODE"] = mode
         out = self.tmp / f"out-{len(list(self.tmp.glob('out-*')))}"
         printed = io.StringIO()
@@ -834,7 +813,7 @@ exit $rc
         self.once(binary=self.finish_blocked())
         self.edit_rows(r0={"turns": 301}, r1={"turns": 503})
         code, result, printed = self.once()
-        self.assertIn("turns 301 -> ", printed)  # a Grok row whose launches all reported (build step 8): not marked
+        self.assertIn("turns 301 -> ", printed)
         self.assertNotIn("503", printed.split("  baseline")[1].split("\n")[0])
 
     def test_with_only_a_blocked_row_before_it_nothing_is_compared_and_the_report_says_why(self):
@@ -885,21 +864,13 @@ exit $rc
     def line(self, printed: str, prefix: str) -> str:
         return next(ln for ln in printed.splitlines() if ln.startswith(prefix))
 
-    def test_a_grok_comparison_of_runs_whose_launches_all_reported_marks_nothing(self):
-        # Build step 8: sessions.jsonl reconciles the launches, so a Grok run whose every launch reported has exact totals
-        # (until then the line marked both sides, as it printed r1 Grok's '503 -> 301').
+    def test_a_codex_comparison_of_runs_whose_launches_all_reported_marks_nothing(self):
         self.once()
         _, _, printed = self.once()
         line = self.line(printed, "  baseline  vs")
-        self.assertIn("turns 4 -> 4, cost $0.01 -> $0.01", line)
+        self.assertIn("turns 2 -> 2", line)
+        self.assertNotIn("lower bound", line)
         self.assertEqual(json.loads(self.baselines.read_text().splitlines()[0])["lower_bound"], False)
-
-    def test_an_old_grok_row_without_the_marker_is_still_marked_by_its_host(self):
-        self.once()
-        # a row from before 073fd4dd lists no unreported_sessions, and one from before build step 8 states no lower_bound
-        self.edit_rows(drop=("lower_bound",), r0={"unmeasured": []})
-        _, _, printed = self.once()
-        self.assertIn("turns 4 (lower bound) -> 4,", self.line(printed, "  baseline  vs"))
 
     def test_a_claude_comparison_that_ended_whole_marks_nothing(self):
         self.once("done", host="claude")
@@ -932,130 +903,16 @@ exit $rc
         _, _, printed = self.once()
         line = next(ln for ln in printed.splitlines() if ln.startswith("            sample: "))
         self.assertIn("plugin tree unknown (the earlier row records none)", line)
-        self.assertIn("grok build unknown (this run records none)", line)  # the shared fake's --version fails: this run has none
+        self.assertIn("codex build unknown (this run records none)", line)  # the shared fake's --version fails: this run has none
         for word in ("within", "above", "below", "regression", "faster", "slower"):
             self.assertNotIn(word, line)
 
 
-class GrokSessionStartTest(unittest.TestCase):
-    """A Grok event stream carries no session-start marker, so a session that never reported cannot be counted from it.
-
-    ``available_commands`` is Grok's announcement of its tool and command list and it is repeated inside one session:
-    r1-battleship-grok-none (2026-10-08) holds 314 of them for 2 `end` events (301 model calls), 2 at the head of the first
-    launch and 8 at the head of the resume. Counting each as a start printed "lower bound: 312 session(s) never
-    reported" for a cost that equals the two end events' totals. The count is unknown and the lower-bound marking stays,
-    because a killed Grok session cannot be told from a long one by the stream alone; the harness's own launch rows can.
-    What the stream does prove: model calls after the last `end` (or with no `end`) belong to a session that never
-    reported, so at least one did. A stream is Grok's by its host (a launch record) or its `usage` events, not by a field
-    of one event."""
+class LaunchReconcileTest(unittest.TestCase):
+    """SPEC build step 8 (R15): the harness's sessions.jsonl reconciles reported sessions with launches on every host;
+    tokens are added over the sessions from each host's own usage."""
 
     ACCEPTED = [("A1", "intake", "done", 105.0)]
-
-    def stream(self) -> list[dict]:
-        return [json.loads(line) for line in (FIXTURES / "grok-r1-session-shape.jsonl").read_text().splitlines()]
-
-    def collect(self, stream: list[dict], host: str | None = None) -> dict:
-        if host is None:
-            return main_tests().collect_stream(stream, self.ACCEPTED)
-        with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp)
-            run_dir = main_tests().write_stream_run(out, stream, self.ACCEPTED)
-            (out / "invocation.json").write_text(json.dumps({"case": "custom", "host": host}))
-            return metrics.collect(out, run_dir)
-
-    def test_the_recorded_shape_has_many_announcements_for_two_ended_sessions(self):
-        kinds = [event["type"] for event in self.stream()]
-        self.assertEqual((kinds.count("available_commands"), kinds.count("usage"), kinds.count("end")), (314, 301, 2))
-
-    def test_the_announcements_are_not_counted_as_starts_the_count_is_unknown_with_its_reason(self):
-        m = self.collect(self.stream())
-        self.assertIsNone(m["unreported_sessions"], "314 announcements are not 314 sessions")
-        self.assertIn("available_commands", m["unmeasured"]["unreported_sessions"])
-        self.assertEqual(len(m["sessions"]), 2)
-        self.assertAlmostEqual(m["cost_usd"], 8.7455, places=4)  # the two end events' totals, as the row recorded
-
-    def test_the_lower_bound_marking_stays_and_names_no_invented_count(self):
-        m = self.collect(self.stream())
-        self.assertTrue(metrics.lower_bound(m))
-        self.assertEqual(metrics.cost_text(m), "$8.7455 (lower bound: this host's events do not show whether a session "
-                                               "never reported)")
-        self.assertTrue(metrics.turns_text(m).endswith("(lower bound)"))
-        self.assertNotIn("312", metrics.summary_lines(m)[0])
-        self.assertIn("(lower bound", metrics.summary_lines(m)[0])
-
-    def test_a_grok_stream_that_names_its_session_is_no_more_countable(self):
-        # The old reading told Grok's announcements from Codex's by a `sessionId` field; a Grok build that adds one must
-        # not bring back "312 session(s) never reported".
-        named = [dict(event, sessionId="s1") if event["type"] == "available_commands" else event for event in self.stream()]
-        m = self.collect(named)
-        self.assertIsNone(m["unreported_sessions"])
-        self.assertTrue(metrics.lower_bound(m))
-
-    def test_model_calls_after_the_last_end_prove_a_session_never_reported(self):
-        whole = self.collect(self.stream())
-        self.assertEqual(whole["unreported_sessions_at_least"], 0)
-        events = self.stream()
-        last_end = max(i for i, event in enumerate(events) if event["type"] == "end")
-        cut = events[:last_end]  # the resume's own `end` never came: it was killed
-        m = self.collect(cut)
-        self.assertEqual(m["unreported_sessions_at_least"], 1)
-        self.assertIsNone(m["unreported_sessions"])
-        self.assertIn("at least 1 session(s) never reported", metrics.cost_text(m))
-        self.assertTrue(metrics.turns_text(m).endswith("(lower bound)"))
-        none_ended = [event for event in events if event["type"] != "end"]
-        self.assertEqual(self.collect(none_ended)["unreported_sessions_at_least"], 1)  # r2, r3 and v1210: usage, no `end`
-
-    def test_the_host_of_the_run_decides_when_the_stream_has_no_model_call_yet(self):
-        # a Grok launch killed before its first model call: announcements only, but the launch record names Grok
-        announcements = [{"type": "available_commands", "commands": [], "tools": []}] * 5
-        self.assertIsNone(self.collect(announcements, host="grok")["unreported_sessions"])
-        # with no record and no model call there is no telling hosts apart: a bare announcement opens a session
-        self.assertEqual(self.collect(announcements[:1])["unreported_sessions"], 1)
-
-    def test_a_stream_that_mixes_grok_and_claude_events_is_unknown_too(self):
-        # r2-battleship-grok-none: Grok started it and was killed with its harness; Claude finished it.
-        grok = self.stream()[:40]  # a launch that never ended, with model calls
-        claude = [{"type": "system", "subtype": "init", "claude_code_version": "2.1.294"},
-                  {"type": "result", "subtype": "success", "num_turns": 5, "total_cost_usd": 1.0}]
-        m = self.collect(grok + claude)
-        self.assertIsNone(m["unreported_sessions"])
-        self.assertEqual(m["unreported_sessions_at_least"], 1)
-        self.assertTrue(metrics.lower_bound(m))
-
-    def test_a_host_that_marks_each_session_start_keeps_an_exact_count(self):
-        init = {"type": "system", "subtype": "init", "model": "m"}
-        result = {"type": "result", "subtype": "success", "num_turns": 5, "total_cost_usd": 1.85}
-        codex_open = {"type": "available_commands", "commands": [], "sessionId": "t1"}  # the Codex translator names its session
-        end = {"type": "end", "stopReason": "end_turn", "num_turns": 5, "total_cost_usd": None}
-        self.assertEqual(self.collect([init, init, result])["unreported_sessions"], 1)
-        self.assertEqual(self.collect([codex_open, codex_open, end])["unreported_sessions"], 1)
-        self.assertEqual(self.collect([init, result])["unreported_sessions"], 0)
-        self.assertFalse(metrics.lower_bound(self.collect([init, result])))
-        self.assertIsNone(self.collect([init, result])["unreported_sessions_at_least"])
-
-    def test_the_lower_bound_predicate_reads_a_count_a_reason_or_nothing(self):
-        for found, want in (({"unreported_sessions": 0}, False), ({"unreported_sessions": 3}, True),
-                            ({"unreported_sessions": None, "unmeasured": {"unreported_sessions": "why"}}, True),
-                            ({"unreported_sessions": None}, None), ({}, None)):
-            with self.subTest(found=found):
-                self.assertIs(metrics.lower_bound(found), want)
-
-    def test_the_count_is_still_not_a_baseline_key_and_a_grok_row_names_it_unmeasured(self):
-        m = self.collect(self.stream())
-        result = {"case": "battleship", "host": "grok", "metrics": {"unmeasured": m["unmeasured"], "turns": m["turns"],
-                                                                      "cost_usd": m["cost_usd"],
-                                                                      "unreported_sessions": m["unreported_sessions"]}}
-        row = run.baseline_row(result, None, None)
-        self.assertNotIn("unreported_sessions", row)
-        self.assertIn("unreported_sessions", row["unmeasured"])
-
-
-class LaunchReconcileTest(unittest.TestCase):
-    """SPEC build step 8 (R15): the harness's sessions.jsonl reconciles reported sessions with launches on every host, so
-    a Grok run's totals are exact when every launch reported, and a lower bound only when one did not; tokens are added
-    over the sessions from each host's own usage."""
-
-    ACCEPTED = GrokSessionStartTest.ACCEPTED
 
     def launches(self, out: Path, rows: list[tuple]) -> None:
         """sessions.jsonl with one start row per (start line, end line or None, host[, resumed session])."""
@@ -1070,7 +927,7 @@ class LaunchReconcileTest(unittest.TestCase):
                 lines.append({"row": "end", "n": n, "t": 1100.0 + n, "events_line": end, "status": "exited", "returncode": 0})
         (out / "sessions.jsonl").write_text("".join(json.dumps(line) + "\n" for line in lines))
 
-    def collect(self, stream: list[dict], rows: list[tuple] | None, host: str = "grok") -> dict:
+    def collect(self, stream: list[dict], rows: list[tuple] | None, host: str = "codex") -> dict:
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             run_dir = main_tests().write_stream_run(out, stream, self.ACCEPTED)
@@ -1079,60 +936,31 @@ class LaunchReconcileTest(unittest.TestCase):
                 self.launches(out, rows)
             return metrics.collect(out, run_dir)
 
-    def test_a_grok_run_whose_launches_all_reported_has_exact_totals(self):
-        stream = GrokSessionStartTest().stream()  # 617 lines: the first launch's end is line 589, the resume's line 616
-        m = self.collect(stream, [(0, 590, "grok"), (590, 617, "grok")])
-        self.assertEqual((m["unreported_sessions"], m["unreported_sessions_at_least"]), (0, None))
-        self.assertNotIn("unreported_sessions", m["unmeasured"])
-        self.assertIs(metrics.lower_bound(m), False, "every launch reported: the cost is the run's, not a part of it")
-        self.assertAlmostEqual(m["cost_usd"], 8.7455, places=4)
-        # without the launch record the same stream stays unknown and a lower bound
-        self.assertIs(metrics.lower_bound(self.collect(stream, None)), True)
-
-    def test_a_launch_whose_lines_hold_no_end_never_reported(self):
-        stream = GrokSessionStartTest().stream()
-        killed = stream[:616]  # the resume was killed with its harness: no end event and no end row
-        m = self.collect(killed, [(0, 590, "grok"), (590, None, "grok")])
-        self.assertEqual(m["unreported_sessions"], 1)
-        self.assertIs(metrics.lower_bound(m), True)
-        self.assertIn("1 session(s) never reported", metrics.cost_text(m))
-        # three launches, the middle one with no end event in its lines: that one never reported
-        self.assertEqual(self.collect(stream, [(0, 590, "grok"), (590, 600, "grok"), (600, 617, "grok")])["unreported_sessions"], 1)
-
-    def test_a_record_that_starts_after_earlier_events_keeps_the_streams_count(self):
-        stream = GrokSessionStartTest().stream()
-        m = self.collect(stream, [(590, 617, "grok")])  # a resume of a run from before sessions.jsonl
-        self.assertIsNone(m["unreported_sessions"])
-        self.assertIs(metrics.lower_bound(m), True)
-
     def test_each_hosts_own_usage_gives_its_tokens(self):
-        # The three shapes of saved sessions (2026-10-24/25 gates): Grok's total_tokens is input + cache reads + output;
         # Claude's input leaves out cache reads and writes; Codex's input holds its cache reads.
-        grok = {"input_tokens": 134819, "cache_read_input_tokens": 510976, "cache_creation_input_tokens": 0,
-                "output_tokens": 8746, "reasoning_tokens": 4202, "total_tokens": 654541}
         claude = {"input_tokens": 406, "cache_creation_input_tokens": 487049, "cache_read_input_tokens": 60290834,
                   "output_tokens": 201949, "output_tokens_details": {"thinking_tokens": 37689}}
         codex = {"input_tokens": 9501695, "cache_read_input_tokens": 9266048, "output_tokens": 98510, "reasoning_tokens": 59413}
-        self.assertEqual(metrics.session_tokens(grok, "grok"), (654541, 8746))
         self.assertEqual(metrics.session_tokens(claude, "claude"), (60980238, 201949))
         self.assertEqual(metrics.session_tokens(codex, "codex"), (9600205, 98510))
         self.assertEqual(metrics.session_tokens(codex, None), (None, 98510), "a host not known cannot be normalised")
-        self.assertEqual(metrics.session_tokens(None, "grok"), (None, None))
+        self.assertEqual(metrics.session_tokens(None, "codex"), (None, None))
 
     def test_run_tokens_add_over_sessions_and_are_null_unless_every_session_gives_one(self):
         usage = {"input_tokens": 100, "cache_read_input_tokens": 50, "output_tokens": 10}
-        ended = lambda u, sid=None: {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 0.5,
-                                    "sessionId": sid, "usage": u}
-        both = self.collect([ended(usage), ended(usage)], [(0, 1, "grok"), (1, 2, "grok")])
-        self.assertEqual((both["tokens"]["processed"], both["tokens"]["output"]), (320, 20))
+        claude_usage = {"input_tokens": 50, "cache_read_input_tokens": 50, "cache_creation_input_tokens": 0, "output_tokens": 10}
+        ended = lambda u, sid="codex-thread": {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": None,
+                                                "sessionId": sid, "usage": u}
+        claude_result = lambda u: {"type": "result", "subtype": "success", "num_turns": 1, "total_cost_usd": 0.5, "usage": u}
+        both = self.collect([ended(usage, "t1"), ended(usage, "t2")], [(0, 1, "codex"), (1, 2, "codex")])
+        self.assertEqual((both["tokens"]["processed"], both["tokens"]["output"]), (220, 20))
         self.assertNotIn("tokens_processed", both["unmeasured"])
-        one_bare = self.collect([ended(usage), ended(None)], [(0, 1, "grok"), (1, 2, "grok")])
+        one_bare = self.collect([ended(usage, "t1"), ended(None, "t2")], [(0, 1, "codex"), (1, 2, "codex")])
         self.assertEqual((one_bare["tokens"]["processed"], one_bare["tokens"]["output"]), (None, None))
         self.assertEqual(one_bare["unmeasured"]["tokens_processed"], metrics.SESSION_WITHOUT_USAGE)
-        mixed = self.collect([ended(usage), ended(usage, "codex-thread")], [(0, 1, "grok"), (1, 2, "codex")])
-        self.assertEqual(mixed["tokens"]["processed"], 160 + 110, "each session normalised by its own launch's host")
-        recorded = self.collect(GrokSessionStartTest().stream(), [(0, 590, "grok"), (590, 617, "grok")])
-        self.assertIsNone(recorded["tokens"]["processed"], "r1's end events carry no usage")
+        mixed = self.collect([claude_result(claude_usage), ended(usage, "codex-thread")],
+                             [(0, 1, "claude"), (1, 2, "codex")], host="claude")
+        self.assertEqual(mixed["tokens"]["processed"], 110 + 110, "each session normalised by its own launch's host")
 
     def test_codex_same_thread_uses_resumed_cumulative_total_once_after_an_ended_missing_usage(self):
         thread = "codex-thread"
@@ -1238,25 +1066,20 @@ class LaunchReconcileTest(unittest.TestCase):
         self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (110, 10))
 
 
-class GrokSessionStartThroughMainTest(main_tests().PrintedCase):
-    """What run.main records and prints for a Grok run now that the session count is unknown, not invented."""
+class SessionStartThroughMainTest(main_tests().PrintedCase):
+    """What run.main records and prints for session reconciliation on Codex and Claude."""
 
-    def test_a_grok_run_whose_launches_all_reported_prints_no_marking_and_its_row_says_so(self):
-        # Build step 8: the harness's sessions.jsonl counts the launches, so the Grok stream's missing session start no
-        # longer makes the count unknown (GrokSessionStartTest keeps the reading of a run without that record).
-        code, result, printed = self.invoke_printed("grok", "done")
-        self.assertEqual(code, 0, result)
-        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
-        self.assertNotIn("lower bound", next(line for line in printed.splitlines() if line.startswith("  process")))
-        row = self.last_row()
-        self.assertNotIn("unreported_sessions", row)
-        self.assertNotIn("unreported_sessions", row["unmeasured"])
-        self.assertIs(row["lower_bound"], False)
-
-    def test_a_claude_run_that_ended_whole_prints_no_marking(self):
-        code, result, printed = self.invoke_printed("claude", "done")
-        self.assertEqual(result["metrics"]["unreported_sessions"], 0)
-        self.assertNotIn("lower bound", printed)
+    def test_a_codex_and_claude_run_whose_launches_all_reported_print_no_marking(self):
+        for host in ("codex", "claude"):
+            with self.subTest(host=host):
+                code, result, printed = self.invoke_printed(host, "done")
+                self.assertEqual(code, 0, result)
+                self.assertEqual(result["metrics"]["unreported_sessions"], 0)
+                self.assertNotIn("lower bound", next(line for line in printed.splitlines() if line.startswith("  process")))
+                row = self.last_row()
+                self.assertNotIn("unreported_sessions", row)
+                self.assertNotIn("unreported_sessions", row["unmeasured"])
+                self.assertIs(row["lower_bound"], False)
 
 
 class BaselineReportCase(unittest.TestCase):
@@ -1423,26 +1246,6 @@ class BaselineReportCellTest(BaselineReportCase):
         self.assertEqual((found["cost_usd"], found["planning_seconds"]), (99.0, 1.0))
         self.assertNotIn("planning_seconds", found["recomputed"])
 
-    def test_the_grok_cell_counts_every_attempt_and_marks_what_the_harness_calls_a_lower_bound(self):
-        report = self.report()
-        cell = self.cell(report, case="custom", host="grok")
-        self.assertEqual(cell["attempts"], {"seen": 5, "counted": 1, "passed": 1, "did_not_reach_done": 2, "mixed_host": 1,
-                                            "resumed": 1, "seeded": 0, "ended_by_harness": 0, "process_not_observed": 0,
-                                            "no_driver_recorded": 0, "no_result": 0})
-        self.assertEqual(cell["cell"]["prompt_sha256"][:8], "5ea67bf3")  # five raw prompts, one masked prompt
-        cost = cell["measures"]["cost_usd"]
-        self.assertEqual((cost["n"], cost["min"], cost["lower_bound_rows"], cost["lower_bound_unknown_rows"]), (1, 12.5014, 1, 0))
-        self.assertEqual(cell["measures"]["turns"]["lower_bound_rows"], 1)
-        self.assertNotIn("lower_bound_rows", cell["measures"]["minutes"])
-        self.assertIs(self.by_name(report)["v1220-battleship-grok-medium-none"]["lower_bound"], True)
-        self.assertIs(self.by_name(report)["r3-battleship-sonnet"]["lower_bound"], False)
-        self.assertEqual(cell["outputs"]["mixed host"], ["r2-battleship-grok-none"])
-
-    def test_a_run_with_no_result_is_an_attempt_in_its_own_cell(self):
-        cell = self.cell(self.report(), case="battleship", source="marketplace", host="grok")
-        self.assertEqual((cell["attempts"]["seen"], cell["attempts"]["no_result"], cell["attempts"]["counted"]), (1, 1, 0))
-        self.assertIsNone(cell["measures"]["cost_usd"]["min"])
-
     def test_the_same_plugin_bytes_are_one_build_and_one_version_string_on_two_trees_are_two(self):
         by = self.by_name(self.report())
         self.assertEqual(by["r1-battleship-sonnet"]["plugin_sha256"], by["r1-checkers-sonnet"]["plugin_sha256"])
@@ -1467,14 +1270,13 @@ class BaselineReportCellTest(BaselineReportCase):
 
     def test_host_builds_come_from_the_runs_own_records_and_the_report_never_asks_a_cli(self):
         with mock.patch.object(hosts.Host, "cli_version", side_effect=AssertionError("the report probed a CLI")), \
-                mock.patch.object(hosts.GrokHost, "cli_version", side_effect=AssertionError("the report probed Grok")), \
+                mock.patch.object(hosts.CodexHost, "cli_version", side_effect=AssertionError("the report probed Codex")), \
                 mock.patch.object(hosts, "probe_version", side_effect=AssertionError("the report probed a CLI")):
             by = self.by_name(self.report())
         self.assertEqual(by["r3-battleship-sonnet"]["host_build"], "2.1.294")
         self.assertEqual(by["v1230-battleship-sonnet"]["host_build"], "2.1.292")
         self.assertEqual(by["v1220-battleship-sonnet"]["host_build"], "2.1.291")  # only in the run's init event
         self.assertIn("host_build", by["v1220-battleship-sonnet"]["recomputed"])
-        self.assertIsNone(by["r1-battleship-grok-none"]["host_build"])  # launched before the field: null, not today's build
         cell = self.cell(self.report(), **self.BATTLESHIP)
         self.assertEqual(cell["host_builds"], {"2.1.291": 1, "2.1.292": 1, "2.1.294": 3, "unrecorded": 0})
 
@@ -1540,25 +1342,6 @@ class LiveLineAndReportTest(BaselineReportCase):
                            if r["class"] == "counted" and r["record"] == "file+folder" and r["case"] == "battleship"}
         self.assertEqual(offered, counted_in_file)
 
-    def test_the_two_committed_custom_rows_match_no_live_run_but_the_report_counts_the_done_one(self):
-        # The transitional break named in SPEC: a row written before prompt_sha256 existed matches no custom run. The
-        # report recovers the prompt from the folder's prompt.txt, so it still counts the finished Grok run.
-        prompt = self.cell(self.report(), case="custom")["cell"]["prompt_sha256"]
-        live, seen, skipped = run.matching_rows(self.ROWS, "custom", "checkout", "grok", "grok-4.7", "medium", "none", prompt)
-        self.assertEqual((live, seen, dict(skipped)), ([], 2, {"another prompt": 2}))
-        self.assertEqual(self.cell(self.report(), case="custom")["attempts"]["counted"], 1)
-        # a custom row that carries the hash is a basis, and the blocked one is skipped for it
-        rows = [json.loads(line) for line in self.ROWS.read_text().splitlines()]
-        for row in rows:
-            if row["case"] == "custom":
-                row["prompt_sha256"] = prompt
-        stamped = self.tmp / "rows.jsonl"
-        stamped.write_text("".join(json.dumps(r) + "\n" for r in rows))
-        live, seen, skipped = run.matching_rows(stamped, "custom", "checkout", "grok", "grok-4.7", "medium", "none", prompt)
-        self.assertEqual(([Path(r["output"]).name for r in live], dict(skipped)),
-                         (["v1220-battleship-grok-medium-none"], {"did not reach done": 1}))
-
-
 class RowMatchesTest(unittest.TestCase):
     """run.row_matches: the one predicate behind matching_rows and the report; None when a row is a basis, else why not."""
 
@@ -1571,7 +1354,7 @@ class RowMatchesTest(unittest.TestCase):
     def test_each_reason_has_its_own_words(self):
         key = ("battleship", "checkout", "claude", "m", None, "stage", None)
         self.assertIsNone(run.row_matches(row(), *key))
-        self.assertEqual(run.row_matches(row(host="grok"), *key), "another host, model or effort")
+        self.assertEqual(run.row_matches(row(host="codex"), *key), "another host, model or effort")
         self.assertEqual(run.row_matches(row(planning_review="none"), *key), "another planning_review mode")
         self.assertEqual(run.row_matches(row(prompt_sha256="aaaaaaaaaaaa"), *key[:6], "bbbbbbbbbbbb"), "another prompt")
         self.assertEqual(run.row_matches(row(verdicts={"shiploop": False}), *key), "did not reach done")
@@ -1658,7 +1441,7 @@ class BaselineReportRuleTest(BaselineReportCase):
 
     def test_a_custom_cases_row_with_no_hash_is_never_in_a_cell_with_a_hash(self):
         rows = self.tmp / "rows.jsonl"
-        base = {"case": "custom", "source": "checkout", "host": "grok", "model": "m", "effort": "medium",
+        base = {"case": "custom", "source": "checkout", "host": "codex", "model": "m", "effort": "medium",
                 "planning_review": "none", "verdicts": {"shiploop": True}, "termination": {"engine_status": "done"},
                 "pass": True, "turns": 10, "cost_usd": 1.0}
         rows.write_text(json.dumps({**base, "output": "/gone/a", "prompt_sha256": "aaaaaaaaaaaa"}) + "\n"
@@ -1694,24 +1477,6 @@ class BaselineReportRuleTest(BaselineReportCase):
             self.assertEqual(by[name]["class"], "ended by the harness", name)
         self.assertIn("wrote no row", by["r2-battleship-sonnet"]["why"])
         self.assertEqual(self.cell(self.report(runs=copy), case="battleship", host="claude")["attempts"]["ended_by_harness"], 1)
-
-    def test_a_file_only_grok_row_is_a_lower_bound(self):
-        rows = self.tmp / "rows.jsonl"
-        rows.write_text(json.dumps({"case": "battleship", "source": "checkout", "host": "grok", "model": "m", "effort": "medium",
-                                    "planning_review": "none", "verdicts": {"shiploop": True}, "pass": True, "turns": 301,
-                                    "cost_usd": 8.7455, "output": "/gone/grok", "prompt_sha256": "aaaaaaaaaaaa"}) + "\n"
-                        + json.dumps({"case": "battleship", "source": "checkout", "host": "claude", "model": "m",
-                                      "effort": None, "planning_review": "stage", "verdicts": {"shiploop": True}, "pass": True,
-                                      "turns": 100, "cost_usd": 3.0, "output": "/gone/claude"}) + "\n")
-        empty = self.tmp / "no-runs"
-        empty.mkdir()
-        report = self.report(rows=rows, runs=empty)
-        by = self.by_name(report)
-        self.assertIs(by["grok"]["lower_bound"], True)
-        self.assertIsNone(by["claude"]["lower_bound"])  # a Claude row carries no count: unknown, not marked
-        cell = self.cell(report, host="grok")
-        self.assertEqual((cell["measures"]["cost_usd"]["lower_bound_rows"], cell["measures"]["cost_usd"]["lower_bound_unknown_rows"]), (1, 0))
-        self.assertEqual(self.cell(report, host="claude")["measures"]["cost_usd"]["lower_bound_unknown_rows"], 1)
 
 
 class BaselineReportWalkTest(BaselineReportCase):
@@ -1826,28 +1591,27 @@ class BaselineReportRobustnessTest(BaselineReportCase):
 class BaselineReportReasonTest(BaselineReportCase):
     """A null identity field in the report says why, merged from the row, the result and the folder."""
 
-    def test_old_grok_runs_say_their_launch_predates_the_field_and_known_fields_have_no_entry(self):
-        by = self.by_name(self.report())
-        grok = by["r1-battleship-grok-none"]
-        self.assertIsNone(grok["host_build"])
-        self.assertEqual(grok["identity_unmeasured"]["host_build"], "launch predates the field")
-        self.assertNotIn("plugin_sha256", grok["identity_unmeasured"])
-        self.assertEqual(by["r3-battleship-sonnet"]["identity_unmeasured"], {})  # measured and empty
-        self.assertTrue(by["v1220-battleship-sonnet"]["identity_unmeasured"]["planning_seconds"])
-
     def test_the_host_build_of_a_run_is_its_first_launchs_and_never_a_later_one(self):
-        copy = self.tmp / "runs"
-        shutil.copytree(self.RUNS, copy)
-        resume = next((copy / "r3-battleship-grok-none").glob("invocation-resume-grok-*.json"))
-        record = json.loads(resume.read_text())
-        record["host_build"] = "grok 9.9.9 (later)"
-        resume.write_text(json.dumps(record))
-        self.assertIsNone(self.by_name(self.report(runs=copy))["r3-battleship-grok-none"]["host_build"])
-        first = copy / "r3-battleship-grok-none" / "invocation.json"
-        record = json.loads(first.read_text())
-        record["host_build"] = "grok 1.0.50 (first)"
-        first.write_text(json.dumps(record))
-        self.assertEqual(self.by_name(self.report(runs=copy))["r3-battleship-grok-none"]["host_build"], "grok 1.0.50 (first)")
+        runs = self.tmp / "runs"
+        folder = runs / "codex-resume-build"
+        folder.mkdir(parents=True)
+        (folder / "invocation.json").write_text(json.dumps({
+            "case": "hello", "source": "checkout", "host": "codex", "model": "gpt-6.2-sol", "effort": "medium", "versions": {}}))
+        (folder / "invocation-resume-codex-1791508003.json").write_text(json.dumps({
+            "case": "hello", "source": "checkout", "host": "codex", "model": "gpt-6.2-sol",
+            "host_build": "codex-cli 9.9.9 (later)", "versions": {}}))
+        (folder / "result.json").write_text(json.dumps({
+            "case": "hello", "source": "checkout", "host": "codex", "model": "gpt-6.2-sol", "effort": "medium",
+            "output": str(folder), "pass": True, "cli": {"num_turns": 10}, "process": {"status": "exited", "sessions": [{}]},
+            "termination": {"engine_status": "done", "process_status": "exited"}}))
+        none_rows = self.tmp / "none.jsonl"
+        none_rows.write_text("")
+        self.assertIsNone(self.by_name(self.report(rows=none_rows, runs=runs))["codex-resume-build"]["host_build"])
+        first = json.loads((folder / "invocation.json").read_text())
+        first["host_build"] = "codex-cli 0.162.0 (first)"
+        (folder / "invocation.json").write_text(json.dumps(first))
+        self.assertEqual(self.by_name(self.report(rows=none_rows, runs=runs))["codex-resume-build"]["host_build"],
+                         "codex-cli 0.162.0 (first)")
 
 
 class BaselineReportShapeTest(BaselineReportCase):
@@ -2016,27 +1780,6 @@ class RecordedLoopRunsTest(unittest.TestCase):
                          {"n": 3, "min": 185, "median": 232, "max": 293})
         self.assertEqual(cell["overlap"], {"rows": 3, "overlapped_by_span": 3, "not_seen_overlapping": 0, "unknown": 0})
 
-    def test_the_grok_cell_names_its_five_attempts_and_one_masked_prompt(self):
-        cell = self.cell(case="custom", host="grok")
-        self.assertEqual(cell["attempts"], {"seen": 5, "counted": 1, "passed": 1, "did_not_reach_done": 2, "mixed_host": 1,
-                                            "resumed": 1, "seeded": 0, "ended_by_harness": 0, "process_not_observed": 0,
-                                            "no_driver_recorded": 0, "no_result": 0})
-        self.assertEqual(cell["outputs"], {"counted": ["v1220-battleship-grok-medium-none"],
-                                           "did not reach done": ["v1230-battleship-grok-none", "r1-battleship-grok-none"],
-                                           "mixed host": ["r2-battleship-grok-none"], "resumed": ["r3-battleship-grok-none"]})
-        hashes = {self.by_name[n]["prompt_sha256"] for names in cell["outputs"].values() for n in names}
-        self.assertEqual(hashes, {cell["cell"]["prompt_sha256"]})  # five raw prompts, one masked prompt
-        self.assertTrue(cell["cell"]["prompt_sha256"].startswith("5ea67bf3"))
-        self.assertEqual(self.by_name["r2-battleship-grok-none"]["hosts_used"], ["grok", "claude"])
-
-    def test_every_grok_cost_and_turns_figure_is_marked_a_lower_bound(self):
-        grok = [r for r in self.report["records"] if r["host"] == "grok" and r["cost_usd"] is not None and r["record"] != "file"]
-        self.assertGreaterEqual(len(grok), 4)
-        for record in grok:
-            self.assertIs(record["lower_bound"], True, record["output"])
-        cell = self.cell(case="custom", host="grok")
-        self.assertEqual((cell["measures"]["cost_usd"]["lower_bound_rows"], cell["measures"]["turns"]["lower_bound_rows"]), (1, 1))
-
     def test_the_session_count_is_not_in_the_report_and_no_run_is_placed_against_a_range(self):
         text = RUNS_JSON.read_text()
         for word in ("unreported_sessions", "within", "regression", "outside the range"):
@@ -2076,28 +1819,27 @@ class LowerBoundMarkingTest(main_tests().PrintedCase):
         os.environ["FAKE_MODE"] = "done"
         printed = io.StringIO()
         with contextlib.redirect_stdout(printed):
-            code = run.main(["--host", "grok", "--grok-bin", str(self.fakes["grok"]), "--output", str(self.tmp / "follow"),
+            code = run.main(["--host", "codex", "--codex-bin", str(self.fakes["codex"]), "--output", str(self.tmp / "follow"),
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), "--continue-from", str(prior),
                              "--prompt", "Add a feature.", "--check", "true"])
         self.assertEqual(code, 0)
         return next(ln for ln in printed.getvalue().splitlines() if ln.startswith("  follow-on of"))
 
-    def test_the_follow_on_line_marks_a_grok_run_and_a_prior_that_was_a_lower_bound(self):
+    def test_the_follow_on_line_marks_a_prior_that_was_a_lower_bound(self):
         prior = self.prior({"turns": 40, "cost_usd": 2.5, "unreported_sessions": None,
-                            "unmeasured": {"unreported_sessions": "Grok marks no session start"}})
+                            "unmeasured": {"unreported_sessions": "events do not show whether a session never reported"}})
         line = self.follow_on(prior)
-        # this run's launches all reported (build step 8), while the prior's count was unknown and stays marked
-        self.assertIn("turns 4 vs 40 (lower bound), cost $0.01 vs $2.5 (lower bound)", line)
+        self.assertIn("turns 2 vs 40 (lower bound), cost not reported vs $2.5 (lower bound)", line)
 
     def test_a_prior_that_ended_whole_is_not_marked_and_one_that_predates_the_field_is_not_guessed(self):
         whole = self.follow_on(self.prior({"turns": 40, "cost_usd": 2.5, "unreported_sessions": 0}))
-        self.assertIn("turns 4 vs 40, cost $0.01 vs $2.5", whole)
+        self.assertIn("turns 2 vs 40, cost not reported vs $2.5", whole)
         shutil.rmtree(self.tmp / "prior")
         shutil.rmtree(self.tmp / "follow")
         old = self.follow_on(self.prior({"turns": 40, "cost_usd": 2.5}))
-        self.assertIn("turns 4 vs 40, cost $0.01 vs $2.5", old)
+        self.assertIn("turns 2 vs 40, cost not reported vs $2.5", old)
 
-    def test_progress_marks_the_cost_of_a_grok_run_as_it_marks_its_turns(self):
+    def test_progress_marks_a_lower_bound_stream_when_unreported_sessions_are_unmeasured(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             events = [{"type": "available_commands", "commands": [], "tools": []},
@@ -2264,15 +2006,6 @@ class IdentityDocsTest(unittest.TestCase):
                        "is `unknown`, not guessed"):
             self.assertIn(phrase, readme)
 
-    def test_the_readme_says_why_the_grok_session_count_is_unknown_and_what_will_count_it(self):
-        readme = self.text("README.md")
-        for phrase in ("For a stream with Grok in it it is `null`, named in `unmeasured`", "Grok's events mark no session start",
-                       "314 of them for 2 `end` events", "A null count keeps the lower-bound marking",
-                       "the test is the host, not a field of one event",
-                       "at least one session never reported", "`metrics.lower_bound` is the one predicate",
-                       "a launch whose lines hold no `end` event never reported"):
-            self.assertIn(phrase, readme)
-
     def test_the_readme_documents_the_baseline_report(self):
         readme = self.text("README.md")
         for phrase in ("--baseline-report [--baseline FILE] [--runs DIR ...] [--json]",
@@ -2341,7 +2074,7 @@ class ScorecardTest(unittest.TestCase):
         run_dir = self.tmp / "runs" / name
         run_dir.mkdir(parents=True)
         (run_dir / "result.json").write_text(json.dumps({"left_behind": {"observed": True, "survived": []},
-                                                         "environment": {"mixed_host": False, "environments": [{"host": "grok", "host_build": "grok 1"}]},
+                                                         "environment": {"mixed_host": False, "environments": [{"host": "codex", "host_build": "codex 1"}]},
                                                          **result}))
         if tmp_writes is not None:
             (run_dir / "metrics.json").write_text(json.dumps({"tmp_writes": tmp_writes}))
@@ -2532,12 +2265,11 @@ class ScorecardTest(unittest.TestCase):
         self.assertIn("predate Improve review records", card["unmeasured"]["efficiency.improve_reviews"])
 
     def test_a_host_build_that_changed_mid_run_voids_attribution_and_timing(self):
-        # inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 between two chess runs alone blocked the deploy.
-        launches = [{"host": "grok", "host_build": "grok 1.0.62 (aaa)"}, {"host": "grok", "host_build": "grok 1.0.70 (bbb)"}]
+        launches = [{"host": "codex", "host_build": "codex-cli 0.161.0"}, {"host": "codex", "host_build": "codex-cli 0.162.0"}]
         run_dir = self.run_folder("day/mixed-build", {"case": "hello", "pass": True,
                                                       "environment": {"mixed_host": False, "environments": launches}}, tmp_writes=[])
         validity = scorecard.score(run_dir)["validity"]
-        self.assertEqual(validity["host_builds"], ["grok 1.0.62 (aaa)", "grok 1.0.70 (bbb)"])
+        self.assertEqual(validity["host_builds"], ["codex-cli 0.161.0", "codex-cli 0.162.0"])
         self.assertEqual((validity["attribution"]["valid"], validity["timing"]["valid"]), (False, False))
         self.assertTrue(validity["correctness"]["valid"], "a build change voids attribution, not the delivered tree")
 

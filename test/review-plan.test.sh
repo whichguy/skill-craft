@@ -11,7 +11,7 @@ resolve_skill() {
   local candidate
   for candidate in \
     "${REVIEW_PLAN_SKILL:-}" \
-    "$HOME/.cursor/skills/review-plan"
+    "$HOME/.claude/skills/review-plan"
   do
     if [[ -n "$candidate" && -f "$candidate/SKILL.md" ]]; then
       printf '%s\n' "$candidate"
@@ -65,13 +65,6 @@ if [[ -n "$SKILL" ]]; then
   grep -q 'Do not write a `.review-ready' "$SKILL_MD" && ok no_retired_sentinel || bad no_retired_sentinel
   grep -q 'plan-oversight/templates/residual_loop.md' "$SKILL_MD" \
     && ok residual_template_cited || bad residual_template_cited
-  if [[ -L "$HOME/.cursor/skills/review-plan" ]]; then
-    target="$(readlink "$HOME/.cursor/skills/review-plan")"
-    [[ -f "$target/SKILL.md" || -f "$HOME/.cursor/skills/review-plan/SKILL.md" ]] \
-      && ok cursor_import_resolves || bad cursor_import_resolves
-  else
-    ok cursor_import_resolves
-  fi
 else
   echo "SKIP review-plan skill card (not imported)"
 fi
@@ -87,9 +80,8 @@ if [[ -n "$PO" ]]; then
   export PLAN_OVERSIGHT_SESSIONS_ROOT="$TMP/sessions"
   export PLAN_OVERSIGHT_REVIEWS_DIR="$TMP/reviews"
   export CLAUDE_PLANS_DIR="$TMP/claude-plans"
-  export CURSOR_PLANS_DIR="$TMP/cursor-plans"
   mkdir -p "$PLAN_OVERSIGHT_STATE_DIR" "$PLAN_OVERSIGHT_LOG_DIR" \
-    "$PLAN_OVERSIGHT_REVIEWS_DIR" "$CLAUDE_PLANS_DIR" "$CURSOR_PLANS_DIR"
+    "$PLAN_OVERSIGHT_REVIEWS_DIR" "$CLAUDE_PLANS_DIR"
   PLAN="$TMP/sample.plan.md"
   cat >"$PLAN" <<'EOF'
 # Sample plan

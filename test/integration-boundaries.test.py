@@ -55,7 +55,7 @@ class IntegrationBoundaryTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertIn("shiploop-e2e", result.stdout)
             self.assertIn("shiploop-stages", result.stdout)
-            self.assertIn("cursor-imports", result.stdout)
+            self.assertNotIn("cursor-imports", result.stdout)
             self.assertIn("marketplace-claude", result.stdout)
             self.assertNotIn("marketplace-grok", result.stdout)
 
@@ -74,8 +74,8 @@ class IntegrationBoundaryTests(unittest.TestCase):
         self.assertEqual(64, result.returncode)
 
         result = invoke(["bash", str(RUNNER), "cursor-imports"], empty_env)
-        self.assertNotEqual(0, result.returncode)
-        self.assertIn("missing imported skill", result.stdout + result.stderr)
+        self.assertEqual(64, result.returncode)
+        self.assertIn("unknown command", result.stderr)
 
 
 if __name__ == "__main__":
