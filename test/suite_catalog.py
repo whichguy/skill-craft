@@ -275,6 +275,7 @@ _CORE_SUITES = (
     _suite("ci-policy", "core", "test/ci-policy.test.py", "python3", "test/ci-policy.test.py"),
     _suite("integration-boundaries", "core", "test/integration-boundaries.test.py", "python3", "test/integration-boundaries.test.py"),
     _suite("release-push", "core", "test/release-push.test.py", "python3", "test/release-push.test.py"),
+    _suite("release-refresh", "core", "test/release-refresh.test.py", "python3", "-B", "test/release-refresh.test.py"),
     _suite("ask-agent-workspace", "core", "test/ask-agent-workspace.test.py", "python3", "test/ask-agent-workspace.test.py", groups=("ask-agent",)),
     _suite("ask-agent-delivery", "core", "test/ask-agent-delivery.test.py", "python3", "test/ask-agent-delivery.test.py", groups=("ask-agent",)),
     _suite("ask-agent-managed-harness", "core", "test/ask-agent-managed-harness.test.py", "python3", "test/ask-agent-managed-harness.test.py", groups=("ask-agent",)),
@@ -474,6 +475,7 @@ _PATH_SUITE_IDS = {
     "scripts/build-packages.py": ("marketplace-package",),
     "scripts/check-release-boundary.py": ("release-boundary",),
     "scripts/release-push.py": ("release-push",),
+    "scripts/release-refresh.py": ("release-refresh",),
     "catalog/external-plugins.json": ("marketplace-package", "native-marketplace-adapters"),
     "catalog/skill-craft-plugin.json": ("marketplace-package", "native-marketplace-adapters", "release-flow"),
     # Comparison loads the boundary suite's fixture. Cataloged suite paths bypass reference lookup.

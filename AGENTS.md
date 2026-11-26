@@ -9,7 +9,7 @@ Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **`skills/<leaf>/`** — skill source of truth (`SKILL.md`, optional `prompts/`, `scripts/`, `references/`)
 - **`agents/<leaf>.md`** — thin agent cards that point at the skill (Claude/Grok only)
 - **`install.sh`** — multi-host skill-dir install (symlink Claude/Grok/Codex/Cursor/OpenCode; **copy** Hermes)
-- **`plugins/skill-craft/`** — release output: the one plugin package bundling every skill (`/skill-craft:<leaf>`), written only by `scripts/release.py`; never edit here
+- **`plugins/skill-craft/`** — release output: the one plugin package bundling every skill (`/skill-craft:<leaf>` on Claude, `$skill-craft:<leaf>` on Codex, `/<leaf>` on Antigravity), with `.antigravity-plugin/`, `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/` and root `hooks.json`, written only by `scripts/release.py`; never edit here
 - **`.claude-plugin/`, `.agents/plugins/`, `.grok-plugin/`, `.cursor-plugin/`** — release output: the marketplace catalogs for Claude, Codex, Grok and Cursor
 - **`catalog/external-plugins.json`** — plugins published from other repositories, pinned by commit
 - **`changes/<leaf>/*.md`** — pending change notes; `scripts/release.py` turns them into a release
@@ -56,7 +56,7 @@ Owner, 2026-10-28: a session makes routine decisions itself and records each one
 commit message or journal where the work lands. Routine:
 
 - publishing a release once `scripts/release.py`'s preflight and CI pass on a commit that fast-forwards `main`, and
-  refreshing the hosts after it;
+  refreshing the hosts after it (`python3 scripts/release-refresh.py`, updating Claude Code, Codex, Antigravity, Grok, and Cursor together);
 - choosing between equivalent fixes;
 - launching verification runs.
 

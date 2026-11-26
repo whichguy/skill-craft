@@ -147,10 +147,11 @@ class TestGroupTests(unittest.TestCase):
         # Backchain was retired (owner decision 2026-11-16): backchain-chunks and backchain-toolkit left with it, so core is 61
         # and all suites two fewer; backchain-graph stays, because its library moved into ShipLoop.
         # The pushpress skill and its suite left skill-craft for a private repository (2026-11-22), so core is one fewer, 60, and all suites 190.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 60)
+        # The multi-host post-release refresh guard adds one core suite (2026-11-25): 61.
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
         # Bundled Grok/GAS harness (2 suites), Closed Loop ShipLoop adapter (3 suites), and Salesforce/hosted cases (14 suites) retired (2026-11-19).
-        # The pushpress suite left with its skill (2026-11-22): 190; shiploop-planning-loop adds one (2026-11-24): 191; shiploop-e2e-fork-completeness adds one (2026-11-24): 192; shiploop-evidence-testing adds one (2026-11-24): 193; shiploop-e2e-cloudybot adds one (2026-11-25): 194; shiploop-model-routing adds one (2026-11-25): 195.
-        self.assertEqual(len(suite_catalog.SUITES), 195)
+        # The pushpress suite left with its skill (2026-11-22): 190; shiploop-planning-loop adds one (2026-11-24): 191; shiploop-e2e-fork-completeness adds one (2026-11-24): 192; shiploop-evidence-testing adds one (2026-11-24): 193; shiploop-e2e-cloudybot adds one (2026-11-25): 194; shiploop-model-routing adds one (2026-11-25): 195; release-refresh adds one (2026-11-25): 196.
+        self.assertEqual(len(suite_catalog.SUITES), 196)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -237,7 +238,8 @@ class TestGroupTests(unittest.TestCase):
                                                           "shiploop-e2e-slice"},
             "skills/shiploop/scripts/shiploop_skill_calls.py": {"shiploop-skill-calls", "shiploop-domain-words", "shiploop-retired-terms"},
             # Every ShipLoop skill path also selects the domain-word lint and the retired-term scan (the skills/shiploop/ row).
-            "scripts/release.py": {"release-push", "release-flow", "release-boundary", "release-preflight"},
+            "scripts/release.py": {"release-push", "release-refresh", "release-flow", "release-boundary", "release-preflight"},
+            "scripts/release-refresh.py": {"release-refresh"},
             "skills/improve/SKILL.md": {"improve", "improve-plugin", "improve-agent", "improve-runtime", "improve-route"},
             "install.sh": {"install-targets", "install-arbitrary-skill", "install-status-uninstall"},
             "test/shiploop-lint.test.py": {"shiploop-lint"},
@@ -395,7 +397,7 @@ class TestGroupTests(unittest.TestCase):
         records = [(s.id, s.family, s.path, list(s.argv), sorted(s.groups), s.timeout_seconds, s.hermetic)
                    for s in suite_catalog.SUITES]
         digest = hashlib.sha256(json.dumps(records, separators=(',', ':')).encode()).hexdigest()
-        self.assertEqual(digest, "d2b3597b29c5229bfbaaac738c4bf86a45faf6719e6a791b0ad15fda9ee1a6d5")
+        self.assertEqual(digest, "4a2c8715e778d18002cf1589a236b9d138752ab47b09e9f3cd49ef09cb07ab54")
 
     def test_smoke_affected_union_is_exact_and_full_inventory_is_preserved(self) -> None:
         full = suite_catalog.select(["all"])

@@ -57,14 +57,16 @@ inventory and `CHANGELOG.md`.
    `marketplace-codex-ask-agent` targets of `test/run-integration.sh` exercise
    real host CLIs in disposable profiles. Record host versions; anything not
    run stays explicitly unverified.
-5. **Publish** with [guarded publication](#guarded-publication), then refresh each
-   host as [Refreshing after a release](distribution.md#refreshing-after-a-release)
-   lists. On Claude and Grok the marketplace refresh fetches the catalog only and
-   a second command moves the installed plugin; on Codex the marketplace upgrade
-   is the whole refresh, and it deletes every other installed version, so
-   [check for live runs first](distribution.md#check-for-live-runs-before-refreshing-codex-or-grok);
-   Cursor's CLI re-indexes without moving the installed plugin. Read each host's installed version back, because a command's exit
-   status does not show it. Skill-directory users (`./install.sh`) track the
+5. **Publish** with [guarded publication](#guarded-publication), then refresh all
+   installed hosts together with `python3 scripts/release-refresh.py --repo /Users/dadleet/src/skill-craft`
+   (see [Refreshing after a release](distribution.md#refreshing-after-a-release)).
+   It checks for live runs before touching Codex, Antigravity, or Grok, updates
+   Claude Code (`marketplace update` + `plugin update`), Codex (`marketplace upgrade`),
+   Antigravity (`agy plugin install` from `tree/main/plugins/skill-craft`), and Grok
+   (`marketplace update` + `plugin update`), verifies Cursor's Claude-imported copy
+   is unshadowed, and reads back every host's outer `skill-craft` version, `shiploop`
+   version, and full bundled skill inventory so newly added or updated skills are
+   confirmed across every service. Skill-directory users (`./install.sh`) track the
    checkout and need no release.
 
 A change with a note always ships at a new version; a source change carrying

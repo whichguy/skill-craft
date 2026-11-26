@@ -5,6 +5,7 @@ flowchart TD
   S[Authoritative skills] --> I[Local installer]
   I --> H[Grok Claude Cursor Codex OpenCode]
   S --> P[One generated skill-craft plugin]
+  P --> A[Antigravity GitHub subfolder]
   P --> N[Grok and Cursor catalogs]
   P --> M[Claude and Codex catalogs]
 ```
@@ -21,7 +22,7 @@ files describe how to find it.
 
 ## Your own use
 
-Claude, Codex, Grok and Cursor install every skill from the `skill-craft`
+Claude, Codex, Antigravity, Grok and Cursor install every skill from the `skill-craft`
 marketplace plugin ([entry points](#marketplace-entry-points)). OpenCode has no
 skill marketplace, so `install.sh` links it from the source checkout; without
 host flags the installer targets only OpenCode (Hermes needs `--hermes-only`):
@@ -63,6 +64,7 @@ is unknown, inspect `claude plugin list --json` for the host's current state.
 |------|-------|----------|
 | Claude Code | `.claude-plugin/marketplace.json` | Skill packages and external pins |
 | Codex | `.agents/plugins/marketplace.json` (falls back to the Claude index) | Same selection |
+| Antigravity | `plugins/skill-craft/.antigravity-plugin/plugin.json` + root `hooks.json` | Published GitHub subfolder (`tree/main/plugins/skill-craft`) |
 | Grok | `.grok-plugin/marketplace.json` | Skill packages |
 | Cursor | `.cursor-plugin/marketplace.json` | Skill packages |
 | OpenCode | none (no skill marketplace) | `./install.sh` skill directories |
@@ -121,6 +123,28 @@ For local development, pass the absolute `skill-craft` checkout path to
 marketplace refresh alone leaves the installed plugin on the old version. Start a
 new Codex task after installing. See the [Codex marketplace reference](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
 
+### Antigravity
+
+Antigravity (`agy` CLI and the Antigravity App) loads native plugins from
+`plugins/skill-craft/.antigravity-plugin/plugin.json` and plugin-root
+`hooks.json` (generated from `skills/*/host-hooks.json`). Because the monorepo
+root has no `plugin.json`, pass the published `plugins/skill-craft` subfolder URL
+rather than the repository root:
+
+```sh
+agy plugin validate https://github.com/whichguy/skill-craft/tree/main/plugins/skill-craft
+agy plugin install https://github.com/whichguy/skill-craft/tree/main/plugins/skill-craft
+agy plugin list --json
+```
+
+`agy plugin install` unpacks the bundle (every skill, agent card, and ShipLoop's
+native `PostToolUse` + `Stop` keepalive hooks) into
+`~/.gemini/config/plugins/skill-craft`, which is shared live across the
+Antigravity App and `agy` CLI (`/<skill-name>` or progressive disclosure). Re-running
+the same `agy plugin install` command after a release replaces the existing
+installation in place. For isolated local smoke testing without publishing, pass
+the generated directory path (`/absolute/path/to/skill-craft/plugins/skill-craft`).
+
 #### Moving from per-skill plugins
 
 Earlier releases published one plugin per skill (`shiploop@skill-craft-market`)
@@ -155,6 +179,7 @@ put `skill-craft:` into the source card's name.
 | Plugin install ID | `skill-craft@whichguy` | Install or remove every skill at once |
 | Plugin skill in Codex | `$skill-craft:shiploop` | Select the installed plugin's skill |
 | Plugin skill in Claude | `/skill-craft:shiploop` | Select the installed plugin's skill |
+| Plugin skill in Antigravity | `/shiploop` | Select the installed `skill-craft` plugin's skill |
 | Skill-dir skill in Codex | `$shiploop` | Select the separately side-loaded skill |
 
 In a fresh task, the host exposes the packaged `skills/shiploop/SKILL.md` as
@@ -252,15 +277,30 @@ plan (one team marketplace) or Enterprise, and it was not tried here (Round 12, 
 
 ### Refreshing after a release
 
-A marketplace refresh fetches the catalog. Whether the installed plugin follows
-depends on the host, and a command's exit status does not say, so read the
-installed version back.
+Run the guarded multi-host refresh helper from the clean, fast-forwarded canonical
+checkout so Claude Code, Codex, Antigravity, Grok, and Cursor update together and
+verify both the outer `skill-craft` bundle version and every bundled skill's
+version (including `shiploop` and newly added skills):
+
+```sh
+python3 scripts/release-refresh.py --repo /Users/dadleet/src/skill-craft
+python3 scripts/release-refresh.py --repo /Users/dadleet/src/skill-craft --check-only
+```
+
+`release-refresh.py` refuses when the checkout carries unreleased `changes/` notes
+or unsynced plugin views, checks for live runs executing from the real host plugin
+paths before touching Codex, Antigravity, or Grok, runs each host's refresh sequence,
+and fails closed if any host's installed `skill-craft` version, `shiploop` version,
+or bundled skill inventory disagrees with the release.
+
+Under the hood, each host refreshes and reads back differently:
 
 | Host | Refresh the catalog | Move the installed plugin | Read back |
 |------|---------------------|---------------------------|-----------|
 | Claude Code | `claude plugin marketplace update whichguy` | `claude plugin update skill-craft@whichguy --scope user`, then restart | `claude plugin list --json` |
-| Codex | `codex plugin marketplace upgrade whichguy`; it deletes every other installed version, so [check for live runs first](#check-for-live-runs-before-refreshing-codex-or-grok) | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
-| Grok | `grok plugin marketplace update whichguy` | `grok plugin update skill-craft` | `grok plugin details skill-craft` |
+| Codex | `codex plugin marketplace upgrade whichguy`; it deletes every other installed version, so [check for live runs first](#check-for-live-runs-before-refreshing-codex-antigravity-or-grok) | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
+| Antigravity | none (`agy` fetches the GitHub subfolder directly) | `agy plugin install https://github.com/whichguy/skill-craft/tree/main/plugins/skill-craft`; replaces `~/.gemini/config/plugins/skill-craft` in place, so [check for live runs first](#check-for-live-runs-before-refreshing-codex-antigravity-or-grok) | `agy plugin list --json` |
+| Grok | `grok plugin marketplace update whichguy` | `grok plugin update skill-craft` | `grok plugin list --json` / `grok plugin details skill-craft` |
 | Cursor | none: Cursor runs Claude Code's copy (Imported), so the Claude Code row is its refresh | a Cursor launch after `claude plugin update`; do not re-register or Add skill-craft in Cursor (a native copy pins one commit and shadows the import); a machine without Claude Code takes the native route under [Cursor](#cursor) | the Installed list's skill-craft row (version and skill count), or Claude Code's `~/.claude/plugins/installed_plugins.json` |
 
 Checked on 2026-11-09 for 2.36.0 to 2.36.1 (Claude Code 2.1.319, Codex 0.167.0,
@@ -285,7 +325,7 @@ directory with the published one: extract `git archive origin/main
 plugins/skill-craft/skills/<leaf>` into an empty directory and run `diff -rq`
 against each host's copy.
 
-#### Check for live runs before refreshing Codex or Grok
+#### Check for live runs before refreshing Codex, Antigravity or Grok
 
 A ShipLoop run calls its CLI by the installed plugin's path, and every packet
 repeats that path. On Codex the path names the version
@@ -307,16 +347,20 @@ The other hosts differ:
 
 - **Claude Code** keeps old version folders (36 on 2026-11-20), so its refresh
   leaves a live run's path in place.
+- **Antigravity** replaces `~/.gemini/config/plugins/skill-craft` in place on
+  `agy plugin install`, so a live Antigravity run executing from that directory
+  would have its files replaced mid-run.
 - **Grok** updates one folder in place (`~/.grok/installed-plugins/skill-craft-<id>`),
   so a live Grok run would get the new release's files mid-run. No live Grok
   run has been refreshed, so the effect is not measured.
 - **Cursor** runs Claude Code's copy.
 
-Before the Codex or Grok refresh, list the processes that run from an installed
-plugin folder:
+`python3 scripts/release-refresh.py` checks the real user profile directories
+automatically before refreshing Codex, Antigravity, or Grok (ignoring isolated
+throwaway E2E homes). To inspect processes manually before refreshing:
 
 ```sh
-ps -ax -ww -o command | grep -o -E '/[^ ]*(plugins/cache|installed-plugins)/[^ ]*skill-craft[^ /]*(/[0-9][0-9.]*)?' | sort | uniq -c
+ps -ax -ww -o command | grep -o -E '/[^ ]*(plugins/cache|installed-plugins|\.gemini/config/plugins)/[^ ]*skill-craft[^ /]*(/[0-9][0-9.]*)?' | sort | uniq -c
 ```
 
 If a run is live, refresh that host after it ends. To refresh anyway, restore
