@@ -105,18 +105,26 @@ classes to fill an inventory. Reopen that exclusion when its basis changes. When
 a target-native deployment validation (`RunSpecifiedTests` or `RunLocalTests`)
 fails on Apex tests or code coverage, do not silently downgrade the deploy to
 `--test-level NoTestRun` (or a weaker test level) and report release
-verification as clean: either add or fix tests so the validation deploy passes,
-or record an explicit `unverified` gap or owner waiver citing the failing
-validation output and why `NoTestRun` was used.
+verification as clean, and never close an open assumption about a failed
+deployment/coverage gate via prose distinction alone: either add or fix tests
+(exercising scheduled, queueable, and callout code through injectable test seams
+rather than `Test.isRunningTest()` early-return skips) until the target-native
+validation deploy passes, or carry an explicit pending `unverified` entry
+through `handoff` (unless an explicit user waiver in the session authorizes
+waiving the gate) citing the failing validation output and why `NoTestRun` was
+used.
 [LWC testing](https://developer.salesforce.com/docs/platform/lwc/guide/testing)
 and the [deployment command's test-level contract](https://developer.salesforce.com/docs/platform/salesforce-cli-reference/guide/cli_reference_project_deploy_start.html)
 are starting points; verify the rules for the operation actually selected.
 
 ShipLoop reads a focused Apex test's outcome from the runner's own pass or fail
 mark on the line that names it, so record the command with a reporter it can
-read: `sf apex run test --target-org <alias> --class-names <TestClass> --synchronous
---result-format tap` prints an `ok` or `not ok` line per test, which ShipLoop
-reads and counts, so a `not ok` test fails the command even when it exits 0.
+read and with coverage collection enabled:
+`sf apex run test --target-org <alias> --class-names <TestClass> --synchronous
+--code-coverage --result-format tap` prints an `ok` or `not ok` line per test, which ShipLoop
+reads and counts, so a `not ok` test fails the command even when it exits 0, and
+populates `ApexCodeCoverageAggregate` so aggregate and per-class coverage can be
+re-checked after the final test additions rather than assumed from pass counts.
 The default table and `--result-format human` put the outcome word after the
 test name, which ShipLoop does not read. ShipLoop still accepts a focused
 command that uses them when it exits 0 and its output names every listed test
@@ -185,6 +193,15 @@ tests, such as Jest for Lightning web components, are still mutation-checked and
 
 - `sf apex run test`
 - `sf apex run`
+- `sf project deploy validate`
+- `sf project deploy start`
+
+## Remote-only source extensions
+
+Source files with these extensions execute only in the Salesforce org, never in a local checkout test runner: when remote test commands are skipped on a mixed local-and-org item, ShipLoop's mutation check samples local source files instead of these.
+
+- `.cls`
+- `.trigger`
 
 ## Consumer entry access (read-only probe)
 

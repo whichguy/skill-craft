@@ -82,6 +82,21 @@ def remote_test_commands(cards: Path = PLATFORM_CARDS) -> List[Tuple[str, str]]:
     return _card_bullets("Remote tests", cards)
 
 
+def remote_only_extensions(cards: Path = PLATFORM_CARDS) -> Dict[str, List[str]]:
+    """Per card stem, normalized lowercase file extensions (``.cls``) listed under ``## Remote-only source extensions``.
+
+    When a mixed item skips remote commands from ``card``, files with these extensions execute only in that remote
+    target and never in the remaining local runner, so mutating them locally would crowd out reachable local files."""
+    found: Dict[str, List[str]] = {}
+    for card, item in _card_bullets("Remote-only source extensions", cards):
+        ext = item.strip().lower()
+        if ext and not ext.startswith("."):
+            ext = "." + ext
+        if ext and ext not in found.setdefault(card, []):
+            found[card].append(ext)
+    return found
+
+
 def dependency_directories(cards: Path = PLATFORM_CARDS) -> List[str]:
     """Every directory name a platform card lists under ``## Dependency directories``, once each, in card order.
 
@@ -368,13 +383,23 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, action: str, *,
     current = _current_tree(root, base)
     changes = test_loop._item_changes(root, base)
     excluded_scripts = _executed_test_scripts(state, work_item)
-    product = [
+    skipped_cards = {hit[0] for cmd in skipped if (hit := remote_card(cmd)) is not None}
+    ext_map = remote_only_extensions() if skipped_cards else {}
+    remote_exts = {ext for card in skipped_cards for ext in ext_map.get(card, ())}
+    all_product = [
         path for status, path in changes
         if status in ("A", "M", "T")
         and item_scope.classify(rel := test_loop._relative(path, base)) == "code"
         and rel not in excluded_scripts
         and Path(rel).suffix.lower() not in NON_BEHAVIOURAL_STYLE_EXTENSIONS
     ]
+    if remote_exts:
+        remote_product = [p for p in all_product if Path(test_loop._relative(p, base)).suffix.lower() in remote_exts]
+        if remote_product:
+            record["remote_files_skipped"] = [test_loop._relative(p, base) for p in remote_product]
+        product = [p for p in all_product if Path(test_loop._relative(p, base)).suffix.lower() not in remote_exts]
+    else:
+        product = all_product
     record.update(base_tree=base.get("tree"), base_commit=base.get("commit"), candidate_tree=current,
                   product_files=[test_loop._relative(path, base) for path in product])
     by_file: Dict[str, List[Dict[str, Any]]] = {}
@@ -391,7 +416,13 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, action: str, *,
     record["candidates"] = sum(len(rows) for rows in by_file.values())
     chosen = sample(by_file)
     if not chosen:
-        record["skipped"] = "no mutants: no changed product line matched an operator"
+        if record.get("remote_files_skipped"):
+            record["skipped"] = (
+                "no local mutants: changed code files belong to skipped remote test runtime(s) ("
+                + ", ".join(sorted(skipped_cards)) + ")"
+            )
+        else:
+            record["skipped"] = "no mutants: no changed product line matched an operator"
         return record
     runner = lint.recovery_runner(root, action, "mutation") if runner is None else runner
     clock = clock or time.monotonic
@@ -539,14 +570,21 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
     record["action"] = action_id
     record["seconds"] = round(time.monotonic() - started, 3)
     # A mixed item left its remote commands out (I2, F3): a mutant in code only they reach survives whatever the local
-    # tests assert, so its survivors are recorded, not refused.
-    refuse = bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0 \
-        and not record.get("remote_commands_skipped")
-    # Every survivor the zero-kill rule lets through gets a disposition (advisors panel 2026-10-25, P5): before, a partial
-    # survival passed silently, and run 3's survivor at the engine's bounds check was never looked at.
+    # tests assert, so when zero mutants were killed its survivors are recorded, not refused.
+    zero_kill_remote_exempt = (
+        bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0
+        and bool(record.get("remote_commands_skipped"))
+    )
+    refuse = (
+        bool(record["mutants"]) and record["killed"] == 0 and record["survived"] > 0
+        and not zero_kill_remote_exempt
+    )
+    # Every survivor the zero-kill rule lets through gets a disposition (advisors panel 2026-10-25, P5) unless the
+    # mixed-item remote-skip exemption already recorded a zero-kill run as advisory.
     given = {row.get("mutant") for row in (result or {}).get("mutant_dispositions") or () if isinstance(row, Mapping)}
-    undisposed = [] if refuse else [row for row in record["mutants"]
-                                    if row["status"] == "survived" and mutant_id(row) not in given]
+    undisposed = [] if (refuse or zero_kill_remote_exempt) else [
+        row for row in record["mutants"] if row["status"] == "survived" and mutant_id(row) not in given
+    ]
     if undisposed:
         record["undisposed"] = [mutant_id(row) for row in undisposed]
     if record["mutants"] and record["killed"] == 0 and record.get("remote_commands_skipped"):
