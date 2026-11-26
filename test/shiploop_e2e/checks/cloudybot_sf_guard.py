@@ -19,6 +19,7 @@ import signal
 import subprocess
 import sys
 import time
+import urllib.parse
 import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -80,6 +81,31 @@ PINNED_COMMANDS = {
     ("apex", "list", "log"),
     ("org", "assign", "permset"),
 }
+SECRET_REST_OBJECTS = (
+    "NamedCredential",
+    "ExternalCredential",
+    "NamedPrincipal",
+    "ExternalAuthIdentityProvider",
+    "AuthProvider",
+    "ConnectedApplication",
+    "OauthToken",
+    "TwoFactorInfo",
+    "SessionPermSetActivation",
+)
+SECRET_REST_OBJECT_RE = re.compile(r"\b(?:" + "|".join(SECRET_REST_OBJECTS) + r")\b", re.IGNORECASE)
+ALLOWED_DATA_REST_RE = re.compile(
+    r"^/services/data(?:"
+    r"|/v\d+\.\d+(?:"
+    r"|/limits"
+    r"|/sobjects(?:/[A-Za-z][A-Za-z0-9_]*/describe)?"
+    r"|/tooling(?:"
+    r"|/sobjects(?:/[A-Za-z][A-Za-z0-9_]*/describe|/ApexLog/[A-Za-z0-9]{15,18}/Body)?"
+    r"|/query(?:/[A-Za-z0-9_-]+)?"
+    r")"
+    r")"
+    r")$"
+)
+APEXREST_RE = re.compile(r"^/services/apexrest/([A-Za-z0-9_.-]+)(?:/.*)?$")
 HELP_ONLY = {("--version",), ("-v",), ("--help",), ("-h",)}
 HELP_FLAGS = ("--help", "-h")
 
@@ -361,6 +387,121 @@ def check_deploy_scope(argv: list[str], prefix: str, lwc_prefix: str) -> str | N
     return None
 
 
+def check_api_request_rest(rest_argv: list[str], prefix: str, lwc_prefix: str) -> str | None:
+    forbidden_flags = ("--file", "-f", "--stream-to-file", "-S", "--include", "-i")
+    bad_rest_flag = has_any_flag(rest_argv, forbidden_flags)
+    if bad_rest_flag:
+        return f"`api request rest` forbids {bad_rest_flag}"
+
+    value_flags = ("--target-org", "-o", "--method", "-X", "--header", "-H", "--body", "-b", "--api-version")
+    bool_flags = ("--json",)
+    urls: list[str] = []
+    methods: list[str] = []
+    headers: list[str] = []
+    bodies: list[str] = []
+
+    i = 0
+    while i < len(rest_argv):
+        tok = rest_argv[i]
+        if tok in bool_flags:
+            i += 1
+            continue
+        matched_val = False
+        for vf in value_flags:
+            if tok == vf:
+                if i + 1 >= len(rest_argv):
+                    return f"`api request rest` flag {vf} requires a value"
+                val = rest_argv[i + 1]
+                i += 2
+                matched_val = True
+            elif tok.startswith(vf + "="):
+                val = tok.split("=", 1)[1]
+                i += 1
+                matched_val = True
+            else:
+                continue
+            if vf in ("--method", "-X"):
+                methods.append(val)
+            elif vf in ("--header", "-H"):
+                headers.append(val)
+            elif vf in ("--body", "-b"):
+                bodies.append(val)
+            break
+        if matched_val:
+            continue
+        if tok.startswith("-"):
+            return f"unsupported flag {tok} for `api request rest`"
+        urls.append(tok)
+        i += 1
+
+    if not urls:
+        return "`api request rest` requires a relative Salesforce API endpoint"
+    if len(urls) > 1:
+        return "`api request rest` accepts exactly one endpoint argument"
+
+    for hdr in headers:
+        hname = hdr.split(":", 1)[0].strip().lower()
+        if hname in ("authorization", "cookie", "proxy-authorization", "x-sfdc-session"):
+            return f"`api request rest` forbids custom {hname} header"
+
+    norm_methods = {m.strip().upper() for m in methods if m.strip()}
+    if len(norm_methods) > 1:
+        return "conflicting --method values for `api request rest`"
+    method = next(iter(norm_methods), "GET")
+
+    root = Path.cwd().resolve()
+    for body in bodies:
+        if body == "-":
+            return "`api request rest` forbids reading --body from stdin ('-')"
+        if body.startswith("@"):
+            bpath = Path(body[1:])
+            try:
+                resolved = bpath.resolve()
+                if resolved != root and root not in resolved.parents:
+                    return f"`api request rest` --body file {bpath} escapes project directory"
+            except OSError as exc:
+                return f"cannot resolve `api request rest` --body file {bpath}: {exc}"
+
+    raw_url = urls[0].strip()
+    if not raw_url or "://" in raw_url or raw_url.startswith("//") or re.search(r"[\s\x00-\x1f\x7f\\@#]", raw_url):
+        return f"`api request rest` requires a relative org path (got {raw_url!r})"
+
+    norm_url = "/" + raw_url.lstrip("/")
+    path_part, _, query_part = norm_url.partition("?")
+    if re.search(r"%(?:2e|2f|5c|00)", path_part, re.IGNORECASE):
+        return f"`api request rest` forbids percent-encoded path traversal in {raw_url!r}"
+    decoded_path = urllib.parse.unquote(path_part)
+    if "\\" in decoded_path or "\x00" in decoded_path or ".." in decoded_path.split("/"):
+        return f"`api request rest` forbids path traversal in {raw_url!r}"
+    clean_path = re.sub(r"/+", "/", decoded_path).rstrip("/") or "/"
+
+    apex_match = APEXREST_RE.fullmatch(clean_path)
+    if apex_match:
+        seg = apex_match.group(1)
+        if not (seg.startswith(prefix) or seg.startswith(lwc_prefix)):
+            return f"apexrest endpoint {clean_path!r} is outside prefix {prefix}"
+        if method not in ("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"):
+            return f"HTTP method {method} is not allowed for `api request rest`"
+        if method in ("GET", "HEAD") and bodies:
+            return f"`api request rest` {method} forbids --body"
+        return None
+
+    if not ALLOWED_DATA_REST_RE.fullmatch(clean_path):
+        return (
+            f"REST endpoint {clean_path!r} is not in the allow list "
+            f"(allowed: GET /services/data[/vX.Y/(limits|sobjects|tooling/...)], or /services/apexrest/{prefix}/*)"
+        )
+    if method not in ("GET", "HEAD"):
+        return f"REST endpoint {clean_path!r} allows GET/HEAD only (got {method})"
+    if bodies:
+        return f"`api request rest` {method} forbids --body"
+    decoded_query = urllib.parse.unquote_plus(query_part)
+    secret_hit = SECRET_REST_OBJECT_RE.search(decoded_path) or SECRET_REST_OBJECT_RE.search(decoded_query)
+    if secret_hit:
+        return f"`api request rest` forbids reading credential/session object `{secret_hit.group(0)}`"
+    return None
+
+
 def decide(argv: list[str], org: str, prefix: str, deny_all: bool, cmd_name: str) -> tuple[bool, str]:
     if deny_all:
         return False, f"{cmd_name} is disabled during guarded CloudyBot runs"
@@ -403,7 +544,8 @@ def decide(argv: list[str], org: str, prefix: str, deny_all: bool, cmd_name: str
     if cmd in LOCAL_COMMANDS or any(cmd[: len(p)] == p for p in PREFIX_LOCAL):
         return True, "local command"
 
-    if cmd not in PINNED_COMMANDS:
+    is_api_rest = cmd[:3] == ("api", "request", "rest")
+    if not is_api_rest and cmd not in PINNED_COMMANDS:
         return False, f"`{' '.join(cmd)}` is not in the allow list"
 
     if is_help:
@@ -416,13 +558,19 @@ def decide(argv: list[str], org: str, prefix: str, deny_all: bool, cmd_name: str
     if any(v != org for v in target_vals):
         return False, f"target org must be `{org}` (got {target_vals!r})"
 
+    lwc_prefix = camel_prefix(prefix)
+    if is_api_rest:
+        rest_err = check_api_request_rest(argv[3:], prefix, lwc_prefix)
+        if rest_err:
+            return False, rest_err
+        return True, "allowed"
+
     if cmd == ("project", "deploy", "report"):
         if has_any_flag(argv, ("--use-most-recent", "-r")):
             return False, "`project deploy report` forbids --use-most-recent / -r"
         if not extract_flag_values(argv, ("--job-id", "-i")):
             return False, "`project deploy report` requires --job-id"
 
-    lwc_prefix = camel_prefix(prefix)
     if cmd in (("project", "deploy", "start"), ("project", "deploy", "validate")):
         err = check_deploy_scope(argv, prefix, lwc_prefix)
         if err:
@@ -522,8 +670,8 @@ def main() -> int:
         if not deny_all:
             sys.stderr.write(
                 f"Allowed: org `{org}`, prefix `{prefix}` (LWC `{camel_prefix(prefix)}`), "
-                "commands: org list/metadata/limits, sobject, data query, project deploy start/validate/report, "
-                "apex run/run test/get test/log, org assign permset.\n"
+                "commands: org list/metadata/limits, sobject, data query, api request rest (scoped), "
+                "project deploy start/validate/report, apex run/run test/get test/log, org assign permset.\n"
             )
         return 2
 

@@ -108,6 +108,22 @@ FAKE_SF_CODE = textwrap.dedent(r"""
                     for r in state.get("cron_triggers", []) if not pref or r["Name"].lower().startswith(pref)]
             print(json.dumps({"status": 0, "result": {"records": recs}}))
             raise SystemExit(0)
+        if "FROM AsyncApexJob" in soql:
+            import re
+            m = re.search(r"ApexClass\.Name LIKE '([^']+)%'", soql)
+            pref = m.group(1).lower() if m else ""
+            recs = [
+                {
+                    "Id": r["Id"],
+                    "JobType": r.get("JobType", "Queueable"),
+                    "Status": r.get("Status", "Queued"),
+                    "ApexClass": {"Name": r["ClassName"]},
+                }
+                for r in state.get("async_jobs", [])
+                if not pref or r["ClassName"].lower().startswith(pref)
+            ]
+            print(json.dumps({"status": 0, "result": {"records": recs}}))
+            raise SystemExit(0)
         if "FROM GroupMember" in soql:
             import re
             m = re.search(r"Group\.DeveloperName LIKE '([^']+)%'", soql)
@@ -147,8 +163,17 @@ FAKE_SF_CODE = textwrap.dedent(r"""
         body = Path(argv[argv.index("--file") + 1]).read_text(encoding="utf-8")
         aborted = set(re.findall(r"System\.abortJob\('([^']+)'\)", body))
         state["cron_triggers"] = [r for r in state.get("cron_triggers", []) if r["Id"] not in aborted]
+        state["async_jobs"] = [r for r in state.get("async_jobs", []) if r["Id"] not in aborted]
         save_state()
         print(json.dumps({"status": 0, "result": {"success": True}}))
+        raise SystemExit(0)
+
+    if argv[:3] == ["api", "request", "rest"]:
+        tok = state.get("leak_token")
+        if tok:
+            sys.stdout.write(json.dumps({"ok": True, "echoSession": tok}) + "\n")
+        else:
+            sys.stdout.write(json.dumps({"ok": True}) + "\n")
         raise SystemExit(0)
 
     if argv[:3] == ["org", "list", "limits"]:
@@ -242,6 +267,7 @@ class CloudyBotCatalogTests(unittest.TestCase):
             "sf_tooling_delete_record",
             "Test Tooling API",
             "75%",
+            "Test.isRunningTest()",
             "uncommitted work pending",
         ):
             self.assertIn(clause, prompt)
@@ -311,6 +337,7 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
                 },
                 "assignments": [],
                 "cron_triggers": [],
+                "async_jobs": [],
                 "group_members": [],
                 "content_documents": [],
                 "tab_visibility": [],
@@ -385,6 +412,22 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
         self.assertEqual(self.run_guard("data", "query", "--target-org", "de", "--query", "SELECT Id FROM Account").returncode, 0)
         self.assertEqual(self.run_guard("org", "assign", "permset", "--target-org", "de", "--name", "CloudyBot_User").returncode, 0)
 
+        # Scoped `sf api request rest` discovery, Tooling GET, and prefix-scoped Apex REST calls pass and scrub leaked tokens
+        for ok_rest in (
+            ("api", "request", "rest", "/services/data/", "--target-org", "de"),
+            ("api", "request", "rest", "services/data/v68.0/limits", "-o", "de", "--json"),
+            ("api", "request", "rest", "/services/data/v68.0/tooling/sobjects/ValidationRule/describe", "--target-org", "de"),
+            ("api", "request", "rest", "/services/data/v68.0/tooling/query?q=SELECT+Id+FROM+ValidationRule", "--target-org", "de"),
+            ("api", "request", "rest", "/services/data/v68.0/tooling/sobjects/ApexLog/07L000000000001AAA/Body", "--target-org", "de"),
+            ("api", "request", "rest", "/services/apexrest/CloudyBot/v1/workspace", "--target-org", "de", "--method", "GET"),
+            ("api", "request", "rest", "--target-org", "de", "--method", "POST", "--body", '{"prompt":"hi"}', "/services/apexrest/CloudyBot/v1/messages"),
+            ("api", "request", "rest", "/services/apexrest/cloudyBot/v1/webhook", "--target-org", "de", "-X", "DELETE"),
+        ):
+            rest_res = self.run_guard(*ok_rest)
+            self.assertEqual(rest_res.returncode, 0, f"{ok_rest}: {rest_res.stderr}")
+            self.assertNotIn("AQEAQSecretSessionToken", rest_res.stdout)
+            self.assertIn("[redacted]", rest_res.stdout)
+
         dep = self.run_guard("project", "deploy", "start", "--target-org", "de", "--wait", "10")
         self.assertEqual(dep.returncode, 0, dep.stderr)
         self.assertNotIn("AQEAQSecretSessionToken", dep.stderr)
@@ -399,6 +442,20 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
             ("org", "assign", "permset", "--target-org", "de", "--name", "OtherPerm"),
             ("project", "deploy", "start", "--target-org", "de", "--post-destructive-changes", "d.xml"),
             ("project", "deploy", "start", "--target-org", "de", "--wait", "2"),
+            ("api", "request", "rest", "/services/data/"),
+            ("api", "request", "rest", "/services/data/", "--target-org", "other"),
+            ("api", "request", "rest", "https://evil.example.com/services/data/", "--target-org", "de"),
+            ("api", "request", "rest", "/services/data/v68.0/sobjects/Account", "--target-org", "de", "--method", "POST", "--body", "{}"),
+            ("api", "request", "rest", "/services/apexrest/OtherApp/v1/ping", "--target-org", "de"),
+            ("api", "request", "rest", "/services/apexrest/CloudyBot/../OtherApp/v1", "--target-org", "de"),
+            ("api", "request", "rest", "/services/apexrest/CloudyBot/%2e%2e/OtherApp/v1", "--target-org", "de"),
+            ("api", "request", "rest", "/services/data/v68.0/tooling/sobjects/NamedCredential/describe", "--target-org", "de"),
+            ("api", "request", "rest", "/services/data/v68.0/tooling/query?q=SELECT+Id+FROM+ExternalCredential", "--target-org", "de"),
+            ("api", "request", "rest", "/services/data/", "--target-org", "de", "--stream-to-file", "dump.json"),
+            ("api", "request", "rest", "/services/data/", "--target-org", "de", "--file", "req.json"),
+            ("api", "request", "rest", "/services/data/", "--target-org", "de", "--include"),
+            ("api", "request", "rest", "/services/apexrest/CloudyBot/v1/x", "--target-org", "de", "-H", "Authorization: Bearer x"),
+            ("api", "request", "rest", "/services/apexrest/CloudyBot/v1/x", "--target-org", "de", "-X", "POST", "--body", "@../sf_state.json"),
         ):
             res = self.run_guard(*bad)
             self.assertEqual(res.returncode, 2, bad)
@@ -553,6 +610,10 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
             {"Id": "08e000000000001AAA", "Name": "CloudyBotWake_123", "State": "WAITING"},
             {"Id": "08e000000000002AAA", "Name": "OtherAppNightly", "State": "WAITING"},
         ])
+        state["async_jobs"].extend([
+            {"Id": "707000000000001AAA", "ClassName": "CloudyBotWorker", "JobType": "Queueable", "Status": "Queued"},
+            {"Id": "707000000000002AAA", "ClassName": "ForeignAppWorker", "JobType": "Queueable", "Status": "Queued"},
+        ])
         state["group_members"].append({"Id": "011000000000001AAA", "GroupName": "CloudyBot_RevOps"})
         state["content_documents"].extend([
             {"Id": "069000000000001AAA", "Title": "CloudyBot_Dialogue_1"},
@@ -597,6 +658,7 @@ class CloudyBotGuardAndCheckerTests(unittest.TestCase):
         self.assertEqual(after["assignments"], [])
         self.assertEqual(after["group_members"], [])
         self.assertEqual([t["Name"] for t in after["cron_triggers"]], ["OtherAppNightly"])
+        self.assertEqual([j["ClassName"] for j in after["async_jobs"]], ["ForeignAppWorker"])
         self.assertEqual([f["Title"] for f in after["content_documents"]], ["Quarterly_Board_Deck"])
 
 

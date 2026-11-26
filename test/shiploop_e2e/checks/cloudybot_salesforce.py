@@ -273,21 +273,58 @@ def active_cron_triggers(org: str, prefix: str) -> list[dict]:
     return sorted(out, key=lambda r: r["Id"])
 
 
-def abort_cron_triggers(org: str, triggers: list[dict]) -> list[str]:
-    if not triggers:
-        return []
+def active_async_apex_jobs(org: str, prefix: str) -> list[dict]:
+    soql = (
+        "SELECT Id, JobType, Status, ApexClass.Name FROM AsyncApexJob "
+        "WHERE Status IN ('Holding', 'Queued', 'Preparing', 'Processing') "
+        "AND JobType IN ('Queueable', 'BatchApex', 'ScheduledApex') "
+        f"AND ApexClass.Name LIKE '{prefix}%'"
+    )
+    rows = tooling_or_data_query(org, soql, tooling=False)
+    out = []
+    for row in rows:
+        cls = row.get("ApexClass") or {}
+        cname = str(cls.get("Name") or "")
+        jtype = str(row.get("JobType") or "")
+        if row.get("Id") and cname.lower().startswith(prefix.lower()):
+            label = f"{cname} ({jtype})" if jtype else cname
+            out.append({
+                "Id": str(row["Id"]),
+                "Name": label,
+                "JobType": jtype,
+                "Status": str(row.get("Status") or ""),
+            })
+    return sorted(out, key=lambda r: r["Id"])
+
+
+def abort_apex_jobs(org: str, triggers: list[dict], async_jobs: list[dict] | None = None) -> tuple[list[str], list[str]]:
+    async_jobs = async_jobs or []
+    if not triggers and not async_jobs:
+        return [], []
     lines = []
-    aborted = []
+    aborted_triggers = []
+    aborted_async = []
     for row in triggers:
         tid = str(row.get("Id") or "")
         if not SF_ID_RE.fullmatch(tid):
             raise SfError(f"invalid CronTrigger id {tid!r}")
-        lines.append(f"System.abortJob('{tid}');")
-        aborted.append(row.get("Name") or tid)
+        lines.append(f"try {{ System.abortJob('{tid}'); }} catch (Exception ignored) {{}}")
+        aborted_triggers.append(row.get("Name") or tid)
+    for row in async_jobs:
+        jid = str(row.get("Id") or "")
+        if not SF_ID_RE.fullmatch(jid):
+            raise SfError(f"invalid AsyncApexJob id {jid!r}")
+        lines.append(f"try {{ System.abortJob('{jid}'); }} catch (Exception ignored) {{}}")
+        aborted_async.append(row.get("Name") or jid)
     with tempfile.TemporaryDirectory() as tmp:
         apex_file = Path(tmp) / "abort.apex"
         apex_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        need_ok(sf(["apex", "run", "--file", str(apex_file)], org, timeout=120), "abort CronTrigger jobs")
+        need_ok(sf(["apex", "run", "--file", str(apex_file)], org, timeout=120), "abort scheduled/async Apex jobs")
+    return aborted_triggers, aborted_async
+
+
+def abort_cron_triggers(org: str, triggers: list[dict]) -> list[str]:
+    aborted, _ = abort_apex_jobs(org, triggers, [])
     return aborted
 
 
@@ -522,6 +559,7 @@ def cmd_cleanup(args) -> int:
         return 1
 
     triggers = active_cron_triggers(args.org, args.prefix)
+    async_jobs = active_async_apex_jobs(args.org, args.prefix)
     cur_assign = all_permset_assignments(args.org, args.prefix)
     new_assign_ids = [row["Id"] for row in cur_assign if row["Id"] not in before_assign_ids]
     group_members = prefixed_group_members(args.org, args.prefix)
@@ -536,7 +574,7 @@ def cmd_cleanup(args) -> int:
         if new_prefixed:
             plan[kind] = new_prefixed
 
-    covered = ["CronTrigger", "PermissionSetAssignment", "GroupMember", "ContentDocument", *DESTRUCTIVE_ORDER]
+    covered = ["CronTrigger", "AsyncApexJob", "PermissionSetAssignment", "GroupMember", "ContentDocument", *DESTRUCTIVE_ORDER]
     unverified = [f"business records outside {args.prefix}* objects"]
     if unavailable:
         unverified.append("unavailable metadata types: " + ", ".join(sorted(unavailable)))
@@ -548,17 +586,19 @@ def cmd_cleanup(args) -> int:
             "target": {"kind": "salesforce", "org": args.org, "prefix": args.prefix},
             "covered": covered,
             "removed": {"CronTrigger": [t["Name"] or t["Id"] for t in triggers],
+                        "AsyncApexJob": [j["Name"] or j["Id"] for j in async_jobs],
                         "PermissionSetAssignment": new_assign_ids,
                         "GroupMember": [g["Id"] for g in group_members],
                         "ContentDocument": [f["Title"] or f["Id"] for f in files],
                         **plan},
             "remaining": [], "unverified": unverified, "verified": False,
         })
-        say(f"DRY-RUN: would remove {removed_count} metadata item(s), {len(triggers)} job(s), "
-            f"{len(new_assign_ids)} assignment(s), {len(group_members)} group member(s), {len(files)} file(s)")
+        say(f"DRY-RUN: would remove {removed_count} metadata item(s), {len(triggers)} scheduled job(s), "
+            f"{len(async_jobs)} async job(s), {len(new_assign_ids)} assignment(s), "
+            f"{len(group_members)} group member(s), {len(files)} file(s)")
         return 0
 
-    aborted = abort_cron_triggers(args.org, triggers)
+    aborted, aborted_async = abort_apex_jobs(args.org, triggers, async_jobs)
     deleted_assigns = delete_records(args.org, "PermissionSetAssignment", new_assign_ids)
     deleted_members = delete_records(args.org, "GroupMember", [g["Id"] for g in group_members])
     deleted_files = delete_records(args.org, "ContentDocument", [f["Id"] for f in files])
@@ -588,7 +628,8 @@ def cmd_cleanup(args) -> int:
         "schema": RECEIPT_SCHEMA, "mode": "cleanup", "dry_run": False,
         "target": {"kind": "salesforce", "org": args.org, "prefix": args.prefix},
         "covered": covered,
-        "removed": {"CronTrigger": aborted, "PermissionSetAssignment": deleted_assigns,
+        "removed": {"CronTrigger": aborted, "AsyncApexJob": aborted_async,
+                    "PermissionSetAssignment": deleted_assigns,
                     "GroupMember": deleted_members, "ContentDocument": deleted_files, **plan},
         "remaining": leftover + [f"modified {m}" for m in modified_base],
         "unverified": unverified, "verified": ok,
@@ -620,6 +661,7 @@ def cmd_purge(args) -> int:
         return 1
 
     triggers = active_cron_triggers(args.org, args.prefix)
+    async_jobs = active_async_apex_jobs(args.org, args.prefix)
     assignments = all_permset_assignments(args.org, args.prefix)
     group_members = prefixed_group_members(args.org, args.prefix)
     files = prefixed_content_documents(args.org, args.prefix)
@@ -633,13 +675,14 @@ def cmd_purge(args) -> int:
         if prefixed:
             plan[kind] = prefixed
 
-    covered = ["CronTrigger", "PermissionSetAssignment", "GroupMember", "ContentDocument", *DESTRUCTIVE_ORDER]
+    covered = ["CronTrigger", "AsyncApexJob", "PermissionSetAssignment", "GroupMember", "ContentDocument", *DESTRUCTIVE_ORDER]
     unverified = [f"business records outside {args.prefix}* objects"]
     if unavailable:
         unverified.append("unavailable metadata types: " + ", ".join(sorted(unavailable)))
 
     planned = {
         "CronTrigger": [t["Name"] or t["Id"] for t in triggers],
+        "AsyncApexJob": [j["Name"] or j["Id"] for j in async_jobs],
         "PermissionSetAssignment": [f"{a['PermissionSetName']} ({a['Id']})" for a in assignments],
         "GroupMember": [f"{g['GroupName']} ({g['Id']})" for g in group_members],
         "ContentDocument": [f"{f['Title']} ({f['Id']})" for f in files],
@@ -657,8 +700,9 @@ def cmd_purge(args) -> int:
             say(f"DRY-RUN: org {args.org!r} is already clean of {args.prefix}* / {camel_prefix(args.prefix)}* artifacts")
         else:
             say(
-                f"DRY-RUN: would purge {meta_count} metadata item(s), {len(triggers)} job(s), "
-                f"{len(assignments)} assignment(s), {len(group_members)} group member(s), {len(files)} file(s)"
+                f"DRY-RUN: would purge {meta_count} metadata item(s), {len(triggers)} scheduled job(s), "
+                f"{len(async_jobs)} async job(s), {len(assignments)} assignment(s), "
+                f"{len(group_members)} group member(s), {len(files)} file(s)"
             )
             for kind, items in planned.items():
                 if items:
@@ -666,19 +710,21 @@ def cmd_purge(args) -> int:
                     say(f"  {kind} ({len(items)}): {preview}")
         return 0
 
-    aborted = abort_cron_triggers(args.org, triggers)
+    aborted, aborted_async = abort_apex_jobs(args.org, triggers, async_jobs)
     deleted_assigns = delete_records(args.org, "PermissionSetAssignment", [a["Id"] for a in assignments])
     deleted_members = delete_records(args.org, "GroupMember", [g["Id"] for g in group_members])
     deleted_files = delete_records(args.org, "ContentDocument", [f["Id"] for f in files])
     destructive_deploy(args.org, plan)
 
     rem_triggers = active_cron_triggers(args.org, args.prefix)
+    rem_async = active_async_apex_jobs(args.org, args.prefix)
     rem_assigns = all_permset_assignments(args.org, args.prefix)
     rem_members = prefixed_group_members(args.org, args.prefix)
     rem_files = prefixed_content_documents(args.org, args.prefix)
     after_meta, _unavail2, _after_dates = read_org_metadata(args.org, args.prefix)
     remaining: list[str] = []
     remaining += [f"CronTrigger {t['Name'] or t['Id']}" for t in rem_triggers]
+    remaining += [f"AsyncApexJob {j['Name'] or j['Id']}" for j in rem_async]
     remaining += [f"PermissionSetAssignment {a['Id']}" for a in rem_assigns]
     remaining += [f"GroupMember {g['Id']}" for g in rem_members]
     remaining += [f"ContentDocument {f['Title'] or f['Id']}" for f in rem_files]
@@ -693,7 +739,8 @@ def cmd_purge(args) -> int:
         "schema": RECEIPT_SCHEMA, "mode": "purge", "dry_run": False,
         "target": {"kind": "salesforce", "org": args.org, "prefix": args.prefix},
         "covered": covered,
-        "removed": {"CronTrigger": aborted, "PermissionSetAssignment": deleted_assigns,
+        "removed": {"CronTrigger": aborted, "AsyncApexJob": aborted_async,
+                    "PermissionSetAssignment": deleted_assigns,
                     "GroupMember": deleted_members, "ContentDocument": deleted_files, **plan},
         "remaining": remaining, "unverified": unverified, "verified": ok, "limits": limits,
     })
@@ -708,7 +755,7 @@ def cmd_purge(args) -> int:
         headroom = " (" + ", ".join(parts) + ")"
     say(
         f"PASS: purge verified for {args.prefix}* "
-        f"({meta_count} metadata item(s), {len(aborted)} job(s), {len(deleted_assigns)} assignment(s), "
+        f"({meta_count} metadata item(s), {len(aborted) + len(aborted_async)} job(s), {len(deleted_assigns)} assignment(s), "
         f"{len(deleted_members)} group member(s), {len(deleted_files)} file(s) removed){headroom}"
     )
     return 0
