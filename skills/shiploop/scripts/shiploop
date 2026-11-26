@@ -49,7 +49,8 @@ def refuse_package_path(path: Path) -> None:
 
 def run_dir_from_arg(raw: Optional[str], *, walk: bool) -> Path:
     """Resolve the run directory: ``raw`` (or its ``.shiploop`` child), else, with ``walk``, the nearest
-    ``.shiploop`` above the current directory, else ``./.shiploop``.
+    ``.shiploop`` above the current directory (stopping at the enclosing Git repository root and never walking into
+    an ancestor ``$HOME/.shiploop``), else ``./.shiploop``.
     """
     if raw:
         given = Path(raw).expanduser()
@@ -62,10 +63,18 @@ def run_dir_from_arg(raw: Optional[str], *, walk: bool) -> Path:
     if not walk:
         return Path.cwd() / ".shiploop"
     current = Path.cwd().resolve()
+    try:
+        home = Path.home().resolve()
+    except OSError:
+        home = None
     for parent in [current, *current.parents]:
+        if home is not None and parent == home and current != home:
+            break
         candidate = parent / ".shiploop"
         if (candidate / "state.md").is_file() or (candidate / "state.json").is_file():
             return candidate
+        if (parent / ".git").exists():
+            break
     return Path.cwd() / ".shiploop"
 
 

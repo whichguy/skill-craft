@@ -3471,7 +3471,16 @@ class LiveRunGuidanceTests(unittest.TestCase):
         self.assertIn("RunSpecifiedTests", section)
         self.assertIn("RunLocalTests", section)
         self.assertIn("--test-level NoTestRun", section)
+        self.assertIn("--code-coverage", section)
+        self.assertIn("Test.isRunningTest()", section)
+        self.assertIn("prose", section)
         self.assertIn("unverified", section)
+        remote_section = normalized(card.split("\n## Remote tests\n", 1)[1].split("\n## ", 1)[0])
+        self.assertIn("sf project deploy validate", remote_section)
+        self.assertIn("sf project deploy start", remote_section)
+        ext_section = normalized(card.split("\n## Remote-only source extensions\n", 1)[1].split("\n## ", 1)[0])
+        self.assertIn("`.cls`", ext_section)
+        self.assertIn("`.trigger`", ext_section)
         self.assertNotIn("75%", card)
 
 

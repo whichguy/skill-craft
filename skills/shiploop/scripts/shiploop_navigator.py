@@ -11135,6 +11135,8 @@ def _start_improve(core: Any, root: Path, state: Mapping[str, Any], *, restart: 
                          + " and reviews.stopped-" + stamp + ".\n")
     receipt.parent.mkdir(parents=True, exist_ok=True)
     (receipt.parent / "reviews").mkdir(exist_ok=True)
+    if child["stage"] in ("research", "plan"):
+        planning_scratch_dir(state, child).mkdir(parents=True, exist_ok=True)
     message_path = improve_commit_message_path(child)
     store.atomic_write_text(receipt.with_name("parent-return.md"), "\n".join([
         "# Parent return for Improve child " + action_id, "",

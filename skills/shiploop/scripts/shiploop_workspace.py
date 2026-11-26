@@ -717,16 +717,23 @@ def _workspace_root(repo: Path, requested: Path, common: Path) -> Tuple[Path, bo
 RUNS_DIR = ".shiploop-runs"
 
 
-def require_grants(workspace_root: Path) -> None:
-    """Resume-time check: a harness restarted without its grants fails here, not mid-commit."""
+def require_grants(workspace_root: Path, *, include_git: bool = True) -> None:
+    """Resume-time check: a harness restarted without its grants fails here, not mid-commit.
+
+    Commands that only read or update run-local state (``next``, ``pause``, ``halt``, ``resume``, ``delegation``,
+    ``lint-mode``, ``workspace review-return``, and ``check`` outside code/test snapshot stages) pass
+    ``include_git=False`` so sandboxes that keep the source repository's ``.git`` read-only by default do not fail
+    needlessly when no Git metadata or object write will happen.
+    """
     worktree = Path(workspace_root) / "worktree"
     if not worktree.is_dir():
         return
-    common = _common_dir(worktree)
     parent = Path(workspace_root).parent
-    shiploop_grants.require(
-        [(Path(workspace_root) / "run", "run state", parent), (worktree, "product changes", parent),
-         (common, "every commit", common)])
+    probes = [(Path(workspace_root) / "run", "run state", parent), (worktree, "product changes", parent)]
+    if include_git:
+        common = _common_dir(worktree)
+        probes.append((common, "every commit", common))
+    shiploop_grants.require(probes)
 
 
 def default_root(repo: Path, stamp: str) -> Path:

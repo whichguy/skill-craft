@@ -1912,6 +1912,9 @@ class TestLoopTests(unittest.TestCase):
     def test_the_salesforce_card_lists_its_remote_test_commands_and_a_local_one_still_runs(self):
         commands = mutation.remote_test_commands()
         self.assertIn(("salesforce", "sf apex run test"), commands)
+        self.assertIn(("salesforce", "sf project deploy validate"), commands)
+        self.assertIn(("salesforce", "sf project deploy start"), commands)
+        self.assertEqual(mutation.remote_only_extensions().get("salesforce"), [".cls", ".trigger"])
         self.assertIsNone(mutation._remote_reason([{"command": "npx sfdx-lwc-jest -- --verbose"}]))
         # Run-5 batch I2: beside a local command, a remote one is left out of the mutant runs and recorded.
         local, remote = mutation.split_remote([{"command": "npx sfdx-lwc-jest -- --verbose"},
@@ -1922,6 +1925,73 @@ class TestLoopTests(unittest.TestCase):
                                                    {"command": "python3 -m pytest -v"}]))
         self.assertIn("platforms/salesforce.md", mutation._remote_reason(
             [{"command": "sf apex run test --target-org de --class-names SLTest --synchronous"}]))
+
+    def test_mixed_local_and_remote_item_skips_remote_only_extensions_and_honors_recorded_not_refused(self):
+        """Regression for D-MIXED-REMOTE-MUTATION-CONFLICT:
+        1. Remote-only files (.cls) sorting ahead of local code files do not starve local code of mutant sampling.
+        2. When remote_commands_skipped is nonempty and 0 mutants are killed on remaining files, 'recorded, not refused'
+           passes without raising an undisposed TestLoopError."""
+        isolated = mock.patch.dict(os.environ, {"PYTHONDONTWRITEBYTECODE": "1"})
+        isolated.start()
+        self.addCleanup(isolated.stop)
+        self.start()
+
+        remote_files = [f"classes/Alpha{i:02d}.cls" for i in range(10)]
+
+        def build(state):
+            if nav.current_stage(state) == "implement":
+                (self.repo / "classes").mkdir(exist_ok=True)
+                for rel in remote_files:
+                    (self.repo / rel).write_text(
+                        "public class Alpha { public static Boolean ok(Integer x) { return x >= 10 && true; } }\n"
+                    )
+                (self.repo / "z_local.py").write_text(self.CALC)
+                (self.repo / "test_z_local.py").write_text(
+                    "import unittest\nimport z_local\n"
+                    "class ZLocalTests(unittest.TestCase):\n"
+                    "    def test_calc(self):\n"
+                    "        self.assertEqual(z_local.add(2, 3), 5)\n"
+                    "        self.assertTrue(z_local.is_big(11))\n"
+                    "        self.assertFalse(z_local.is_big(10))\n"
+                )
+
+        self.drive_to(
+            "test",
+            step_plan={
+                "test_commands": [
+                    {"command": "python3 -m unittest -v test_z_local", "suite": "focused", "ids": ["test_calc"]},
+                    {"command": "sf apex run test --target-org de --class-names AlphaTest --result-format tap",
+                     "suite": "focused", "ids": ["AlphaTest.t1"]},
+                    {"command": "python3 -m unittest -v test_z_local", "suite": "regression", "min_tests": 1},
+                ],
+                "paths": ["a.py", *remote_files, "z_local.py", "test_z_local.py"],
+            },
+            each=build,
+        )
+        lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action())
+        self.assertTrue(lines and lines[0].startswith("mutation: "), lines)
+        record = store.read_record(self.run_dir / test_loop.mutation_path(self.action(), 1))
+        self.assertEqual(record["product_files"], ["z_local.py"])
+        self.assertEqual(sorted(record["remote_files_skipped"]), sorted(remote_files))
+        self.assertTrue(record["passed"])
+        self.assertGreater(record["killed"], 0)
+        self.assertTrue(all(m["file"] == "z_local.py" for m in record["mutants"]))
+
+        # Also verify the zero-kill mixed advisory path (e.g., local test does not assert z_local while stateful/remote
+        # command was skipped): recorded, not refused -> passes without undisposed TestLoopError.
+        (self.repo / "test_z_local.py").write_text(
+            "import unittest\nimport z_local\n"
+            "class ZLocalTests(unittest.TestCase):\n"
+            "    def test_calc(self):\n"
+            "        self.assertIsNotNone(z_local)\n"
+        )
+        advisory_lines = test_loop.mutation_check(self.run_dir, self.state(), self.item(), self.action(), count=False)
+        self.assertTrue(advisory_lines and advisory_lines[0].startswith("mutation: 0 of "), advisory_lines)
+        adv_record = store.read_record(self.run_dir / test_loop.mutation_check_path(self.action()))
+        self.assertTrue(adv_record["passed"])
+        self.assertEqual(adv_record["disposition"], "passed")
+        self.assertNotIn("undisposed", adv_record)
+        self.assertIn("recorded, not refused", adv_record["advisory"])
 
     def test_the_platform_cards_list_the_dependency_directories(self):
         """Outside review 2026-10-24, fix 3: the directories the base run links in come from the cards (owner rule:

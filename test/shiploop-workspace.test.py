@@ -3262,6 +3262,84 @@ class DirectEntryGuardTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn("No run was started.", result.stderr)
         self.assertTrue((self.folder / ".git").exists(), "workspace start makes the empty folder a Git repository")
+        self.assertTrue((self.base / "workspace" / "run" / "experiments").is_dir())
+
+    def test_non_git_mutating_verbs_succeed_when_source_git_dir_is_read_only_and_git_mutating_verbs_fail_closed(self) -> None:
+        ws_root = self.base / "workspace-ro-git"
+        started = subprocess.run(
+            [sys.executable, "-B", str(CLI), "workspace", "start", "--repo", str(self.folder),
+             "--prompt=build S1 cleanly.", "--workspace-root", str(ws_root)],
+            cwd=self.base, text=True, capture_output=True, timeout=120, env=self.env,
+        )
+        self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+        run_dir = ws_root / "run"
+        state = store.read_record(run_dir / "state.md")
+        action_id = navigator.current_action(state)["id"]
+        git_dir = self.folder / ".git"
+        orig_modes: list[tuple[Path, int]] = []
+        for p in [git_dir, *git_dir.rglob("*")]:
+            if not p.is_symlink():
+                orig_modes.append((p, stat.S_IMODE(p.stat().st_mode)))
+        def restore_git_modes() -> None:
+            for p, mode in reversed(orig_modes):
+                if p.exists():
+                    p.chmod(mode)
+        self.addCleanup(restore_git_modes)
+        for p, mode in orig_modes:
+            p.chmod(mode & ~0o222)
+
+        # Read-only / run-state-only verbs succeed without probing .git write access
+        nxt = subprocess.run(
+            [sys.executable, "-B", str(CLI), "next", "--run-dir", str(run_dir)],
+            cwd=self.base, text=True, capture_output=True, timeout=30, env=self.env,
+        )
+        self.assertEqual(nxt.returncode, 0, nxt.stdout + nxt.stderr)
+
+        chk = subprocess.run(
+            [sys.executable, "-B", str(CLI), "check", "--run-dir", str(run_dir), "--action", action_id],
+            cwd=self.base, text=True, capture_output=True, timeout=30, env=self.env,
+        )
+        # Intake draft is still template -> exits 2 from navigator check, NOT exit 3 SHIPLOOP-GRANT-NEEDED
+        self.assertEqual(chk.returncode, 2, chk.stdout + chk.stderr)
+        self.assertNotIn("SHIPLOOP-GRANT-NEEDED", chk.stderr)
+
+        paused = subprocess.run(
+            [sys.executable, "-B", str(CLI), "pause", "--run-dir", str(run_dir), "--reason", "hold"],
+            cwd=self.base, text=True, capture_output=True, timeout=30, env=self.env,
+        )
+        self.assertEqual(paused.returncode, 0, paused.stdout + paused.stderr)
+        resumed = subprocess.run(
+            [sys.executable, "-B", str(CLI), "resume", "--run-dir", str(run_dir)],
+            cwd=self.base, text=True, capture_output=True, timeout=30, env=self.env,
+        )
+        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+
+        # Committing/transitioning `complete` still fails closed with exit 3 before touching Git
+        comp = subprocess.run(
+            [sys.executable, "-B", str(CLI), "complete", "--run-dir", str(run_dir), "--action", action_id],
+            cwd=self.base, text=True, capture_output=True, timeout=30, env=self.env,
+        )
+        self.assertEqual(comp.returncode, 3, comp.stdout + comp.stderr)
+        self.assertIn("SHIPLOOP-GRANT-NEEDED", comp.stderr)
+
+    def test_bare_next_inside_git_repo_does_not_escape_to_parent_or_home_shiploop(self) -> None:
+        fake_home = self.base / "fake_home"
+        (fake_home / ".shiploop").mkdir(parents=True)
+        (fake_home / ".shiploop" / "state.json").write_text("{\"retired\": true}\n", encoding="utf-8")
+        repo = fake_home / "isolated" / "work"
+        (repo / "sub").mkdir(parents=True)
+        subprocess.run([str(GIT), "-C", str(repo), "init", "-q"], check=True, capture_output=True, env=self.env)
+        res = subprocess.run(
+            [sys.executable, "-B", str(CLI), "next"],
+            cwd=repo / "sub",
+            text=True,
+            capture_output=True,
+            timeout=30,
+            env={**self.env, "HOME": str(fake_home)},
+        )
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("no ShipLoop run directory at", res.stderr)
+        self.assertNotIn("retired JSON-state run", res.stderr)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

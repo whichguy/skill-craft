@@ -249,7 +249,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
             print(f"Workspace root: {args.workspace_root}")
         root = Path(args.workspace_root).absolute()
         if args.operation != "start":
-            workspace.require_grants(root)
+            workspace.require_grants(root, include_git=(args.operation != "review-return"))
         if args.operation == "start":
             need(bool(args.prompt.strip()), "prompt must not be empty")
             saved = root / "run" / "state.md"
@@ -537,14 +537,34 @@ def hook_status(core: Any, argv: Sequence[str]) -> int:
     return 0
 
 
-def _grant_refusal(core: Any, raw_argv: Sequence[str], run_dir: Optional[Path]) -> Optional[int]:
+_GIT_SNAPSHOT_CHECK_STAGES = frozenset({"implement", "test", "document", "system-test-author", "system-test"})
+_NON_GIT_MUTATING_VERBS = frozenset({"next", "pause", "halt", "resume", "delegation", "lint-mode"})
+
+
+def _command_needs_git_grant(command: str, root: Path) -> bool:
+    """Whether ``command`` on ``root`` may write Git objects, worktrees, or commits into the shared ``.git`` dir."""
+    if command in _NON_GIT_MUTATING_VERBS:
+        return False
+    if command == "check":
+        state = _saved_state(root)
+        if isinstance(state, dict):
+            try:
+                stage = navigator.sequence_stage(state)
+            except Exception:  # noqa: BLE001 - fall back to conservative full grant check on unreadable state
+                return True
+            return stage in _GIT_SNAPSHOT_CHECK_STAGES
+    return True
+
+
+def _grant_refusal(core: Any, raw_argv: Sequence[str], run_dir: Optional[Path],
+                   *, include_git: bool = True) -> Optional[int]:
     """Exit 3 with the repair when an isolated run's grants are gone; else None."""
     if run_dir is None or not (Path(run_dir).parent / "workspace.md").is_file():
         return None
     import shiploop_grants as grants
     import shiploop_workspace as workspace
     try:
-        workspace.require_grants(Path(run_dir).parent)
+        workspace.require_grants(Path(run_dir).parent, include_git=include_git)
     except grants.GrantError as exc:
         print(grants.report(exc, shlex.join(["python3", str(core.PACKAGE_ROOT / "scripts" / "shiploop"),
                                              *raw_argv]), starting=False), file=sys.stderr)
@@ -1039,7 +1059,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
               file=sys.stderr)
         return 2
     if args.command not in ("init", "status", "report", "context"):
-        refused = _grant_refusal(core, raw_argv, root)
+        refused = _grant_refusal(core, raw_argv, root, include_git=_command_needs_git_grant(args.command, root))
         if refused is not None:
             return refused
     if (args.command == "init" and args.execution_mode != "navigator-worktree" and (args.prompt or "").strip()
@@ -1152,6 +1172,7 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                 planning_review=args.planning_review or navigator.DEFAULT_PLANNING_REVIEW,
             )
             navigator.save(root, state)
+            (root / "experiments").mkdir(exist_ok=True)
             _TRACE["created"], _TRACE["after"] = True, state
             import shiploop_trace
             shiploop_trace.ACTIVE = True
