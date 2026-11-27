@@ -134,7 +134,12 @@ test/check. Retain an applicable release/recovery condition, or a reasoned
 and test locators in existing plan/work-item context and `evidence_refs`; normal
 standalone Improve reviews use those same materials.
 
-For an additive change, compare the actual consumer surface before and after the
+For an additive or follow-on change, treat `KNOWLEDGE/spec.md` as the master living spec and
+the run's Case Spec (`C-<n>`, `RUN/case-spec.md`) as the incremental planning scope:
+keep every earlier `R-<n>`, amend changed requirements in place, move removed ones
+under `## Retired` with reason, and keep `primary` and `work_items` focused on the
+`C-<n>` delta (`added`, `modified` delta clauses, `retired`) rather than unchanged
+master features. Compare the actual consumer surface before and after the
 planned outcome against the original request and baseline. Retaining a helper,
 data shape, or unit assertion alone does not establish compatibility; earlier
 agent acceptance does not authorize superseding a preserved condition.

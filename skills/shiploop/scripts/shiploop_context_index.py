@@ -87,8 +87,8 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/decisions/", "the user's replies to a blocked question", "after a resume"),
     ("RUN/owner-notes/", "the owner's notes written to the running run, one file each", "a packet quotes an owner note"),
     ("RUN/request.md", "the request, then its sentences S1..Sn", "you cite one (S<n>)"),
-    ("RUN/run-baseline.txt", "starting HEAD; spec diffs run from the starting bytes in run-starting-knowledge.json",
-     "a diff since the run began"),
+    ("RUN/run-baseline.txt", "starting HEAD; diffs use run-starting-knowledge.json; C-<n> in case-spec.md",
+     "a diff or C-<n> delta since start"),
     ("RUN/skill-calls.jsonl", ("the Skill-tool calls the session made in this run (the Improve stage's gate reads it), "
                                "plus one gate line when the call is not enforced"),
      "an Improve stage refuses for a missing skill call"),

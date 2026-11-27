@@ -398,9 +398,10 @@ class StartingKnowledgeTests(RepoCase):
             if Path(path).name == knowledge.RUN_BASELINE:
                 self.assertTrue(self.snapshot().is_file())
                 record = json.loads(self.snapshot().read_text())
-                self.assertEqual(record, {"version": 1, "head": self.head(), "files": {
+                self.assertEqual(record, {"version": 2, "head": self.head(), "files": {
                     "docs/shiploop/spec.md": base64.b64encode(raw).decode("ascii"),
-                    "docs/shiploop/architecture.md": None}})
+                    "docs/shiploop/architecture.md": None,
+                    "docs/shiploop/environment.md": None}})
             seen.append(Path(path).name)
             publish(path, text)
 
@@ -4191,6 +4192,115 @@ class ConcernHandoffTests(RepoCase):
             found[stage] = spill, content
         self.assertEqual(set(found), set(cd_stages))
         self.assertEqual(len({spill for spill, _ in found.values()}), len(cd_stages))
+
+
+class CaseSpecDeltaHandoffTests(RepoCase):
+    """Follow-on Case Spec delta gating, v1 snapshot compatibility, and anti-reimplementation checks."""
+
+    def test_v1_starting_knowledge_snapshot_still_decodes_cleanly(self) -> None:
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n### R-1: Initial\n- Base.\n\n## Retired\nnone\n",
+        )
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "v1 baseline")
+        self.write_baseline()  # writes version: 1 snapshot
+
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n### R-1: Initial\n- Base.\n\n### R-2: Added\n- New.\n\n## Retired\nnone\n",
+        )
+        diff = knowledge.spec_diff(self.root, self.state)
+        self.assertIsNotNone(diff)
+        self.assertIn("### R-2: Added", diff or "")
+
+        delta = knowledge.case_delta(self.root, dict(self.state, case_id="C-2"))
+        self.assertIsNotNone(delta)
+        assert delta is not None
+        self.assertEqual(delta.added_requirements, ("R-2",))
+        self.assertEqual(delta.unchanged_requirements, ("R-1",))
+        self.assertFalse(delta.environment_changed)
+
+    def test_follow_on_gates_block_unchanged_reimplementation_and_require_delta_coverage(self) -> None:
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Settings Surface\n- Old settings layout.\n\n"
+            "### R-2: Core Chat\n- Existing chat loop.\n\n"
+            "### R-4: Old Toggle\n- Legacy toggle.\n\n"
+            "## Retired\nnone\n",
+        )
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "baseline spec")
+        knowledge.record_baseline(self.root, self.state)
+
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Settings Surface\n- Split Admin Settings from User Preferences.\n\n"
+            "### R-2: Core Chat\n- Existing chat loop.\n\n"
+            "### R-3: Guided Setup\n- Day-0 onboarding wizard.\n\n"
+            "## Retired\n\n"
+            "### R-4: Old Toggle\n- Retired toggle.\n",
+        )
+        state = dict(self.state, case_id="C-2")
+
+        # spec.primary on follow-on refuses targeting only unchanged master R-2 when active delta exists.
+        with self.assertRaises(ValueError) as spec_err:
+            primary.check_spec(self.repo, "spec", {"outcome": "done", "primary": ["R-2"]}, root=self.root, state=state)
+        self.assertIn("unchanged master requirement(s)", str(spec_err.exception))
+
+        # Targeting the active delta requirements passes.
+        primary.check_spec(self.repo, "spec", {"outcome": "done", "primary": ["R-1", "R-3"]}, root=self.root, state=state)
+
+        # plan work_items omitting delta requirement R-3 or R-4 is refused.
+        plan_state = dict(state, status="active", stage="plan")
+        with self.assertRaises(ValueError) as missing_delta:
+            primary.check_queue(
+                plan_state,
+                "plan",
+                {"outcome": "done", "work_items": [{"id": "W1", "title": "Update settings", "follows": ["R-1"]}]},
+                root=self.root,
+            )
+        self.assertIn("changed/added/retired R-3, R-4", str(missing_delta.exception))
+
+        # Reimplementation work item following only unchanged master R-2 (without regression/repair framing) is refused.
+        with self.assertRaises(ValueError) as reimpl_err:
+            primary.check_queue(
+                plan_state,
+                "plan",
+                {
+                    "outcome": "done",
+                    "work_items": [
+                        {"id": "W1", "title": "Deliver C-2 delta", "follows": ["R-1", "R-3", "R-4"]},
+                        {"id": "W2", "title": "Build Core Chat", "follows": ["R-2"]},
+                    ],
+                },
+                root=self.root,
+            )
+        self.assertIn("follows only unchanged master requirement(s)", str(reimpl_err.exception))
+
+        # Explicitly framed baseline regression/repair work item IS allowed alongside delta items.
+        primary.check_queue(
+            plan_state,
+            "plan",
+            {
+                "outcome": "done",
+                "work_items": [
+                    {"id": "W1", "title": "Deliver C-2 delta", "follows": ["R-1", "R-3", "R-4"]},
+                    {"id": "W2", "title": "Repair R-2 regression bug", "follows": ["R-2"]},
+                ],
+            },
+            root=self.root,
+        )
+
+        # Case-delta packet block surfaces exact IDs and unchanged do-not-reimplement list.
+        delta_lines = "\n".join(primary.case_delta_lines(self.root, plan_state, "plan"))
+        self.assertIn("Case C-2 incremental spec (RUN/case-spec.md; master spec KNOWLEDGE/spec.md):", delta_lines)
+        self.assertIn("- Added (implement): R-3", delta_lines)
+        self.assertIn("- Modified (implement delta lines only; preserve existing behaviour): R-1", delta_lines)
+        self.assertIn("- Retired (remove/deprecate): R-4", delta_lines)
+        self.assertIn("- Unchanged master (preserve & regression-check only; DO NOT reimplement): R-2", delta_lines)
 
 
 if __name__ == "__main__":

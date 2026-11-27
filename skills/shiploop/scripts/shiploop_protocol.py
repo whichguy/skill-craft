@@ -1184,6 +1184,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             if problem:
                 print("ShipLoop knowledge: the run baseline was not recorded (" + problem + "); packets print the "
                       "spec diff as not recorded.", file=sys.stderr)
+            else:
+                knowledge_home.write_case_spec(root, state)
             navigator.emit(core, root, state)
             progress_ready = True
             return 0

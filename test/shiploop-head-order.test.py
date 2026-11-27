@@ -399,7 +399,7 @@ class TierTests(unittest.TestCase):
                 self.assertEqual(tiers.get("quoted", navigator.QUOTED), navigator.QUOTED)
                 for name, tier in tiers.items():
                     if tier == navigator.P1:
-                        self.assertIn(name, {"answered", "owner-notes", "work-item", "revisit", "concerns", "step", "commit-scope",
+                        self.assertIn(name, {"answered", "owner-notes", "work-item", "revisit", "concerns", "case-delta", "step", "commit-scope",
                                              "expectation-results", "queue-rule", "test-rules", "rerun", "observed",
                                              "workspace-return", "delivery", "lint-commands", "improve-lessons"})
                 # Test's and document's Step block names the step just built and the skills the step plan lists for the

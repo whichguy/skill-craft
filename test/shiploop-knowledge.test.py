@@ -2256,5 +2256,208 @@ class UnnamedCommandTests(HomeFixture):
         self.assertEqual(knowledge.command_notices(self.state, []), [])
 
 
+class CaseSpecAndRetentionTests(HomeFixture):
+    """Master living knowledge home + first-class per-run Case Spec (C-<n>) delta and environment retention."""
+
+    def test_next_case_id_counts_distinct_knowledge_commit_runs(self) -> None:
+        self.assertEqual(knowledge.next_case_id(self.repo), "C-1")
+
+        spec = self.repo / "docs/shiploop/spec.md"
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text("# Spec\n\n### R-1: Initial\n- First req.\n", encoding="utf-8")
+        s1 = {"repo": str(self.repo), "prompt": "Case one", "run_id": "nav-1111111111111111"}
+        self.assertTrue(knowledge.commit(s1, "spec").commit)
+        self.assertEqual(knowledge.next_case_id(self.repo), "C-2")
+
+        # Multiple knowledge commits from the same run_id still count as one prior case.
+        spec.write_text("# Spec\n\n### R-1: Initial\n- Updated detail.\n", encoding="utf-8")
+        self.assertTrue(knowledge.commit(s1, "plan").commit)
+        self.assertEqual(knowledge.next_case_id(self.repo), "C-2")
+
+        # A distinct second run_id increments the next case counter to C-3.
+        s2 = {"repo": str(self.repo), "prompt": "Case two", "run_id": "nav-2222222222222222"}
+        spec.write_text("# Spec\n\n### R-1: Initial\n- Updated detail.\n### R-2: Follow-on\n- New req.\n", encoding="utf-8")
+        self.assertTrue(knowledge.commit(s2, "spec").commit)
+        self.assertEqual(knowledge.next_case_id(self.repo), "C-3")
+
+    def test_case_delta_tracks_added_modified_retired_superseded_unchanged_and_writes_case_spec(self) -> None:
+        home = self.repo / "docs/shiploop"
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text(
+            "# Spec\n\n"
+            "## Requirements\n\n"
+            "### R-1: Settings Surface\n"
+            "- Single combined panel.\n\n"
+            "### R-2: Core Chat\n"
+            "- Send message and render reply.\n\n"
+            "### R-3: Legacy Token Box\n"
+            "- Plaintext API key input.\n\n"
+            "## Non-functional requirements\n- NFR-1: Fast load.\n\n## Retired\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "architecture.md").write_text(
+            "# Architecture\n\n"
+            "## Stack\n- Python\n\n"
+            "## Structure\n- src/\n\n"
+            "## Conventions\n- Keep clean\n\n"
+            "## Interfaces and boundaries\n- API\n\n"
+            "## Real-boundary checks\n- DB\n\n"
+            "## Decisions\n\n"
+            "### AD-1: Config Store\n- Uses table v1.\n\n"
+            "### AD-2: Transport\n- Uses HTTPS.\n\n"
+            "### AD-3: Old Cache\n- Local dict.\n\n"
+            "## Superseded\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "environment.md").write_text(
+            "# Environment\n\n"
+            "## Targets and runtimes\n- Python 3.12\n\n"
+            "## Commands\n- `pytest -q`\n\n"
+            "## Skills\n- none\n\n"
+            "## Harnesses and suites\n- unittest\n\n"
+            "## ID convention\n- R-<n>\n\n"
+            "## Access and accounts\n- local\n\n"
+            "## Platform facts\n- macOS\n\n"
+            "## Release and promotion\n- tag\n",
+            encoding="utf-8",
+        )
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "baseline home")
+
+        root = Path(tempfile.mkdtemp(prefix="shiploop-casespec-"))
+        self.addCleanup(lambda: subprocess.run(["rm", "-rf", str(root)], check=False))
+        knowledge.record_baseline(root, self.state)
+
+        state = dict(self.state, case_id="C-2")
+        (home / "spec.md").write_text(
+            "# Spec\n\n"
+            "## Requirements\n\n"
+            "### R-1: Settings Surface\n"
+            "- Split Admin Settings from User Preferences.\n\n"
+            "### R-2: Core Chat\n"
+            "- Send message and render reply.\n\n"
+            "### R-4: Guided Day-0 Setup\n"
+            "- Walkthrough when LLM is unconfigured.\n\n"
+            "## Non-functional requirements\n- NFR-1: Fast load.\n\n"
+            "## Retired\n\n"
+            "### R-3: Legacy Token Box\n"
+            "- Superseded by Named Credential in R-1.\n",
+            encoding="utf-8",
+        )
+        (home / "architecture.md").write_text(
+            "# Architecture\n\n"
+            "## Stack\n- Python\n\n"
+            "## Structure\n- src/\n\n"
+            "## Conventions\n- Keep clean\n\n"
+            "## Interfaces and boundaries\n- API\n\n"
+            "## Real-boundary checks\n- DB\n\n"
+            "## Decisions\n\n"
+            "### AD-1: Config Store\n- Uses table v2.\n\n"
+            "### AD-2: Transport\n- Uses HTTPS.\n\n"
+            "### AD-4: Day-0 Detector\n- Checks verified flag at runtime.\n\n"
+            "## Superseded\n\n"
+            "### AD-3: Old Cache\n- Removed.\n",
+            encoding="utf-8",
+        )
+        (home / "environment.md").write_text(
+            (home / "environment.md").read_text(encoding="utf-8").replace("- `pytest -q`", "- `pytest -q`\n- `ruff check .`"),
+            encoding="utf-8",
+        )
+
+        delta = knowledge.case_delta(root, state)
+        self.assertIsNotNone(delta)
+        assert delta is not None
+        self.assertEqual(delta.case_id, "C-2")
+        self.assertTrue(delta.is_follow_on)
+        self.assertEqual(delta.added_requirements, ("R-4",))
+        self.assertEqual(list(delta.modified_requirements), ["R-1"])
+        self.assertEqual(delta.retired_requirements, ("R-3",))
+        self.assertEqual(delta.unchanged_requirements, ("R-2",))
+        self.assertIn("- Split Admin Settings from User Preferences.", delta.modified_requirements["R-1"].added_lines)
+        self.assertIn("- Single combined panel.", delta.modified_requirements["R-1"].removed_lines)
+        self.assertEqual(delta.added_decisions, ("AD-4",))
+        self.assertEqual(list(delta.modified_decisions), ["AD-1"])
+        self.assertEqual(delta.superseded_decisions, ("AD-3",))
+        self.assertEqual(delta.unchanged_decisions, ("AD-2",))
+        self.assertTrue(delta.environment_changed)
+
+        env_diff = knowledge.environment_diff(root, state)
+        self.assertIsNotNone(env_diff)
+        self.assertIn("`ruff check .`", env_diff or "")
+
+        written = knowledge.write_case_spec(root, state)
+        self.assertEqual(written, root / knowledge.CASE_SPEC_FILE)
+        case_text = (root / knowledge.CASE_SPEC_FILE).read_text(encoding="utf-8")
+        self.assertIn("# Case C-2 Incremental Spec", case_text)
+        self.assertIn("## Added Requirements (Implement)", case_text)
+        self.assertIn("### R-4", case_text)
+        self.assertIn("## Modified Requirements (Implement Delta Only)", case_text)
+        self.assertIn("### R-1 (full master context in KNOWLEDGE/spec.md)", case_text)
+        self.assertIn("## Retired Requirements (Remove / Deprecate)", case_text)
+        self.assertIn("### R-3", case_text)
+        self.assertIn("## Unchanged Master Requirements (Preserve & Regression-Check Only — Do Not Reimplement)", case_text)
+        self.assertIn("R-2", case_text)
+        self.assertIn("## Environment Delta", case_text)
+        self.assertIn("`ruff check .`", case_text)
+
+    def test_environment_section_retention_and_step_spec_case_mark(self) -> None:
+        home = self.repo / "docs/shiploop"
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text(
+            "# Spec\n\n## Requirements\n\n### R-1: Notes\n- Notes line.\n\n"
+            "## Non-functional requirements\n- NFR-1: Fast.\n\n## Retired\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "architecture.md").write_text(
+            "# Architecture\n\n## Stack\n- Py\n\n## Structure\n- src/\n\n## Conventions\n- x\n\n"
+            "## Interfaces and boundaries\n- x\n\n## Real-boundary checks\n- x\n\n"
+            "## Decisions\n\n### AD-1: Base\n- Choice.\n\n## Superseded\nnone\n",
+            encoding="utf-8",
+        )
+        env_text = (
+            "# Environment\n\n"
+            "## Targets and runtimes\n- Python 3.12\n\n"
+            "## Commands\n- `pytest`\n\n"
+            "## Skills\n- none\n\n"
+            "## Harnesses and suites\n- unittest\n\n"
+            "## ID convention\n- R-<n>\n\n"
+            "## Access and accounts\n- local\n\n"
+            "## Platform facts\n- macOS\n\n"
+            "## Release and promotion\n- tag\n"
+        )
+        (home / "environment.md").write_text(env_text, encoding="utf-8")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "full home")
+
+        # Dropping a populated environment section on follow-on must be refused.
+        (home / "environment.md").write_text(
+            env_text.replace("## Commands\n- `pytest`\n\n", ""),
+            encoding="utf-8",
+        )
+        refusal = knowledge.check(self.state, "prepare")
+        self.assertIn("environment.md", refusal)
+        self.assertIn("Commands", refusal)
+
+        # Emptying a previously populated environment section must also be refused.
+        (home / "environment.md").write_text(
+            env_text.replace("## Targets and runtimes\n- Python 3.12\n", "## Targets and runtimes\n"),
+            encoding="utf-8",
+        )
+        refusal_empty = knowledge.check(self.state, "prepare")
+        self.assertIn("environment.md", refusal_empty)
+        self.assertIn("Targets and runtimes", refusal_empty)
+
+        # Restoring environment.md passes, and step_spec_refusal accepts (C-<n> W1/S1).
+        (home / "environment.md").write_text(env_text, encoding="utf-8")
+        self.assertEqual(knowledge.check(self.state, "prepare"), "")
+        (home / "spec.md").write_text(
+            (home / "spec.md").read_text(encoding="utf-8").replace(
+                "- Notes line.", "- Notes line.\n- Case acceptance criterion. (C-2 W1/S1)."
+            ),
+            encoding="utf-8",
+        )
+        self.assertEqual(knowledge.step_spec_refusal(self.repo, "W1/S1"), "")
+
+
 if __name__ == "__main__":
     unittest.main()

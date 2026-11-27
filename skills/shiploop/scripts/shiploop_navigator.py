@@ -170,6 +170,7 @@ _STATE_KEYS = frozenset(
         "revisions",
         "lint",
         "planning_review",
+        "case_id",
     )
 )
 # Run-level execution delegation.  Every run records it; new runs default to
@@ -1680,6 +1681,7 @@ def new_state(
     # (the CLI always passes its fix default).
     state["lint"] = lint_option if lint_option is not None else "off"
     state["planning_review"] = planning_review
+    state["case_id"] = knowledge.next_case_id(Path(repo))
     validate(state)
     return state
 
@@ -1724,13 +1726,16 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
     _need("lint" in keys,
           "navigator state has no recorded lint option; it was saved by an older ShipLoop. "
           + FRESH_RUN_HINT)
-    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "delegation_hold"} - keys)
+    missing = sorted(allowed - {"status_reason", "delivery_contract_version", "delegation_hold", "case_id"} - keys)
     _need(not unexpected and not missing,
           "navigator state has unsupported or missing fields ("
           + "; ".join(part for part in (
               "unexpected: " + ", ".join(unexpected) if unexpected else "",
               "missing: " + ", ".join(missing) if missing else "") if part)
           + "); a run saved by an older ShipLoop cannot be loaded. " + FRESH_RUN_HINT)
+    if "case_id" in state and state.get("case_id") is not None:
+        _need(isinstance(state.get("case_id"), str) and re.fullmatch(r"C-\d+", str(state.get("case_id"))) is not None,
+              "navigator case_id must be formatted as C-<n>")
     _need(state.get("version") != 6, V6_REASON)
     _need(state.get("version") != 8, V8_REASON)
     _need(state.get("version") != 9, V9_REASON)
@@ -2483,6 +2488,8 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         # Required text (run-5 batch F6; F3 of the 2026-10-28 plan): the spec's primary requirements by value, with the
         # tests that passed for each at product-acceptance, and at plan and reflect-and-revise the work items following each.
         blocks.append(_Block("primary", P1, primary.packet_lines(root, state, stage)))
+    if root is not None and stage in ("test-strategy", "plan", "step-plan", "reflect-and-revise", "product-acceptance"):
+        blocks.append(_Block("case-delta", P1, primary.case_delta_lines(root, state, stage)))
     if stage == defaults.SHOWN_AT:
         # Required text: the defaults the spec recorded, by value, for the host to name in its progress line.
         blocks.append(_Block("defaults", P1, defaults.packet_lines(state, root, stage, _default_rows(state).lines)))
@@ -3843,6 +3850,11 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
+    if root is not None and stages[-1] in ("spec", "plan", "document", "reflect-and-revise"):
+        try:
+            knowledge.write_case_spec(Path(root), after)
+        except Exception:  # noqa: BLE001 - derived case view never blocks an accepted commit
+            pass
     # At a close only: one counted line per living file that lacks named sections (never a refusal, never raised).  The close is
     # the stage among this call's accepted rows that closes, not the last row: a stage the script records after the close in
     # the same call would otherwise leave that close silent.
@@ -4238,8 +4250,8 @@ def _check_submitted_primary(root: Path, state: Mapping[str, Any], stage: str, r
             and "work_items" in result:
         _normalise_work_items(result["work_items"], allow_empty=True)   # a template follows gets its shape refusal first
     try:
-        primary.check_spec(Path(str(state["repo"])), stage, result)
-        primary.check_queue(state, stage, result)
+        primary.check_spec(Path(str(state["repo"])), stage, result, root=root, state=state)
+        primary.check_queue(state, stage, result, root=root)
         primary.check_unverified(root, state, stage, result)
     except primary.PrimaryError as exc:
         raise NavigatorError(str(exc)) from exc
@@ -7732,9 +7744,27 @@ def _spec_diff_lines(diff: str, listed: Collection[str] = ()) -> list[str]:
     return lines
 
 
-def _followed_lines(repo: Path, label: str, value: Any) -> list[str]:
+def _followed_lines(repo: Path, label: str, value: Any, *, root: Path | None = None,
+                    state: Mapping[str, Any] | None = None) -> list[str]:
     """The followed R-<n> and AD-<n> entries, each quoted by value with its retired marker: the requirement and decision
     rows the stage follows are the only part of the living files a packet quotes (owner decision D1, 2026-10-17)."""
+    delta = knowledge.case_delta(Path(root), state) if (root is not None and state is not None) else None
+    lines: list[str] = [label + ":"]
+    if delta is not None and delta.is_follow_on:
+        for ident, _text in value:
+            sid = str(ident)
+            if sid in delta.modified_requirements:
+                ed = delta.modified_requirements[sid]
+                lines.append(f"- {sid} [modified in {delta.case_id} — implement delta below; preserve untouched master clauses in KNOWLEDGE/spec.md]:")
+                for dline in ed.removed_lines:
+                    lines.append("  - [-] " + dline)
+                for dline in ed.added_lines:
+                    lines.append("  - [+] " + dline)
+                lines.append("  Master entry (context only):")
+                lines.extend(_entry_lines(repo, sid))
+            else:
+                lines.extend(_entry_lines(repo, sid))
+        return lines
     return [label + ":", *(line for ident, _text in value for line in _entry_lines(repo, str(ident)))]
 
 
@@ -7795,7 +7825,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
     if value is None:
         return [label + ": not recorded by " + str(source.stage)]
     if source.key == "follows":
-        return _followed_lines(repo, label, value) if value else [label + ": none"]
+        return _followed_lines(repo, label, value, root=root, state=state) if value else [label + ": none"]
     if source.key == "criteria":
         return [label + ":", *("- " + layers.criterion_label(row) + ": " + _one_line(row.get("text"))
                                for row in value if isinstance(row, Mapping))]

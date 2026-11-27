@@ -3802,6 +3802,38 @@ class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
             with self.subTest(doc="platforms/salesforce.md", clause=clause):
                 self.assertIn(clause, sf_doc if "\n" in clause or clause.startswith("- ") else sf_norm)
 
+    def test_case_spec_delta_and_anti_reimplementation_contracts(self) -> None:
+        spec = normalized(prompts.prompt("spec"))
+        for clause in (
+            "C-<n>",
+            "never list unchanged master requirements in `primary`",
+            "amend changed R-<n> in place",
+            "move removed ones under ## Retired with reason",
+        ):
+            with self.subTest(stage="spec", clause=clause):
+                self.assertIn(clause, spec)
+
+        plan = normalized(prompts.prompt("plan"))
+        for clause in (
+            "RUN/case-spec.md",
+            "`added`, `modified` delta clauses, and `retired` removals",
+            "never create work items that reimplement already-implemented master features",
+        ):
+            with self.subTest(stage="plan", clause=clause):
+                self.assertIn(clause, plan)
+
+        step_plan = normalized(prompts.prompt("step-plan"))
+        self.assertIn("For any `modified` master R-<n>, scope step tasks and criteria strictly to Case `C-<n>`'s delta lines", step_plan)
+        self.assertIn("keep untouched existing behavior as `works` preservation expectations rather than reimplementing it", step_plan)
+
+        pk_doc = normalized((REFERENCES / "project-knowledge.md").read_text(encoding="utf-8"))
+        self.assertIn("RUN/case-spec.md", pk_doc)
+        self.assertIn("environment.md` preserve prior history in place", pk_doc)
+
+        req_doc = normalized((REFERENCES / "requirements-definition.md").read_text(encoding="utf-8"))
+        self.assertIn("Case Spec (`C-<n>`, `RUN/case-spec.md`)", req_doc)
+        self.assertIn("unchanged master features", req_doc)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

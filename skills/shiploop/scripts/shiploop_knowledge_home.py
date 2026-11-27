@@ -363,6 +363,34 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
                          "then run complete again.")
             refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
                             + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
+    env_name = "environment.md"
+    env_committed = _committed(repo, env_name)
+    env_path = repo / HOME / env_name
+    if env_committed.strip() and env_path.is_file():
+        env_now = env_path.read_text(encoding="utf-8-sig", errors="replace")
+        if env_now.strip() and env_now != env_committed:
+            old_lines = env_committed.splitlines()
+            old_outline = _outline(old_lines)
+            now_lines = env_now.splitlines()
+            now_outline = _outline(now_lines)
+            lost_sections = [
+                heading for heading in SECTIONS[env_name]
+                if _section_state(old_lines, old_outline, heading) == "present"
+                and _section_state(now_lines, now_outline, heading) in ("missing", "empty")
+            ]
+            if lost_sections:
+                if command == "complete":
+                    first = ("Restore the lost section(s) in " + str(env_path)
+                             + " and update it in place, then run the same callback again.")
+                elif command in ("improve-commit", "improve-pass"):
+                    first = ("Restore the lost section(s) in " + str(env_path)
+                             + ", then run " + command + " again.")
+                else:
+                    first = ("Restore the lost section(s) in " + str(env_path)
+                             + "; if the review changed it, improve-commit it; then run complete again.")
+                refusals.append(first + "\nThe environment file dropped or emptied previously populated section(s): "
+                                + ", ".join(lost_sections)
+                                + ". Update existing sections in place instead of overwriting prior environment history.")
     return "\n".join(refusals)
 
 
@@ -676,8 +704,9 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
             for line in after[j1:j2]:
                 if not line.strip() or tag == "replace" and line in before[i1:i2]:
                     continue
-                # A sentence may end after the mark: "(W1/S1)." refused 4 correct lines (stage-prompt review, 2026-10-31).
-                if not line.rstrip().rstrip(".;").endswith("(" + marker + ")"):
+                # A sentence may end after the mark: "(W1/S1)." or "(C-2 W1/S1)." refused earlier (stage-prompt review).
+                tail = line.rstrip().rstrip(".;")
+                if not re.search(r"\((?:C-\d+\s+)?" + re.escape(marker) + r"\)$", tail):
                     unmarked.append(line.strip())
                 elif not any(line in span for span in spans):
                     outside.append(line.strip())
@@ -986,7 +1015,7 @@ def lessons_lines(repo: Path, window: Sequence[str] = ()) -> List[str]:
             + ["  | " + line for line in (found.body.splitlines() or ["(the commit has no body)"])])
 
 
-# --- the run baseline and the spec diff (owner decision D3, X9) -------------------------------------------------------
+# --- the run baseline, case IDs, structured case delta and spec diff (owner decision D3, X9) -----------------------
 
 # A run publishes the complete starting working bytes first (run-starting-knowledge.json), so pre-init owner edits
 # (including untracked files) do not become changes attributed to this run, then a HEAD pointer (run-baseline.txt) the
@@ -994,7 +1023,43 @@ def lessons_lines(repo: Path, window: Sequence[str] = ()) -> List[str]:
 # are never recaptured. A run with a pointer and no snapshot has no spec diff: there is no HEAD-relative fallback.
 RUN_BASELINE = "run-baseline.txt"
 RUN_STARTING_KNOWLEDGE = "run-starting-knowledge.json"
+CASE_SPEC_FILE = "case-spec.md"
 _SPEC_DIFF_FILES = (HOME + "/spec.md", HOME + "/" + ARCHITECTURE)
+_SNAPSHOT_FILES = (HOME + "/spec.md", HOME + "/" + ARCHITECTURE, HOME + "/environment.md")
+_CASE_TAG = re.compile(r"(?:Case\s+|\()C-(\d+)\b")
+_KNOWLEDGE_SUBJECT_SLUG = re.compile(r"^docs\(shiploop\): record (\S+) knowledge (?:at|after) ", re.M)
+
+
+def next_case_id(repo: Path) -> str:
+    """Next monotonic Case Spec identifier (``C-1``, ``C-2``, …) for a run in ``repo``.
+
+    Scans committed ``spec.md`` and recent git commit messages for explicit Case tags
+    (``Case C-<n>`` or ``(C-<n> ...``) as well as distinct ShipLoop knowledge-commit
+    run slugs (``docs(shiploop): record <slug> knowledge ...``). If the checkout already
+    holds a committed ``docs/shiploop/spec.md`` without any ``C-<n>`` tag or knowledge
+    commit yet (e.g. brownfield upgrade), returns ``C-2`` so the follow-on run is
+    distinct from the initial master baseline.
+    """
+    repo = Path(repo)
+    if not (repo / ".git").exists():
+        spec_path = repo / HOME / "spec.md"
+        return "C-2" if spec_path.is_file() and spec_path.read_text(encoding="utf-8", errors="replace").strip() else "C-1"
+    highest = 0
+    committed_spec = _committed(repo, "spec.md")
+    if committed_spec.strip():
+        for match in _CASE_TAG.finditer(committed_spec):
+            highest = max(highest, int(match.group(1)))
+    run_slugs = set()
+    log_out = _git(repo, "log", "-n", "200", "--format=%s%n%b")
+    if log_out.returncode == 0 and log_out.stdout:
+        for match in _CASE_TAG.finditer(log_out.stdout):
+            highest = max(highest, int(match.group(1)))
+        for match in _KNOWLEDGE_SUBJECT_SLUG.finditer(log_out.stdout):
+            run_slugs.add(match.group(1))
+    highest = max(highest, len(run_slugs))
+    if highest == 0 and committed_spec.strip():
+        return "C-2"
+    return "C-" + str(highest + 1)
 
 
 def _starting_bytes(path: Path) -> Optional[bytes]:
@@ -1057,8 +1122,8 @@ def record_baseline(root: Path, state: Mapping[str, Any]) -> Optional[str]:
     if shown.returncode or not re.fullmatch(r"[0-9a-f]{40,64}", head):
         return "HEAD of " + str(repo) + " names no commit"
     try:
-        files = {name: _starting_bytes(repo / name) for name in _SPEC_DIFF_FILES}
-        payload = {"version": 1, "head": head, "files": {
+        files = {name: _starting_bytes(repo / name) for name in _SNAPSHOT_FILES}
+        payload = {"version": 2, "head": head, "files": {
             name: None if data is None else base64.b64encode(data).decode("ascii") for name, data in files.items()}}
         store.atomic_write_text(snapshot, json.dumps(payload, sort_keys=True) + "\n")
         store.atomic_write_text(record, head + "\n")
@@ -1080,33 +1145,38 @@ def _snapshot_object(pairs: Sequence[Tuple[str, Any]]) -> Dict[str, Any]:
 def _read_snapshot(snapshot: Path) -> Tuple[str, Dict[str, Optional[bytes]]]:
     """Validate all immutable evidence before trusting its HEAD binding or any starting bytes."""
     payload = json.loads(snapshot.read_text(encoding="utf-8"), object_pairs_hook=_snapshot_object)
+    expected_keys_by_version = {1: set(_SPEC_DIFF_FILES), 2: set(_SNAPSHOT_FILES)}
+    ver = payload.get("version") if isinstance(payload, dict) else None
     if (not isinstance(payload, dict) or set(payload) != {"version", "head", "files"}
-            or type(payload["version"]) is not int or payload["version"] != 1
+            or type(ver) is not int or ver not in expected_keys_by_version
             or not isinstance(payload["head"], str) or not re.fullmatch(r"[0-9a-f]{40,64}", payload["head"])
-            or not isinstance(payload["files"], dict) or set(payload["files"]) != set(_SPEC_DIFF_FILES)):
+            or not isinstance(payload["files"], dict) or set(payload["files"]) != expected_keys_by_version[ver]):
         raise ValueError("invalid starting-knowledge snapshot")
-    starting = {}
+    starting: Dict[str, Optional[bytes]] = {}
     for name, value in payload["files"].items():
         if value is not None and not isinstance(value, str):
             raise ValueError("invalid starting bytes for " + name)
         starting[name] = None if value is None else base64.b64decode(value, validate=True)
+    if ver == 1:
+        starting.setdefault(HOME + "/environment.md", None)
     return payload["head"], starting
 
 
-def _snapshot_diff(repo: Path, snapshot: Path, baseline: str) -> Optional[str]:
+def _snapshot_diff(repo: Path, snapshot: Path, baseline: str,
+                   targets: Sequence[str] = _SPEC_DIFF_FILES) -> Optional[str]:
     """Require matching bound HEAD and complete evidence; never fall back from invalid evidence to HEAD."""
     try:
         head, starting = _read_snapshot(snapshot)
         if head != baseline:
             return None
-        current = {name: _starting_bytes(repo / name) for name in _SPEC_DIFF_FILES}
+        current = {name: _starting_bytes(repo / name) for name in targets}
         chunks = []
         # Git operates only on disposable copies, never the product index/tree. Separate invocations prevent renames
-        # across the two files; explicit options also override user diff drivers, textconv and rename preferences.
+        # across the files; explicit options also override user diff drivers, textconv and rename preferences.
         with tempfile.TemporaryDirectory(prefix="shiploop-knowledge-diff-") as directory:
             scratch = Path(directory)
-            for number, name in enumerate(_SPEC_DIFF_FILES):
-                before, after = starting[name], current[name]
+            for number, name in enumerate(targets):
+                before, after = starting.get(name), current[name]
                 if before == after:
                     continue
                 paths = []
@@ -1147,12 +1217,7 @@ def _snapshot_diff(repo: Path, snapshot: Path, baseline: str) -> Optional[str]:
         return None
 
 
-def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
-    """The uncut diff of the living spec and architecture from their starting bytes to the working tree.
-
-    "" when unchanged; None outside Git, without a baseline, or with missing, unreadable, partial or malformed snapshot
-    evidence (a HEAD pointer alone is no baseline).
-    """
+def _validated_snapshot(root: Path, state: Mapping[str, Any]) -> Optional[Tuple[str, Dict[str, Optional[bytes]]]]:
     repo = Path(str(state["repo"]))
     try:
         baseline = (Path(root) / RUN_BASELINE).read_text(encoding="utf-8").strip()
@@ -1163,7 +1228,225 @@ def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
     snapshot = Path(root) / RUN_STARTING_KNOWLEDGE
     if not os.path.lexists(snapshot) or not re.fullmatch(r"[0-9a-f]{40,64}", baseline):
         return None
-    return _snapshot_diff(repo, snapshot, baseline)
+    try:
+        head, starting = _read_snapshot(snapshot)
+    except (OSError, ValueError, TypeError, binascii.Error):
+        return None
+    if head != baseline:
+        return None
+    return head, starting
+
+
+def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
+    """The uncut diff of the living spec and architecture from their starting bytes to the working tree.
+
+    "" when unchanged; None outside Git, without a baseline, or with missing, unreadable, partial or malformed snapshot
+    evidence (a HEAD pointer alone is no baseline).
+    """
+    validated = _validated_snapshot(root, state)
+    if validated is None:
+        return None
+    return _snapshot_diff(Path(str(state["repo"])), Path(root) / RUN_STARTING_KNOWLEDGE,
+                          validated[0], _SPEC_DIFF_FILES)
+
+
+def environment_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
+    """Uncut diff of ``docs/shiploop/environment.md`` from its starting bytes to the working tree."""
+    validated = _validated_snapshot(root, state)
+    if validated is None:
+        return None
+    return _snapshot_diff(Path(str(state["repo"])), Path(root) / RUN_STARTING_KNOWLEDGE,
+                          validated[0], (HOME + "/environment.md",))
+
+
+class EntryDelta(NamedTuple):
+    """Changed lines inside a modified living-file entry (R-<n> or AD-<n>)."""
+    added_lines: Tuple[str, ...]
+    removed_lines: Tuple[str, ...]
+
+
+class CaseDelta(NamedTuple):
+    """Structured delta comparing the run's starting living files against the current working tree."""
+    case_id: str
+    is_follow_on: bool
+    added_requirements: Tuple[str, ...]
+    modified_requirements: Dict[str, EntryDelta]
+    retired_requirements: Tuple[str, ...]
+    unchanged_requirements: Tuple[str, ...]
+    added_decisions: Tuple[str, ...]
+    modified_decisions: Dict[str, EntryDelta]
+    superseded_decisions: Tuple[str, ...]
+    unchanged_decisions: Tuple[str, ...]
+    environment_changed: bool
+
+
+def _id_sort_key(ident: str) -> int:
+    return int(ident.split("-")[1])
+
+
+def _entry_line_delta(before_text: str, after_text: str) -> EntryDelta:
+    before_lines = before_text.splitlines()
+    after_lines = after_text.splitlines()
+    added: List[str] = []
+    removed: List[str] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, before_lines, after_lines, autojunk=False).get_opcodes():
+        if tag in ("delete", "replace"):
+            removed.extend(line for line in before_lines[i1:i2] if line.strip())
+        if tag in ("insert", "replace"):
+            added.extend(line for line in after_lines[j1:j2] if line.strip())
+    return EntryDelta(tuple(added), tuple(removed))
+
+
+def _classify_entries(before_text: str, after_text: str, prefix: str) -> Tuple[
+    Tuple[str, ...], Dict[str, EntryDelta], Tuple[str, ...], Tuple[str, ...]
+]:
+    before = _entries(before_text, prefix) if before_text.strip() else {}
+    after = _entries(after_text, prefix) if after_text.strip() else {}
+    added: List[str] = []
+    modified: Dict[str, EntryDelta] = {}
+    retired: List[str] = []
+    unchanged: List[str] = []
+    all_ids = sorted(set(before) | set(after), key=_id_sort_key)
+    for ident in all_ids:
+        old = before.get(ident)
+        cur = after.get(ident)
+        if old is None:
+            if cur is not None and not cur.retired:
+                added.append(ident)
+            continue
+        if old.retired:
+            continue
+        if cur is None or cur.retired:
+            retired.append(ident)
+        elif old.text != cur.text:
+            modified[ident] = _entry_line_delta(old.text, cur.text)
+        else:
+            unchanged.append(ident)
+    return tuple(added), modified, tuple(retired), tuple(unchanged)
+
+
+def case_delta(root: Path, state: Mapping[str, Any]) -> Optional[CaseDelta]:
+    """Structured per-ID classification of ``spec.md`` and ``architecture.md`` changes since run start.
+
+    Returns None when snapshot/baseline evidence is missing or unavailable.
+    """
+    validated = _validated_snapshot(root, state)
+    if validated is None:
+        return None
+    _, starting = validated
+    repo = Path(str(state["repo"]))
+    case_id = str(state.get("case_id") or "").strip() or "C-1"
+
+    def _decode(raw: Optional[bytes]) -> str:
+        return "" if raw is None else raw.decode("utf-8-sig", errors="replace")
+
+    before_spec = _decode(starting.get(HOME + "/spec.md"))
+    before_arch = _decode(starting.get(HOME + "/" + ARCHITECTURE))
+    before_env = _decode(starting.get(HOME + "/environment.md"))
+
+    def _read_cur(name: str) -> str:
+        raw = _starting_bytes(repo / HOME / name)
+        return _decode(raw)
+
+    now_spec = _read_cur("spec.md")
+    now_arch = _read_cur(ARCHITECTURE)
+    now_env = _read_cur("environment.md")
+
+    is_follow_on = bool(before_spec.strip()) and bool(_entries(before_spec, "R") if before_spec.strip() else False)
+    r_added, r_mod, r_ret, r_unchanged = _classify_entries(before_spec, now_spec, "R")
+    ad_added, ad_mod, ad_sup, ad_unchanged = _classify_entries(before_arch, now_arch, "AD")
+    return CaseDelta(
+        case_id=case_id,
+        is_follow_on=is_follow_on,
+        added_requirements=r_added,
+        modified_requirements=r_mod,
+        retired_requirements=r_ret,
+        unchanged_requirements=r_unchanged,
+        added_decisions=ad_added,
+        modified_decisions=ad_mod,
+        superseded_decisions=ad_sup,
+        unchanged_decisions=ad_unchanged,
+        environment_changed=(before_env != now_env),
+    )
+
+
+def write_case_spec(root: Path, state: Mapping[str, Any]) -> Optional[Path]:
+    """Materialize ``RUN/case-spec.md`` from ``case_delta(root, state)``; return path or None."""
+    import shiploop_store as store
+
+    delta = case_delta(root, state)
+    if delta is None:
+        return None
+    repo = Path(str(state["repo"]))
+    spec_entries = entries(repo, "spec.md")
+    arch_entries = entries(repo, ARCHITECTURE)
+    try:
+        baseline = (Path(root) / RUN_BASELINE).read_text(encoding="utf-8").strip()[:12]
+    except (OSError, UnicodeError):
+        baseline = "unknown"
+    mode_label = "follow-on incremental change" if delta.is_follow_on else "initial build"
+    lines: List[str] = [
+        f"# Case {delta.case_id} Incremental Spec",
+        "",
+        f"- Mode: {mode_label}",
+        f"- Baseline HEAD: {baseline}",
+        f"- Master Spec: {repo / HOME / 'spec.md'}",
+        f"- Master Architecture: {repo / HOME / ARCHITECTURE}",
+        f"- Environment: {repo / HOME / 'environment.md'}",
+        "",
+        "## Added Requirements (Implement)",
+        "",
+    ]
+    if not delta.added_requirements:
+        lines.append("none")
+    else:
+        for ident in delta.added_requirements:
+            entry = spec_entries.get(ident)
+            lines.append(f"### {ident}")
+            lines.append(entry.text if entry is not None else "(missing from KNOWLEDGE/spec.md)")
+            lines.append("")
+    lines += ["", "## Modified Requirements (Implement Delta Only)", ""]
+    if not delta.modified_requirements:
+        lines.append("none")
+    else:
+        for ident, edelta in delta.modified_requirements.items():
+            lines.append(f"### {ident} (full master context in KNOWLEDGE/spec.md)")
+            for line in edelta.removed_lines:
+                lines.append("- `-` " + line)
+            for line in edelta.added_lines:
+                lines.append("- `+` " + line)
+            lines.append("")
+    lines += ["", "## Retired Requirements (Remove / Deprecate)", ""]
+    if not delta.retired_requirements:
+        lines.append("none")
+    else:
+        for ident in delta.retired_requirements:
+            entry = spec_entries.get(ident)
+            lines.append(f"### {ident}")
+            lines.append(entry.text if entry is not None else "(retired)")
+            lines.append("")
+    lines += ["", "## Architecture Decisions Delta", ""]
+    if not (delta.added_decisions or delta.modified_decisions or delta.superseded_decisions):
+        lines.append("none")
+    else:
+        for ident in delta.added_decisions:
+            entry = arch_entries.get(ident)
+            lines.append(f"- Added `{ident}`: " + (" ".join(entry.text.split())[:200] if entry else ""))
+        for ident, edelta in delta.modified_decisions.items():
+            lines.append(f"- Modified `{ident}`: +" + str(len(edelta.added_lines)) + " / -" + str(len(edelta.removed_lines)) + " line(s)")
+        for ident in delta.superseded_decisions:
+            lines.append(f"- Superseded `{ident}`")
+    lines += ["", "## Unchanged Master Requirements (Preserve & Regression-Check Only — Do Not Reimplement)", ""]
+    lines.append(", ".join(delta.unchanged_requirements) if delta.unchanged_requirements else "none")
+    lines += ["", "## Environment Delta", ""]
+    if delta.environment_changed:
+        env_diff = environment_diff(Path(root), state)
+        lines.append(env_diff.rstrip() if env_diff else "updated (see KNOWLEDGE/environment.md)")
+    else:
+        lines.append("none")
+    out = Path(root) / CASE_SPEC_FILE
+    store.atomic_write_text(out, "\n".join(lines).rstrip() + "\n")
+    return out
 
 
 def commit(state: Mapping[str, Any], stage: str, open_items: Sequence[Any] = ()) -> shiploop_git.Committed:
@@ -1201,8 +1484,11 @@ def in_home(path: str) -> bool:
 __all__ = ("ARCHITECTURE",
            "step_spec_refusal",
            "ARCHITECTURE_HOLDS",
+           "CASE_SPEC_FILE",
            "CLOSES",
+           "CaseDelta",
            "Entry",
+           "EntryDelta",
            "HOME",
            "KNOWLEDGE",
            "LESSONS_SUBJECT",
@@ -1219,17 +1505,20 @@ __all__ = ("ARCHITECTURE",
            "SECTIONS",
            "STAGE_FILES",
            "Section",
+           "case_delta",
            "check",
            "command_notices",
            "commit",
            "entries",
            "entry_text",
+           "environment_diff",
            "in_home",
            "is_knowledge_subject",
            "knowledge_subject",
            "last_lessons",
            "lessons_body",
            "lessons_lines",
+           "next_case_id",
            "next_close",
            "outline",
            "placement_notices",
@@ -1242,4 +1531,5 @@ __all__ = ("ARCHITECTURE",
            "section_notices",
            "spec_diff",
            "stage_lines",
-           "unnamed_commands")
+           "unnamed_commands",
+           "write_case_spec")
