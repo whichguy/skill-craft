@@ -3850,7 +3850,7 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
-    if root is not None and stages[-1] in ("spec", "plan", "document", "reflect-and-revise"):
+    if root is not None and (committed.commit or stages[-1] in ("spec", "plan", "document", "reflect-and-revise")):
         try:
             knowledge.write_case_spec(Path(root), after)
         except Exception:  # noqa: BLE001 - derived case view never blocks an accepted commit

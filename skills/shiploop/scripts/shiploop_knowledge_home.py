@@ -366,9 +366,9 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     env_name = "environment.md"
     env_committed = _committed(repo, env_name)
     env_path = repo / HOME / env_name
-    if env_committed.strip() and env_path.is_file():
-        env_now = env_path.read_text(encoding="utf-8-sig", errors="replace")
-        if env_now.strip() and env_now != env_committed:
+    if env_committed.strip():
+        env_now = env_path.read_text(encoding="utf-8-sig", errors="replace") if env_path.is_file() else ""
+        if env_now != env_committed:
             old_lines = env_committed.splitlines()
             old_outline = _outline(old_lines)
             now_lines = env_now.splitlines()
@@ -1315,11 +1315,17 @@ def _classify_entries(before_text: str, after_text: str, prefix: str) -> Tuple[
                 added.append(ident)
             continue
         if old.retired:
+            if cur is not None and not cur.retired:
+                added.append(ident)
             continue
         if cur is None or cur.retired:
             retired.append(ident)
         elif old.text != cur.text:
-            modified[ident] = _entry_line_delta(old.text, cur.text)
+            ed = _entry_line_delta(old.text, cur.text)
+            if ed.added_lines or ed.removed_lines:
+                modified[ident] = ed
+            else:
+                unchanged.append(ident)
         else:
             unchanged.append(ident)
     return tuple(added), modified, tuple(retired), tuple(unchanged)

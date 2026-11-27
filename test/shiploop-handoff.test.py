@@ -4302,6 +4302,64 @@ class CaseSpecDeltaHandoffTests(RepoCase):
         self.assertIn("- Retired (remove/deprecate): R-4", delta_lines)
         self.assertIn("- Unchanged master (preserve & regression-check only; DO NOT reimplement): R-2", delta_lines)
 
+        # Adding/modifying an AD-<n> allows a work item following only unchanged master R-2 alongside that AD-<n>.
+        self.home(
+            "architecture.md",
+            "# Architecture\n\n## Decisions\n\n### AD-2: Async Queue\n- Move R-2 delivery to worker.\n\n## Superseded\nnone\n",
+        )
+        primary.check_queue(
+            plan_state,
+            "plan",
+            {
+                "outcome": "done",
+                "work_items": [
+                    {"id": "W1", "title": "Deliver C-2 delta", "follows": ["R-1", "R-3", "R-4"]},
+                    {"id": "W2", "title": "Wire worker for AD-2", "follows": ["R-2", "AD-2"]},
+                ],
+            },
+            root=self.root,
+        )
+
+        # _followed_lines highlights modified R-1 delta lines while leaving unchanged R-2 without a delta banner.
+        followed = "\n".join(
+            navigator._followed_lines(
+                self.repo,
+                "Followed",
+                [("R-1", ""), ("R-2", "")],
+                root=self.root,
+                state=plan_state,
+            )
+        )
+        self.assertIn(
+            "- R-1 [modified in C-2 — implement delta below; preserve untouched master clauses in KNOWLEDGE/spec.md]:",
+            followed,
+        )
+        self.assertIn("  - [-] - Old settings layout.", followed)
+        self.assertIn("  - [+] - Split Admin Settings from User Preferences.", followed)
+        self.assertNotIn("R-2 [modified in C-2", followed)
+
+    def test_follow_on_without_requirement_delta_allows_maintenance_work_items(self) -> None:
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n### R-1: Core Chat\n- Existing chat loop.\n\n## Retired\nnone\n",
+        )
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "stable master spec")
+        knowledge.record_baseline(self.root, self.state)
+
+        plan_state = dict(self.state, case_id="C-2", status="active", stage="plan")
+        primary.check_queue(
+            plan_state,
+            "plan",
+            {
+                "outcome": "done",
+                "work_items": [
+                    {"id": "W1", "title": "Tighten connection retry logging", "follows": ["R-1"]},
+                ],
+            },
+            root=self.root,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

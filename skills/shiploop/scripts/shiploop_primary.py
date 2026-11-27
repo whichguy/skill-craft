@@ -249,11 +249,14 @@ def check_queue(state: Mapping[str, Any], stage: str, result: Any, *, root: Opti
             + " lists them in follows. Widen an owning item or add one carrying "
             + missing_delta[0] + " in follows.")
     unchanged = set(delta.unchanged_requirements)
+    changed_ads = set(delta.added_decisions) | set(delta.modified_decisions) | set(delta.superseded_decisions)
     for row in result.get("work_items") or ():
         if not isinstance(row, Mapping):
             continue
-        req_follows = [ident for ident in _follows(row) if ident.startswith("R-")]
-        if req_follows and all(ident in unchanged for ident in req_follows):
+        row_follows = _follows(row)
+        req_follows = [ident for ident in row_follows if ident.startswith("R-")]
+        has_changed_ad = any(ident in changed_ads for ident in row_follows)
+        if req_follows and not has_changed_ad and all(ident in unchanged for ident in req_follows):
             label = str(row.get("title") or "") + " " + str(row.get("context") or "")
             if not _REGRESSION_REPAIR_HINT.search(label):
                 wid = str(row.get("id") or "W<n>")

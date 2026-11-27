@@ -927,7 +927,7 @@ class SectionsTests(HomeFixture):
             for match in pattern.finditer(flat):
                 if match.group(3) is not None:
                     items = [match.group(3)]
-                elif "##" in match.group(2):  # a parenthesis with no heading in it is prose about the file
+                elif re.search(r"(?<!#)##(?!#)", match.group(2)):  # a parenthesis with no heading in it is prose about the file
                     items = match.group(2).split(",")
                 else:
                     continue
@@ -2457,6 +2457,60 @@ class CaseSpecAndRetentionTests(HomeFixture):
             encoding="utf-8",
         )
         self.assertEqual(knowledge.step_spec_refusal(self.repo, "W1/S1"), "")
+
+        # Blanking or deleting a committed environment.md must be refused at every stage.
+        (home / "environment.md").write_text("", encoding="utf-8")
+        refusal_blank = knowledge.check(self.state, "step-plan")
+        self.assertIn("environment.md", refusal_blank)
+        (home / "environment.md").unlink()
+        refusal_deleted = knowledge.check(self.state, "step-plan")
+        self.assertIn("environment.md", refusal_deleted)
+
+    def test_reinstating_retired_entries_and_blank_line_only_diffs(self) -> None:
+        home = self.repo / "docs/shiploop"
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text(
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core\n- Stays active.\n\n"
+            "## Non-functional requirements\nnone\n\n"
+            "## Retired\n\n"
+            "### R-2: Reinstated Flag\n- Was retired earlier.\n",
+            encoding="utf-8",
+        )
+        (home / "architecture.md").write_text(
+            "# Architecture\n\n## Decisions\n\n### AD-1: Base\n- Active.\n\n"
+            "## Superseded\n\n### AD-2: Reinstated Adapter\n- Was superseded.\n",
+            encoding="utf-8",
+        )
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "retired home")
+
+        root = Path(tempfile.mkdtemp(prefix="shiploop-reinstate-"))
+        self.addCleanup(lambda: subprocess.run(["rm", "-rf", str(root)], check=False))
+        knowledge.record_baseline(root, self.state)
+
+        state = dict(self.state, case_id="C-2")
+        # Add only blank-line spacing to R-1, reinstate R-2 and AD-2 into active sections.
+        (home / "spec.md").write_text(
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core\n\n- Stays active.\n\n"
+            "### R-2: Reinstated Flag\n- Was retired earlier.\n\n"
+            "## Non-functional requirements\nnone\n\n## Retired\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "architecture.md").write_text(
+            "# Architecture\n\n## Decisions\n\n### AD-1: Base\n- Active.\n\n"
+            "### AD-2: Reinstated Adapter\n- Was superseded.\n\n## Superseded\nnone\n",
+            encoding="utf-8",
+        )
+        delta = knowledge.case_delta(root, state)
+        self.assertIsNotNone(delta)
+        assert delta is not None
+        self.assertEqual(delta.added_requirements, ("R-2",))
+        self.assertEqual(delta.modified_requirements, {})
+        self.assertEqual(delta.unchanged_requirements, ("R-1",))
+        self.assertEqual(delta.added_decisions, ("AD-2",))
+        self.assertEqual(delta.unchanged_decisions, ("AD-1",))
 
 
 if __name__ == "__main__":
