@@ -45,52 +45,42 @@ and its `host-bindings/v2` data read-only.
 
 ## Script-owned lint
 
-A new run records `lint: fix`. ShipLoop then lints each work item itself. When
-the item's inner loop starts it snapshots the item base. For every file the
-item changed, it discovers the linters for that file type: built-in ruff and
-shellcheck, the linters the repository configures (eslint, prettier, tsc, mypy,
-black, markdownlint-cli2, yamllint, gofmt; actionlint whenever it is on PATH),
-and `npm run lint` or `make lint` for a changed file no other linter covers.
-Repository-configured linters run repository code; pre-commit is never run,
-because it may download environments. Nothing is ever installed.
+A new run records `lint: fix`. On inner-loop start ShipLoop snapshots the item
+base, then for changed files discovers built-in ruff/shellcheck, repo-configured
+linters (eslint, prettier, tsc, mypy, black, markdownlint-cli2, yamllint,
+gofmt, clang-format, phpcs, rubocop; actionlint, terraform fmt and ktlint
+whenever on PATH), and fallback `npm run lint` / `make lint`. pre-commit is
+never run; nothing is ever installed.
 
-- **Lint gate.** The `complete` that submits `implement` (every step), `test` or
-  `document` as done (each of them edits code, tests or docs) lints
-  every file that stage changed and applies safe fixes on those lines. It
-  refuses that submission once after an auto-fix (rerun the step's checks, then
-  submit again), and while a new finding on a line that stage changed has no
-  entry in the result's `lint_waivers` (`[{"id", "reason"}]`, using the IDs the
-  refusal prints). Findings present at the base or elsewhere in a file, missing
-  tools, tool errors, timeouts and a pass that cannot run never refuse. At
-  `test` and `document` the gate runs before ShipLoop's test runs, so the tests
-  cover any auto-fix. The step review's import is gated the same way, on the
-  lines the review changed. The implement and test packets print the
-  report-only `lint` command to run after each edit.
+- **Lint gate.** `complete` with `done` on `implement` (every step), `test`,
+  `document`, and step-review import lints changed files and applies safe
+  changed-line fixes. It refuses once after an auto-fix (rerun the step's
+  checks), and while a new changed-line finding, a base-compared new regression
+  elsewhere in a changed file (such as a newly unused import or variable), or a
+  Tier-0 Python shadowed top-level `def`/`class` lacks a `lint_waivers` entry
+  (`[{"id", "reason"}]`). Pre-existing `at-base` findings, uncompared
+  repo-linter `unattributed` findings, missing tools, tool errors, timeouts and
+  an unrun pass never refuse. At `test` and `document`, the gate precedes
+  ShipLoop's test runs. `implement` and `test` packets print `lint` for
+  post-edit checks.
 
-`off` stops the linters, the gate and auto-fix only; the item base is still
-recorded. The block follows
-the packet's callback. It lists every command's exact argv, cwd, exit code and
-complete output, shows auto-fixes as an applied diff plus NOT APPLIED hunks,
-separates new findings from debt already present at the item base, and states
-per-file coverage. The step still selects and runs its own checks. Details and
-safety pins: [lint catalog](lint-catalog.md).
-
-`--lint fix|report|off` at `init` or `workspace start` selects the option; a
-saved run without the key is refused (start a fresh run), never migrated. `report`
-shows would-be fixes as NOT APPLIED. An `init` or `workspace start` retry cannot
-change it. For an existing run:
+`off` stops linters, the gate and auto-fix only (the item base is still
+recorded). Output lists each command's argv, cwd, exit code and output, applied
+vs. NOT APPLIED hunks, new vs. base findings, and per-file coverage; steps still
+run their own checks ([lint catalog](lint-catalog.md)). `--lint fix|report|off`
+at `init` or `workspace start` sets it (`report` shows would-be fixes as
+NOT APPLIED); saved runs without the key are refused (never migrated), and
+`init`/`workspace start` retries cannot change it:
 
 ```sh
 python3 "$CLI" lint-mode --run-dir "$RUN_DIR" --set report   # or fix, off
 python3 "$CLI" lint --run-dir "$RUN_DIR" --action "$ACTION"   # report-only rerun
 ```
 
-`lint-mode` is refused on a halted or done run. A switch to `fix` applies fixes
-only where a per-item base exists; otherwise the pass says its base fell back
-and runs report-only. The `lint` rerun exits 0 when clean and fully covered, 1
-when new findings remain or a file is uncovered, and 3 when the pass could not
-run; ShipLoop never gates on that exit code (the implement gate runs its own
-pass).
+`lint-mode` refuses halted or done runs; switching to `fix` runs report-only
+if no per-item base exists. `lint` exits 0 clean and covered, 1 when findings
+or uncovered files remain, and 3 when unrun; ShipLoop never gates on its exit
+code.
 
 ## Planning review option
 

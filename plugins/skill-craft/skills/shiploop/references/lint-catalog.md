@@ -4,7 +4,9 @@ ShipLoop lints each work item itself on runs whose run option `lint` is `fix`
 or `report` (new runs record `fix`; a saved run without the key is refused,
 never migrated). The gate pass runs at `complete`: an `implement` step, `test`
 or `document` is not accepted as done while a new finding on a line that stage
-changed has no waiver, and the step review's import is gated the same way on
+changed, a base-compared new regression elsewhere in a changed file (such as a
+newly unused import/variable), or a Tier-0 Python shadowed top-level `def`/`class`
+definition has no waiver, and the step review's import is gated the same way on
 the lines the review changed. ShipLoop never gates on the `shiploop lint` exit code.
 The step still selects and runs its own checks. See
 [the run option](run-options.md#script-owned-lint).
@@ -31,13 +33,16 @@ code and are not catalog options.
   (the item's, the step's, or the stage's own entry snapshot) it applies safe
   fixes on the lines that stage (or the review) changed. It refuses the
   submission once after applying a fix, so the step reruns its checks. It also
-  refuses while a new finding on one of those lines is not listed in the
-  result's `lint_waivers`
+  refuses while a new finding on one of those lines—or a base-compared new
+  regression elsewhere in a changed file (such as a newly unused import/variable
+  after removing its last caller or a Tier-0 shadowed top-level Python
+  definition)—is not listed in the result's `lint_waivers`
   (`[{"id": "L…", "reason": "…"}]`); the refusal prints each finding's ID. IDs
   hash the path, the message and the line's text, not its number, so they
-  survive edits above the line. Findings present at the base or elsewhere in a
-  file, uncovered files, missing tools, tool errors, timeouts and a pass that
-  cannot run never refuse. `send-back` and `blocked` submissions are not linted.
+  survive edits above the line. Pre-existing `at-base` findings, uncompared
+  repo-linter findings outside changed lines (`unattributed`), other files,
+  uncovered files, missing tools, tool errors, timeouts and a pass that cannot
+  run never refuse. `send-back` and `blocked` submissions are not linted.
   At `test` and `document` the gate runs before ShipLoop's own test runs, so the
   tests cover any auto-fix. The implement and test packets print the
   report-only `lint` command to run after each edit, and the latest gate record.
@@ -60,6 +65,7 @@ checks, manifests, documentation receipts or chain evidence.
 | Tier | Tool | Files | Runs |
 | --- | --- | --- | --- |
 | 0 | `git diff --check` | every changed file | always; conflict-marker findings are dropped for `*.md` |
+| 0 | Python shadowed top-level `def`/`class` check | Python | unconditional duplicate top-level `def`/`class` regressions vs. base (`@overload` excluded) |
 | 0 | `bash -n` | shell | only when ShellCheck is absent |
 | 0 | `node --check` | JavaScript | only when `node` resolves to a real binary, not a shim |
 | 0 | JSON parse (in process) | `*.json` | skips JSONC names such as `tsconfig*.json` |
@@ -132,7 +138,12 @@ project/solution scope, not a single file); Java (`checkstyle`'s exact
 plain-format field layout isn't confirmed); SQL (`sqlfluff` supports stdin
 but its parseable output format isn't confirmed). Report-only additions are
 low-risk to get slightly wrong (a finding just doesn't parse); a `fixable`
-one is not, so none of these is added on an unconfirmed guess.
+one is not, so none of these is added on an unconfirmed guess. Any active stack
+linter or project-wide static analyzer outside these 14 rows (such as `biome`,
+`oxlint`, Rust/`clippy`, Dockerfile/`hadolint`, C#/.NET/`dotnet format`,
+Java/`checkstyle`, SQL/`sqlfluff`, or platform-specific CLI scanners) belongs in
+`KNOWLEDGE/environment.md ## Commands` and in explicit `step-plan` `check`
+commands.
 
 **Safety pins (code, not catalog):**
 
@@ -192,6 +203,37 @@ user, since runs are unattended): `package.json` scripts other than
 files), Makefile targets named `lint-*` or `format-check`, and pre-commit hooks
 (pre-commit may download hook environments). Missing tools produce install
 recommendations naming the searched `PATH`. ShipLoop never installs anything.
+
+## Preparing and evaluating linters
+
+Use this catalog across stages as a static checklist for linter coverage, tool
+readiness, check commands, and gate evaluation:
+
+- **Discovery (`discovery`)**: Compare the repository's languages, config markers,
+  `package.json`, `pyproject.toml`, and `Makefile` against `## Tools` and
+  `## Catalog data` (`classes`, `discovered`, `project_scripts`, `declared_markers`).
+  Record every active linter, formatter, and type checker in
+  `KNOWLEDGE/environment.md ## Commands`, noting which tools ShipLoop discovers
+  automatically versus which stacks or project-wide analyzers need explicit
+  `check` commands.
+- **Prepare (`prepare`)**: Run each recorded linter, formatter, and type checker in
+  its no-op readiness form (`--version`, `--help`, dry-run, or single-file check),
+  confirm binaries resolve from absolute `PATH` (or `node_modules/.bin` for node
+  tools) rather than blocked version-manager shims or repository-local `PATH`
+  entries (see safety pins above), and add linter cache directories (such as
+  `.ruff_cache/`, `.eslintcache`, `.mypy_cache/`) to `.gitignore` before any
+  build. Install nothing without authority.
+- **Step plan (`step-plan`)**: Wire read-only, repeatable `check` commands in
+  `test_commands` for type checkers, build checks, and any stack linter or
+  project-wide analyzer outside this catalog's automatic coverage; never put an
+  auto-mutating formatter in `check`.
+- **Inner loop (`implement`, `test`, `document`, and step review)**: Run
+  `shiploop lint --action` after edits; clear every gating regression
+  (`new_on_changed`, base-compared `new_elsewhere` regressions such as
+  `F401`/`F841`/`SC2034`, and Tier-0 Python shadowed top-level `def`/`class`);
+  inspect `Lint coverage:` so syntax-only or `not linted` files are never read as
+  linted; use narrow `lint_waivers` (`[{"id", "reason"}]`) only when a finding
+  genuinely must stay; rerun affected checks after any auto-fix refusal.
 
 ## Catalog data
 

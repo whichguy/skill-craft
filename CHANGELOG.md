@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-11-28
 
+### skill-craft 4.20.8
+
+- Skills: shiploop 2.21.6
+
+### shiploop 2.21.6
+
+- Gate inner-loop `shiploop lint` on base-compared new regressions elsewhere in changed files (`new_elsewhere`, e.g. newly orphaned imports/variables), add a Tier-0 check for newly shadowed top-level Python definitions, and instruct `implement`, `test`, and `IMPLEMENT_STEP_REVIEW_FOCUS` to clear new file-wide lint regressions and consolidate duplicate helpers within scope.
+- Synchronize ShipLoop's static linter and inner-loop reference docs (`lint-catalog.md`, `run-options.md`, `inner-loop.md`, `guide-map.md`, `coding-guidance.md`) with current gate and Case Spec behavior, wire `lint-catalog.md` into stage routing (`STAGE_REFERENCES`, `POLICIES`, and stage duties) so discovery/prepare/step-plan/inner stages leverage it consistently, and add drift-guard regression tests.
+
 ### skill-craft 4.20.7
 
 - Skills: rubric-eval 0.1.2, shiploop 2.21.5, test-harness 0.1.3
