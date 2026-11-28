@@ -2508,7 +2508,7 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         # Required text (run-5 batch F6; F3 of the 2026-10-28 plan): the spec's primary requirements by value, with the
         # tests that passed for each at product-acceptance, and at plan and reflect-and-revise the work items following each.
         blocks.append(_Block("primary", P1, primary.packet_lines(root, state, stage)))
-    if root is not None and stage in ("test-strategy", "plan", "step-plan", "reflect-and-revise", "product-acceptance"):
+    if root is not None and stage in primary.CASE_DELTA_STAGES:
         blocks.append(_Block("case-delta", P1, primary.case_delta_lines(root, state, stage)))
     if stage == defaults.SHOWN_AT:
         # Required text: the defaults the spec recorded, by value, for the host to name in its progress line.
@@ -3870,7 +3870,13 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         # The transition stands; the next accepted stage commits the same files.
         print("ShipLoop knowledge: " + str(exc) + "; the next accepted stage commits it.", file=sys.stderr)
         return
-    if root is not None and (committed.commit or stages[-1] in ("spec", "plan", "document", "reflect-and-revise")):
+    if root is not None and (
+        committed.commit
+        or stages[-1] in (
+            "discovery", "research", "spec", "test-strategy", "plan",
+            "prepare", "step-plan", "document", "reflect-and-revise", "system-test-author",
+        )
+    ):
         try:
             knowledge.write_case_spec(Path(root), after)
         except Exception:  # noqa: BLE001 - derived case view never blocks an accepted commit
@@ -4397,6 +4403,24 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
                            "R- entries to spec.md), and drop an unlisted AD- or add its entry to " + str(architecture)
                            + ("; improve-commit that edit first." if command == "improve" else "."),
                            "No entry: " + ", ".join(absent) + "."])
+        items = state.get("work_items") or ()
+        idx = state.get("work_index")
+        item_row = items[idx] if isinstance(idx, int) and 0 <= idx < len(items) and isinstance(items[idx], Mapping) else {}
+        item_label = " ".join(
+            str(part) for part in (item_row.get("title") or "", item_row.get("context") or "", result.get("summary") or "")
+        )
+        reimpl = (
+            None
+            if item_row.get("slice") == "corrective"
+            else primary.reimplemented_unchanged_follows(root, state, result["follows"], item_label)
+        )
+        if reimpl is not None:
+            case_id, req_follows, changed_reqs = reimpl
+            return _Fault("Scope follows in {result} to Case " + case_id, "scopes follows to Case " + case_id,
+                          ["follows cites only unchanged master requirement(s) (" + ", ".join(req_follows)
+                           + ") on follow-on Case " + case_id + ", which risks reimplementing existing features.",
+                           "Scope this step-plan's follows to Case " + case_id + "'s delta (" + ", ".join(changed_reqs)
+                           + "), or explicitly frame this item/summary as a baseline regression/repair check."])
     if stage in assumptions.OPEN_ITEM_STAGES:
         if "assumptions" not in result:
             if stage not in assumptions.OPTIONAL_OPEN_ITEM_STAGES:
@@ -5122,6 +5146,11 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
         # The child's contract reads the bind snapshot's run directory before save writes it.
         store.atomic_write_text(root / relative, text)
     _improve_stage_start(core, root, after)
+    if after.get("active_improve") is not None:
+        try:
+            knowledge.write_case_spec(Path(root), after)
+        except Exception:  # noqa: BLE001 - derived case view never blocks an active transition
+            pass
     lint_writes, payload = _lint_transition(core, root, before, after)
     return after, {**writes, **lint_writes}, payload
 
@@ -8806,6 +8835,7 @@ def improve_handoff_text(core: Any, root: Path, state: Mapping[str, Any]) -> str
           if workitem is not None else []),
         # The step under review: the producer's own Step block, word for word, and the diff base it began from (W2-B).
         *(step_block(state, workitem) if stage in stage_spec.with_improve("item") else []),
+        *primary.case_delta_lines(root, state, stage, for_improve=True),
         *_review_skills_lines(state, stage, workitem),
         *_review_base_line(root, state, child),
         *_test_context_lines(state, root),
@@ -10510,6 +10540,11 @@ def _improve_commit(core: Any, root: Path, state: Mapping[str, Any], args: Any, 
         return 0
     message_path.unlink()
     head, pending = committed.commit, committed.paths
+    if any(knowledge.in_home(p) for p in pending):
+        try:
+            knowledge.write_case_spec(root, state)
+        except Exception:  # noqa: BLE001 - derived case view never blocks an already-landed commit
+            pass
     print("Committed this review's changes as " + head[:12] + ": " + ", ".join(pending) + "." if pending else
           "Committed this review's remote change as " + head[:12] + ": it changed no file.")
     return 0

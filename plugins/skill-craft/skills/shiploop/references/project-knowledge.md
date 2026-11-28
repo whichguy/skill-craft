@@ -41,13 +41,20 @@ Use [current-system recovery](current-system-baseline.md#establish-or-refresh)
 when an existing repository or identified remote system lacks an adequate baseline.
 Read README first, recover a bounded system overview and affected behavior, and
 retain the prior baseline separately from the incoming change spec. Existing specs
-still own accepted intent; recovered observations do not override them. Each run
-receives a monotonic Case Spec identifier (`C-<n>`) and a script-derived
+still own accepted intent; recovered observations do not override them. Each run receives a monotonic Case Spec identifier (`C-<n>`) and a script-derived
 `RUN/case-spec.md` classifying `spec.md` and `architecture.md` entries into
-`Added`, `Modified` (delta lines only), `Retired`/`Superseded`, and
-`Unchanged Master` requirements so `spec.md`, `architecture.md`, and
-`environment.md` preserve prior history in place while planning acts strictly on
-the incremental `C-<n>` delta without reimplementing existing features. Update
+`Added`, `Modified` (delta lines only, ignoring `document` step-reflection marks
+`(W<n>/S<k>)` on unchanged master entries), `Retired`/`Superseded`, and
+`Unchanged Master` requirements plus `Environment Delta`. Follow-on exploration
+(`intake`, `discovery`, `research`, `spec`) and isolated planning experiments
+leverage existing `spec.md`, `architecture.md`, and `environment.md`, augmenting
+any of the three in place only when required by the incoming spec, so `spec.md`,
+`architecture.md`, and `environment.md` preserve prior history in place while
+planning, testing, acceptance, and Improve reviews (where the stage has one)
+act strictly on the incremental
+`C-<n>` delta (and touched preservation checks) without reimplementing existing
+features. `RUN/case-spec.md` refreshes on stage and `improve-commit` knowledge
+commits. Update
 `environment.md` in place without dropping or emptying populated sections. For a
 remote-only engagement, the guide defines a durable local documentation home
 without claiming to possess the remote source repository.

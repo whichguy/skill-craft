@@ -188,6 +188,15 @@ def _followed_lines(repo: Path, label: str, value: Any, *, root: Path | None = N
                     lines.append("  - [+] " + dline)
                 lines.append("  Master entry (context only):")
                 lines.extend(_entry_lines(repo, sid))
+            elif sid in delta.modified_decisions:
+                ed = delta.modified_decisions[sid]
+                lines.append(f"- {sid} [modified in {delta.case_id} — apply decision delta below; preserve unaffected architecture in KNOWLEDGE/architecture.md]:")
+                for dline in ed.removed_lines:
+                    lines.append("  - [-] " + dline)
+                for dline in ed.added_lines:
+                    lines.append("  - [+] " + dline)
+                lines.append("  Master entry (context only):")
+                lines.extend(_entry_lines(repo, sid))
             else:
                 lines.extend(_entry_lines(repo, sid))
         return lines

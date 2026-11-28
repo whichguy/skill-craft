@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-28
 
+### skill-craft 4.20.9
+
+- Skills: shiploop 2.21.7
+
+### shiploop 2.21.7
+
+- Strengthen ShipLoop's multi-run incremental Case Spec (`C-<n>`, `RUN/case-spec.md`) lifecycle: exclude symmetric/wider `document` step-reflection marks from `case_delta()`, keep `Case: C-<n>` monotonic across brownfield/non-FF histories, refresh `RUN/case-spec.md` on Improve entry and `improve-commit`, retain standing sections across all three living files, unify `Active primary` / `Master baseline` / `Architecture/Environment delta` / `_id_ranges` scoping and `step-plan` `follows` guards, widen delta routing and prompts across exploration, inner build, outer stages, and Improve reviews, and update references and regression tests.
+
 ### skill-craft 4.20.8
 
 - Skills: shiploop 2.21.6

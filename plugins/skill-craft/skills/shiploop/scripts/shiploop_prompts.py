@@ -869,7 +869,8 @@ ID_WORD_RULE = ("A listed ID counts only as its own word in a test's printed nam
 _REFLECT_AND_REVISE_ONE_STEP = """\
 2. **Queue** (Reflect-and-revise mapping guidance). No item follows <<item>>: omit `work_items`. To add a corrective item (a
    defect in completed work, or a prerequisite that new evidence shows missing) give `work_items`: the whole future
-   queue, rows `{"id", "title", "follows", "context"}`, and say why in the summary. A requirement this item's step plan
+   queue, rows `{"id", "title", "follows", "context"}`, and say why in the summary. On a follow-on run, scope added
+   items to Case C-<n>'s delta (RUN/case-spec.md) or explicit regression/repair checks. A requirement this item's step plan
    revised is accepted work, not the changed requirement that stops the loop blocked.
 3. **Skill decision**, in `skill`: this run has 1 step in 1 item and no pending item, so no procedure repeated. Inspect
    the repository skill index (KNOWLEDGE/environment.md ## Skills) and your host's skills and list them in evidence_refs,
@@ -975,7 +976,10 @@ DUTIES = {
    people, devices or sessions; its lifetime and what ends it; what stays hidden from whom; what existing host
    subsystems (notifications, audit logs, drafts, timers, quotas) it meets and what the runtime already provides. Route factual branches to `inspect`, `research` or
    `experiment`; for open product branches answer from the request, else record the default and what it rules out.
-7. A request that continues an earlier run follows Prior-run and recovery guidance.
+7. A request that continues an earlier run follows Prior-run and recovery guidance. When KNOWLEDGE/spec.md,
+   architecture.md or environment.md already exist (follow-on Case C-<n>), map incoming sentences against existing
+   master requirements (`added`, `modified`, `retired`, `preserved`), flag whether the incoming spec requires
+   augmenting architecture or environment decisions, and route delta unknowns to `inspect`, `research`, or `experiment`.
 8. Implement nothing; add no scope. `evidence_refs`: each source used.
 9. Key questions. Ask the key questions about this request before anything is planned. For each category
    below decide whether it applies to this request (`question_categories`; one that does not apply gives its
@@ -1024,7 +1028,9 @@ DUTIES = {
    - ## Commands: linters, formatters, type checkers, test runners (Lint catalog);
    - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries,
      house style (House-style guidance).
-   Install and provision nothing.
+   On a follow-on run where KNOWLEDGE/spec.md, architecture.md or environment.md already exist, start from and
+   revalidate them against the current checkout instead of rediscovering from scratch, updating KNOWLEDGE/environment.md
+   in place where the incoming request or observed changes require it. Install and provision nothing.
 4. Find how a change reaches its consumer (Environment and source-return discovery): inspect destination environments
    and promotion order (e.g. dev -> staging/test -> prod where applicable), per-environment settings/config/secrets
    wiring, persistent stores or migration tooling with existing-data compatibility constraints, and whether the
@@ -1090,7 +1096,9 @@ DUTIES = {
     scoped prerequisites and due revalidation.
 """,
     "research": """\
-1. Start from the open unknowns in the intake and discovery results and RUN/notes/discovery.md. Revise that frontier
+1. Start from the open unknowns in the intake and discovery results and RUN/notes/discovery.md (on a follow-on run,
+   read existing KNOWLEDGE/spec.md, architecture.md and environment.md first and scope research and probes to the
+   incoming delta's unknowns and any architecture or environment augmentations it requires). Revise that frontier
    with Discovery investigation guidance (check its triggers first, and again when evidence conflicts); write a
    triggered plan and outcome to RUN/notes/research.md. Investigate directly only when no trigger applies.
 2. Resolve each consequential unknown with repository, primary-interface or other fit evidence: the repository and
@@ -1129,7 +1137,8 @@ DUTIES = {
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Read KNOWLEDGE/spec.md whole, the research and discovery results; reopen the selected baseline in Discovery's `evidence_refs`
+1. Read KNOWLEDGE/spec.md whole (on a follow-on run, also read existing KNOWLEDGE/architecture.md and KNOWLEDGE/environment.md),
+   the research and discovery results; reopen the selected baseline in Discovery's `evidence_refs`
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
    its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
    or tests.
@@ -1149,7 +1158,7 @@ DUTIES = {
    passed lower-layer test. On follow-on runs where KNOWLEDGE/spec.md already holds prior master requirements,
    update it in place (keep every ID, amend changed R-<n> in place, move removed ones under ## Retired with reason),
    and keep `primary` strictly to this case's (`C-<n>`) added or modified requirements—never list unchanged master
-   requirements in `primary`.
+   requirements in `primary` (unless the incoming request explicitly names that pending R-<n> ID).
    Before you submit, read your acceptance lines one at a time against the request and what the product already
    does. Each line that states what the request does not, and that a person who uses or runs the product would
    notice (what they see, a step they must take, something refused), is a choice this spec made: say in the line that
@@ -1259,7 +1268,9 @@ DUTIES = {
 1. Build a risk-based strategy from accepted intake and the current requirements in KNOWLEDGE/spec.md that the
    request adds, changes or touches, before code. Include a pending requirement already present at init if named by
    the current request, and the preservation set touched. The quoted diff is supporting evidence; an empty diff
-   does not empty scope. Existing suites cover the rest. Under
+   does not empty scope. Existing suites cover the rest. On a follow-on run, use RUN/case-spec.md (Case C-<n>) as
+   the incremental scope and augment KNOWLEDGE/environment.md and KNOWLEDGE/architecture.md in place only for
+   harnesses, commands, or real-boundary checks the delta requires. Under
    KNOWLEDGE/environment.md ## Harnesses and suites plan, per requirement in that scope: its layers (unit, component,
    e2e, as in `test_layers`) and any consumer check, negative cases, fixtures and data, environment and authorization
    needs, required surface, due stage, owner, prerequisites; for a state or data change, its before and after checks
@@ -1349,7 +1360,9 @@ DUTIES = {
    (b) identify every load-bearing assumption and every intake `route: "experiment"` question whose outcome could
        materially change a decision, interface, dependency order, or feasibility;
    (c) run each worthwhile experiment in an isolated sandbox under `RUN/experiments/<exp-id>/` (or a disposable temp
-       copy of the repository outside `WORKTREE` when code must change — never mutate product files in `WORKTREE`).
+       copy of the repository outside `WORKTREE` when code must change — never mutate product files in `WORKTREE`; on a
+       follow-on run, build on existing KNOWLEDGE/architecture.md and environment.md to test delta unknowns and whether
+       incoming specs require augmenting AD-<n> architecture or environment prerequisites).
        State the decision, alternatives, and distinguishing observation in `RUN/experiments/<exp-id>/decision.md`
        and save the command and raw output there (`shiploop check`/`complete` snapshots `plan-iter-<n>.md`);
    (d) fold observed evidence back into `RUN/inbox/<action>.md` and `KNOWLEDGE/architecture.md`; when experiments ran
@@ -1362,7 +1375,9 @@ DUTIES = {
    (item 17). Order readiness, implementation, integration and release so no consumer runs before its
    prerequisites. On a follow-on run, scope `work_items` strictly to Case `C-<n>`'s incremental delta (`RUN/case-spec.md`:
    `added`, `modified` delta clauses, and `retired` removals); treat `unchanged` master requirements as preserve and
-   regression-check only—never create work items that reimplement already-implemented master features. Each item's
+   regression-check only—never create work items that reimplement already-implemented master features. Augment
+   KNOWLEDGE/architecture.md (new or superseded AD-<n>) or plan environment-preparation prerequisites in place whenever
+   incoming specs require them, preserving prior decisions. Each item's
    `context` gives ready and done conditions, candidate scope, proving check, authority boundaries, correction route. The
    plan implies no unrun test and no authorized external operation.
 3. Apply Initial-plan reconciliation to KNOWLEDGE/architecture.md, KNOWLEDGE/spec.md, the non-functional requirements and the
@@ -1429,7 +1444,8 @@ DUTIES = {
      email or platform notification for changes hours apart; server-sent events, WebSockets or push only when
      seconds matter). After a push, poll gap or reconnect, read authoritative state back. Cache only derived data,
      in the runtime's cache, expiring with the allowed staleness. State each channel's and cache's quota cost.
-   Then write a `### Design basis` subsection under KNOWLEDGE/architecture.md ## Interfaces and boundaries (and summarize it
+   Then update (preserving unaffected prior agreements on follow-on runs) or write a `### Design basis` subsection under
+   KNOWLEDGE/architecture.md ## Interfaces and boundaries (and summarize it
    in `summary`), rechecking the guide rather than copying a prior plan: baseline and delta;
    state, event and connection agreements with planned recovery checks (including a crash after acknowledgment but
    before processing); deployment fit; source and check locators. UI: component, interaction and skin premises, the
@@ -1646,7 +1662,9 @@ Change no product file in this stage.
     "test-spec": """\
 Write no test code in this stage.
 
-1. One `test_cases` row per ID the step plan's focused commands list; no other ID. A criterion that needs an
+1. One `test_cases` row per ID the step plan's focused commands list; no other ID. On a follow-on run, focus new
+   test cases on Case C-<n>'s incremental delta (`RUN/case-spec.md`) and touched preservation checks rather than
+   rewriting tests for unchanged master requirements. A criterion that needs an
    unlisted ID: report send-back naming it. A row names one `criterion`; a criterion no row names gets a coverage
    notice, and the result is still accepted.
 2. Each row (Test-case planning guidance): `criterion`, `requirement` (R-<n>), `oracle`, `red`, `green`. Put its
@@ -1703,7 +1721,8 @@ preparatory commit); a mismatch there is a send-back.
 """,
     "implement": """\
 1. **Scope.** Do only this step: meet its criteria, nothing no criterion asks for, and break none of the item's
-   other requirements. Earlier steps are accepted. Write no tests, start no later step, and leave unrelated code as is
+   other requirements. Earlier steps are accepted. On a follow-on run, scope edits strictly to Case C-<n>'s delta
+   (RUN/case-spec.md) and touched preservation checks rather than rewriting unchanged master modules. Write no tests, start no later step, and leave unrelated code as is
    (no reformatting, no reverting). Existing tests, check scripts, golden or fixture files and thresholds are checks:
    change one only when a criterion says to.
 2. **Build.** Each iteration edits first. First settle the considerations it touches (Implement considerations).
@@ -1743,7 +1762,9 @@ preparatory commit); a mismatch there is a send-back.
     "test": """\
 1. **Reveal evidence & write the cases (Beat 1).** Before writing tests, read the item's product diff patch
    (`RUN/fields/<action>-product-diff.patch` or `git diff`), KNOWLEDGE/architecture.md, quoted `test_cases`, and
-   implement's `not_covered` to map concrete changed branches, edge cases, state transitions and interfaces. Mocks first:
+   implement's `not_covered` to map concrete changed branches, edge cases, state transitions and interfaces (on a
+   follow-on run, target new tests to Case C-<n>'s delta in RUN/case-spec.md and touched preservation checks without
+   rewriting tests for unchanged master features). Mocks first:
    before a case's test, build the mock it names in `mock`, playing what it says the dependency does, slow, failing or
    out of order included. The mock's own header states what it stands in for and what it plays: a mock proves the code
    only against the behaviour it simulates. Each quoted test case becomes a test titled with its ID as its own word,
@@ -1808,7 +1829,9 @@ preparatory commit); a mismatch there is a send-back.
 """,
     "document": """\
 1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results, the item's
-   diff, and any `test_findings` below. Use the plan concerns assigned to document that apply to this step.
+   diff, and any `test_findings` below. Use the plan concerns assigned to document that apply to this step. On a
+   follow-on run, update KNOWLEDGE/spec.md, architecture.md and environment.md in place for Case C-<n>'s delta
+   without altering unrelated master entries or dropping standing sections.
 2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
    docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
    authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
@@ -1861,7 +1884,9 @@ preparatory commit); a mismatch there is a send-back.
      needs (Persistent project-knowledge guidance).
    - Expand no scope; adopt no tentative idea as policy.
 2. **Queue** (Reflect-and-revise mapping guidance). Read RUN/state.md `work_items` with every pending title and context;
-   give every observation that affects later work an owner:
+   give every observation that affects later work an owner (on a follow-on run, keep any revised queue scoped to
+   Case C-<n>'s delta in RUN/case-spec.md or explicit regression/repair checks without reimplementing unchanged
+   master features):
    - defect in completed work, or a completed prerequisite new evidence invalidates: a corrective item with
      revalidation, ahead of its consumers;
    - needed research or preparation prerequisite: its own item ahead of every consumer;
@@ -1923,7 +1948,9 @@ preparatory commit); a mismatch there is a send-back.
    current OUTER plans are the latest done records after the most recent accepted add-work; pending and blocked results
    are not plan authority. `evidence_refs`: the action, result and test-note locators used.
 2. Choose cases: each due-later case from item 1 becomes a system case here or an open item with its due stage
-   (item 7). Triage forwarded `test_findings` (especially `impact: "system-test"`) and `not-exercisable` mutants into
+   (item 7). On a follow-on run, author new system cases for Case C-<n>'s added/modified requirements
+   (`RUN/case-spec.md`) and touched integration boundaries while relying on retained regression suites to preserve
+   unchanged master requirements. Triage forwarded `test_findings` (especially `impact: "system-test"`) and `not-exercisable` mutants into
    integrated system checks or explicit open items. Add cases for the real integration, consumer, runtime, security,
    accessibility, migration, compatibility and operational boundaries that apply; reconcile suite membership and
    prerequisites first. Reassess changed security boundaries in the integrated candidate, including later-added work,
@@ -2003,7 +2030,8 @@ preparatory commit); a mismatch there is a send-back.
    checked surface, candidate, status and evidence. A pass on another surface only supports; source, HTTP or DOM
    structure alone cannot close a rendered interaction. A case not yet due keeps its phase, owner and prerequisites;
    missing evidence for a due case stays incomplete. Check that no clause or case was dropped; claim no requirement
-   met while a required observation is unrun.
+   met while a required observation is unrun. On a follow-on run, reconcile Case C-<n>'s delta requirements against new
+   checks and verify unchanged master requirements remain preserved via retained regression suites.
 """,
     "product-acceptance": """\
 1. Gather: the original request and intake result, the accepted requirements in KNOWLEDGE/spec.md, the spec and
@@ -2015,7 +2043,9 @@ preparatory commit); a mismatch there is a send-back.
    preserved behaviour against the prior baseline and incoming spec (Current-system baseline guide, Behavior
    traceability guidance) and check durable knowledge for gaps. Verify UI/API Entrypoint Reachability: every user- or
    admin-facing R-<n> in KNOWLEDGE/spec.md must be wired and reachable through its real UI/CLI/API entrypoint (not
-   satisfied solely by backend unit tests or raw JSON dumps); route unwired backend-only features to add-work. Verify
+   satisfied solely by backend unit tests or raw JSON dumps); route unwired backend-only features to add-work (on
+   follow-on Case C-<n> runs, focus active wiring checks on RUN/case-spec.md's added/modified requirements and touched
+   entrypoints while verifying unchanged master requirements via retained regression checks). Verify
    Architecture-to-Disk Reconciliation: modules, UI bundles and components claimed in KNOWLEDGE/architecture.md must
    exist on disk and match the delivered structure; fix stale claims or route missing components to add-work. Reassess changed security boundaries, including
    later-added work, even if the plan's security row says no or is absent. Reconcile quoted security decisions with
@@ -2057,7 +2087,9 @@ preparatory commit); a mismatch there is a send-back.
    (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and record each new facility's
    locator, interface, readiness or gap, owner and revalidation condition. An unmet earlier deployment, migration or test
    prerequisite: report add-work with corrective work and evidence (ShipLoop reruns the outer stages). Account for all
-   plan concerns assigned to release-plan (`migrate-before`, `migrate-after`, `switchover`, `config`, `state`, etc.).
+   and `release-plan` plan concerns (`migrate-before`, `migrate-after`, `switchover`, `config`, `state`, etc.). On a
+   follow-on run, leverage existing KNOWLEDGE/environment.md release/promotion procedures and augment them in place only
+   where Case C-<n>'s delta requires.
 2. Write the release steps in `summary`: ordered destination environments / promotion ladder (for example dev ->
    test/staging -> prod when multi-stage, or the single/local target; state which hops already ran in INNER vs. remain),
    exact candidate identity, per-environment settings/config/secrets/feature-flag parity (and whether config changes or
@@ -2196,7 +2228,8 @@ preparatory commit); a mismatch there is a send-back.
    checked surface, candidate, status and evidence. A pass on another surface only supports (for example dev when prod
    is required); source, HTTP or DOM structure alone cannot close a rendered interaction. A case not yet due keeps its phase,
    owner and prerequisites. Check that no clause or case was dropped; claim no requirement met while a required
-   observation is unrun.
+   observation is unrun. On a follow-on run, confirm Case C-<n>'s delta live and verify unchanged master behaviour stays
+   regression-clean.
 5. A blocked or unknown check stays incomplete. Keep earlier receipts; do not release or rerun migrations blindly.
 6. A case needing a signed-in browser or a person's action this host cannot perform: do not loop on it. Verify every
    other case first and record it as an open item in `assumptions` (who does what, where, and what they report). Only
@@ -2652,6 +2685,7 @@ Planning review focus. This planning result is
 the contract that later stages build on and that no other review sees until the
 end. Look for these conditions and fix them within scope:
 """ + REVIEW_FOCUS_CONDITIONS + """\
+On follow-on Case C-<n> (RUN/case-spec.md), verify scope matches the C-<n> delta; never demand reimplementing unchanged master work.
 Follow route and user/repo history rules. Reuse other history and green checks
 only with unchanged inputs and no finding or rule requiring a repeat. A finding-free pass is trivial.
 """
@@ -2673,6 +2707,8 @@ input, then review the change against the rubric below and for:
 - a failure state that does not name the user's next action;
 - a mutant disposition a test stage recorded (equivalent, out-of-scope,
   not-exercisable) that a later edit made untrue, or a kill claimed with no run.
+- on follow-on Case C-<n>, edits or new checks that reimplement unchanged master
+  work instead of scoping to RUN/case-spec.md's delta;
 Fix violations within scope; each fix comes with a test that fails before it.
 Leave spec.md as the steps, step-plan rewrites and owner-note rewrites left it;
 route a gap to the queue or an open item.
@@ -2685,9 +2721,10 @@ Mid-run reflection and queue-revision review focus. Further work items remain,
 and this reflect-and-revise changed either remaining work_items or docs/shiploop/spec.md:
 - verify any docs/shiploop/spec.md change accurately reflects delivered behaviour
   and keeps active R-<n> IDs and retired requirements consistent with completed work;
-- verify any revised remaining work_items preserve all pending requirements,
-  open assumptions, follows mappings, and accurate context without dropping
-  or duplicating work;
+- verify any revised remaining work_items preserve pending requirements (and
+  on follow-on Case C-<n> stay scoped to RUN/case-spec.md without reimplementing
+  unchanged master R-<n>), open assumptions, follows mappings, and accurate
+  context without dropping or duplicating work;
 - verify KNOWLEDGE/environment.md names commands that passed at this item's
   test stage under ## Commands (or explains why not) and the skill decision fits.
 A pass that finds no material violation is trivial.
@@ -2741,6 +2778,8 @@ and KNOWLEDGE, any of these:
   that KNOWLEDGE does not record (a clarified requirement, a decision, a
   command): fix it in place; spec.md takes only new lines ending with the step's
   mark inside an R-<n> the committed spec holds;
+- on follow-on Case C-<n>, changes that reimplement unchanged master R-<n>
+  instead of scoping to RUN/case-spec.md's delta;
 - the step's Proof failing or not testing its criteria (a skipped file, a later
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.

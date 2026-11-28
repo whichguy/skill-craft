@@ -135,10 +135,16 @@ and test locators in existing plan/work-item context and `evidence_refs`; normal
 standalone Improve reviews use those same materials.
 
 For an additive or follow-on change, treat `KNOWLEDGE/spec.md` as the master living spec and
-the run's Case Spec (`C-<n>`, `RUN/case-spec.md`) as the incremental planning scope:
-keep every earlier `R-<n>`, amend changed requirements in place, move removed ones
-under `## Retired` with reason, and keep `primary` and `work_items` focused on the
-`C-<n>` delta (`added`, `modified` delta clauses, `retired`) rather than unchanged
+the run's Case Spec (`C-<n>`, `RUN/case-spec.md`) as the incremental planning scope across
+exploration (`intake`, `discovery`, `research`, `spec`), test authoring (`test-strategy`,
+`test-spec`, `system-test-author`, `system-test`), planning (`plan`, `step-plan`,
+`reflect-and-revise`), acceptance (`product-acceptance`, `release-verify`), and Improve reviews
+(where the stage has one): keep every earlier `R-<n>`, amend changed requirements in place (`document` reflection marks
+`(W<n>/S<k>)` do not reclassify unchanged master entries), move removed ones under `## Retired`
+with reason, augment `KNOWLEDGE/architecture.md` or `KNOWLEDGE/environment.md` in place only
+where the incoming delta requires it, and keep `primary`, `work_items`, `follows`, and test
+authoring focused on the `C-<n>` delta (`added`, `modified` delta clauses, `retired`, plus any
+`primary` unchanged requirements named by the request) rather than reimplementing unchanged
 master features. Compare the actual consumer surface before and after the
 planned outcome against the original request and baseline. Retaining a helper,
 data shape, or unit assertion alone does not establish compatibility; earlier
