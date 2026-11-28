@@ -338,7 +338,7 @@ LIMIT_KINDS = {
     "shiploop_navigator.HEAD_LIMIT": "legacy compact-head helper",
     "shiploop_navigator.HEADLINE_SHOWN": "display cut",
     "shiploop_navigator._REQUIREMENT_LINE_LIMIT": "display cut",
-    "shiploop_navigator._CONTENTS_LINES": "display cut",
+    "shiploop_packet_format._CONTENTS_LINES": "display cut",
     "shiploop_owner_notes.NOTE_LIMIT": "display cut",
     "shiploop_owner_notes.BLOCK_LIMIT": "display cut",
     "shiploop_owner_notes.DETAIL_SHOWN": "display cut",

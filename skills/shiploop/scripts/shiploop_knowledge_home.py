@@ -33,7 +33,7 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
 import shiploop_git as shiploop_git
 import shiploop_stage_spec as stage_spec
@@ -296,8 +296,7 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", "-C", str(repo), "-c", "core.hooksPath=/dev/null", *args],
-                          capture_output=True, text=True, check=False)
+    return shiploop_git.git(repo, *args)
 
 
 def _committed(repo: Path, name: str) -> str:
@@ -347,7 +346,7 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     for name, ids, what, kind, section in _RETAINED:
         path = repo / HOME / name
         now = set(ids.findall(path.read_text(encoding="utf-8", errors="replace"))) if path.is_file() else set()
-        dropped = sorted(set(ids.findall(_committed(repo, name))) - now, key=lambda value: int(value.split("-")[1]))
+        dropped = sort_ids(set(ids.findall(_committed(repo, name))) - now)
         if dropped:
             prefix = dropped[0].split("-")[0]
             if command == "complete":
@@ -1117,9 +1116,8 @@ def record_baseline(root: Path, state: Mapping[str, Any]) -> Optional[str]:
         return None
     if os.path.lexists(snapshot):
         return repair_baseline_pointer(root)
-    shown = _git(repo, "rev-parse", "--verify", "-q", "HEAD^{commit}")
-    head = shown.stdout.strip()
-    if shown.returncode or not re.fullmatch(r"[0-9a-f]{40,64}", head):
+    head = shiploop_git.head_commit(repo)
+    if head is None:
         return "HEAD of " + str(repo) + " names no commit"
     try:
         files = {name: _starting_bytes(repo / name) for name in _SNAPSHOT_FILES}
@@ -1284,6 +1282,11 @@ def _id_sort_key(ident: str) -> int:
     return int(ident.split("-")[1])
 
 
+def sort_ids(ids: Iterable[str]) -> List[str]:
+    """Return ``R-<n>`` or ``AD-<n>`` IDs ordered numerically by suffix."""
+    return sorted(ids, key=_id_sort_key)
+
+
 def _entry_line_delta(before_text: str, after_text: str) -> EntryDelta:
     before_lines = before_text.splitlines()
     after_lines = after_text.splitlines()
@@ -1306,7 +1309,7 @@ def _classify_entries(before_text: str, after_text: str, prefix: str) -> Tuple[
     modified: Dict[str, EntryDelta] = {}
     retired: List[str] = []
     unchanged: List[str] = []
-    all_ids = sorted(set(before) | set(after), key=_id_sort_key)
+    all_ids = sort_ids(set(before) | set(after))
     for ident in all_ids:
         old = before.get(ident)
         cur = after.get(ident)
@@ -1535,6 +1538,7 @@ __all__ = ("ARCHITECTURE",
            "requirement_ids",
            "run_label",
            "section_notices",
+           "sort_ids",
            "spec_diff",
            "stage_lines",
            "unnamed_commands",

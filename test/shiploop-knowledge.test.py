@@ -2512,6 +2512,36 @@ class CaseSpecAndRetentionTests(HomeFixture):
         self.assertEqual(delta.added_decisions, ("AD-2",))
         self.assertEqual(delta.unchanged_decisions, ("AD-1",))
 
+    def test_consolidated_git_sort_privacy_and_packet_format_helpers(self) -> None:
+        import shiploop_packet_format as packet_format
+        import shiploop_privacy as privacy
+
+        dirty_env = {
+            "GIT_DIR": "/tmp/evil",
+            "GIT_CONFIG_KEY_0": "core.fsmonitor",
+            "PATH": os.environ.get("PATH", ""),
+        }
+        with mock.patch.dict(os.environ, dirty_env, clear=False):
+            scrubbed = shiploop_git.clean_git_env({"CUSTOM": "1"}, optional_locks=True)
+        self.assertNotIn("GIT_DIR", scrubbed)
+        self.assertNotIn("GIT_CONFIG_KEY_0", scrubbed)
+        self.assertEqual(scrubbed["GIT_TERMINAL_PROMPT"], "0")
+        self.assertEqual(scrubbed["GIT_OPTIONAL_LOCKS"], "0")
+        self.assertEqual(scrubbed["CUSTOM"], "1")
+
+        expected_head = git(self.repo, "rev-parse", "HEAD").strip()
+        self.assertEqual(shiploop_git.head_commit(self.repo), expected_head)
+        non_git = Path(tempfile.mkdtemp(prefix="shiploop-nogit-"))
+        self.addCleanup(lambda: subprocess.run(["rm", "-rf", str(non_git)], check=False))
+        self.assertIsNone(shiploop_git.head_commit(non_git))
+
+        self.assertEqual(knowledge.sort_ids(["R-10", "R-2", "R-1"]), ["R-1", "R-2", "R-10"])
+        self.assertEqual(privacy.clean_display_text("  hello \n world  "), "hello world")
+        self.assertEqual(privacy.clean_display_text("sk-1234567890abcdef1234"), "[redacted sensitive value]")
+        self.assertEqual(privacy.clean_display_text("abcdef", limit=4), "abc…")
+        self.assertEqual(packet_format._one_line(0), "0")
+        self.assertEqual(navigator._one_line("a\n  b"), "a b")
+
 
 if __name__ == "__main__":
     unittest.main()

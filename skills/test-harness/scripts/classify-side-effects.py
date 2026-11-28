@@ -491,11 +491,6 @@ def main() -> int:
             })
 
     # Split for report shape
-    delta_out = [f for f in findings if f.get("path") is not None and f["class"] in {
-        "EXPECTED_ARTIFACT", "HARNESS_OUTPUT", "UNINTENDED_WRITE", "IGNORED_WRITE",
-        "BASELINE", "UNKNOWN", "TMPDIR_LEAK",
-    } or (f.get("path") and f["class"] != "LIVE_CALL_SUSPECT")]
-    # cleaner split:
     fs_findings = [f for f in findings if "path" in f and f["class"] not in (
         "LIVE_CALL_SUSPECT", "LIVE_CALL_UNEXPECTED", "LIVE_CALL_EXPECTED",
         "LIVE_GATE_ON_FAST", "MISSING_INJECTION",

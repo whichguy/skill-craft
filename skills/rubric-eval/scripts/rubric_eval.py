@@ -18,11 +18,9 @@ import ast
 import hashlib
 import json
 import math
-import os
 import random
 import sys
 import re
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -659,7 +657,6 @@ def analyze(run_dir: str | Path, suite: dict, baseline: str, dest: str = "judge"
                  **({"mean_tokens": round(sum(u["tokens"] for u in mine if u["tokens"] is not None) / max(1, sum(u["tokens"] is not None for u in mine))),
                      "mean_seconds": round(sum(u["seconds"] for u in mine) / len(mine), 1)} if mine else {})}
         if a != baseline:
-            b = report["arms"].get(baseline) or {}
             cmp_ = {g: paired(verdicts, a, baseline, cs, cluster) for g, cs in groups.items()}
             entry["against_baseline"] = cmp_
             checks = list(problems) + ([input_problems[a]] if a in input_problems else [])

@@ -24,7 +24,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
-from typing import List, Mapping, NamedTuple, Optional, Sequence, Tuple
+from typing import Dict, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
 WORKSPACE_IDENTITY = {
     "GIT_AUTHOR_NAME": "ShipLoop Workspace",
@@ -46,16 +46,32 @@ class Committed(NamedTuple):
     paths: List[str]       # repository-relative paths in that commit
 
 
+def clean_git_env(env: Optional[Mapping[str, str]] = None, *, optional_locks: bool = False) -> Dict[str, str]:
+    """Return process environment scrubbed of repository-redirecting and per-invocation git config variables."""
+    merged = {key: value for key, value in os.environ.items()
+              if key not in _REDIRECTION and not key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
+    merged["GIT_TERMINAL_PROMPT"] = "0"
+    if optional_locks:
+        merged["GIT_OPTIONAL_LOCKS"] = "0"
+    merged.update(env or {})
+    return merged
+
+
 def git(repo: Path, *args: str, env: Optional[Mapping[str, str]] = None) -> subprocess.CompletedProcess:
     """Run ``git`` in ``repo`` without prompts or hooks, scrubbing inherited repository-redirecting environment;
     never raises on a nonzero exit.
     """
-    merged = {key: value for key, value in os.environ.items()
-              if key not in _REDIRECTION and not key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
-    merged["GIT_TERMINAL_PROMPT"] = "0"
-    merged.update(env or {})
     return subprocess.run(["git", "-c", "core.hooksPath=/dev/null", "-C", str(repo), *args],
-                          capture_output=True, text=True, check=False, env=merged)
+                          capture_output=True, text=True, check=False, env=clean_git_env(env))
+
+
+def head_commit(repo: Path) -> Optional[str]:
+    """Return the full HEAD commit SHA in ``repo``, or None outside Git / before any commit."""
+    shown = git(Path(repo), "rev-parse", "--verify", "-q", "HEAD^{commit}")
+    head = shown.stdout.strip()
+    if shown.returncode == 0 and re.fullmatch(r"[0-9a-f]{40,64}", head):
+        return head
+    return None
 
 
 def identity_env(repo: Path) -> Optional[Mapping[str, str]]:

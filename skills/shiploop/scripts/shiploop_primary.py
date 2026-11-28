@@ -79,10 +79,6 @@ def _spec_path(repo: Path) -> Path:
 _REGRESSION_REPAIR_HINT = re.compile(r"\b(?:regression|baseline|repair|fix|broken|characteri[sz]ation)\b", re.IGNORECASE)
 
 
-def _sorted_req_ids(ids: Any) -> List[str]:
-    return sorted(ids, key=lambda value: int(value.split("-")[1]))
-
-
 def check_spec(repo: Path, stage: str, result: Any, *, root: Optional[Path] = None,
                state: Optional[Mapping[str, Any]] = None) -> None:
     """A done spec result lists ``primary``: at least one R-<n>, each once, each with a current entry in the spec.
@@ -117,7 +113,7 @@ def check_spec(repo: Path, stage: str, result: Any, *, root: Optional[Path] = No
                 raise PrimaryError(
                     "on follow-on Case " + delta.case_id + ", primary names unchanged master requirement(s) "
                     + ", ".join(stale_master) + ". Keep primary scoped to this case's added/modified requirements ("
-                    + ", ".join(_sorted_req_ids(changed_active))
+                    + ", ".join(knowledge.sort_ids(changed_active))
                     + "); unchanged master requirements stay regression-preserved without reimplementation.")
 
 
@@ -235,7 +231,7 @@ def check_queue(state: Mapping[str, Any], stage: str, result: Any, *, root: Opti
     delta = knowledge.case_delta(Path(root), state)
     if delta is None or not delta.is_follow_on:
         return
-    changed_reqs = _sorted_req_ids(
+    changed_reqs = knowledge.sort_ids(
         set(delta.added_requirements) | set(delta.modified_requirements) | set(delta.retired_requirements)
     )
     if not changed_reqs:
@@ -291,8 +287,7 @@ def check_unverified(root: Path, state: Mapping[str, Any], stage: str, result: A
         _need(ident in held and not held[ident].retired,
               "unverified[" + str(index) + "].requirement " + ident + " has no current entry in " + str(_spec_path(repo))
               + ": name the R-<n> whose acceptance lines the outcome maps to (current: "
-              + (", ".join(sorted((key for key, entry in held.items() if not entry.retired),
-                                  key=lambda key: int(key.split("-")[1]))) or "none") + ")")
+              + (", ".join(knowledge.sort_ids(key for key, entry in held.items() if not entry.retired)) or "none") + ")")
     primary = set(primary_ids(state) or ())
     passed = passed_cases(root, state)
     for index, row in enumerate(rows):
@@ -355,7 +350,7 @@ def case_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> List[s
             f"Case {delta.case_id} (initial build, RUN/{knowledge.CASE_SPEC_FILE}): "
             f"all spec requirements are new ({', '.join(delta.added_requirements)})."
         ]
-    mod_ids = _sorted_req_ids(delta.modified_requirements.keys())
+    mod_ids = knowledge.sort_ids(delta.modified_requirements.keys())
     return [
         f"Case {delta.case_id} incremental spec (RUN/{knowledge.CASE_SPEC_FILE}; master spec KNOWLEDGE/spec.md):",
         "- Added (implement): " + (", ".join(delta.added_requirements) if delta.added_requirements else "none"),

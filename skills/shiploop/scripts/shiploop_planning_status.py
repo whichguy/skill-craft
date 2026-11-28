@@ -43,12 +43,7 @@ def _utc_iso(stamp_ns: int | None) -> str | None:
 
 
 def _clean_text(value: Any, limit: int = 200) -> str:
-    if not isinstance(value, str):
-        return ""
-    line = " ".join(privacy.redact_text(value).split())
-    if not line or privacy.sensitive_text(line):
-        return "Credential-like text withheld." if privacy.sensitive_text(line) else ""
-    return line if len(line) <= limit else line[: limit - 1] + "…"
+    return privacy.clean_display_text(value, limit)
 
 
 def _excerpt_decision(text: str, limit: int = 200) -> str:

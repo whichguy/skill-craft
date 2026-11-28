@@ -291,7 +291,7 @@ def apply(releases, bundle, date):
     BUNDLE.write_text(json.dumps(data, indent=2) + "\n")
     for leaf, entry in releases.items():
         card = entry["card"]
-        card.write_text(CARD_VERSION.sub(lambda m: m.group(1) + entry["new"] + m.group(3), card.read_text(), count=1))
+        card.write_text(CARD_VERSION.sub(lambda m, new=entry["new"]: m.group(1) + new + m.group(3), card.read_text(), count=1))
         guide = card.parent / "README.md"
         if guide.is_file():
             lines = guide.read_text().split("\n")

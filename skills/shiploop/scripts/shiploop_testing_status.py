@@ -29,14 +29,7 @@ _REPLAN_STATES = frozenset(("document", "step-plan", "reflect-and-revise", "syst
 
 
 def _clean_text(value: Any, limit: int = 200) -> str:
-    if not isinstance(value, str):
-        return ""
-    line = " ".join(privacy.redact_text(value).split())
-    if not line:
-        return ""
-    if privacy.sensitive_text(line):
-        return "Credential-like text withheld."
-    return line if len(line) <= limit else line[: limit - 1] + "…"
+    return privacy.clean_display_text(value, limit)
 
 
 def _id_token(ident: str) -> re.Pattern[str]:

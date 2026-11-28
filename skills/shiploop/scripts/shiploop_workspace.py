@@ -138,20 +138,7 @@ def _git(
     readonly: bool = False,
 ) -> subprocess.CompletedProcess[bytes]:
     """Run one non-interactive Git command without exposing file contents."""
-    merged = dict(os.environ)
-    for key in list(merged):
-        if key in {
-            "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
-            "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-            "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS",
-        } or key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")):
-            merged.pop(key, None)
-    merged["GIT_TERMINAL_PROMPT"] = "0"
-    if readonly:
-        # Avoid opportunistic index refreshes while fingerprinting the source.
-        merged["GIT_OPTIONAL_LOCKS"] = "0"
-    if env:
-        merged.update(env)
+    merged = shiploop_git.clean_git_env(env, optional_locks=readonly)
     try:
         return subprocess.run(
             ["git", "-c", "core.hooksPath=/dev/null", "-C", os.fspath(repo), *args],
