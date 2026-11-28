@@ -114,3 +114,15 @@ def redact_text(value: Any) -> str:
     if not isinstance(value, str):
         return ""
     return REDACTED_SENSITIVE_VALUE if sensitive_text(value) else value
+
+
+def clean_display_text(value: Any, limit: int = 200) -> str:
+    """Collapse and redact display text, withholding credential-like text and truncating at ``limit``."""
+    if not isinstance(value, str):
+        return ""
+    line = " ".join(redact_text(value).split())
+    if not line:
+        return ""
+    if sensitive_text(line):
+        return "Credential-like text withheld."
+    return line if len(line) <= limit else line[: limit - 1] + "…"

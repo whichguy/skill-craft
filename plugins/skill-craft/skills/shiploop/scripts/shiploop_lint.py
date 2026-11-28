@@ -72,6 +72,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 import shiploop_capture as capture_io
+import shiploop_git as shiploop_git
 import shiploop_privacy as privacy
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -124,10 +125,6 @@ _FINDING_ID_RE = re.compile(r"^L[0-9a-f]{10}(?:-[0-9]+)?$")
 _RUFF_CONFIG_RE = re.compile(r"(?m)^\s*\[tool\.ruff")
 _MAKE_TARGET_RE = re.compile(r"^(?P<name>lint(?:-[A-Za-z0-9_.-]+)?|format-check)\s*:(?!=)")
 _PACKAGE_SCRIPT_RE = re.compile(r"(?i)^(?:lint|format|fmt|prettier|eslint)(?:[:_-].*)?$|lint")
-_GIT_ENV_DROP = frozenset((
-    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
-    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS",
-))
 _ATTRS = ("shiploop-lint", "linguist-generated", "linguist-vendored", "text", "whitespace")
 _LINE_RE = re.compile(r"[^\n]*\n|[^\n]+\Z")
 _GIT_EXECUTABLES: Dict[Tuple[str, str], str] = {}
@@ -432,12 +429,8 @@ def _git_executable(top: Path) -> str:
 def _git(top: Path, *args: str, env: Optional[Mapping[str, str]] = None,
          input_bytes: Optional[bytes] = None, timeout: float = GIT_TIMEOUT_SECONDS) -> subprocess.CompletedProcess:
     executable = _git_executable(top)
-    merged = {key: value for key, value in os.environ.items()
-              if key not in _GIT_ENV_DROP and not key.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
-    merged.update(GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0",
-                  PATH=os.pathsep.join(_clean_path(merged.get("PATH", ""), (os.fspath(top),))))
-    if env:
-        merged.update(env)
+    merged = shiploop_git.clean_git_env(env, optional_locks=True)
+    merged["PATH"] = os.pathsep.join(_clean_path(merged.get("PATH", ""), (os.fspath(top),)))
     try:
         return subprocess.run(
             [executable, "-c", "core.hooksPath=/dev/null", "-c", "core.quotePath=true", "-C", os.fspath(top), *args],

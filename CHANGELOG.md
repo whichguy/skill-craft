@@ -2,6 +2,26 @@
 
 Written by scripts/release.py.
 
+## 2026-11-28
+
+### skill-craft 4.20.7
+
+- Skills: rubric-eval 0.1.2, shiploop 2.21.5, test-harness 0.1.3
+
+### rubric-eval 0.1.2
+
+- Remove unused imports (`os`, `subprocess`) and dead local variable in `rubric_eval.py`.
+
+### shiploop 2.21.5
+
+- Add per-run Case Spec (`C-<n>`) identity, structured `case_delta()` classification, `RUN/case-spec.md` generation, `environment.md` v2 baseline snapshots and section-retention guards, prominent `case-delta` packet head blocks, delta-only highlighting for modified master requirements, and follow-on scope/anti-reimplementation gates across `spec` and `plan`.
+- Harden Case Spec (`C-<n>`) delta & retention checks (`environment.md` deletion/blanking refusal, reinstated retired-entry classification, blank-line-only diff suppression, `AD-<n>` work-item allowance on unchanged `R-<n>`, and `RUN/case-spec.md` refresh on any knowledge commit), and clear the pre-existing `shiploop_progress_data.py` unused imports and `SectionsTests` `###` subsection false positive.
+- Extract `shiploop_packet_format.py` and remove duplicate shadowed `_one_line` in `shiploop_navigator.py`; consolidate `clean_git_env`/`head_commit`, `sort_ids`, and `clean_display_text` across ShipLoop scripts.
+
+### test-harness 0.1.3
+
+- Remove unused local variables and extraneous f-string prefixes in `test-harness` scripts.
+
 ## 2026-11-26
 
 ### skill-craft 4.20.6

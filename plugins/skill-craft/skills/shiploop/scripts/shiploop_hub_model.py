@@ -65,14 +65,7 @@ _REPO_DOC_EXACT = frozenset((
 
 
 def _clean_text(value: Any, limit: int = 240) -> str:
-    if not isinstance(value, str):
-        return ""
-    line = " ".join(privacy.redact_text(value).split())
-    if not line:
-        return ""
-    if privacy.sensitive_text(line):
-        return "Credential-like text withheld."
-    return line if len(line) <= limit else line[: limit - 1] + "…"
+    return privacy.clean_display_text(value, limit)
 
 
 def _clean_multiline(value: Any, limit: int = 4000) -> str:

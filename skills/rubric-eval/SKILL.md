@@ -8,7 +8,7 @@ description: >-
   judge; for "run the rubric", "rubric eval", "A/B this wording across the
   scenarios", or confirming a change on the text that ships. For a quick
   pairwise check of two prompts on a folder of inputs, use compare-prompts.
-version: 0.1.1
+version: 0.1.2
 license: MIT
 platforms:
   - linux

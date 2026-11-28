@@ -43,7 +43,7 @@ _ARCHITECTURE_PATHS = (
 )
 
 
-from shiploop_observation_io import _UnsafeSource, _read_beneath, _relative_parts, _same_identity, _directory_fd, _parent_fd
+from shiploop_observation_io import _UnsafeSource, _read_beneath
 
 def _mtime_text(stamp_ns: int | None) -> str | None:
     if stamp_ns is None:

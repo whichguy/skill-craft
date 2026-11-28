@@ -377,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--out", required=True, help="control-findings.json")
     e.add_argument("--excerpt", default=None, help="optional channels_excerpt.md path")
 
-    t = sub.add_parser("self-test", help="API-free unit checks")
+    sub.add_parser("self-test", help="API-free unit checks")
 
     args = ap.parse_args(argv)
 

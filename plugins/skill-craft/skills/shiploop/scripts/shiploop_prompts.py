@@ -1140,7 +1140,10 @@ DUTIES = {
    list the domain rules the request leaves out under the R-<n> they bound. Mark each unresolved prerequisite or user
    decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. List in `primary` the R-<n> that carry the request's
    primary outcomes, what the user asked for directly: product-acceptance accepts one left unverified only with a
-   passed lower-layer test.
+   passed lower-layer test. On follow-on runs where KNOWLEDGE/spec.md already holds prior master requirements,
+   update it in place (keep every ID, amend changed R-<n> in place, move removed ones under ## Retired with reason),
+   and keep `primary` strictly to this case's (`C-<n>`) added or modified requirements—never list unchanged master
+   requirements in `primary`.
    Before you submit, read your acceptance lines one at a time against the request and what the product already
    does. Each line that states what the request does not, and that a person who uses or runs the product would
    notice (what they see, a step they must take, something refused), is a choice this spec made: say in the line that
@@ -1351,8 +1354,11 @@ DUTIES = {
    and scratch cleanup. Keep unresolved dependencies conditional and independent work eligible.
 2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`
    (item 17). Order readiness, implementation, integration and release so no consumer runs before its
-   prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
-   boundaries, correction route. The plan implies no unrun test and no authorized external operation.
+   prerequisites. On a follow-on run, scope `work_items` strictly to Case `C-<n>`'s incremental delta (`RUN/case-spec.md`:
+   `added`, `modified` delta clauses, and `retired` removals); treat `unchanged` master requirements as preserve and
+   regression-check only—never create work items that reimplement already-implemented master features. Each item's
+   `context` gives ready and done conditions, candidate scope, proving check, authority boundaries, correction route. The
+   plan implies no unrun test and no authorized external operation.
 3. Apply Initial-plan reconciliation to KNOWLEDGE/architecture.md, KNOWLEDGE/spec.md, the non-functional requirements and the
    State and data assessment: map each applicable obligation and every acceptance line to its work item,
    prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
@@ -1601,6 +1607,9 @@ Change no product file in this stage.
    paths skips the test stage; a diff touching no code or test path skips document. A new check script is a durable
    artifact: list it here with its consumer, or keep it in RUN/scratch.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md.
+   For any `modified` master R-<n>, scope step tasks and criteria strictly to Case `C-<n>`'s delta lines (the full
+   master entry stays context) and keep untouched existing behavior as `works` preservation expectations rather than
+   reimplementing it.
 9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it.
    Reassess security at changed boundaries from the current item, even if the plan's security row says no or is absent.
    Put relevant protections and observable checks in the criteria; list checks due later as open items in the summary.

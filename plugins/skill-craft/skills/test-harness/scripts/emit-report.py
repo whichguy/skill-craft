@@ -858,7 +858,7 @@ def build_story(rep: dict[str, Any], run_dir: Path) -> dict[str, Any]:
     if pc is not None:
         worked.append(
             f"{pc} real test case(s) PASS"
-            + (f" (0 FAIL)" if not fc else f", {fc} FAIL")
+            + (" (0 FAIL)" if not fc else f", {fc} FAIL")
             + (f" · {case_n} named cases executed" if case_n else "")
         )
     elif case_n:
@@ -985,7 +985,7 @@ def build_story(rep: dict[str, Any], run_dir: Path) -> dict[str, Any]:
     if conc.get("summary"):
         final = conc["summary"]
     elif result in RESULT_PASS:
-        final = f"Suite passed"
+        final = "Suite passed"
         if pc is not None:
             final += f" ({pc} PASS"
             if fc:
@@ -1058,7 +1058,6 @@ def render_html(rep: dict[str, Any]) -> str:
         badge = "#bf8700"
 
     suite = rep.get("suite") or {}
-    se = rep.get("side_effects") or {}
     cases = suite.get("cases") or []
     inv = _inventory_from_rep(rep)
     struggles = story.get("struggles") or []
@@ -1830,7 +1829,7 @@ def render_results_md(rep: dict[str, Any]) -> str:
     if not cases:
         lines.append(
             "_No individual case lines recognized. See control-channel previews and raw logs "
-            f"under `round-*/stdout.log` / `stderr.log`._"
+            "under `round-*/stdout.log` / `stderr.log`._"
         )
     else:
         lines += [
