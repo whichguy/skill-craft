@@ -31,13 +31,16 @@ code and are not catalog options.
   (the item's, the step's, or the stage's own entry snapshot) it applies safe
   fixes on the lines that stage (or the review) changed. It refuses the
   submission once after applying a fix, so the step reruns its checks. It also
-  refuses while a new finding on one of those lines is not listed in the
-  result's `lint_waivers`
+  refuses while a new finding on one of those lines—or a base-compared new
+  regression elsewhere in a changed file (such as a newly unused import/variable
+  after removing its last caller or a Tier-0 shadowed top-level Python
+  definition)—is not listed in the result's `lint_waivers`
   (`[{"id": "L…", "reason": "…"}]`); the refusal prints each finding's ID. IDs
   hash the path, the message and the line's text, not its number, so they
-  survive edits above the line. Findings present at the base or elsewhere in a
-  file, uncovered files, missing tools, tool errors, timeouts and a pass that
-  cannot run never refuse. `send-back` and `blocked` submissions are not linted.
+  survive edits above the line. Pre-existing `at-base` findings, uncompared
+  repo-linter findings outside changed lines (`unattributed`), other files,
+  uncovered files, missing tools, tool errors, timeouts and a pass that cannot
+  run never refuse. `send-back` and `blocked` submissions are not linted.
   At `test` and `document` the gate runs before ShipLoop's own test runs, so the
   tests cover any auto-fix. The implement and test packets print the
   report-only `lint` command to run after each edit, and the latest gate record.
@@ -60,6 +63,7 @@ checks, manifests, documentation receipts or chain evidence.
 | Tier | Tool | Files | Runs |
 | --- | --- | --- | --- |
 | 0 | `git diff --check` | every changed file | always; conflict-marker findings are dropped for `*.md` |
+| 0 | Python shadowed top-level `def`/`class` check | Python | unconditional duplicate top-level `def`/`class` regressions vs. base (`@overload` excluded) |
 | 0 | `bash -n` | shell | only when ShellCheck is absent |
 | 0 | `node --check` | JavaScript | only when `node` resolves to a real binary, not a shim |
 | 0 | JSON parse (in process) | `*.json` | skips JSONC names such as `tsconfig*.json` |

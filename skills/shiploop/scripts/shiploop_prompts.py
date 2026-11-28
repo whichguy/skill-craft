@@ -1707,8 +1707,11 @@ preparatory commit); a mismatch there is a send-back.
    listed step skill for its purpose (invoke it, or read its SKILL.md and follow it); the summary says per skill
    whether you used it, and why not.
 3. **Check.** After each meaningful change run the step's Proof (the Step block) and `shiploop lint --action`; write
-   each exit code in RUN/notes/<action>.md. ShipLoop runs the Proof itself at done; the item's other checks belong to
-   the test stage. Fix a failure by changing the work, never the Proof or what it expects.
+   each exit code in RUN/notes/<action>.md. Clear every new lint regression across touched files—including newly unused
+   imports/variables left elsewhere in a file after edits and shadowed top-level definitions—and reuse or consolidate
+   an existing sibling helper within scope rather than adding a duplicate copy (without reformatting unrelated code).
+   ShipLoop runs the Proof itself at done; the item's other checks belong to the test stage. Fix a failure by changing
+   the work, never the Proof or what it expects.
    A lint finding that must stay goes in `lint_waivers` as `{"id": "<printed ID>", "reason": "<why>"}`. Use only
    what is present: download, install or fetch nothing. Record the best evidence available and what would confirm
    more.
@@ -1761,7 +1764,8 @@ preparatory commit); a mismatch there is a send-back.
    and an invalid case. Test a new error path or debug output, on and off, with safe diagnostic context. When runtime
    behaviour is ambiguous, run bounded diagnostic probes saved under `RUN/experiments/`.
 4. **Run, fix & triage (Beat 2).** After each change run every recorded command, the red-check command and the lint
-   command. Find each failure's cause with one small observation (product defect, invalid test, environment) and fix
+   command. Clear any new lint regressions in files you edit (including newly unused imports or variables) before
+   reporting done. Find each failure's cause with one small observation (product defect, invalid test, environment) and fix
    the product. Change a test, fixture, golden file or threshold only for an independent reason written in
    RUN/notes/<action>.md. Never weaken, delete or skip a test to get green. A repeated unchanged failure is not
    progress: change approach. If you edit product code to fix a defect, re-run this step's Proof too (ShipLoop re-runs
@@ -2714,8 +2718,11 @@ and KNOWLEDGE, any of these:
 - a public function with no contract docstring, a comment restating code, or
   dead code (rules 3-4);
 - code outside KNOWLEDGE/architecture.md's ## Structure or ## Conventions with
-  no new AD-<n>; a name that collides or is exported wider than needed (rule 8);
-- a near-copy of existing logic, a unit an existing one could serve, or a
+  no new AD-<n>; a name that collides, is exported wider than needed, or adds a
+  shadowed module-level definition (rule 8);
+- a near-copy of existing logic, a unit an existing one could serve
+  (consolidate genuine duplicates within the item's scope rather than adding
+  another copy), newly orphaned imports/variables in changed files, or a
   dependency, option or fallback with no present need (rules 1, 9);
 - an undiagnosable failure, user-facing text built from fragments or bypassing
   the catalog (rules 6-7); for a UI step, a plain interaction where the plan

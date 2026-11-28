@@ -51,6 +51,7 @@ Callers catch every exception except KeyboardInterrupt, so a lint failure never 
 from __future__ import annotations
 
 import argparse
+import ast
 import difflib
 import fnmatch
 import hashlib
@@ -1134,7 +1135,7 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     unattributed = sum(1 for item in active for finding in item.findings if finding["class"] == "unattributed")
     gating = [{"id": finding["id"], "path": item.path, "line": finding["line"], "message": finding["rest"]}
               for item in active for finding in item.findings
-              if finding["class"] == "new" and finding["on_changed"]]
+              if finding["class"] == "new"]
     uncovered = [item for item in files if item.uncovered]
     tool_errors = sum(1 for call in invoker.calls if call["error"])
     timeouts = sum(1 for call in invoker.calls if call["status"] == "timeout")
@@ -1219,9 +1220,11 @@ def _run_pass(invoker: _Invoker, catalog: Mapping[str, Any], top: Path, run_dir:
     lines.append(coverage_line)
     if stage in GATE_STAGES:
         lines.append("Gate: ShipLoop refuses this step's done while a new finding on a line changed since the base "
-                     "remains. Fix each one, or list it in the result's lint_waivers as {\"id\": \"<ID>\", "
-                     "\"reason\": \"<why it stays>\"}. Pre-existing findings, other files, uncovered files, tool "
-                     "errors and timeouts never block. This pass does not replace the checks you run for this step.")
+                     "remains. New base-compared regressions elsewhere in a changed file (such as a newly unused "
+                     "import/variable or shadowed top-level definition) gate the same way. Fix each one, or list it "
+                     "in the result's lint_waivers as {\"id\": \"<ID>\", \"reason\": \"<why it stays>\"}. "
+                     "Pre-existing findings, other files, uncovered files, tool errors and timeouts never block. This "
+                     "pass does not replace the checks you run for this step.")
     else:
         lines.append("At " + stage + " this pass is advisory: fix what applies, or state in your result why a "
                      "finding stays. It does not replace the static checks you select for this step; ShipLoop "
@@ -1667,6 +1670,58 @@ def _shellcheck(invoker: _Invoker, top: Path, files: List[_File], shellcheck: st
             _classify_findings(item, found, base_found, _plain_lines(item.base_text or ""))
 
 
+def _is_overload(node: ast.AST) -> bool:
+    for dec in getattr(node, "decorator_list", ()):
+        if (isinstance(dec, ast.Name) and dec.id == "overload") or (
+            isinstance(dec, ast.Attribute) and dec.attr == "overload"
+        ):
+            return True
+    return False
+
+
+def _top_level_shadows(text: str) -> List[Tuple[str, int, int]]:
+    """Return ``(name, first_line, dup_line)`` for unconditional duplicate top-level Python definitions."""
+    if not text.strip():
+        return []
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return []
+    seen: Dict[str, int] = {}
+    dups: List[Tuple[str, int, int]] = []
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and _is_overload(node):
+            continue
+        if node.name in seen:
+            dups.append((node.name, seen[node.name], node.lineno))
+        else:
+            seen[node.name] = node.lineno
+    return dups
+
+
+def _python_shadow_regressions(item: _File) -> List[Dict[str, Any]]:
+    """Return Tier-0 findings for newly introduced duplicate top-level Python definitions."""
+    base_counts = Counter(name for name, _, _ in _top_level_shadows(item.base_text or ""))
+    findings: List[Dict[str, Any]] = []
+    for name, first_line, dup_line in _top_level_shadows(item.text or ""):
+        if base_counts[name] > 0:
+            base_counts[name] -= 1
+            continue
+        rest = f"shadowed top-level definition '{name}' (already defined at line {first_line})"
+        findings.append({
+            "path": item.path,
+            "line": dup_line,
+            "rest": rest,
+            "raw": f"{item.path}:{dup_line}: {rest}",
+            "class": "new",
+            "on_changed": dup_line in item.changed,
+            "label": "new since the base; shadowed top-level Python definition",
+        })
+    return findings
+
+
 def _tier0(invoker: _Invoker, top: Path, run_dir: Path, files: List[_File],
            tools: Mapping[str, Tuple[Optional[str], str]], base_tree: str, current_tree: str,
            catalog: Mapping[str, Any]) -> None:
@@ -1714,6 +1769,8 @@ def _tier0(invoker: _Invoker, top: Path, run_dir: Path, files: List[_File],
             item.findings.append({"path": item.path, "line": 0, "rest": regression, "raw": cquote(item.path)
                                   + ": " + regression, "class": "new", "on_changed": True,
                                   "label": "new since the base: syntax regression"})
+        if item.kind == "python":
+            item.findings.extend(_python_shadow_regressions(item))
 
 
 def _syntax_tool(invoker: _Invoker, run_dir: Path, item: _File, argv: List[str], label: str) -> str:
@@ -2760,10 +2817,12 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
                    + " (read it with: " + show + ").\n" + payload["coverage_line"])
     elif remaining:
         listed = remaining[:40]
+        elsewhere = bool((payload.get("counts") or {}).get("new_elsewhere"))
         refusal = "\n".join([
             "ShipLoop lint gate: " + stage + " is not done while " + str(len(remaining)) + " new lint finding"
-            + ("" if len(remaining) == 1 else "s") + " on lines " + changed_by + " changed remain"
-            + (" (" + str(len(waived)) + " waived)" if waived else "") + ":",
+            + ("" if len(remaining) == 1 else "s") + " on lines " + changed_by + " changed"
+            + (" (or new regressions in changed files)" if elsewhere else "")
+            + " remain" + (" (" + str(len(waived)) + " waived)" if waived else "") + ":",
             *["- " + finding["id"] + " " + _redact(_one_line(finding["path"] + ":" + str(finding["line"]) + ": "
                                                              + finding["message"])) for finding in listed],
             *(["- ... " + str(len(remaining) - len(listed)) + " more in the record"]

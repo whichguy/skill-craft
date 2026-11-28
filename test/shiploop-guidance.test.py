@@ -3834,6 +3834,24 @@ class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
         self.assertIn("Case Spec (`C-<n>`, `RUN/case-spec.md`)", req_doc)
         self.assertIn("unchanged master features", req_doc)
 
+    def test_inner_loop_lint_regression_and_consolidation_directives(self) -> None:
+        implement = normalized(prompts.prompt("implement", delegation=prompts.INLINE))
+        self.assertIn("newly unused imports/variables left elsewhere in a file after edits", implement)
+        self.assertIn("shadowed top-level definitions", implement)
+        self.assertIn("reuse or consolidate an existing sibling helper within scope", implement)
+
+        test_prompt = normalized(prompts.prompt("test", delegation=prompts.INLINE))
+        self.assertIn("Clear any new lint regressions in files you edit (including newly unused imports or variables)", test_prompt)
+
+        review = normalized(prompts.IMPLEMENT_STEP_REVIEW_FOCUS)
+        self.assertIn("shadowed module-level definition", review)
+        self.assertIn("consolidate genuine duplicates within the item's scope", review)
+        self.assertIn("newly orphaned imports/variables in changed files", review)
+
+        catalog = normalized((REFERENCES / "lint-catalog.md").read_text(encoding="utf-8"))
+        self.assertIn("base-compared new regression elsewhere in a changed file", catalog)
+        self.assertIn("Python shadowed top-level `def`/`class` check", catalog)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

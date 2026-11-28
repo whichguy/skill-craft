@@ -2633,5 +2633,120 @@ class CliTests(Fixture):
         self.assertIn("ShipLoop never gates on this exit code", off.stdout)
 
 
+class RegressionAndShadowTests(Fixture):
+    """Gate refusals for base-compared new regressions elsewhere in changed files and Tier-0 Python shadows."""
+
+    def test_new_unused_import_elsewhere_in_changed_file_gates_while_base_debt_does_not(self):
+        # Replace ruff stub locally with one that checks real unused `import <name>` usage across the whole file.
+        smart_ruff = '''#!''' + sys.executable + '''
+import ast, os, sys
+argv = sys.argv[1:]
+if "--version" in argv:
+    print("ruff 0.0.1-smart")
+    sys.exit(0)
+if "--show-settings" in argv:
+    print("linter.safety_table.forced_safe = []")
+    sys.exit(0)
+if "--show-files" in argv:
+    for p in argv[argv.index("--") + 1:]:
+        print(os.path.abspath(p))
+    sys.exit(0)
+text = sys.stdin.read() if argv[-1] == "-" else open(argv[-1]).read()
+fname = argv[argv.index("--stdin-filename") + 1] if "--stdin-filename" in argv else argv[-1]
+if "--fix" in argv:
+    sys.stdout.write(text)
+    sys.exit(0)
+tree = ast.parse(text)
+imported = [(n.lineno, n.names[0].name) for n in tree.body if isinstance(n, ast.Import)]
+used = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+rc = 0
+for lineno, name in imported:
+    if name not in used:
+        print(f"{fname}:{lineno}:1: F401 `{name}` imported but unused")
+        rc = 1
+sys.exit(rc)
+'''
+        (self.bin / "ruff").write_text(smart_ruff)
+        (self.bin / "ruff").chmod(0o755)
+        self.commit({"a.py": "import os\nimport json\ndef f():\n    return os.getcwd()\n"})
+        base = self.base()
+        # Removing line 4's use of `os` leaves untouched line 1 newly unused; line 2 (`json`) was already unused at base.
+        self.edit({"a.py": "import os\nimport json\ndef f():\n    return '.'\n"})
+        payload = self.run_pass(base=base, mode="report", allow_fix=False)
+        self.assertEqual(payload["counts"]["new_elsewhere"], 1)
+        self.assertEqual(payload["counts"]["at_base"], 1)
+        self.assertEqual(len(payload["gating"]), 1)
+        self.assertEqual(payload["gating"][0]["line"], 1)
+        self.assertIn("New base-compared regressions elsewhere in a changed file", payload["block"])
+
+        writes, gated_payload, refusal = lint.gate(
+            self.repo,
+            self.run_dir,
+            action="A-gate",
+            work_item="W1",
+            run_option="report",
+            base=base,
+            waivers={},
+            command=str(CLI),
+            stage="implement",
+            env=self.env(),
+        )
+        self.assertIn("or new regressions in changed files", refusal)
+        self.assertEqual(len(gated_payload["gating"]), 1)
+        # Waiving the printed finding ID clears the gate.
+        waived_id = gated_payload["gating"][0]["id"]
+        _, _, cleared = lint.gate(
+            self.repo,
+            self.run_dir,
+            action="A-gate2",
+            work_item="W1",
+            run_option="report",
+            base=base,
+            waivers={waived_id: "Kept intentionally for fixture."},
+            command=str(CLI),
+            stage="implement",
+            env=self.env(),
+        )
+        self.assertEqual(cleared, "")
+
+    def test_python_shadow_regressions_detect_duplicate_top_level_defs_and_skip_exclusions(self):
+        self.commit({
+            "a.py": "from typing import overload\n\ndef pre():\n    return 1\n\ndef pre():\n    return 2\n\ndef ok():\n    return 0\n",
+        })
+        base = self.base()
+        # Pre-existing `pre` duplicate, `@overload` pair, and mutually exclusive `if/else` defs must produce 0 new findings.
+        self.edit({
+            "a.py": (
+                "from typing import overload\n\n"
+                "def pre():\n    return 1\n\n"
+                "def pre():\n    return 2\n\n"
+                "@overload\ndef typed(x: int) -> int: ...\n"
+                "@overload\ndef typed(x: str) -> str: ...\n"
+                "if True:\n    def branch(): return 1\nelse:\n    def branch(): return 2\n\n"
+                "def ok():\n    return 0\n\n"
+                "def ok():\n    return 9\n"
+            )
+        })
+        payload = self.run_pass(base=base, mode="report", allow_fix=False)
+        shadows = [row for row in payload["gating"] if "shadowed top-level definition" in row["message"]]
+        self.assertEqual(len(shadows), 1)
+        self.assertIn("'ok'", shadows[0]["message"])
+        self.assertNotIn("'pre'", "\n".join(row["message"] for row in payload["gating"]))
+
+        _, _, refusal = lint.gate(
+            self.repo,
+            self.run_dir,
+            action="A-shadow",
+            work_item="W1",
+            run_option="report",
+            base=base,
+            waivers={},
+            command=str(CLI),
+            stage="implement",
+            env=self.env(),
+        )
+        self.assertIn("shadowed top-level definition 'ok'", refusal)
+
+
 if __name__ == "__main__":
     unittest.main()
