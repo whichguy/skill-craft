@@ -34,9 +34,10 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import shiploop_knowledge_home as knowledge
+import shiploop_packet_format as packet_format
 import shiploop_planning_revision as planning_revision
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -76,7 +77,10 @@ def _spec_path(repo: Path) -> Path:
     return Path(repo) / knowledge.HOME / "spec.md"
 
 
-_REGRESSION_REPAIR_HINT = re.compile(r"\b(?:regression|baseline|repair|fix|broken|characteri[sz]ation)\b", re.IGNORECASE)
+_REGRESSION_REPAIR_HINT = re.compile(
+    r"\b(?:regression|baseline|repair|fix|broken|characteri[sz]ation|preserv\w*|compat\w*|restor\w*)\b",
+    re.IGNORECASE,
+)
 
 
 def check_spec(repo: Path, stage: str, result: Any, *, root: Optional[Path] = None,
@@ -84,7 +88,8 @@ def check_spec(repo: Path, stage: str, result: Any, *, root: Optional[Path] = No
     """A done spec result lists ``primary``: at least one R-<n>, each once, each with a current entry in the spec.
 
     On follow-on runs whose spec delta adds/modifies requirements, ``primary`` lists only those changed/added IDs
-    rather than unchanged master requirements.
+    (plus any pending unchanged R-<n> explicitly named in the incoming request) rather than unrelated unchanged master
+    requirements.
     """
     if stage != STAGE or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
@@ -108,20 +113,30 @@ def check_spec(repo: Path, stage: str, result: Any, *, root: Optional[Path] = No
         if delta is not None and delta.is_follow_on:
             changed_active = set(delta.added_requirements) | set(delta.modified_requirements)
             unchanged = set(delta.unchanged_requirements)
-            stale_master = [ident for ident in ids if ident in unchanged]
+            prompt_text = str(state.get("prompt") or "")
+            stale_master = [
+                ident for ident in ids
+                if ident in unchanged and not re.search(rf"\b{re.escape(ident)}\b", prompt_text)
+            ]
             if changed_active and stale_master:
                 raise PrimaryError(
                     "on follow-on Case " + delta.case_id + ", primary names unchanged master requirement(s) "
                     + ", ".join(stale_master) + ". Keep primary scoped to this case's added/modified requirements ("
                     + ", ".join(knowledge.sort_ids(changed_active))
-                    + "); unchanged master requirements stay regression-preserved without reimplementation.")
+                    + ") plus any pending R-<n> explicitly named in the request; unrelated unchanged master "
+                    "requirements stay regression-preserved without reimplementation.")
 
 
 def primary_ids(state: Mapping[str, Any]) -> Optional[List[str]]:
-    """The current spec result's ``primary``; None when the spec result records none."""
+    """The current spec result's ``primary`` (including parked ``spec`` Improve seed result); None when unset."""
     action = planning_revision.current_actions(state).get((None, STAGE))
     result = (state.get("accepted") or {}).get(action) if action else None
     value = result.get(FIELD) if isinstance(result, Mapping) else None
+    if not isinstance(value, list):
+        child = state.get("active_improve")
+        if isinstance(child, Mapping) and child.get("stage") == STAGE:
+            seed = child.get("seed_result")
+            value = seed.get(FIELD) if isinstance(seed, Mapping) else None
     return [str(ident) for ident in value] if isinstance(value, list) else None
 
 
@@ -196,11 +211,72 @@ def followers(queue: List[Mapping[str, Any]]) -> Dict[str, List[str]]:
     return found
 
 
+_FOLLOW_ON_EXPLORATION_LIMIT = 8
+EXPLORATION_DELTA_STAGES = ("intake", "discovery", "research", "spec")
+EXECUTION_DELTA_STAGES = (
+    "test-strategy",
+    "plan",
+    "step-plan",
+    "test-spec",
+    "implement",
+    "test",
+    "document",
+    "reflect-and-revise",
+    "system-test-author",
+    "system-test",
+    "product-acceptance",
+    "release-plan",
+    "release-verify",
+)
+INITIAL_DELTA_STAGES = ("test-strategy", "plan", "step-plan", "reflect-and-revise", "product-acceptance")
+IMPROVE_DELTA_STAGES = (
+    "spec",
+    "test-strategy",
+    "plan",
+    "step-plan",
+    "document",
+    "reflect-and-revise",
+    "system-test-author",
+    "release-plan",
+)
+CASE_DELTA_STAGES = EXPLORATION_DELTA_STAGES + EXECUTION_DELTA_STAGES
+
+
+def reimplemented_unchanged_follows(
+    root: Optional[Path],
+    state: Mapping[str, Any],
+    follows: Sequence[str],
+    label_text: str,
+) -> Optional[Tuple[str, List[str], List[str]]]:
+    """Return ``(case_id, req_follows, scope_reqs)`` when ``follows`` cites only unchanged non-primary master
+    requirements without a changed AD-<n> or regression/repair/preservation framing on a follow-on run; else None."""
+    if root is None:
+        return None
+    delta = knowledge.case_delta(Path(root), state)
+    if delta is None or not delta.is_follow_on:
+        return None
+    changed_reqs = set(delta.added_requirements) | set(delta.modified_requirements) | set(delta.retired_requirements)
+    active_unchanged = set(delta.unchanged_requirements) & set(primary_ids(state) or ())
+    scope_reqs = knowledge.sort_ids(changed_reqs | active_unchanged)
+    if not scope_reqs:
+        return None
+    preserve_only = set(delta.unchanged_requirements) - active_unchanged
+    changed_ads = set(delta.added_decisions) | set(delta.modified_decisions) | set(delta.superseded_decisions)
+    req_follows = [ident for ident in follows if str(ident).startswith("R-")]
+    if not req_follows or any(ident in changed_ads for ident in follows):
+        return None
+    if not all(ident in preserve_only for ident in req_follows):
+        return None
+    if _REGRESSION_REPAIR_HINT.search(label_text):
+        return None
+    return delta.case_id, req_follows, scope_reqs
+
+
 def check_queue(state: Mapping[str, Any], stage: str, result: Any, *, root: Optional[Path] = None) -> None:
     """A done plan, or a done reflect-and-revise that replaces the future queue: each ``follows`` ID its work items give has
     an entry in the living files, every primary requirement is in the ``follows`` of some work item of the queue it
-    leaves, and on follow-on runs with a spec delta every added/modified/retired requirement is owned without
-    inventing reimplementation-only work items on unchanged master requirements."""
+    leaves, and on follow-on runs with a scoped delta or pending primary every added/modified/retired requirement is owned
+    without inventing reimplementation-only work items on unrelated unchanged master requirements."""
     if stage not in QUEUE_STAGES or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     queue = queue_after(state, stage, result)
@@ -234,34 +310,31 @@ def check_queue(state: Mapping[str, Any], stage: str, result: Any, *, root: Opti
     changed_reqs = knowledge.sort_ids(
         set(delta.added_requirements) | set(delta.modified_requirements) | set(delta.retired_requirements)
     )
-    if not changed_reqs:
-        return
-    missing_delta = [ident for ident in changed_reqs if ident not in served]
-    if missing_delta:
-        raise PrimaryError(
-            "Case " + delta.case_id + " changed/added/retired " + ", ".join(missing_delta)
-            + ", and no work item in "
-            + ("this plan" if stage == "plan" else "the queue this result leaves")
-            + " lists them in follows. Widen an owning item or add one carrying "
-            + missing_delta[0] + " in follows.")
-    unchanged = set(delta.unchanged_requirements)
-    changed_ads = set(delta.added_decisions) | set(delta.modified_decisions) | set(delta.superseded_decisions)
+    if changed_reqs:
+        missing_delta = [ident for ident in changed_reqs if ident not in served]
+        if missing_delta:
+            raise PrimaryError(
+                "Case " + delta.case_id + " changed/added/retired " + ", ".join(missing_delta)
+                + ", and no work item in "
+                + ("this plan" if stage == "plan" else "the queue this result leaves")
+                + " lists them in follows. Widen an owning item or add one carrying "
+                + missing_delta[0] + " in follows.")
     for row in result.get("work_items") or ():
         if not isinstance(row, Mapping):
             continue
-        row_follows = _follows(row)
-        req_follows = [ident for ident in row_follows if ident.startswith("R-")]
-        has_changed_ad = any(ident in changed_ads for ident in row_follows)
-        if req_follows and not has_changed_ad and all(ident in unchanged for ident in req_follows):
-            label = str(row.get("title") or "") + " " + str(row.get("context") or "")
-            if not _REGRESSION_REPAIR_HINT.search(label):
-                wid = str(row.get("id") or "W<n>")
-                raise PrimaryError(
-                    "work item " + wid + " follows only unchanged master requirement(s) ("
-                    + ", ".join(req_follows) + ") on follow-on Case " + delta.case_id
-                    + ", which risks reimplementing existing features. Scope work items to Case "
-                    + delta.case_id + "'s delta (" + ", ".join(changed_reqs)
-                    + ") or explicitly mark the item as a baseline regression/repair check.")
+        if row.get("slice") == "corrective":
+            continue
+        label = str(row.get("title") or "") + " " + str(row.get("context") or "")
+        conflict = reimplemented_unchanged_follows(root, state, _follows(row), label)
+        if conflict is not None:
+            case_id, req_follows, scope_reqs = conflict
+            wid = str(row.get("id") or "W<n>")
+            raise PrimaryError(
+                "work item " + wid + " follows only unchanged master requirement(s) ("
+                + ", ".join(req_follows) + ") on follow-on Case " + case_id
+                + ", which risks reimplementing existing features. Scope work items to Case "
+                + case_id + "'s delta (" + ", ".join(scope_reqs)
+                + ") or explicitly mark the item as a baseline regression/repair check.")
 
 
 def _listed(ids: List[str]) -> str:
@@ -334,34 +407,93 @@ def packet_lines(root: Path, state: Mapping[str, Any], stage: str) -> List[str]:
             + ["- " + ident + ": " + (_listed(passed[ident]) if passed.get(ident) else "none passed") for ident in ids])
 
 
-def case_delta_lines(root: Path, state: Mapping[str, Any], stage: str) -> List[str]:
-    """Compact Case C-<n> incremental-spec block for outer/step planning and acceptance packet heads."""
-    if state.get("status") != "active" or state.get("active_improve"):
+def _compact_ids(ids: List[str]) -> str:
+    if not ids:
+        return "none"
+    if len(ids) <= _FOLLOW_ON_EXPLORATION_LIMIT:
+        return ", ".join(ids)
+    return ", ".join(ids[:_FOLLOW_ON_EXPLORATION_LIMIT]) + f" (+{len(ids) - _FOLLOW_ON_EXPLORATION_LIMIT} more)"
+
+
+def case_delta_lines(root: Path, state: Mapping[str, Any], stage: str, *, for_improve: bool = False) -> List[str]:
+    """Compact Case C-<n> incremental-spec block for exploration, execution, and Improve handoff headers."""
+    if state.get("status") != "active":
         return []
-    if stage not in ("test-strategy", "plan", "step-plan", "reflect-and-revise", "product-acceptance"):
-        return []
+    if for_improve:
+        if stage not in IMPROVE_DELTA_STAGES:
+            return []
+    else:
+        if state.get("active_improve") or stage not in CASE_DELTA_STAGES:
+            return []
     delta = knowledge.case_delta(Path(root), state)
     if delta is None:
         return []
-    if not delta.is_follow_on:
-        if not delta.added_requirements:
+    baseline_ads = knowledge.sort_ids(
+        set(delta.unchanged_decisions) | set(delta.modified_decisions) | set(delta.superseded_decisions)
+    )
+    has_prior_baseline = delta.is_follow_on or bool(baseline_ads) or delta.starting_environment_present
+    if not has_prior_baseline:
+        if for_improve or stage not in INITIAL_DELTA_STAGES or not delta.added_requirements:
             return []
         return [
             f"Case {delta.case_id} (initial build, RUN/{knowledge.CASE_SPEC_FILE}): "
             f"all spec requirements are new ({', '.join(delta.added_requirements)})."
         ]
+    if not for_improve and stage in EXPLORATION_DELTA_STAGES:
+        baseline_reqs = knowledge.sort_ids(
+            set(delta.unchanged_requirements) | set(delta.modified_requirements) | set(delta.retired_requirements)
+        )
+        env_status = "present" if delta.starting_environment_present else "absent"
+        return [
+            f"Follow-on Case {delta.case_id} (existing master knowledge; RUN/{knowledge.CASE_SPEC_FILE}):",
+            f"- Master baseline: KNOWLEDGE/spec.md ({_compact_ids(baseline_reqs)}); "
+            f"KNOWLEDGE/architecture.md ({_compact_ids(baseline_ads)}); "
+            f"KNOWLEDGE/environment.md ({env_status}).",
+            "- Leverage existing specs, architecture, and environment; scope exploration, experiments, and updates "
+            "strictly to this request's incremental delta (augmenting any of the three living files in place only "
+            "where this request requires it).",
+        ]
+    if not delta.is_follow_on:
+        if for_improve or stage not in INITIAL_DELTA_STAGES or not delta.added_requirements:
+            return []
+        return [
+            f"Case {delta.case_id} (initial build, RUN/{knowledge.CASE_SPEC_FILE}): "
+            f"all spec requirements are new ({', '.join(delta.added_requirements)})."
+        ]
+    spec_primary = set(primary_ids(state) or ())
+    active_unchanged_primary = knowledge.sort_ids(
+        ident for ident in delta.unchanged_requirements if ident in spec_primary
+    )
+    preserve_only = [ident for ident in delta.unchanged_requirements if ident not in spec_primary]
     mod_ids = knowledge.sort_ids(delta.modified_requirements.keys())
-    return [
+    preserve_text = packet_format._id_ranges(preserve_only) or "none"
+    lines = [
         f"Case {delta.case_id} incremental spec (RUN/{knowledge.CASE_SPEC_FILE}; master spec KNOWLEDGE/spec.md):",
         "- Added (implement): " + (", ".join(delta.added_requirements) if delta.added_requirements else "none"),
         "- Modified (implement delta lines only; preserve existing behaviour): "
         + (", ".join(mod_ids) if mod_ids else "none"),
         "- Retired (remove/deprecate): " + (", ".join(delta.retired_requirements) if delta.retired_requirements else "none"),
-        "- Unchanged master (preserve & regression-check only; DO NOT reimplement): "
-        + (", ".join(delta.unchanged_requirements) if delta.unchanged_requirements else "none"),
     ]
+    if active_unchanged_primary:
+        lines.append("- Active primary (spec unchanged since init; implement/verify per request): "
+                     + ", ".join(active_unchanged_primary))
+    lines.append("- Unchanged master (preserve & regression-check only; DO NOT reimplement): " + preserve_text)
+    infra_parts: List[str] = []
+    for ident in delta.added_decisions:
+        infra_parts.append(f"{ident} (added)")
+    for ident in knowledge.sort_ids(delta.modified_decisions.keys()):
+        infra_parts.append(f"{ident} (modified)")
+    for ident in delta.superseded_decisions:
+        infra_parts.append(f"{ident} (superseded)")
+    if delta.environment_changed:
+        infra_parts.append("environment.md updated")
+    if infra_parts:
+        lines.append("- Architecture/Environment delta: " + "; ".join(infra_parts))
+    return lines
 
 
-__all__ = ("ACCEPTANCE", "FIELD", "PLACEHOLDER", "PRINTED_IDS", "PrimaryError", "QUEUE_STAGES", "STAGE", "canonical",
-           "case_delta_lines", "check_queue", "check_spec", "check_unverified", "followers", "packet_lines",
-           "passed_cases", "primary_ids", "queue_after")
+__all__ = ("ACCEPTANCE", "CASE_DELTA_STAGES", "EXECUTION_DELTA_STAGES", "EXPLORATION_DELTA_STAGES",
+           "FIELD", "IMPROVE_DELTA_STAGES", "INITIAL_DELTA_STAGES", "PLACEHOLDER", "PRINTED_IDS",
+           "PrimaryError", "QUEUE_STAGES", "STAGE", "canonical", "case_delta_lines", "check_queue",
+           "check_spec", "check_unverified", "followers", "packet_lines", "passed_cases",
+           "primary_ids", "queue_after", "reimplemented_unchanged_follows")

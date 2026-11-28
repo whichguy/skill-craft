@@ -3890,6 +3890,36 @@ class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
             with self.subTest(doc=doc_name):
                 self.assertIn("lint-catalog.md", (REFERENCES / doc_name).read_text(encoding="utf-8"))
 
+    def test_follow_on_incremental_lifecycle_directives_across_stages(self) -> None:
+        checks = {
+            "intake": "follow-on Case C-<n>",
+            "discovery": "start from and revalidate them against the current checkout instead of rediscovering from scratch",
+            "research": "scope research and probes to the incoming delta's unknowns and any architecture or environment augmentations",
+            "spec": "also read existing KNOWLEDGE/architecture.md and KNOWLEDGE/environment.md",
+            "test-strategy": "use RUN/case-spec.md (Case C-<n>) as the incremental scope",
+            "plan": "Augment KNOWLEDGE/architecture.md (new or superseded AD-<n>) or plan environment-preparation prerequisites in place whenever incoming specs require them",
+            "implement": "scope edits strictly to Case C-<n>'s delta (RUN/case-spec.md) and touched preservation checks",
+            "test": "target new tests to Case C-<n>'s delta in RUN/case-spec.md",
+            "document": "update KNOWLEDGE/spec.md, architecture.md and environment.md in place for Case C-<n>'s delta",
+            "reflect-and-revise": "keep any revised queue scoped to Case C-<n>'s delta",
+            "system-test-author": "author new system cases for Case C-<n>'s added/modified requirements",
+            "system-test": "reconcile Case C-<n>'s delta requirements against new checks",
+            "product-acceptance": "focus active wiring checks on RUN/case-spec.md's added/modified requirements",
+            "release-plan": "leverage existing KNOWLEDGE/environment.md release/promotion procedures",
+            "release-verify": "confirm Case C-<n>'s delta live and verify unchanged master behaviour stays regression-clean",
+        }
+        for stage, snippet in checks.items():
+            with self.subTest(stage=stage):
+                self.assertIn(normalized(snippet), normalized(prompts.prompt(stage, delegation=prompts.INLINE)))
+        self.assertIn(
+            "never demand reimplementing unchanged master work",
+            normalized(prompts.PLANNING_REVIEW_FOCUS),
+        )
+        self.assertIn("On a follow-on run, scope added items to Case C-<n>'s delta", normalized(prompts._REFLECT_AND_REVISE_ONE_STEP))
+        self.assertIn("reimplement unchanged master R-<n> instead of scoping to RUN/case-spec.md's delta", normalized(prompts.IMPLEMENT_STEP_REVIEW_FOCUS))
+        self.assertIn("on follow-on Case C-<n> stay scoped to RUN/case-spec.md", normalized(prompts.REFLECT_REVISION_REVIEW_FOCUS))
+        self.assertIn("on follow-on Case C-<n>, edits or new checks that reimplement unchanged master work", normalized(prompts.END_REVIEW_FOCUS))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

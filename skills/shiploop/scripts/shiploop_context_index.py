@@ -223,6 +223,7 @@ def render(
         "",
         "## Planning basis",
         "",
+        f"- Case: {state.get('case_id') or 'C-1'} (RUN/{knowledge.CASE_SPEC_FILE})",
     ]
     for root_stage in _ROOT_STAGES:
         lines.extend(_entry_lines(state, root, root_stage, current.get((None, root_stage))))

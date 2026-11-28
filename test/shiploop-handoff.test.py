@@ -3152,7 +3152,8 @@ class CaseRowCliTests(inner.RunDriver):
         state = self.drive_to("test-spec")
         home = self.repo / knowledge.HOME
         home.mkdir(parents=True, exist_ok=True)
-        (home / "spec.md").write_text("## Requirements\n\n- R-1: The change works.\n- R-2: Reload keeps it.\n",
+        (home / "spec.md").write_text("## Requirements\n\n- R-1: The change works.\n- R-2: Reload keeps it.\n\n"
+                                      "## Non-functional requirements\n\nSynthetic knowledge.\n",
                                       encoding="utf-8")
         action = navigator.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
@@ -3195,7 +3196,9 @@ class CaseRowCliTests(inner.RunDriver):
         state = self.drive_to("test-spec")
         home = self.repo / knowledge.HOME
         home.mkdir(parents=True, exist_ok=True)
-        (home / "spec.md").write_text("## Requirements\n\n- R-1: An update changes a stored value.\n", encoding="utf-8")
+        (home / "spec.md").write_text("## Requirements\n\n- R-1: An update changes a stored value.\n\n"
+                                      "## Non-functional requirements\n\nSynthetic knowledge.\n",
+                                      encoding="utf-8")
         action = navigator.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
@@ -3281,6 +3284,7 @@ class RequirementLinesTests(inner.RunDriver):
             + "\n\nBody text.\n\n## Retired\n\n- R-4: Dropped.\n")
 
     def packets(self, spec: str | None) -> tuple:
+        knowledge._git(self.repo, "checkout", "--", knowledge.HOME)
         self.start()
         self.drive_to("step-plan")
         self.complete(dict(inner.DONE, paths=list(self.PATHS), criteria=[{"id": "C1", "text": "It works (R-1)."}],
@@ -4359,6 +4363,278 @@ class CaseSpecDeltaHandoffTests(RepoCase):
             },
             root=self.root,
         )
+
+    def test_follow_on_exploration_banner_and_wide_stage_and_improve_routing(self) -> None:
+        # Greenfield (no master spec.md at init): exploration stages and Improve handoff emit no case-delta block.
+        knowledge.record_baseline(self.root, self.state)
+        for stage in primary.EXPLORATION_DELTA_STAGES:
+            self.assertEqual(primary.case_delta_lines(self.root, dict(self.state, status="active"), stage), [])
+        self.assertEqual(primary.case_delta_lines(self.root, dict(self.state, status="active"), "plan", for_improve=True), [])
+
+        # Follow-on baseline (master R-1, R-2, AD-1, environment.md committed at init).
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Chat\n- Existing chat loop.\n\n"
+            "### R-2: Auth\n- Existing login.\n\n"
+            "## Retired\nnone\n",
+        )
+        self.home(
+            "architecture.md",
+            "# Architecture\n\n## Decisions\n\n### AD-1: Store\n- SQLite.\n\n## Superseded\nnone\n",
+        )
+        self.home("environment.md", "# Env\n\n## Commands\n- `pytest`\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "master baseline")
+        (self.root / knowledge.RUN_STARTING_KNOWLEDGE).unlink()
+        (self.root / knowledge.RUN_BASELINE).unlink()
+        knowledge.record_baseline(self.root, self.state)
+
+        follow_state = dict(self.state, case_id="C-2", status="active")
+        for stage in primary.EXPLORATION_DELTA_STAGES:
+            with self.subTest(exploration_stage=stage):
+                banner = "\n".join(primary.case_delta_lines(self.root, follow_state, stage))
+                self.assertIn("Follow-on Case C-2 (existing master knowledge; RUN/case-spec.md):", banner)
+                self.assertIn("KNOWLEDGE/spec.md (R-1, R-2)", banner)
+                self.assertIn("KNOWLEDGE/architecture.md (AD-1)", banner)
+                self.assertIn("KNOWLEDGE/environment.md (present)", banner)
+                self.assertIn("Leverage existing specs, architecture, and environment", banner)
+
+        # Add R-3, AD-2, and update environment.md; verify execution stages and Improve handoff surface all deltas.
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Chat\n- Existing chat loop.\n\n"
+            "### R-2: Auth\n- Existing login.\n\n"
+            "### R-3: Export\n- CSV export.\n\n"
+            "## Retired\nnone\n",
+        )
+        self.home(
+            "architecture.md",
+            "# Architecture\n\n## Decisions\n\n### AD-1: Store\n- SQLite.\n\n"
+            "### AD-2: CSV Formatter\n- Streaming CSV.\n\n## Superseded\nnone\n",
+        )
+        self.home("environment.md", "# Env\n\n## Commands\n- `pytest`\n- `ruff check`\n")
+
+        import shiploop_standalone_improve as standalone_improve
+        selected = standalone_improve.resolve_skill(str(CARD))
+        walked_plan = None
+        for key, walked in plans.full_walk(plans.CASE, "inline", str(self.repo), self.root):
+            if plans.stage_of(key) == "plan":
+                walked_plan = walked
+                break
+        assert walked_plan is not None
+        spec_action = next(row["action"] for row in walked_plan["history"] if row["stage"] == "spec")
+        walked_plan = dict(walked_plan, case_id="C-2")
+        walked_plan["accepted"] = dict(
+            walked_plan["accepted"],
+            **{spec_action: {**walked_plan["accepted"][spec_action], "primary": ["R-3"]}},
+        )
+
+        for stage in ("test-spec", "implement", "test", "document", "system-test-author", "system-test", "release-plan", "release-verify"):
+            with self.subTest(execution_stage=stage):
+                lines = "\n".join(primary.case_delta_lines(self.root, dict(walked_plan, stage=stage), stage))
+                self.assertIn("- Added (implement): R-3", lines)
+                self.assertIn("- Unchanged master (preserve & regression-check only; DO NOT reimplement): R-1, R-2", lines)
+                self.assertIn("- Architecture/Environment delta: AD-2 (added); environment.md updated", lines)
+
+        waiting = navigator.apply(walked_plan, navigator.current_action(walked_plan)["id"],
+                                  {"outcome": "done", "summary": "plan", "work_items": [{"id": "W1", "title": "Export", "follows": ["R-3"]}]})
+        bound = dict(waiting, active_improve=standalone_improve.binding(
+            waiting, waiting["active_improve"]["action_id"], "plan",
+            waiting["active_improve"]["seed_result"], selected,
+            improve_action=waiting["active_improve"]["improve_action"]))
+        handoff = navigator.improve_handoff_text(None, self.root, bound)
+        self.assertIn("- Added (implement): R-3", handoff)
+        self.assertIn("- Architecture/Environment delta: AD-2 (added); environment.md updated", handoff)
+        commit_cmd_pos = handoff.find("improve-commit")
+        self.assertNotEqual(commit_cmd_pos, -1)
+        self.assertLess(commit_cmd_pos, 4500)
+
+        # Master baseline excludes mid-run added R-3 / AD-2 and compacts 3+ preserve_only IDs with _id_ranges.
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Chat\n- Existing chat loop.\n\n"
+            "### R-2: Auth\n- Existing login.\n\n"
+            "### R-3: Audit\n- Existing audit.\n\n"
+            "### R-4: Export\n- CSV export.\n\n"
+            "## Retired\nnone\n",
+        )
+        # Re-seed baseline with R-1..R-3 so R-4 is added mid-run while R-1..R-3 are preserve_only.
+        (self.repo / "docs/shiploop/spec.md").write_text(
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Chat\n- Existing chat loop.\n\n"
+            "### R-2: Auth\n- Existing login.\n\n"
+            "### R-3: Audit\n- Existing audit.\n\n"
+            "## Retired\nnone\n",
+            encoding="utf-8",
+        )
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "three master reqs")
+        (self.root / knowledge.RUN_STARTING_KNOWLEDGE).unlink()
+        (self.root / knowledge.RUN_BASELINE).unlink()
+        knowledge.record_baseline(self.root, self.state)
+        (self.repo / "docs/shiploop/spec.md").write_text(
+            (self.repo / "docs/shiploop/spec.md").read_text(encoding="utf-8").replace(
+                "## Retired", "### R-4: Export\n- CSV.\n\n## Retired"
+            ),
+            encoding="utf-8",
+        )
+        (self.repo / "docs/shiploop/architecture.md").write_text(
+            (self.repo / "docs/shiploop/architecture.md").read_text(encoding="utf-8").replace(
+                "## Superseded", "### AD-3: Export Adapter\n- Adapter.\n\n## Superseded"
+            ),
+            encoding="utf-8",
+        )
+        walked_plan["accepted"][spec_action]["primary"] = ["R-4"]
+        expl_banner = "\n".join(primary.case_delta_lines(self.root, dict(walked_plan, status="active", active_improve=None), "spec"))
+        self.assertIn("KNOWLEDGE/spec.md (R-1, R-2, R-3)", expl_banner)
+        self.assertNotIn("R-4", expl_banner)
+        self.assertNotIn("AD-3", expl_banner)
+        exec_banner = "\n".join(primary.case_delta_lines(self.root, dict(walked_plan, status="active", active_improve=None), "plan"))
+        self.assertIn("- Unchanged master (preserve & regression-check only; DO NOT reimplement): R-1..R-3", exec_banner)
+
+    def test_follow_on_pending_primary_and_step_plan_follows_guard(self) -> None:
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Chat\n- Existing chat.\n\n"
+            "### R-2: Pending Export\n- Pending export.\n\n"
+            "## Retired\nnone\n",
+        )
+        self.home(
+            "architecture.md",
+            "# Architecture\n\n## Decisions\n\n### AD-1: Store\n- SQLite.\n\n## Superseded\nnone\n",
+        )
+        self.home("environment.md", "# Env\n\n## Commands\n- `pytest`\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "baseline")
+        knowledge.record_baseline(self.root, self.state)
+
+        state = navigator.new_state(str(self.repo), "Implement pending R-2.")
+        for _ in range(3):
+            state = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "ok"})
+        spec_action = navigator.current_action(state)["id"]
+        state = navigator.apply(state, spec_action, {"outcome": "done", "summary": "spec", "primary": ["R-2"]})
+        # Even while spec is parked in active_improve (before finish_improve), primary_ids() and case_delta_lines()
+        # recognize pending R-2 as Active primary rather than DO NOT reimplement.
+        spec_improve_lines = "\n".join(primary.case_delta_lines(self.root, dict(state, case_id="C-2"), "spec", for_improve=True))
+        self.assertIn("- Active primary (spec unchanged since init; implement/verify per request): R-2", spec_improve_lines)
+        self.assertIn("- Unchanged master (preserve & regression-check only; DO NOT reimplement): R-1", spec_improve_lines)
+        state = navigator.finish_improve(state, spec_action, {"summary": "ok"})
+        state = dict(state, case_id="C-2")
+
+        # Pending-primary-only run (changed_reqs=[]) still refuses unframed reimplementation of R-1 in check_queue
+        # and step-plan _handoff_fault, while allowing slice="corrective" and preservation/compat framing.
+        with self.assertRaises(ValueError) as pending_reimpl:
+            primary.check_queue(
+                dict(state, status="active", stage="plan"),
+                "plan",
+                {
+                    "outcome": "done",
+                    "work_items": [
+                        {"id": "W1", "title": "Implement R-2", "follows": ["R-2"]},
+                        {"id": "W2", "title": "Rebuild chat", "follows": ["R-1"]},
+                    ],
+                },
+                root=self.root,
+            )
+        self.assertIn("follows only unchanged master requirement(s) (R-1)", str(pending_reimpl.exception))
+        primary.check_queue(
+            dict(state, status="active", stage="plan"),
+            "plan",
+            {
+                "outcome": "done",
+                "work_items": [
+                    {"id": "W1", "title": "Implement R-2", "follows": ["R-2"]},
+                    {"id": "W2", "title": "Preserve chat API compatibility", "follows": ["R-1"]},
+                ],
+            },
+            root=self.root,
+        )
+        pending_step = dict(state, stage="inner-loop", work_items=[{"id": "W1", "title": "Build chat", "context": "reimplement"}], work_index=0)
+        self.assertIsNotNone(navigator._handoff_fault(self.root, pending_step, "step-plan", {"outcome": "done", "follows": ["R-1"], "summary": "chat"}, "complete"))
+
+        # Unchanged primary R-2 appears as Active primary rather than DO NOT reimplement.
+        plan_lines = "\n".join(primary.case_delta_lines(self.root, state, "plan"))
+        self.assertIn("- Active primary (spec unchanged since init; implement/verify per request): R-2", plan_lines)
+        self.assertIn("- Unchanged master (preserve & regression-check only; DO NOT reimplement): R-1", plan_lines)
+
+        # Now add R-3; check_spec allows prompt-named pending R-2 alongside R-3, while refusing unmentioned R-1.
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Chat\n- Existing chat.\n\n"
+            "### R-2: Pending Export\n- Pending export.\n\n"
+            "### R-3: Audit\n- Audit trail.\n\n"
+            "## Retired\nnone\n",
+        )
+        primary.check_spec(self.repo, "spec", {"outcome": "done", "primary": ["R-2", "R-3"]}, root=self.root, state=state)
+        with self.assertRaises(ValueError) as unmentioned_err:
+            primary.check_spec(self.repo, "spec", {"outcome": "done", "primary": ["R-1", "R-3"]}, root=self.root, state=state)
+        self.assertIn("unchanged master requirement(s) R-1", str(unmentioned_err.exception))
+
+        state["accepted"][spec_action]["primary"] = ["R-3"]
+        step_state = dict(state, stage="inner-loop", work_items=[{"id": "W1", "title": "Build chat again", "context": "reimplement"}], work_index=0)
+        fault = navigator._handoff_fault(self.root, step_state, "step-plan", {"outcome": "done", "follows": ["R-1"], "summary": "redoing chat"}, "complete")
+        self.assertIsNotNone(fault)
+        assert fault is not None
+        self.assertIn("Scope follows in {result} to Case C-2", fault.fix)
+        # Delta R-3 passes; regression/preservation-framed R-1 passes; corrective slice passes; AD-2-backed R-1 passes.
+        self.assertIsNone(navigator._handoff_fault(self.root, step_state, "step-plan", {"outcome": "done", "follows": ["R-3"], "summary": "audit"}, "complete"))
+        self.assertIsNone(navigator._handoff_fault(self.root, step_state, "step-plan", {"outcome": "done", "follows": ["R-1"], "summary": "regression check"}, "complete"))
+        self.assertIsNone(navigator._handoff_fault(self.root, dict(step_state, work_items=[{"id": "W1", "title": "Repair", "slice": "corrective", "context": "fix"}]), "step-plan", {"outcome": "done", "follows": ["R-1"], "summary": "fix"}, "complete"))
+        self.home(
+            "architecture.md",
+            "# Architecture\n\n## Decisions\n\n### AD-1: Store\n- SQLite.\n\n### AD-2: Adapter\n- Wrap R-1.\n\n## Superseded\nnone\n",
+        )
+        self.assertIsNone(navigator._handoff_fault(self.root, step_state, "step-plan", {"outcome": "done", "follows": ["R-1", "AD-2"], "summary": "wire"}, "complete"))
+        # _followed_lines renders line-level delta for modified AD-<n>.
+        self.home(
+            "architecture.md",
+            "# Architecture\n\n## Decisions\n\n### AD-1: Store\n- SQLite with WAL.\n\n## Superseded\nnone\n",
+        )
+        followed_arch = "\n".join(navigator._followed_lines(self.repo, "Followed", [("AD-1", "")], root=self.root, state=step_state))
+        self.assertIn("- AD-1 [modified in C-2 — apply decision delta below; preserve unaffected architecture in KNOWLEDGE/architecture.md]:", followed_arch)
+        self.assertIn("  - [-] - SQLite.", followed_arch)
+        self.assertIn("  - [+] - SQLite with WAL.", followed_arch)
+
+    def test_improve_commit_refreshes_case_spec_on_disk(self) -> None:
+        from types import SimpleNamespace
+        import shiploop_standalone_improve as standalone_improve
+
+        self.home("spec.md", "# Spec\n\n## Requirements\n\n### R-1: Core\n- Base.\n\n## Retired\nnone\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "initial spec")
+        state = navigator.new_state(str(self.repo), "Add R-2 export.")
+        knowledge.record_baseline(self.root, state)
+        for _ in range(3):
+            state = navigator.apply(state, navigator.current_action(state)["id"], {"outcome": "done", "summary": "ok"})
+        spec_action = navigator.current_action(state)["id"]
+        state = navigator.apply(state, spec_action, {"outcome": "done", "summary": "spec", "primary": ["R-1"]})
+        selected = standalone_improve.resolve_skill(str(CARD))
+        state = dict(state, case_id="C-2", active_improve=standalone_improve.binding(
+            state, spec_action, "spec", state["active_improve"]["seed_result"], selected,
+            improve_action=state["active_improve"]["improve_action"]))
+        navigator.save(self.root, state)
+
+        self.home(
+            "spec.md",
+            "# Spec\n\n## Requirements\n\n### R-1: Core\n- Base.\n\n### R-2: Export\n- Added during review.\n\n## Retired\nnone\n",
+        )
+        msg_path = navigator.improve_commit_message_path(state["active_improve"])
+        msg_path.parent.mkdir(parents=True, exist_ok=True)
+        msg_path.write_text("docs(shiploop): refine spec\n\nKey learnings:\n- Added R-2 cleanly.\n", encoding="utf-8")
+        core = SimpleNamespace(PACKAGE_ROOT=ROOT / "skills" / "shiploop", CLI_FILE=CLI)
+        args = SimpleNamespace(action=state["active_improve"]["improve_action"], message=str(msg_path), remote_change=False)
+        with mock.patch.object(navigator.improve_changes, "review_changes", return_value=([], ["docs/shiploop/spec.md"])):
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = navigator._improve_commit(core, self.root, state, args)
+        self.assertEqual(rc, 0)
+        case_text = (self.root / knowledge.CASE_SPEC_FILE).read_text(encoding="utf-8")
+        self.assertIn("### R-2", case_text)
+        self.assertIn("## Added Requirements (Implement)", case_text)
 
 
 if __name__ == "__main__":

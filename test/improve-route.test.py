@@ -51,17 +51,18 @@ PILOT_A_BYTES = 22_000          # plan U18 exit 3: the step review's handoff aga
 # its route adds the native-owner lines.
 ASK_AGENT_STEP_REVIEW_BYTES = 23_000
 READ_LIMIT = 2_000              # plan U18 exit 2: the first 2,000 characters are self-sufficient
-FOCUS_LIMIT = 4_500             # ... the focus ends, and the commit and complete lines sit, inside the first 4,500
+FOCUS_LIMIT = 4_750             # ... the focus ends, and the commit and complete lines sit, inside this window (measured max 4,631 on 2026-11-28 with follow-on Case C-<n> scope in PLANNING_REVIEW_FOCUS)
 # The step review (document's, rule item, design T §8) reviews the step's code, tests, docs and knowledge together, so its
 # focus is the longest: its list of what to fix follows the top block. Its window is raised rather than its obligations
 # trimmed (owner rule: raise a bound rather than drop obligations), measured 2026-10-28 at install lengths: its Commit
 # section starts at 5,204 inline and 5,285 on the ask-agent route and its one line ("Commit nothing: ...") ends at 5,395
 # and 5,476. Design T §9.1 2b-2 to 2b-4 grew the focus (its test, docs and knowledge bullets, the entry-point trace and
-# the criterion a run must confirm); the Commit section started at 4,709 at 2b-3. Its handoff fits pilot A again (21,475
-# and 21,896 bytes) since it stopped printing the improve-commit command and the message rules, which a step review
-# never uses.
+# the criterion a run must confirm); the Commit section started at 4,709 at 2b-3; df12dd7fc + Case C-<n> follow-on
+# directives measured Commit starting at 5,601 inline / 5,628 ask-agent and ending at 5,792 / 5,819. Its handoff fits
+# pilot A again (21,475 and 21,896 bytes) since it stopped printing the improve-commit command and the message rules,
+# which a step review never uses.
 STEP_REVIEW_STAGE = "document"
-STEP_FOCUS_LIMIT = 5_600
+STEP_FOCUS_LIMIT = 5_850
 # The walk prints short paths; a real install prints these lengths (the E2E render uses the same: run dir 83, CLI 96).
 RUN_LENGTH, WORKTREE_LENGTH, ROUTE_LENGTH, CLI_LENGTH = 83, 95, 105, 96
 KINDS = ("spec", "test-strategy", "plan", "step-plan", STEP_REVIEW_STAGE, "reflect-and-revise")   # plan U18 exit 2; test-spec has no review (2026-10-26)

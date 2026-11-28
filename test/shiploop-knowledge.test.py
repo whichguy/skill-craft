@@ -2542,6 +2542,109 @@ class CaseSpecAndRetentionTests(HomeFixture):
         self.assertEqual(packet_format._one_line(0), "0")
         self.assertEqual(navigator._one_line("a\n  b"), "a b")
 
+    def test_document_step_reflection_marks_do_not_promote_unchanged_master_requirements(self) -> None:
+        home = self.repo / "docs/shiploop"
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text(
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Auth\n- Sign in works.\n\n"
+            "### R-2: Settings Panel\n- Single combined panel.\n\n"
+            "## Non-functional requirements\nnone\n\n## Retired\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "architecture.md").write_text(
+            "# Architecture\n\n## Stack\n- Py\n\n## Structure\n- src/\n\n## Conventions\n- x\n\n"
+            "## Interfaces and boundaries\n- x\n\n## Real-boundary checks\n- x\n\n"
+            "## Decisions\n\n### AD-1: Base\n- Choice.\n\n## Superseded\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "environment.md").write_text("# Environment\n\n## Commands\n- `pytest`\n", encoding="utf-8")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "master baseline")
+
+        root = Path(tempfile.mkdtemp(prefix="shiploop-step-mark-delta-"))
+        self.addCleanup(lambda: subprocess.run(["rm", "-rf", str(root)], check=False))
+        knowledge.record_baseline(root, self.state)
+
+        state = dict(self.state, case_id="C-2")
+        # Add R-3, edit R-2 with both real clause and a (W1/S1) note, and add wider (C-2 W1/S1a) note to unchanged R-1.
+        (home / "spec.md").write_text(
+            "# Spec\n\n## Requirements\n\n"
+            "### R-1: Core Auth\n- Sign in works.\n- Verified regression in test_auth.py. (C-2 W1/S1a).\n\n"
+            "### R-2: Settings Panel\n- Split Admin Settings from User Preferences.\n- Implemented in settings.py (W1/S-1)\n\n"
+            "### R-3: Audit Log\n- Log admin changes.\n\n"
+            "## Non-functional requirements\nnone\n\n## Retired\nnone\n",
+            encoding="utf-8",
+        )
+        delta = knowledge.case_delta(root, state)
+        self.assertIsNotNone(delta)
+        assert delta is not None
+        self.assertEqual(delta.added_requirements, ("R-3",))
+        self.assertEqual(list(delta.modified_requirements), ["R-2"])
+        self.assertEqual(delta.unchanged_requirements, ("R-1",))
+        self.assertIn("- Split Admin Settings from User Preferences.", delta.modified_requirements["R-2"].added_lines)
+        self.assertNotIn("- Implemented in settings.py (W1/S-1)", delta.modified_requirements["R-2"].added_lines)
+
+    def test_brownfield_monotonic_case_id_arch_spec_retention_and_ad_delta_in_case_spec(self) -> None:
+        home = self.repo / "docs/shiploop"
+        home.mkdir(parents=True, exist_ok=True)
+        (home / "spec.md").write_text(
+            "# Spec\n\n## Requirements\n\n### R-1: Base\n- Core.\n\n"
+            "## Non-functional requirements\n- NFR-1: Sub-second response.\n\n## Retired\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "architecture.md").write_text(
+            "# Architecture\n\n## Stack\n- Python 3.12\n\n## Structure\n- src/\n\n"
+            "## Conventions\n- Keep clean\n\n## Interfaces and boundaries\n- CLI\n\n"
+            "## Real-boundary checks\n- integration\n\n"
+            "## Decisions\n\n### AD-1: Store\n- SQLite.\n\n## Superseded\nnone\n",
+            encoding="utf-8",
+        )
+        (home / "environment.md").write_text("# Environment\n\n## Targets and runtimes\n- Py3\n", encoding="utf-8")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-qm", "brownfield repo without shiploop tags")
+
+        # Brownfield Run A starts at C-2; after committing with case_id="C-2", Run B monotonically advances to C-3.
+        self.assertEqual(knowledge.next_case_id(self.repo), "C-2")
+        s2 = {"repo": str(self.repo), "prompt": "Extend store", "run_id": "nav-aaaaaaaaaaaaaaaa", "case_id": "C-2"}
+        (home / "architecture.md").write_text(
+            (home / "architecture.md").read_text(encoding="utf-8").replace("- SQLite.", "- SQLite with WAL."),
+            encoding="utf-8",
+        )
+        self.assertTrue(knowledge.commit(s2, "plan").commit)
+        self.assertEqual(knowledge.next_case_id(self.repo), "C-3")
+
+        # Standing sections in architecture.md and spec.md cannot be emptied/dropped.
+        (home / "architecture.md").write_text(
+            (home / "architecture.md").read_text(encoding="utf-8").replace("## Stack\n- Python 3.12\n\n", ""),
+            encoding="utf-8",
+        )
+        self.assertIn("Stack", knowledge.check(s2, "plan"))
+        git(self.repo, "checkout", "--", "docs/shiploop/architecture.md")
+        (home / "spec.md").write_text(
+            (home / "spec.md").read_text(encoding="utf-8").replace("## Non-functional requirements\n- NFR-1: Sub-second response.", "## Non-functional requirements"),
+            encoding="utf-8",
+        )
+        self.assertIn("Non-functional requirements", knowledge.check(s2, "spec"))
+        git(self.repo, "checkout", "--", "docs/shiploop/spec.md")
+
+        # write_case_spec() renders line-level [-] / [+] diffs for modified AD-<n>.
+        root = Path(tempfile.mkdtemp(prefix="shiploop-ad-delta-"))
+        self.addCleanup(lambda: subprocess.run(["rm", "-rf", str(root)], check=False))
+        git(self.repo, "reset", "--soft", "HEAD~1")
+        git(self.repo, "restore", "--staged", "docs/shiploop/architecture.md")
+        git(self.repo, "checkout", "--", "docs/shiploop/architecture.md")
+        knowledge.record_baseline(root, s2)
+        (home / "architecture.md").write_text(
+            (home / "architecture.md").read_text(encoding="utf-8").replace("- SQLite.", "- SQLite with WAL."),
+            encoding="utf-8",
+        )
+        knowledge.write_case_spec(root, s2)
+        case_text = (root / knowledge.CASE_SPEC_FILE).read_text(encoding="utf-8")
+        self.assertIn("### AD-1 (full master context in KNOWLEDGE/architecture.md)", case_text)
+        self.assertIn("- `-` - SQLite.", case_text)
+        self.assertIn("- `+` - SQLite with WAL.", case_text)
+
 
 if __name__ == "__main__":
     unittest.main()

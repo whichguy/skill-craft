@@ -343,11 +343,13 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     # The baseline is HEAD, so an uncommitted drop cannot be smuggled past complete by committing through improve-commit
     # first (improve-commit calls check() before committing docs/shiploop/); knowledge gate also runs before commit gate.
     refusals = []
+    id_refused_files: set[str] = set()
     for name, ids, what, kind, section in _RETAINED:
         path = repo / HOME / name
         now = set(ids.findall(path.read_text(encoding="utf-8", errors="replace"))) if path.is_file() else set()
         dropped = sort_ids(set(ids.findall(_committed(repo, name))) - now)
         if dropped:
+            id_refused_files.add(name)
             prefix = dropped[0].split("-")[0]
             if command == "complete":
                 first = ("Restore the lost " + prefix + "-<n> in " + str(path) + " or move it under '" + section
@@ -362,34 +364,42 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
                          "then run complete again.")
             refusals.append(first + "\nThe " + what + " no longer mentions " + ", ".join(dropped) + ". Keep every earlier "
                             + kind + " ID: modify it in place, or move it under a '" + section + "' heading with the reason.")
-    env_name = "environment.md"
-    env_committed = _committed(repo, env_name)
-    env_path = repo / HOME / env_name
-    if env_committed.strip():
-        env_now = env_path.read_text(encoding="utf-8-sig", errors="replace") if env_path.is_file() else ""
-        if env_now != env_committed:
-            old_lines = env_committed.splitlines()
-            old_outline = _outline(old_lines)
-            now_lines = env_now.splitlines()
-            now_outline = _outline(now_lines)
-            lost_sections = [
-                heading for heading in SECTIONS[env_name]
-                if _section_state(old_lines, old_outline, heading) == "present"
-                and _section_state(now_lines, now_outline, heading) in ("missing", "empty")
-            ]
-            if lost_sections:
-                if command == "complete":
-                    first = ("Restore the lost section(s) in " + str(env_path)
-                             + " and update it in place, then run the same callback again.")
-                elif command in ("improve-commit", "improve-pass"):
-                    first = ("Restore the lost section(s) in " + str(env_path)
-                             + ", then run " + command + " again.")
-                else:
-                    first = ("Restore the lost section(s) in " + str(env_path)
-                             + "; if the review changed it, improve-commit it; then run complete again.")
-                refusals.append(first + "\nThe environment file dropped or emptied previously populated section(s): "
-                                + ", ".join(lost_sections)
-                                + ". Update existing sections in place instead of overwriting prior environment history.")
+    for target_name, headings, desc in (
+        ("environment.md", SECTIONS["environment.md"], "environment file"),
+        (ARCHITECTURE, tuple(h for h in SECTIONS[ARCHITECTURE] if h != "Superseded"), "architecture file"),
+        ("spec.md", ("Non-functional requirements",), "living spec"),
+    ):
+        if target_name in id_refused_files and target_name != "environment.md":
+            continue
+        target_committed = _committed(repo, target_name)
+        target_path = repo / HOME / target_name
+        if not target_committed.strip():
+            continue
+        target_now = target_path.read_text(encoding="utf-8-sig", errors="replace") if target_path.is_file() else ""
+        if target_now == target_committed:
+            continue
+        old_lines = target_committed.splitlines()
+        old_outline = _outline(old_lines)
+        now_lines = target_now.splitlines()
+        now_outline = _outline(now_lines)
+        lost_sections = [
+            heading for heading in headings
+            if _section_state(old_lines, old_outline, heading) == "present"
+            and _section_state(now_lines, now_outline, heading) in ("missing", "empty")
+        ]
+        if lost_sections:
+            if command == "complete":
+                first = ("Restore the lost section(s) in " + str(target_path)
+                         + " and update it in place, then run the same callback again.")
+            elif command in ("improve-commit", "improve-pass"):
+                first = ("Restore the lost section(s) in " + str(target_path)
+                         + ", then run " + command + " again.")
+            else:
+                first = ("Restore the lost section(s) in " + str(target_path)
+                         + "; if the review changed it, improve-commit it; then run complete again.")
+            refusals.append(first + "\nThe " + desc + " dropped or emptied previously populated section(s): "
+                            + ", ".join(lost_sections)
+                            + ". Update existing sections in place instead of overwriting prior history.")
     return "\n".join(refusals)
 
 
@@ -1025,19 +1035,20 @@ RUN_STARTING_KNOWLEDGE = "run-starting-knowledge.json"
 CASE_SPEC_FILE = "case-spec.md"
 _SPEC_DIFF_FILES = (HOME + "/spec.md", HOME + "/" + ARCHITECTURE)
 _SNAPSHOT_FILES = (HOME + "/spec.md", HOME + "/" + ARCHITECTURE, HOME + "/environment.md")
-_CASE_TAG = re.compile(r"(?:Case\s+|\()C-(\d+)\b")
+_CASE_TAG = re.compile(r"(?:Case:?\s+|\()C-(\d+)\b")
 _KNOWLEDGE_SUBJECT_SLUG = re.compile(r"^docs\(shiploop\): record (\S+) knowledge (?:at|after) ", re.M)
 
 
 def next_case_id(repo: Path) -> str:
     """Next monotonic Case Spec identifier (``C-1``, ``C-2``, …) for a run in ``repo``.
 
-    Scans committed ``spec.md`` and recent git commit messages for explicit Case tags
-    (``Case C-<n>`` or ``(C-<n> ...``) as well as distinct ShipLoop knowledge-commit
-    run slugs (``docs(shiploop): record <slug> knowledge ...``). If the checkout already
-    holds a committed ``docs/shiploop/spec.md`` without any ``C-<n>`` tag or knowledge
-    commit yet (e.g. brownfield upgrade), returns ``C-2`` so the follow-on run is
-    distinct from the initial master baseline.
+    Scans committed ``spec.md`` and ShipLoop/Case git history without an arbitrary commit
+    count cap for explicit Case tags (``Case C-<n>``, ``Case: C-<n>``, or ``(C-<n> ...``)
+    as well as distinct ShipLoop knowledge-commit run slugs
+    (``docs(shiploop): record <slug> knowledge ...``). If the checkout already holds a
+    committed ``docs/shiploop/spec.md`` without any ``C-<n>`` tag or knowledge commit yet
+    (e.g. brownfield upgrade), returns ``C-2`` so the follow-on run is distinct from the
+    initial master baseline.
     """
     repo = Path(repo)
     if not (repo / ".git").exists():
@@ -1049,7 +1060,14 @@ def next_case_id(repo: Path) -> str:
         for match in _CASE_TAG.finditer(committed_spec):
             highest = max(highest, int(match.group(1)))
     run_slugs = set()
-    log_out = _git(repo, "log", "-n", "200", "--format=%s%n%b")
+    log_out = _git(
+        repo,
+        "log",
+        "--format=%s%n%b",
+        "--grep=docs(shiploop): record ",
+        "--grep=Case: C-",
+        "--grep=Case C-",
+    )
     if log_out.returncode == 0 and log_out.stdout:
         for match in _CASE_TAG.finditer(log_out.stdout):
             highest = max(highest, int(match.group(1)))
@@ -1276,6 +1294,7 @@ class CaseDelta(NamedTuple):
     superseded_decisions: Tuple[str, ...]
     unchanged_decisions: Tuple[str, ...]
     environment_changed: bool
+    starting_environment_present: bool = False
 
 
 def _id_sort_key(ident: str) -> int:
@@ -1287,16 +1306,31 @@ def sort_ids(ids: Iterable[str]) -> List[str]:
     return sorted(ids, key=_id_sort_key)
 
 
-def _entry_line_delta(before_text: str, after_text: str) -> EntryDelta:
+_STEP_REFLECTION_MARK = re.compile(r"\((?:C-\d+\s+)?[A-Za-z][A-Za-z0-9_-]{0,63}/[^\s()]+\)\s*[.;]*$")
+
+
+def _entry_line_delta(before_text: str, after_text: str, *, ignore_step_marks: bool = False) -> EntryDelta:
     before_lines = before_text.splitlines()
     after_lines = after_text.splitlines()
     added: List[str] = []
     removed: List[str] = []
     for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, before_lines, after_lines, autojunk=False).get_opcodes():
         if tag in ("delete", "replace"):
-            removed.extend(line for line in before_lines[i1:i2] if line.strip())
+            for line in before_lines[i1:i2]:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if ignore_step_marks and _STEP_REFLECTION_MARK.search(stripped):
+                    continue
+                removed.append(line)
         if tag in ("insert", "replace"):
-            added.extend(line for line in after_lines[j1:j2] if line.strip())
+            for line in after_lines[j1:j2]:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if ignore_step_marks and _STEP_REFLECTION_MARK.search(stripped):
+                    continue
+                added.append(line)
     return EntryDelta(tuple(added), tuple(removed))
 
 
@@ -1324,7 +1358,7 @@ def _classify_entries(before_text: str, after_text: str, prefix: str) -> Tuple[
         if cur is None or cur.retired:
             retired.append(ident)
         elif old.text != cur.text:
-            ed = _entry_line_delta(old.text, cur.text)
+            ed = _entry_line_delta(old.text, cur.text, ignore_step_marks=(prefix == "R"))
             if ed.added_lines or ed.removed_lines:
                 modified[ident] = ed
             else:
@@ -1376,6 +1410,7 @@ def case_delta(root: Path, state: Mapping[str, Any]) -> Optional[CaseDelta]:
         superseded_decisions=ad_sup,
         unchanged_decisions=ad_unchanged,
         environment_changed=(before_env != now_env),
+        starting_environment_present=bool(before_env.strip()),
     )
 
 
@@ -1442,7 +1477,12 @@ def write_case_spec(root: Path, state: Mapping[str, Any]) -> Optional[Path]:
             entry = arch_entries.get(ident)
             lines.append(f"- Added `{ident}`: " + (" ".join(entry.text.split())[:200] if entry else ""))
         for ident, edelta in delta.modified_decisions.items():
-            lines.append(f"- Modified `{ident}`: +" + str(len(edelta.added_lines)) + " / -" + str(len(edelta.removed_lines)) + " line(s)")
+            lines.append(f"### {ident} (full master context in KNOWLEDGE/architecture.md)")
+            for line in edelta.removed_lines:
+                lines.append("- `-` " + line)
+            for line in edelta.added_lines:
+                lines.append("- `+` " + line)
+            lines.append("")
         for ident in delta.superseded_decisions:
             lines.append(f"- Superseded `{ident}`")
     lines += ["", "## Unchanged Master Requirements (Preserve & Regression-Check Only — Do Not Reimplement)", ""]
@@ -1475,6 +1515,10 @@ def commit(state: Mapping[str, Any], stage: str, open_items: Sequence[Any] = ())
     message = knowledge_subject(state, stage)
     if lessons is not None:
         message += "\n\n" + lessons_body(lessons, open_items)
+    else:
+        case_id = str(state.get("case_id") or "").strip()
+        if re.fullmatch(r"C-\d+", case_id):
+            message += "\n\nCase: " + case_id
     try:
         done = shiploop_git.commit_paths(repo, list(KNOWLEDGE), message) if changed else shiploop_git.Committed("", [])
         if lessons is not None and not done.commit:
