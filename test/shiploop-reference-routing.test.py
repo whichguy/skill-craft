@@ -242,6 +242,8 @@ class ReferenceRoutingTests(unittest.TestCase):
             ("research-loop.md", "navigator-execution-mode-adapter"),
             ("execution-planning.md", "initial-repository-baseline"),
             ("improve-context.md", "default-route-the-parent-runs-improve-delegation-inline"),
+            ("lint-catalog.md", "preparing-and-evaluating-linters"),
+            ("lint-catalog.md", "when-it-runs"),
             ("planning-experiments.md", None),
         ):
             self.assertIn(expected, seen)

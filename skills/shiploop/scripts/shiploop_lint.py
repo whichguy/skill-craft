@@ -5,7 +5,9 @@ ShipLoop runs this pass itself at INNER points.  The ``complete`` that submits
 an implement step, the test stage or a step's document stage as done, and the
 import of the step's review, run the gate (``gate``): it lints every file changed
 since the gate's base, applies safe fixes, and refuses the submission once after
-applying a fix and while a new finding on a changed line has no waiver.  The
+applying a fix and while a new finding on a changed line, a base-compared new
+regression elsewhere in a changed file (such as a newly unused import/variable),
+or a Tier-0 Python shadowed top-level ``def``/``class`` definition has no waiver.  The
 implement and test gates measure from the step's base; document's and the
 review's from the tree that stage began from (design T §8.2a).
 Records live under ``<run>/lint/`` and never enter checks, manifests,
@@ -2779,9 +2781,11 @@ def gate(repo: Path, run_dir: Path, *, action: str, work_item: str, run_option: 
     Returns (record writes, payload to finalize, refusal text).  An empty
     refusal accepts the submission.  The submission is refused once after an
     auto-fix (the step's earlier check results are stale for the fixed files)
-    and while a new finding on a line the item changed has no waiver.  A pass
-    that cannot run, tool errors, timeouts, uncovered files and findings
-    elsewhere never refuse: the record says what happened.
+    and while a new finding on a line the item changed, a base-compared new
+    regression elsewhere in a changed file, or a Tier-0 Python shadowed
+    top-level definition has no waiver.  Pre-existing at-base findings,
+    uncompared repo-linter findings outside changed lines, a pass
+    that cannot run, tool errors, timeouts and uncovered files never refuse: the record says what happened.
     """
     run_dir = Path(run_dir)
     number = 1

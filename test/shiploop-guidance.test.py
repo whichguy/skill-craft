@@ -3852,6 +3852,44 @@ class ProgressiveStateArrivalElaborationTests(unittest.TestCase):
         self.assertIn("base-compared new regression elsewhere in a changed file", catalog)
         self.assertIn("Python shadowed top-level `def`/`class` check", catalog)
 
+    def test_lint_catalog_is_synchronized_and_routed_to_preparation_and_inner_stages(self) -> None:
+        raw_catalog = (REFERENCES / "lint-catalog.md").read_text(encoding="utf-8")
+        raw_options = (REFERENCES / "run-options.md").read_text(encoding="utf-8")
+        match = re.search(r"```shiploop-state\s*\n(\{.*?\})\s*\n```", raw_catalog, re.S)
+        self.assertIsNotNone(match)
+        catalog_data = json.loads(match.group(1))
+        tools_section = normalized(raw_catalog.split("## Tools", 1)[1].split("## Not run by ShipLoop", 1)[0])
+        options_lint = normalized(raw_options.split("## Script-owned lint", 1)[1].split("\n## ", 1)[0])
+
+        for row in catalog_data["discovered"]:
+            with self.subTest(linter=row["name"]):
+                self.assertIn(row["name"], tools_section)
+                self.assertIn(row["name"], options_lint)
+
+        for label, text in (("lint-catalog.md", normalized(raw_catalog)), ("run-options.md", normalized(raw_options))):
+            with self.subTest(reference=label):
+                self.assertNotIn("Findings present at the base or elsewhere in a file", text)
+        self.assertIn("base-compared new regression elsewhere in a changed file", options_lint)
+        self.assertIn("Tier-0 Python shadowed top-level", options_lint)
+
+        expected_routes = {
+            "discovery": ("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"),
+            "prepare": ("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"),
+            "step-plan": ("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"),
+            "implement": ("Lint catalog", "lint-catalog.md#when-it-runs"),
+            "test": ("Lint catalog", "lint-catalog.md#when-it-runs"),
+            "document": ("Lint catalog", "lint-catalog.md#when-it-runs"),
+        }
+        for stage, route in expected_routes.items():
+            with self.subTest(stage=stage):
+                self.assertIn(route, prompts.STAGE_REFERENCES[stage])
+                self.assertIn("Lint catalog", prompts.prompt(stage, delegation=prompts.INLINE))
+        self.assertIn(("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"), run_reference.POLICIES)
+
+        for doc_name in ("guide-map.md", "coding-guidance.md", "inner-loop.md"):
+            with self.subTest(doc=doc_name):
+                self.assertIn("lint-catalog.md", (REFERENCES / doc_name).read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

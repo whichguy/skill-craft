@@ -276,6 +276,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Environment and source-return discovery", "environment-lifecycle.md#discover-before-planning-code"),
         ("Delivery authority guidance", "delivery-authority.md#ask-at-the-first-concrete-boundary"),
         ("House-style guidance", "house-style.md#extract-the-house-style"),
+        ("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"),
     ),
     "research": (
         ("Access-readiness policy", "research-loop.md#early-access-readiness"),
@@ -317,6 +318,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
     "prepare": (
         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
         ("Workspace and return guidance", "workspace-lifecycle.md#entry-identity-and-storage"),
+        ("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"),
     ),
     "step-plan": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
@@ -329,6 +331,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
         ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
+        ("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"),
     ),
     "test-spec": (
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
@@ -344,16 +347,19 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("House-style guidance", "house-style.md#match-while-building"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
+        ("Lint catalog", "lint-catalog.md#when-it-runs"),
     ),
     "test": (
         ("Repeatable test-suite guide", "repeatable-test-suites.md#select-or-revalidate-the-harness"),
         ("Target-native test selection", "repeatable-test-suites.md#select-target-native-tests"),
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
         ("Real-boundary test guidance", "testing-and-documentation.md#layers-and-real-boundaries"),
+        ("Lint catalog", "lint-catalog.md#when-it-runs"),
     ),
     "document": (
         ("Documentation guidance", "testing-and-documentation.md#documentation"),
         ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
+        ("Lint catalog", "lint-catalog.md#when-it-runs"),
     ),
     "reflect-and-revise": (
         ("Current-system baseline guide", "current-system-baseline.md#retain-across-runs"),
@@ -1015,7 +1021,7 @@ DUTIES = {
    KNOWLEDGE/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
    - ## Targets and runtimes: development, test, integration and delivery boundaries; runtime and dependency
      versions; the platform guide each target follows (GUIDES/platforms/<name>.md), or none;
-   - ## Commands: linters, formatters, type checkers, test runners;
+   - ## Commands: linters, formatters, type checkers, test runners (Lint catalog);
    - ## Platform facts: conventions, canonical code and test examples, MCP and API contracts, reusable libraries,
      house style (House-style guidance).
    Install and provision nothing.
@@ -1500,7 +1506,7 @@ DUTIES = {
 2. Confirm by safe observation: isolation, runtime, configuration and data safety, access, fixture readiness,
    baseline identity (Workspace and return guidance).
 3. Start each planned check's runner, the linters and the fixtures in their no-op form (a listing, dry run or help
-   that proves it starts, not the suite); save the output and list each file in `evidence_refs`. Confirm recorded test
+   that proves it starts, not the suite); save the output and list each file in `evidence_refs` (Lint catalog). Confirm recorded test
    commands emit a readable summary reporter or plain TAP stream (never dot/junit alone) so ShipLoop counts executed
    tests. Set up the harness
    of each Test layers row marked `prerequisite` (the repository's own tooling, within authority), run one test with
@@ -1589,7 +1595,7 @@ Change no product file in this stage.
      (unless superseded with explanation in `summary`); only the fast one marked `"minimum": true` runs before the
      last step (none: `minimum_na`).
    - check: the lint, type and build commands KNOWLEDGE/environment.md records for these files, judged by exit code, no
-     `ids` or `min_tests`; each safe to repeat locally. None: `check_na` with the reason; no command at all: `test_commands_na`.
+     `ids` or `min_tests`; each safe to repeat locally (include any stack outside the Lint catalog). None: `check_na` with the reason; no command at all: `test_commands_na`.
    - Cover behaviour this item adds or changes with repeatable executable test scripts run by a suite runner—never
      prompt-only or interactive-only checks—reserving `check` for lint, type, build or trivial text checks.
    - Every criterion is named in some command's `criteria`, and a command names only listed criteria.
@@ -1706,7 +1712,7 @@ preparatory commit); a mismatch there is a send-back.
    only when a check fails or a question needs one section. Apply Code craft and House-style guidance. Use each
    listed step skill for its purpose (invoke it, or read its SKILL.md and follow it); the summary says per skill
    whether you used it, and why not.
-3. **Check.** After each meaningful change run the step's Proof (the Step block) and `shiploop lint --action`; write
+3. **Check.** After each meaningful change run the step's Proof (the Step block) and `shiploop lint --action` (Lint catalog); write
    each exit code in RUN/notes/<action>.md. Clear every new lint regression across touched files—including newly unused
    imports/variables left elsewhere in a file after edits and shadowed top-level definitions—and reuse or consolidate
    an existing sibling helper within scope rather than adding a duplicate copy (without reformatting unrelated code).
@@ -1764,7 +1770,7 @@ preparatory commit); a mismatch there is a send-back.
    and an invalid case. Test a new error path or debug output, on and off, with safe diagnostic context. When runtime
    behaviour is ambiguous, run bounded diagnostic probes saved under `RUN/experiments/`.
 4. **Run, fix & triage (Beat 2).** After each change run every recorded command, the red-check command and the lint
-   command. Clear any new lint regressions in files you edit (including newly unused imports or variables) before
+   command (Lint catalog). Clear any new lint regressions in files you edit (including newly unused imports or variables) before
    reporting done. Find each failure's cause with one small observation (product defect, invalid test, environment) and fix
    the product. Change a test, fixture, golden file or threshold only for an independent reason written in
    RUN/notes/<action>.md. Never weaken, delete or skip a test to get green. A repeated unchanged failure is not
@@ -1827,7 +1833,7 @@ preparatory commit); a mismatch there is a send-back.
    it or why it needed no change.
 4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
    as-of baseline (Current-system baseline guide).
-5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
+5. **Reread** every changed document and run its commands and examples (the Lint catalog gate runs on done). In RUN/notes/<action>.md record why a
    behaviour needs no documentation, why the README did not change, or why an example cannot run here.
 6. **Commit nothing yourself.** """ + _ITEM_COMMIT + """
 7. Plan or criterion wrong as observed: report send-back naming it. Non-final `Sk` valid with remaining steps needing

@@ -37,6 +37,10 @@ existing result/review notes; the guide does not change stage order or edit auth
 Use [house style](house-style.md) to extract the repository's evidenced
 coding conventions at discovery, carry each item's nearest exemplars as a match
 contract from step planning through build and verification, and keep the record current.
+Use the [lint catalog](lint-catalog.md#preparing-and-evaluating-linters) during
+discovery, preparation, step planning, and inner-loop execution to identify active
+linters, verify no-op tool readiness, wire `check` commands for stacks outside the
+automatic catalog, and interpret gate findings.
 During discovery and planning, use [service discovery](service-discovery.md#select-scope)
 to assess owned observability for local or remote flows and, when relevant, follow
 MCP/API boundaries into schema, query, cache and asynchronous service needs.
@@ -59,7 +63,11 @@ folders are left in place and no longer required, written or named.
 At `prepare`, `release-plan` and `release-verify`, ShipLoop
 refuses `done` until that close's files exist,
 refuses a living spec or architecture whose uncommitted version drops an earlier committed
-ID (an edit a review already committed through `improve-commit` is not seen), and commits exactly
+ID (an edit a review already committed through `improve-commit` is not seen),
+refuses uncommitted `environment.md` edits that drop or blank previously populated `##`
+sections, derives `RUN/case-spec.md` (`C-<n>`) from `run-starting-knowledge.json` so
+follow-on planning acts on the incremental delta without reimplementing unchanged master
+requirements, and commits exactly
 `docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
 ShipLoop runs the same ID check and commits it too, so never
 commit it yourself. The `release-verify` commit is always made: its body is the

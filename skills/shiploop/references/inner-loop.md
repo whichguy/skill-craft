@@ -15,8 +15,10 @@ Each work item runs 7 stages in 4 phases (`INNER` in
 | Reflect and revise | `reflect-and-revise` |
 
 - `step-plan` records the item's `steps`, `paths`, `criteria`, test commands
-  (with at least one check command, or `check_na`), `expectations` and each
-  step's helper `skills` ([test loop](test-loop.md#test-loop), [expectations](#expectations-and-validate-existing)).
+  (with at least one `check` command per [lint catalog](lint-catalog.md#preparing-and-evaluating-linters),
+  or `check_na`), `expectations`, follow-on delta scoping against
+  `RUN/case-spec.md`, and each step's helper `skills` ([test loop](test-loop.md#test-loop),
+  [expectations](#expectations-and-validate-existing)).
 - `test-spec` writes one `### <ID>` case per criterion a test confirms, before any
   code changes; ShipLoop refuses a case ID that no focused command lists, and a
   focused ID with no case. The cases follow this step; the plan keeps every primary
@@ -25,13 +27,15 @@ Each work item runs 7 stages in 4 phases (`INNER` in
   by `system-test-author`); criteria confirmed `searched` or `inspected` go under
   `## Not tested here`.
 - `validate-existing` confirms the expectations on the unchanged checkout.
-- `implement` builds one step per action; the lint gate runs on every step.
-- `test` writes the step's tests and makes every recorded command pass, then
-  ShipLoop runs its base and candidate runs.
+- `implement` builds one step per action; the [lint gate](lint-catalog.md#when-it-runs)
+  runs on every step.
+- `test` writes the step's tests, clears gating lint regressions on touched files,
+  and makes every recorded command pass; at `done` the [lint gate](lint-catalog.md#when-it-runs)
+  runs before ShipLoop runs its base and candidate runs.
 - `document` is issued only when the step's diff touches a code or test path
   (`item_scope.behavioural`), else recorded not applicable. It updates the docs
-  and records what the step showed in KNOWLEDGE; at done ShipLoop lints its lines
-  and reruns what its edits could affect. Improve then reviews the step, tracing
+  and records what the step showed in KNOWLEDGE; at `done` the [lint gate](lint-catalog.md#when-it-runs)
+  runs on its lines before ShipLoop reruns what its edits could affect. Improve then reviews the step, tracing
   each changed entry point, and ShipLoop commits it
   ([commit stage](navigator.md#step-commits)). `verify` is retired.
 - `reflect-and-revise` updates the knowledge home and queue and records a

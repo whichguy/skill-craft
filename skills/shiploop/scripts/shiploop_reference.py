@@ -53,6 +53,7 @@ POLICIES = (
     ("Interaction design guide", "behavioral-requirements.md#actors-channels-and-state-ownership"),
     ("Worktree and artifact policy", "workspace-lifecycle.md"),
     ("Navigator contract", "navigator.md"),
+    ("Lint catalog", "lint-catalog.md#preparing-and-evaluating-linters"),
 )
 
 # The ownership model a packet's shape implies (owner, 2026-11-05).  This lived only in the skill card, which a

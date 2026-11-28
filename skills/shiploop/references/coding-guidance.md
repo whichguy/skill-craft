@@ -33,6 +33,8 @@ change.
 
 | Read this card | When the change involves |
 | --- | --- |
+| [House style](house-style.md) | Matching repository naming, layout, and idioms. |
+| [Lint catalog](lint-catalog.md#preparing-and-evaluating-linters) | Static lint coverage, linter preparation, check commands, or gate findings. |
 | [Existing behavior](coding-practices.md#existing-behavior) | Established path or precedent. |
 | [Documentation](coding-practices.md#documentation) | Contract, recovery, public behavior, or example. |
 | [Libraries](coding-practices.md#libraries) | Dependency, helper, adapter, or upgrade. |
